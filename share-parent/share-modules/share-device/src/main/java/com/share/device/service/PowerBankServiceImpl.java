@@ -18,7 +18,7 @@ public class PowerBankServiceImpl extends ServiceImpl<PowerBankMapper,PowerBank>
 
     @Override
     public List<PowerBank> selectPowerBankList(PowerBank powerBank) {
-        System.out.println("11");
+
         return powerBankMapper.selectPowerBankList(powerBank);
     }
 
