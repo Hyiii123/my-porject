@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class PowerBankServiceImpl extends ServiceImpl<PowerBankMapper,PowerBank> implements IPowerBankService{
@@ -39,7 +40,19 @@ public class PowerBankServiceImpl extends ServiceImpl<PowerBankMapper,PowerBank>
 
     @Override
     public int updatePowerBank(PowerBank powerBank) {
-        
-        return 0;
+        PowerBank oldPowerBank = this.getById(powerBank.getId());
+        if (oldPowerBank!=null&& !"0".equals(powerBank.getStatus())){
+            throw new ServiceException("该充电宝已投放，无法修改");
+        }
+
+        if (oldPowerBank != null && !Objects.equals(oldPowerBank.getPowerBankNo(), powerBank.getPowerBankNo())) {
+            long count = this.count(new LambdaQueryWrapper<PowerBank>().eq(PowerBank::getPowerBankNo, powerBank.getPowerBankNo()));
+            if (count > 0) {
+                throw new ServiceException("该充电宝编号已存在");
+            }
+        }
+
+        powerBankMapper.updateById(powerBank);
+        return 1;
     }
 }
