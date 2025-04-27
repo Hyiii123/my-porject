@@ -7,8 +7,10 @@ import com.share.device.domain.Station;
 import com.share.device.mapper.StationMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,9 @@ public class StationServiceImpl extends ServiceImpl<StationMapper, Station> impl
 
     @Autowired
     private ICabinetService iCabinetService;
+
+    @Autowired
+    private StationLocationRepository stationLocationRepository;
 
     @Override
     public List<Station> selectStationList(Station station) {
@@ -43,5 +48,23 @@ public class StationServiceImpl extends ServiceImpl<StationMapper, Station> impl
 
 
         return list;
+    }
+
+    @Override
+    public int saveStation(Station station) {
+        return stationMapper.insert(station);
+    }
+
+    @Override
+    public int updateStation(Station station) {
+        return 0;
+    }
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public boolean removeByIds(Collection<?> list) {
+        for (Object id : list) {
+            stationLocationRepository.deleteByStationId(Long.parseLong(id.toString()));
+        }
+        return super.removeByIds(list);
     }
 }
