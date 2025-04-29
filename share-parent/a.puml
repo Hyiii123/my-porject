@@ -1,0 +1,12 @@
+@startuml
+title 功能模块图 - U-Net医学图像分割
+
+start
+:数据处理模块（Dataset）;
+:模型基础模块（unet,transform）;
+:模型训练模块（train）;
+:测试与评估推理模块（inference）;
+:分割结果生成模块（result）;
+stop
+
+@enduml

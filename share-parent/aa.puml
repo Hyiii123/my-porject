@@ -1,0 +1,66 @@
+@startuml
+title U-Net医学图像分割
+
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam nodesep 10
+skinparam ranksep 10
+skinparam dpi 150
+
+package "主程序 Main" {
+    [main(args)]
+    [makedirs]
+    [snapshotargs]
+    [data_loaders]
+    [datasets]
+}
+
+package "数据模块 Data" {
+    [BrainSegmentationDataset]
+    [DataLoader]
+}
+
+package "模型模块 Model" {
+    [UNet]
+    [DiceLoss]
+}
+
+package "训练验证模块 Train/Valid" {
+    [训练循环]
+    [验证循环]
+    [反向传播优化]
+    [DSC计算]
+}
+
+package "日志模块 Logger" {
+    [Logger]
+    [log_loss_summary]
+    [log_images]
+}
+
+' 主流程
+[main(args)] --> [makedirs]
+[main(args)] --> [snapshotargs]
+[main(args)] --> [data_loaders]
+[main(args)] --> [datasets]
+[main(args)] --> [UNet]
+[main(args)] --> [DiceLoss]
+[main(args)] --> [Logger]
+[main(args)] --> [训练循环]
+[main(args)] --> [验证循环]
+
+' 数据
+[data_loaders] --> [DataLoader]
+[datasets] --> [BrainSegmentationDataset]
+
+' 训练和验证
+[训练循环] --> [反向传播优化]
+[验证循环] --> [DSC计算]
+[训练循环] --> [log_loss_summary]
+[验证循环] --> [log_loss_summary]
+
+' 日志
+[Logger] --> [log_images]
+[Logger] --> [log_loss_summary]
+
+@enduml

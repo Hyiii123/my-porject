@@ -1,0 +1,35 @@
+@startuml
+title 数据处理模块Dataset
+
+package "Dataset" {
+
+  [数据读取模块] --> [患者数据组织模块]
+
+  [患者数据组织模块] --> [数据划分模块 (train/validation)]
+
+  [数据划分模块 (train/validation)] --> [数据预处理模块]
+
+  package "数据预处理模块" {
+    [裁剪 crop_sample]
+    [填充 pad_sample]
+    [缩放 resize_sample]
+    [归一化 normalize_volume]
+  }
+
+  [数据预处理模块] --> [切片权重计算模块]
+
+  [切片权重计算模块] --> [索引构建模块]
+
+  [索引构建模块] --> [数据采样模块]
+
+  package "数据采样模块" {
+    [随机采样 or 顺序采样]
+    [应用transform（可选）]
+    [转为张量Tensor]
+  }
+
+  [数据采样模块] --> [输出模块(image_tensor, mask_tensor)]
+
+}
+
+@enduml

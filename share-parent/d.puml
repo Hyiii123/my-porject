@@ -1,0 +1,50 @@
+@startuml
+title BrainSegmentationDataset - 数据流图
+
+start
+
+:指定 images_dir 路径;
+:遍历目录，读取图像(.tif)和掩膜(mask);
+
+if (subset == 'train' or 'validation') then (是)
+    :随机划分患者数据集;
+endif
+
+:对每个患者volume进行处理:
+split
+    :crop_sample - 裁剪有效区域;
+
+    :pad_sample - 填充为正方形;
+
+    :resize_sample - 缩放至指定大小(如256x256);
+
+    :normalize_volume - 通道归一化;
+
+
+:为掩膜添加通道维度;
+
+:计算切片权重(按掩膜面积加权);
+
+:建立(患者,切片)索引表;
+
+repeat
+    if (random_sampling==True) then (是)
+        :随机选择患者及切片;
+    else
+        :顺序选择患者及切片;
+    endif
+
+    :提取单张 image 和 mask 切片;
+
+    if (存在 transform) then (是)
+        :应用数据增强 transform;
+    endif
+
+    :转置维度 (C,H,W);
+    :转换为torch.Tensor;
+    :输出 (image_tensor, mask_tensor);
+repeat while (训练进行中)
+
+stop
+
+@enduml

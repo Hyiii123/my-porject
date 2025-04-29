@@ -1,0 +1,30 @@
+@startuml
+package "Training Pipeline" {
+    [main] --> [makedirs]
+    [main] --> [snapshotargs]
+    [main] --> [data_loaders]
+    [Dataset] --> [transforms]
+    [main] --> [Logger]
+    [main] --> [UNet]
+    [main] --> [DiceLoss]
+    [main] --> [Adam Optimizer]
+    [main] --> [log_loss_summary]
+}
+
+package "Model" {
+    [UNet] --> [torch.nn.Module]
+}
+
+package "Loss" {
+    [DiceLoss] --> [torch.nn.Module]
+}
+
+package "Utils" {
+    [log_images]
+    [dsc]
+}
+
+[Logger] --> [log_loss_summary]
+[Logger] --> [log_images]
+
+@enduml
