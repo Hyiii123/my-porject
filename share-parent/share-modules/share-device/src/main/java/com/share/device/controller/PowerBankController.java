@@ -39,8 +39,8 @@ public class PowerBankController extends BaseController {
     }
 
     @Operation(summary = "删除充电宝")
-    @DeleteMapping("/{ids}}")
-    public AjaxResult delete(@PathVariable("id") Long[] ids){
+    @DeleteMapping("/{ids}")
+    public AjaxResult delete(@PathVariable Long[] ids){
         return toAjax(iPowerBankService.removeBatchByIds(Arrays.asList(ids)));
     }
 

@@ -63,6 +63,12 @@
             <artifactId>share-common-datascope</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <version>3.5.5</version>
+        </dependency>
+
         <!-- RuoYi Common Log -->
         <dependency>
             <groupId>com.share</groupId>

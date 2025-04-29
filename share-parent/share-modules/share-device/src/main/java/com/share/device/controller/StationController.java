@@ -42,17 +42,12 @@ public class StationController extends BaseController {
         return getDataTable(stations);
     }
 
-    @Operation(summary = "获取站点详细信息")
-    @GetMapping("/{id}")
-    public AjaxResult selectStation(@PathVariable("id") Long id){
-        return success(iStationService.getById(id));
-    }
+//    @Operation(summary = "获取站点详细信息")
+//    @GetMapping("/{id}")
+//    public AjaxResult selectStation(@PathVariable("id") Long id){
+//        return success(iStationService.getById(id));
+//    }
 
-    @Operation(summary = "删除站点")
-    @DeleteMapping("/{ids}")
-    public AjaxResult deleteStation(@PathVariable Long[] ids){
-        return toAjax(iStationService.removeBatchByIds(Arrays.asList(ids)));
-    }
     @Operation(summary = "站点设置关联数据")
     @PostMapping("/setData")
     public AjaxResult setData(@RequestBody Station station)
