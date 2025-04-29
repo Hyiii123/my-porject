@@ -1,11 +1,13 @@
 package com.share.device.service;
 
+import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.share.common.core.exception.ServiceException;
 import com.share.common.security.utils.SecurityUtils;
 import com.share.device.domain.Cabinet;
 import com.share.device.domain.CabinetType;
+import com.share.device.domain.PowerBank;
 import com.share.device.mapper.CabinetMapper;
 import com.share.device.mapper.CabinetTypeMapper;
 import com.share.device.mapper.CabinetSlotMapper;
@@ -17,6 +19,8 @@ import com.share.device.domain.CabinetSlot;
 import javax.sql.rowset.serial.SerialException;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class CabinetServiceImpl extends ServiceImpl<CabinetMapper, Cabinet> implements ICabinetService
@@ -26,6 +30,7 @@ public class CabinetServiceImpl extends ServiceImpl<CabinetMapper, Cabinet> impl
     private CabinetMapper cabinetMapper;
     private CabinetTypeMapper cabinetTypeMapper;
     private CabinetSlotMapper cabinetSlotMapper;
+    private IPowerBankService powerBankService;
 
     //初始化柜机
     public void setCabinet(Cabinet cabinet,CabinetType cabinetType){
@@ -147,5 +152,24 @@ public class CabinetServiceImpl extends ServiceImpl<CabinetMapper, Cabinet> impl
                 .like(Cabinet::getCabinetNo, keyword)
                 .eq(Cabinet::getStatus, "0")
         );
+    }
+
+    @Override
+    public Map<String, Object> getAllInfo(Long id) {
+        // 查询柜机信息
+        Cabinet cabinet = this.getById(id);
+
+        // 查询插槽信息
+        List<CabinetSlot> cabinetSlotList = cabinetSlotMapper.selectList(new LambdaQueryWrapper<CabinetSlot>().eq(CabinetSlot::getCabinetId, cabinet.getId()));
+        // 获取可用充电宝id列表
+        List<Long> powerBankIdList = cabinetSlotList.stream().filter(item -> null != item.getPowerBankId()).map(CabinetSlot::getPowerBankId).collect(Collectors.toList());
+        if(!CollectionUtils.isEmpty(powerBankIdList)) {
+            List<PowerBank> powerBankList = powerBankService.listByIds(powerBankIdList);
+            Map<Long,PowerBank> powerBankIdToPowerBankMap = powerBankList.stream().collect(Collectors.toMap(PowerBank::getId, PowerBank -> PowerBank));
+            cabinetSlotList.forEach(item -> item.setPowerBank(powerBankIdToPowerBankMap.get(item.getPowerBankId())));
+        }
+
+        Map<String, Object> result = Map.of("cabinet", cabinet, "cabinetSlotList", cabinetSlotList);
+        return result;
     }
 }

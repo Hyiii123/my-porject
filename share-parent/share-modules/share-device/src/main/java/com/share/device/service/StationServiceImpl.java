@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.share.device.domain.Cabinet;
 import com.share.device.domain.Station;
 import com.share.device.mapper.StationMapper;
+import com.share.device.repository.StationLocationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,9 @@ public class StationServiceImpl extends ServiceImpl<StationMapper, Station> impl
 
     @Autowired
     private ICabinetService iCabinetService;
+
+    @Autowired
+    private IRegionService iRegionService;
 
     @Autowired
     private StationLocationRepository stationLocationRepository;
@@ -52,13 +56,36 @@ public class StationServiceImpl extends ServiceImpl<StationMapper, Station> impl
 
     @Override
     public int saveStation(Station station) {
-        return stationMapper.insert(station);
+        String CityName = iRegionService.getNameByCode(station.getCityCode());
+        String DistrictName = iRegionService.getNameByCode(station.getDistrictCode());
+        String Province = iRegionService.getNameByCode(station.getProvinceCode());
+        station.setFullAddress(CityName+DistrictName+Province+station.getAddress());
+        this.save(station);
+        return 1;
     }
 
     @Override
     public int updateStation(Station station) {
+        String CityName = iRegionService.getNameByCode(station.getCityCode());
+        String DistrictName = iRegionService.getNameByCode(station.getDistrictCode());
+        String Province = iRegionService.getNameByCode(station.getProvinceCode());
+        station.setFullAddress(CityName+DistrictName+Province+station.getAddress());
+        this.updateById(station);
         return 0;
     }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public int setData(Station station) {
+        this.updateById(station);
+
+        //更正柜机使用状态
+        Cabinet cabinet = iCabinetService.getById(station.getCabinetId());
+        cabinet.setStatus("1");
+        iCabinetService.updateById(cabinet);
+        return 1;
+    }
+
     @Transactional(rollbackFor = Exception.class)
     @Override
     public boolean removeByIds(Collection<?> list) {
@@ -67,4 +94,6 @@ public class StationServiceImpl extends ServiceImpl<StationMapper, Station> impl
         }
         return super.removeByIds(list);
     }
+
+
 }

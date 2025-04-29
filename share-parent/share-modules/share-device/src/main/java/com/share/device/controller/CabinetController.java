@@ -60,10 +60,17 @@ public class CabinetController extends BaseController
     {
         return toAjax(cabinetService.removeBatchByIds(Arrays.asList(ids)));
     }
+
     @Operation(summary = "搜索未使用的柜机")
     @GetMapping("/searchNoUseCabinet/{keyword}")
     public AjaxResult searchNoUserCabinetList(@PathVariable String keyword){
         return success(cabinetService.searchNoUseList(keyword));
     }
 
+    @Operation(summary = "获取充电宝柜机全部详细信息")
+    @GetMapping(value = "/getAllInfo/{id}")
+    public AjaxResult getAllInfo(@PathVariable("id") Long id)
+    {
+        return success(cabinetService.getAllInfo(id));
+    }
 }

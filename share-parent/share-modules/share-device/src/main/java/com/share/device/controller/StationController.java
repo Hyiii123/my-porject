@@ -57,6 +57,22 @@ public class StationController extends BaseController {
     @PostMapping("/setData")
     public AjaxResult setData(@RequestBody Station station)
     {
-        return toAjax(IStationService.setData(station));
+        return toAjax(iStationService.setData(station));
     }
+
+    @Operation(summary = "获取站点详细信息")
+    @GetMapping(value = "/{id}")
+    public AjaxResult getInfo(@PathVariable("id") Long id)
+    {
+        return success(iStationService.getById(id));
+    }
+
+    @Operation(summary = "删除站点")
+    @DeleteMapping("/{ids}")
+    public AjaxResult remove(@PathVariable Long[] ids)
+    {
+        return toAjax(iStationService.removeBatchByIds(Arrays.asList(ids)));
+    }
+
+
 }
