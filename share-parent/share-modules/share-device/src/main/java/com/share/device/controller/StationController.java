@@ -69,5 +69,11 @@ public class StationController extends BaseController {
         return toAjax(iStationService.removeBatchByIds(Arrays.asList(ids)));
     }
 
+    @Operation(summary = "更新初始化数据")
+    @GetMapping("/updateData")
+    public AjaxResult updateData(){
+        iStationService.updateData();
+        return success();
+    }
 
 }

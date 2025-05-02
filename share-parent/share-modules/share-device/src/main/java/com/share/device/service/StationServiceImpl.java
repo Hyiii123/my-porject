@@ -4,17 +4,17 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.share.device.domain.Cabinet;
 import com.share.device.domain.Station;
+import com.share.device.domain.StationLocation;
 import com.share.device.mapper.StationMapper;
 import com.share.device.repository.StationLocationRepository;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,6 +61,19 @@ public class StationServiceImpl extends ServiceImpl<StationMapper, Station> impl
         String Province = iRegionService.getNameByCode(station.getProvinceCode());
         station.setFullAddress(CityName+DistrictName+Province+station.getAddress());
         this.save(station);
+        //同步到mongodb
+
+        StationLocation stationLocation=new StationLocation();
+
+        stationLocation.setId(ObjectId.get().toString());
+
+        stationLocation.setStationId(station.getId());
+        stationLocation.setLocation(new GeoJsonPoint(
+                station.getLatitude().doubleValue(),
+                station.getLongitude().doubleValue()));
+
+        stationLocation.setCreateTime(new Date());
+        stationLocationRepository.save(stationLocation);
         return 1;
     }
 
@@ -71,6 +84,15 @@ public class StationServiceImpl extends ServiceImpl<StationMapper, Station> impl
         String Province = iRegionService.getNameByCode(station.getProvinceCode());
         station.setFullAddress(CityName+DistrictName+Province+station.getAddress());
         this.updateById(station);
+
+        //同步数据到mongodb
+        StationLocation stationLocation = stationLocationRepository.getByStationId(station.getId());
+        stationLocation.setCreateTime(new Date());
+        stationLocation.setLocation(new GeoJsonPoint(
+                station.getLatitude().doubleValue(),
+                station.getLongitude().doubleValue()
+        ));
+        stationLocationRepository.save(stationLocation);
         return 0;
     }
 
@@ -86,6 +108,30 @@ public class StationServiceImpl extends ServiceImpl<StationMapper, Station> impl
         return 1;
     }
 
+    @Override
+    public void updateData() {
+        List<Station> stationList = this.list();
+        for (Station station:stationList){
+            StationLocation stationLocation = stationLocationRepository.getByStationId(station.getId());
+
+            if (stationLocation==null){
+                stationLocation=new StationLocation();
+                stationLocation.setId(ObjectId.get().toString());
+
+                stationLocation.setStationId(station.getId());
+
+                stationLocation.setLocation(new GeoJsonPoint(
+                        station.getLatitude().doubleValue(),
+                        station.getLongitude().doubleValue()
+                ));
+
+                stationLocation.setCreateTime(new Date());
+                stationLocationRepository.save(stationLocation);
+            }
+
+        }
+    }
+
     @Transactional(rollbackFor = Exception.class)
     @Override
     public boolean removeByIds(Collection<?> list) {
@@ -94,6 +140,5 @@ public class StationServiceImpl extends ServiceImpl<StationMapper, Station> impl
         }
         return super.removeByIds(list);
     }
-
 
 }

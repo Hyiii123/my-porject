@@ -9,10 +9,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>share-device</artifactId>
+    <artifactId>share-rule</artifactId>
 
     <description>
-        share-device系统模块
+        share-rule系统模块
     </description>
 
     <dependencies>
@@ -46,11 +46,6 @@
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-
         <!-- RuoYi Common DataSource -->
         <!--        <dependency>-->
         <!--            <groupId>com.share</groupId>-->
@@ -63,29 +58,16 @@
             <artifactId>share-common-datascope</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
-            <version>3.5.5</version>
-        </dependency>
-
         <!-- RuoYi Common Log -->
         <dependency>
             <groupId>com.share</groupId>
             <artifactId>share-common-log</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.2</version>
-            <scope>compile</scope>
+            <groupId>org.thymeleaf</groupId>
+            <artifactId>thymeleaf</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-core</artifactId>
-            <version>3.5.10</version>
-            <scope>compile</scope>
-        </dependency>
+
     </dependencies>
 
     <build>
