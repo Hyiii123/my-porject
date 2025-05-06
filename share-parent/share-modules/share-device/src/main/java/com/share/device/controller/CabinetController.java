@@ -71,6 +71,7 @@ public class CabinetController extends BaseController
     @GetMapping(value = "/getAllInfo/{id}")
     public AjaxResult getAllInfo(@PathVariable("id") Long id)
     {
+
         return success(cabinetService.getAllInfo(id));
     }
 }

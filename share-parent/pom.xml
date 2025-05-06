@@ -59,6 +59,14 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- 若在创建项目时未引⼊spring-boot-devtools依赖，则手动添加下列代码 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-devtools</artifactId>
+                <scope>runtime</scope>
+                <optional>true</optional>
+            </dependency>
+
 
             <!-- SpringCloud Alibaba 微服务 -->
             <dependency>

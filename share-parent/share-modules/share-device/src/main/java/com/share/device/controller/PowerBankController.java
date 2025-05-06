@@ -18,7 +18,7 @@ import java.util.Date;
 
 @Tag(name = "充电宝接口管理")
 @RestController
-@RequestMapping("/PowerBank")
+@RequestMapping("/powerBank")
 public class PowerBankController extends BaseController {
     @Autowired
     private IPowerBankService iPowerBankService;
@@ -31,7 +31,7 @@ public class PowerBankController extends BaseController {
     }
 
     @Operation(summary = "增加充电宝")
-    @PostMapping("/add")
+    @PostMapping
     public AjaxResult add(@RequestBody PowerBank powerBank){
         powerBank.setCreateBy(SecurityUtils.getUsername());
         powerBank.setCreateTime(new Date());
@@ -45,10 +45,15 @@ public class PowerBankController extends BaseController {
     }
 
     @Operation(summary = "修改充电宝")
-    @PutMapping("/edit")
+    @PutMapping
     public AjaxResult edit(@RequestBody PowerBank powerBank){
         powerBank.setUpdateBy(SecurityUtils.getUsername());
         powerBank.setUpdateTime(new Date());
         return toAjax(iPowerBankService.updatePowerBank(powerBank));
+    }
+    @Operation(summary = "查询充电宝详细信息")
+    @GetMapping("/{id}")
+    public AjaxResult get(@PathVariable("id") Long id){
+        return success(iPowerBankService.getById(id));
     }
 }

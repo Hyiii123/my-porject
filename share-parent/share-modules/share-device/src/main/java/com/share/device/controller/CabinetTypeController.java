@@ -3,6 +3,7 @@ package com.share.device.controller;
 import com.share.common.core.web.controller.BaseController;
 import com.share.common.core.web.domain.AjaxResult;
 import com.share.common.core.web.page.TableDataInfo;
+import com.share.common.security.annotation.RequiresPermissions;
 import com.share.device.domain.Cabinet;
 import com.share.device.domain.CabinetType;
 import com.share.device.service.ICabinetTypeService;
@@ -40,8 +41,8 @@ public class CabinetTypeController extends BaseController
     }
 
     @Operation(summary = "添加柜机类型")
-    @PostMapping("/add")
-    public AjaxResult addCabinetType(@RequestBody @Validated CabinetType cabinetType){
+    @PostMapping
+    public AjaxResult add(@RequestBody @Validated CabinetType cabinetType){
         boolean save = cabinetTypeService.save(cabinetType);
         return toAjax(save);
     }
@@ -61,7 +62,7 @@ public class CabinetTypeController extends BaseController
     }
 
     @Operation(summary = "修改柜机类型")
-    @PutMapping("/update")
+    @PutMapping
     public AjaxResult updateCabinetType(@RequestBody @Validated CabinetType cabinetType){
         boolean b = cabinetTypeService.updateById(cabinetType);
         return success(b);

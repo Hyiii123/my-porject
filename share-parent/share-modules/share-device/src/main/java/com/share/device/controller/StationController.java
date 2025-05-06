@@ -23,13 +23,13 @@ public class StationController extends BaseController {
 
 
     @Operation(summary = "新增站点")
-    @PostMapping("/add")
+    @PostMapping
     public AjaxResult add(@RequestBody Station station){
         return toAjax(iStationService.saveStation(station));
     }
 
     @Operation(summary = "修改站点")
-    @PutMapping("/edit")
+    @PutMapping
     public AjaxResult edit(@RequestBody Station station){
         return toAjax(iStationService.updateStation(station));
     }
