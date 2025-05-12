@@ -2,7 +2,7 @@ package com.share.rule.mapper;
 
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.share.rule.domain.FeeRule;
+import com.share.rules.domain.FeeRule;
 
 import java.util.List;
 

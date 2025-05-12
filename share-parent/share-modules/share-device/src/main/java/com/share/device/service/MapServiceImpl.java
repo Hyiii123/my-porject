@@ -22,7 +22,7 @@ public class MapServiceImpl implements IMapService {
     private RestTemplate restTemplate;
 
     @Value("${tencent.map.key}")
-    private String key;
+    private String key= "G3VBZ-EIUKH-LN5D5-WYVQB-SNCWZ-XHBUT";
 
     @Override
     public JSONObject calculateLatLng(String keyword) {
@@ -42,5 +42,23 @@ public class MapServiceImpl implements IMapService {
         System.out.println(result.toJSONString());
         return result.getJSONObject("location");
     }
+    @Override
+    public Double calculateDistance(String startLongitude,String startLatitude,String endLongitude,String endLatitude) {
+        String url = "https://apis.map.qq.com/ws/direction/v1/walking/?from={from}&to={to}&key={key}";
 
+        Map<String, String> map = new HashMap<>();
+        map.put("from", startLatitude + "," + startLongitude);
+        map.put("to", endLatitude + "," + endLongitude);
+        map.put("key", key);
+
+        JSONObject result = restTemplate.getForObject(url, JSONObject.class, map);
+        if(result.getIntValue("status") != 0) {
+            throw new ServiceException("地图服务调用失败");
+        }
+
+        //返回第一条最佳线路
+        JSONObject route = result.getJSONObject("result").getJSONArray("routes").getJSONObject(0);
+        // 单位：米
+        return route.getBigDecimal("distance").doubleValue();
+    }
 }

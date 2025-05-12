@@ -2,8 +2,8 @@ package com.share.rule.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.share.rule.domain.FeeRule;
 import com.share.rule.mapper.FeeRuleMapper;
+import com.share.rules.domain.FeeRule;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;

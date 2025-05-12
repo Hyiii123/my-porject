@@ -1,7 +1,7 @@
 package com.share.rule.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.share.rule.domain.FeeRule;
+import com.share.rules.domain.FeeRule;
 
 import java.util.List;
 
