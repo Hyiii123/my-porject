@@ -14,6 +14,7 @@
         <module>share-job</module>
         <module>share-file</module>
         <module>share-device</module>
+        <module>share-user</module>
     </modules>
 
     <artifactId>share-modules</artifactId>
@@ -31,6 +32,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.share</groupId>
+            <artifactId>share-api-user</artifactId>
+            <version>3.6.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.binarywang</groupId>
+            <artifactId>weixin-java-miniapp</artifactId>
+        </dependency>
     </dependencies>
+
 
 </project>
