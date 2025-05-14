@@ -1,9 +1,6 @@
 package com.share.device.service;
-
-
 import com.alibaba.fastjson2.JSONObject;
 import com.share.common.core.exception.ServiceException;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,7 +40,8 @@ public class MapServiceImpl implements IMapService {
         return result.getJSONObject("location");
     }
     @Override
-    public Double calculateDistance(String startLongitude,String startLatitude,String endLongitude,String endLatitude) {
+    public Double calculateDistance(String startLongitude,String startLatitude,
+                                    String endLongitude,String endLatitude) {
         String url = "https://apis.map.qq.com/ws/direction/v1/walking/?from={from}&to={to}&key={key}";
 
         Map<String, String> map = new HashMap<>();
@@ -57,7 +55,8 @@ public class MapServiceImpl implements IMapService {
         }
 
         //返回第一条最佳线路
-        JSONObject route = result.getJSONObject("result").getJSONArray("routes").getJSONObject(0);
+        JSONObject route = result.getJSONObject("result")
+                .getJSONArray("routes").getJSONObject(0);
         // 单位：米
         return route.getBigDecimal("distance").doubleValue();
     }
