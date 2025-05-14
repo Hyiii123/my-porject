@@ -1,4 +1,4 @@
-package com.share.rule.domain;
+package com.share.rules.domain;
 
 import com.share.common.core.web.domain.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
