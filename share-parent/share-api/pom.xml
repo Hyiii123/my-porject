@@ -10,6 +10,7 @@
 
     <modules>
         <module>share-api-system</module>
+        <module>share-api-user</module>
     </modules>
 
     <artifactId>share-api</artifactId>
@@ -18,5 +19,14 @@
     <description>
         share-api系统接口
     </description>
+    <dependencies>
+
+        <!-- RuoYi Common Core-->
+        <dependency>
+            <groupId>com.share</groupId>
+            <artifactId>share-common-core</artifactId>
+        </dependency>
+
+    </dependencies>
 
 </project>
