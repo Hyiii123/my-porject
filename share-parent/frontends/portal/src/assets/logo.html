@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate Logo</title>
+</head>
+<body>
+  <canvas id="canvas" width="200" height="50"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 绘制渐变背景圆形
+    const gradient = ctx.createLinearGradient(0, 0, 40, 40);
+    gradient.addColorStop(0, '#667eea');
+    gradient.addColorStop(1, '#764ba2');
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(25, 25, 20, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 绘制文字"智"
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('智', 25, 25);
+    
+    // 绘制"智问学伴"
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('智问学伴', 52, 20);
+    
+    // 绘制英文
+    ctx.fillStyle = '#999';
+    ctx.font = '10px Arial';
+    ctx.fillText('ZHIWEN XUEBAN', 52, 38);
+    
+    // 下载图片
+    const link = document.createElement('a');
+    link.download = 'logo.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  </script>
+</body>
+</html>

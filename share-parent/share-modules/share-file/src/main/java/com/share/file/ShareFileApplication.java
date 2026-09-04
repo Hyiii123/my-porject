@@ -2,14 +2,17 @@ package com.share.file;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import com.share.common.security.annotation.EnableCustomConfig;
+import com.share.common.security.annotation.EnableRyFeignClients;
 
 /**
  * 文件服务
  *
  * @author share
  */
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class })
+@EnableCustomConfig
+@EnableRyFeignClients
+@SpringBootApplication
 public class ShareFileApplication
 {
     public static void main(String[] args)

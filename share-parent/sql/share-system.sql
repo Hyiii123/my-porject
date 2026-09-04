@@ -2,6 +2,9 @@
 # Date: 2024-10-22 14:55:51
 # Generator: MySQL-Front 6.1  (Build 1.26)
 
+# 确保 Docker/MySQL 初始化时按 UTF-8 解析中文数据。
+SET NAMES utf8mb4;
+
 
 #
 # Structure for table "gen_table"
@@ -94,7 +97,7 @@ CREATE TABLE `sys_config` (
 # Data for table "sys_config"
 #
 
-INSERT INTO `sys_config` VALUES (1,'主框架页-默认皮肤样式名称','sys.index.skinName','skin-blue','Y','admin','2024-10-22 10:40:28','',NULL,'蓝色 skin-blue、绿色 skin-green、紫色 skin-purple、红色 skin-red、黄色 skin-yellow'),(2,'用户管理-账号初始密码','sys.user.initPassword','123456','Y','admin','2024-10-22 10:40:28','',NULL,'初始化密码 123456'),(3,'主框架页-侧边栏主题','sys.index.sideTheme','theme-dark','Y','admin','2024-10-22 10:40:28','',NULL,'深色主题theme-dark，浅色主题theme-light'),(4,'账号自助-是否开启用户注册功能','sys.account.registerUser','false','Y','admin','2024-10-22 10:40:28','',NULL,'是否开启注册用户功能（true开启，false关闭）'),(5,'用户登录-黑名单列表','sys.login.blackIPList','','Y','admin','2024-10-22 10:40:28','',NULL,'设置登录IP黑名单限制，多个匹配项以;分隔，支持匹配（*通配、网段）');
+INSERT INTO `sys_config` VALUES (1,'主框架页-默认皮肤样式名称','sys.index.skinName','skin-blue','Y','admin','2024-10-22 10:40:28','',NULL,'蓝色 skin-blue、绿色 skin-green、紫色 skin-purple、红色 skin-red、黄色 skin-yellow'),(2,'用户管理-账号初始密码','sys.user.initPassword','123456','Y','admin','2024-10-22 10:40:28','',NULL,'初始化密码 123456'),(3,'主框架页-侧边栏主题','sys.index.sideTheme','theme-dark','Y','admin','2024-10-22 10:40:28','',NULL,'深色主题theme-dark，浅色主题theme-light'),(4,'账号自助-是否开启用户注册功能','sys.account.registerUser','true','Y','admin','2024-10-22 10:40:28','',NULL,'是否开启注册用户功能（true开启，false关闭）'),(5,'用户登录-黑名单列表','sys.login.blackIPList','','Y','admin','2024-10-22 10:40:28','',NULL,'设置登录IP黑名单限制，多个匹配项以;分隔，支持匹配（*通配、网段）');
 
 #
 # Structure for table "sys_dept"
@@ -484,3 +487,35 @@ CREATE TABLE `sys_user_role` (
 #
 
 INSERT INTO `sys_user_role` VALUES (1,1),(2,2);
+
+#
+# Data for table "sys_menu" - 客服管理增量菜单
+#
+
+INSERT INTO `sys_menu`
+(`menu_id`,`menu_name`,`parent_id`,`order_num`,`path`,`component`,`query`,`is_frame`,`is_cache`,`menu_type`,`visible`,`status`,`perms`,`icon`,`create_by`,`create_time`,`update_by`,`update_time`,`remark`)
+VALUES
+(2200,'客服管理',0,4,'customer',NULL,'',1,0,'M','0','0','','message','admin',NOW(),'',NULL, 'AI客服管理目录'),
+(2201,'客服工作台',2200,1,'management','customer/management/index',NULL,1,0,'C','0','0','customer:session:list','message','admin',NOW(),'',NULL, '客服知识库、会话和统计管理'),
+(2202,'知识库查询',2201,1,'#','',NULL,1,0,'F','0','0','customer:knowledge:list','#','admin',NOW(),'',NULL, ''),
+(2203,'知识库新增',2201,2,'#','',NULL,1,0,'F','0','0','customer:knowledge:add','#','admin',NOW(),'',NULL, ''),
+(2204,'知识库修改',2201,3,'#','',NULL,1,0,'F','0','0','customer:knowledge:edit','#','admin',NOW(),'',NULL, ''),
+(2205,'知识库删除',2201,4,'#','',NULL,1,0,'F','0','0','customer:knowledge:remove','#','admin',NOW(),'',NULL, ''),
+(2206,'常见问题查询',2201,5,'#','',NULL,1,0,'F','0','0','customer:faq:list','#','admin',NOW(),'',NULL, ''),
+(2207,'常见问题新增',2201,6,'#','',NULL,1,0,'F','0','0','customer:faq:add','#','admin',NOW(),'',NULL, ''),
+(2208,'常见问题修改',2201,7,'#','',NULL,1,0,'F','0','0','customer:faq:edit','#','admin',NOW(),'',NULL, ''),
+(2209,'常见问题删除',2201,8,'#','',NULL,1,0,'F','0','0','customer:faq:remove','#','admin',NOW(),'',NULL, ''),
+(2210,'会话查询',2201,9,'#','',NULL,1,0,'F','0','0','customer:session:query','#','admin',NOW(),'',NULL, ''),
+(2211,'会话关闭',2201,10,'#','',NULL,1,0,'F','0','0','customer:session:close','#','admin',NOW(),'',NULL, ''),
+(2212,'统计查看',2201,11,'#','',NULL,1,0,'F','0','0','customer:statistics:view','#','admin',NOW(),'',NULL, ''),
+(2213,'AI配置查询',2201,12,'#','',NULL,1,0,'F','0','0','customer:ai:query','#','admin',NOW(),'',NULL, ''),
+(2214,'AI配置修改',2201,13,'#','',NULL,1,0,'F','0','0','customer:ai:edit','#','admin',NOW(),'',NULL, ''),
+(2215,'AI连通性测试',2201,14,'#','',NULL,1,0,'F','0','0','customer:ai:test','#','admin',NOW(),'',NULL, '')
+ON DUPLICATE KEY UPDATE
+`menu_name`=VALUES(`menu_name`),`parent_id`=VALUES(`parent_id`),`order_num`=VALUES(`order_num`),
+`path`=VALUES(`path`),`component`=VALUES(`component`),`perms`=VALUES(`perms`),`icon`=VALUES(`icon`),
+`status`=VALUES(`status`),`visible`=VALUES(`visible`);
+
+INSERT IGNORE INTO `sys_role_menu` (`role_id`,`menu_id`) VALUES
+(1,2200),(1,2201),(1,2202),(1,2203),(1,2204),(1,2205),(1,2206),(1,2207),(1,2208),(1,2209),
+(1,2210),(1,2211),(1,2212),(1,2213),(1,2214),(1,2215);

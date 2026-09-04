@@ -54,18 +54,17 @@ const useUserStore = defineStore(
         })
       },
       // 退出系统
-      logOut() {
-        return new Promise((resolve, reject) => {
-          logout(this.token).then(() => {
-            this.token = ''
-            this.roles = []
-            this.permissions = []
-            removeToken()
-            resolve()
-          }).catch(error => {
-            reject(error)
-          })
-        })
+      async logOut() {
+        try {
+          await logout(this.token)
+        } finally {
+          // 后端令牌已经失效时，退出接口可能返回 401；本地状态仍必须清理，
+          // 否则路由守卫会反复携带失效令牌并停留在白屏状态。
+          this.token = ''
+          this.roles = []
+          this.permissions = []
+          removeToken()
+        }
       }
     }
   })

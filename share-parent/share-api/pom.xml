@@ -11,6 +11,8 @@
     <modules>
         <module>share-api-system</module>
         <module>share-api-user</module>
+        <module>share-api-rules</module>
+        <module>share-api-education</module>
     </modules>
 
     <artifactId>share-api</artifactId>

@@ -1,0 +1,58 @@
+spring:
+  main:
+    allow-circular-references: true
+  data:
+    redis:
+      host: ${TJ_REDIS_HOST:127.0.0.1}
+      port: ${TJ_REDIS_PORT:6379}
+      database: ${TJ_REDIS_DATABASE:0}
+      timeout: 3s
+      connect-timeout: 3s
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      write-dates-as-timestamps: false
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 50MB
+  cloud:
+    openfeign:
+      lazy-attributes-resolution: true
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 10000
+    loadbalancer:
+      retry:
+        enabled: true
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*Mapper.xml
+  type-aliases-package: com.share.**.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    call-setters-on-nulls: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: delFlag
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.share: info
+    org.springframework.cloud.openfeign: warn

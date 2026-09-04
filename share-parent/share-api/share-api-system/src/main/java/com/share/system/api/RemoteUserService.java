@@ -32,6 +32,16 @@ public interface RemoteUserService
     public R<LoginUser> getUserInfo(@PathVariable("username") String username, @RequestHeader(SecurityConstants.FROM_SOURCE) String source);
 
     /**
+     * 通过手机号查询用户信息，供本地演示短信登录使用。
+     *
+     * <p>手机号登录不能把手机号直接当作用户名查询，否则会在用户表中查不到
+     * 真实账号；单独的内部接口只对认证服务开放，不改变对外用户接口。</p>
+     */
+    @GetMapping("/user/info/phone/{phone}")
+    public R<LoginUser> getUserInfoByPhone(@PathVariable("phone") String phone,
+            @RequestHeader(SecurityConstants.FROM_SOURCE) String source);
+
+    /**
      * 注册用户信息
      *
      * @param sysUser 用户信息

@@ -119,6 +119,31 @@ public class SysUserController extends BaseController
         {
             return R.fail("用户名或密码错误");
         }
+        return buildLoginUser(sysUser);
+    }
+
+    /**
+     * 通过手机号获取登录用户，仅供认证服务内部调用。
+     */
+    @InnerAuth
+    @GetMapping("/info/phone/{phone}")
+    public R<LoginUser> infoByPhone(@PathVariable("phone") String phone)
+    {
+        SysUser phoneUser = userService.selectUserByPhone(phone);
+        if (StringUtils.isNull(phoneUser) || phoneUser.getUserId() == null)
+        {
+            return R.fail("手机号对应的用户不存在");
+        }
+        SysUser sysUser = userService.selectUserById(phoneUser.getUserId());
+        if (StringUtils.isNull(sysUser))
+        {
+            return R.fail("手机号对应的用户不存在");
+        }
+        return buildLoginUser(sysUser);
+    }
+
+    private R<LoginUser> buildLoginUser(SysUser sysUser)
+    {
         // 角色集合
         Set<String> roles = permissionService.getRolePermission(sysUser);
         // 权限集合

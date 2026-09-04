@@ -8,6 +8,13 @@
       <template v-if="appStore.device !== 'mobile'">
         <header-search id="header-search" class="right-menu-item" />
 
+        <el-tooltip content="客服中心" effect="dark" placement="bottom">
+          <el-button class="customer-service-entry right-menu-item hover-effect" link @click="openCustomerService">
+            <el-icon><Headset /></el-icon>
+            <span>客服中心</span>
+          </el-button>
+        </el-tooltip>
+
         <el-tooltip content="源码地址" effect="dark" placement="bottom">
           <ruo-yi-git id="ruoyi-git" class="right-menu-item hover-effect" />
         </el-tooltip>
@@ -49,6 +56,7 @@
 
 <script setup>
 import { ElMessageBox } from 'element-plus'
+import { Headset } from '@element-plus/icons-vue'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from '@/components/TopNav'
 import Hamburger from '@/components/Hamburger'
@@ -64,9 +72,14 @@ import useSettingsStore from '@/store/modules/settings'
 const appStore = useAppStore()
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
+const router = useRouter()
 
 function toggleSideBar() {
   appStore.toggleSideBar()
+}
+
+function openCustomerService() {
+  router.push('/customer/service')
 }
 
 function handleCommand(command) {
@@ -160,6 +173,17 @@ function setLayout() {
         &:hover {
           background: rgba(0, 0, 0, 0.025);
         }
+      }
+    }
+
+    .customer-service-entry {
+      gap: 4px;
+      border: 0;
+      line-height: 50px;
+      color: #5a5e66;
+
+      span {
+        font-size: 14px;
       }
     }
 

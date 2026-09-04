@@ -23,4 +23,7 @@ public class ServiceNameConstants
     public static final String FILE_SERVICE = "share-file";
 
     public static final String FREERULE_SERVICE="share-rule";
+
+    /** 教育业务服务。 */
+    public static final String EDUCATION_SERVICE = "share-education";
 }

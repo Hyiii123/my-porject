@@ -3,6 +3,7 @@ package com.share.file.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import io.minio.MinioClient;
 
 /**
@@ -12,6 +13,7 @@ import io.minio.MinioClient;
  */
 @Configuration
 @ConfigurationProperties(prefix = "minio")
+@ConditionalOnProperty(name = "minio.enabled", havingValue = "true")
 public class MinioConfig
 {
     /**

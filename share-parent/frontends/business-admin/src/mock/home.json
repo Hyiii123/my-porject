@@ -1,0 +1,307 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "banners": [
+      {
+        "id": 1,
+        "title": "Vue3 从入门到精通",
+        "subtitle": "全面掌握Vue3核心语法、组合式API、Pinia状态管理",
+        "image": "/src/assets/images/banners/banner1.svg",
+        "link": "/details/index?id=1",
+        "sort": 1,
+        "status": 1
+      },
+      {
+        "id": 2,
+        "title": "SpringBoot 微服务实战",
+        "subtitle": "从零开始学习SpringBoot，掌握微服务架构设计",
+        "image": "/src/assets/images/banners/banner2.svg",
+        "link": "/details/index?id=4",
+        "sort": 2,
+        "status": 1
+      },
+      {
+        "id": 3,
+        "title": "人工智能与机器学习",
+        "subtitle": "探索AI前沿技术，开启智能未来",
+        "image": "/src/assets/images/banners/banner3.svg",
+        "link": "/details/index?id=10",
+        "sort": 3,
+        "status": 1
+      },
+      {
+        "id": 4,
+        "title": "全栈开发工程师",
+        "subtitle": "掌握前后端技术，成为全栈开发工程师",
+        "image": "/src/assets/images/banners/banner4.svg",
+        "link": "/search/index",
+        "sort": 4,
+        "status": 1
+      },
+      {
+        "id": 5,
+        "title": "限时优惠活动",
+        "subtitle": "新用户专享优惠，学习编程从现在开始",
+        "image": "/src/assets/images/banners/banner5.svg",
+        "link": "/main/index",
+        "sort": 5,
+        "status": 1
+      }
+    ],
+    "recommendCourses": [
+      {
+        "id": 1,
+        "title": "Vue3 从入门到精通",
+        "cover": "/src/assets/images/courses/vue3.svg",
+        "teacherName": "张老师",
+        "price": 19900,
+        "originalPrice": 39900,
+        "learners": 12580,
+        "lessons": 48
+      },
+      {
+        "id": 4,
+        "title": "Java SpringBoot 实战",
+        "cover": "/src/assets/images/courses/springboot.svg",
+        "teacherName": "王老师",
+        "price": 29900,
+        "originalPrice": 59900,
+        "learners": 15680,
+        "lessons": 72
+      },
+      {
+        "id": 5,
+        "title": "Python 全栈开发",
+        "cover": "/src/assets/images/courses/python.svg",
+        "teacherName": "赵老师",
+        "price": 22900,
+        "originalPrice": 45900,
+        "learners": 18920,
+        "lessons": 56
+      },
+      {
+        "id": 10,
+        "title": "机器学习入门",
+        "cover": "/src/assets/images/courses/ml.svg",
+        "teacherName": "黄老师",
+        "price": 34900,
+        "originalPrice": 69900,
+        "learners": 14560,
+        "lessons": 68
+      },
+      {
+        "id": 2,
+        "title": "React18 实战教程",
+        "cover": "/src/assets/images/courses/react.svg",
+        "teacherName": "李老师",
+        "price": 24900,
+        "originalPrice": 49900,
+        "learners": 9850,
+        "lessons": 60
+      },
+      {
+        "id": 9,
+        "title": "Docker 容器化实战",
+        "cover": "/src/assets/images/courses/docker.svg",
+        "teacherName": "杨老师",
+        "price": 15900,
+        "originalPrice": 31900,
+        "learners": 9870,
+        "lessons": 32
+      }
+    ],
+    "hotCourses": [
+      {
+        "id": 5,
+        "title": "Python 全栈开发",
+        "cover": "/src/assets/images/courses/python.svg",
+        "teacherName": "赵老师",
+        "price": 22900,
+        "originalPrice": 45900,
+        "learners": 18920,
+        "lessons": 56
+      },
+      {
+        "id": 4,
+        "title": "Java SpringBoot 实战",
+        "cover": "/src/assets/images/courses/springboot.svg",
+        "teacherName": "王老师",
+        "price": 29900,
+        "originalPrice": 59900,
+        "learners": 15680,
+        "lessons": 72
+      },
+      {
+        "id": 10,
+        "title": "机器学习入门",
+        "cover": "/src/assets/images/courses/ml.svg",
+        "teacherName": "黄老师",
+        "price": 34900,
+        "originalPrice": 69900,
+        "learners": 14560,
+        "lessons": 68
+      },
+      {
+        "id": 1,
+        "title": "Vue3 从入门到精通",
+        "cover": "/src/assets/images/courses/vue3.svg",
+        "teacherName": "张老师",
+        "price": 19900,
+        "originalPrice": 39900,
+        "learners": 12580,
+        "lessons": 48
+      },
+      {
+        "id": 8,
+        "title": "MySQL 数据库优化",
+        "cover": "/src/assets/images/courses/mysql.svg",
+        "teacherName": "刘老师",
+        "price": 16900,
+        "originalPrice": 33900,
+        "learners": 11230,
+        "lessons": 38
+      },
+      {
+        "id": 9,
+        "title": "Docker 容器化实战",
+        "cover": "/src/assets/images/courses/docker.svg",
+        "teacherName": "杨老师",
+        "price": 15900,
+        "originalPrice": 31900,
+        "learners": 9870,
+        "lessons": 32
+      }
+    ],
+    "newCourses": [
+      {
+        "id": 17,
+        "title": "Rust 系统编程",
+        "cover": "/src/assets/images/courses/rust.svg",
+        "teacherName": "周老师",
+        "price": 32900,
+        "originalPrice": 65900,
+        "learners": 4320,
+        "lessons": 64
+      },
+      {
+        "id": 16,
+        "title": "Next.js 全栈开发",
+        "cover": "/src/assets/images/courses/nextjs.svg",
+        "teacherName": "李老师",
+        "price": 27900,
+        "originalPrice": 55900,
+        "learners": 5680,
+        "lessons": 58
+      },
+      {
+        "id": 20,
+        "title": "Solidity 智能合约",
+        "cover": "/src/assets/images/courses/solidity.svg",
+        "teacherName": "马老师",
+        "price": 25900,
+        "originalPrice": 51900,
+        "learners": 3450,
+        "lessons": 48
+      },
+      {
+        "id": 18,
+        "title": "数据可视化",
+        "cover": "/src/assets/images/courses/visualization.svg",
+        "teacherName": "郑老师",
+        "price": 17900,
+        "originalPrice": 35900,
+        "learners": 7890,
+        "lessons": 35
+      },
+      {
+        "id": 19,
+        "title": "Unity 游戏开发",
+        "cover": "/src/assets/images/courses/unity.svg",
+        "teacherName": "孙老师",
+        "price": 29900,
+        "originalPrice": 59900,
+        "learners": 5670,
+        "lessons": 62
+      },
+      {
+        "id": 12,
+        "title": "Web前端性能优化",
+        "cover": "/src/assets/images/courses/performance.svg",
+        "teacherName": "张老师",
+        "price": 12900,
+        "originalPrice": 25900,
+        "learners": 5680,
+        "lessons": 28
+      }
+    ],
+    "categories": [
+      {
+        "id": 1,
+        "name": "前端开发",
+        "icon": "frontend",
+        "count": 6
+      },
+      {
+        "id": 2,
+        "name": "后端开发",
+        "icon": "backend",
+        "count": 5
+      },
+      {
+        "id": 3,
+        "name": "移动开发",
+        "icon": "mobile",
+        "count": 1
+      },
+      {
+        "id": 4,
+        "name": "数据库",
+        "icon": "database",
+        "count": 2
+      },
+      {
+        "id": 5,
+        "name": "云计算与DevOps",
+        "icon": "cloud",
+        "count": 1
+      },
+      {
+        "id": 6,
+        "name": "人工智能",
+        "icon": "ai",
+        "count": 2
+      },
+      {
+        "id": 7,
+        "name": "数据科学",
+        "icon": "data-science",
+        "count": 1
+      },
+      {
+        "id": 8,
+        "name": "网络安全",
+        "icon": "security",
+        "count": 1
+      },
+      {
+        "id": 9,
+        "name": "游戏开发",
+        "icon": "game",
+        "count": 1
+      },
+      {
+        "id": 10,
+        "name": "区块链",
+        "icon": "blockchain",
+        "count": 1
+      }
+    ],
+    "statistics": {
+      "totalCourses": 20,
+      "totalStudents": 50000,
+      "totalTeachers": 13,
+      "totalLessons": 1000
+    }
+  }
+}

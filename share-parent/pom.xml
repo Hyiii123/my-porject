@@ -205,6 +205,13 @@
                 <version>${share.version}</version>
             </dependency>
 
+            <!-- 教育服务内部调用契约 -->
+            <dependency>
+                <groupId>com.share</groupId>
+                <artifactId>share-api-education</artifactId>
+                <version>${share.version}</version>
+            </dependency>
+
             <!--knife4j-->
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
@@ -250,11 +257,6 @@
                 <artifactId>hutool-all</artifactId>
                 <version>5.8.16</version>
             </dependency>
-            <dependency>
-                <groupId>com.github.binarywang</groupId>
-                <artifactId>weixin-java-miniapp</artifactId>
-                <version>4.5.5.B</version>
-            </dependency>
             <!-- drools lib -->
             <dependency>
                 <groupId>org.drools</groupId>
@@ -284,14 +286,29 @@
                 <version>${mqttv3.version}</version>
             </dependency>
 
-            <!-- redisson -->
-            <dependency>
-                <groupId>org.redisson</groupId>
-                <artifactId>redisson</artifactId>
-                <version>${redisson.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <!-- 子服务统一锁定 Spring Boot 插件版本，避免 Maven 自动解析到不兼容的里程碑版本。 -->
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <parameters>true</parameters>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 
     <modules>
         <module>share-auth</module>

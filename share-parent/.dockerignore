@@ -1,0 +1,18 @@
+# Source control, IDE and local runtime files
+.git
+.gitignore
+.idea
+.vscode
+*.log
+
+# Frontend dependencies and generated bundles are installed/built inside the image.
+**/node_modules
+**/dist
+
+# Backend images use each service directory as its build context, so the root
+# context must not carry Maven output at all.
+**/target
+**/target/*
+
+# Local environment files must be supplied through Compose/env configuration.
+.env

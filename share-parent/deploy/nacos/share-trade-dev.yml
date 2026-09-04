@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${TJ_MYSQL_HOST:127.0.0.1}:${TJ_MYSQL_PORT:13306}/tj_trade?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true&rewriteBatchedStatements=true
+    username: ${TJ_MYSQL_USERNAME:root}
+    password: ${TJ_MYSQL_PASSWORD:TjLocalRoot@2026}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 12
+      connection-timeout: 3000
+      validation-timeout: 1000
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*Mapper.xml
+  type-aliases-package: com.share.trade.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    call-setters-on-nulls: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: input
+      logic-delete-field: delFlag
+      logic-delete-value: 1
+      logic-not-delete-value: 0

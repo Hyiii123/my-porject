@@ -50,6 +50,21 @@ public class RedisService
     }
 
     /**
+     * 原子递增计数，并在第一次创建时设置过期时间。
+     *
+     * <p>适用于限流、短时统计等场景，避免业务代码执行“读取-加一-写回”时产生并发覆盖。</p>
+     */
+    public long increment(final String key, final long timeout, final TimeUnit timeUnit)
+    {
+        Long value = redisTemplate.opsForValue().increment(key, 1L);
+        if (value != null && value == 1L && timeout > 0)
+        {
+            redisTemplate.expire(key, timeout, timeUnit);
+        }
+        return value == null ? 0L : value;
+    }
+
+    /**
      * 设置有效时间
      *
      * @param key Redis键

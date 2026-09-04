@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${TJ_MYSQL_HOST:127.0.0.1}:${TJ_MYSQL_PORT:13306}/tj_file?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true&rewriteBatchedStatements=true
+    username: ${TJ_MYSQL_USERNAME:root}
+    password: ${TJ_MYSQL_PASSWORD:TjLocalRoot@2026}
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 8
+      connection-timeout: 3000
+      validation-timeout: 1000
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*Mapper.xml
+  type-aliases-package: com.share.file.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    call-setters-on-nulls: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: input
+      logic-delete-field: delFlag
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 本地开发默认使用文件服务本地磁盘；配置 MinIO 后可切换到对象存储。
+file:
+  path: ${TJ_FILE_PATH:/app/uploads}
+  prefix: /profile
+  domain: ${TJ_FILE_DOMAIN:http://localhost:8080/file}
+
+minio:
+  enabled: ${TJ_MINIO_ENABLED:false}
+  url: ${TJ_MINIO_URL:http://127.0.0.1:9000}
+  access-key: ${TJ_MINIO_ACCESS_KEY:}
+  secret-key: ${TJ_MINIO_SECRET_KEY:}
+  bucket-name: ${TJ_MINIO_BUCKET_NAME:tianji}

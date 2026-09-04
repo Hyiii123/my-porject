@@ -1,0 +1,14 @@
+server:
+  servlet:
+    context-path: /
+
+spring:
+  cloud:
+    nacos:
+      discovery:
+        heart-beat-interval: 5000
+        heart-beat-timeout: 15000
+        ip-delete-timeout: 30000
+
+auth:
+  enabled: true

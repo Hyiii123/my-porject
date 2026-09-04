@@ -1,0 +1,20 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": 1,
+    "username": "admin",
+    "nickname": "管理员",
+    "avatar": "/src/assets/images/users/default-avatar.svg",
+    "phone": "13800138000",
+    "email": "admin@tianji.com",
+    "gender": 1,
+    "birthday": "1990-01-01",
+    "signature": "学习是一种态度",
+    "points": 5860,
+    "createTime": "2024-01-01 00:00:00",
+    "lastLoginTime": "2024-03-20 10:30:00",
+    "status": 1,
+    "roles": ["admin"]
+  }
+}

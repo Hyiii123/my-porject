@@ -1,0 +1,150 @@
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+      routes:
+        # 新前端仍使用原项目的 /as、/us 兼容前缀，统一转到若依认证和系统服务。
+        # 旧业务管理端从 /as/roles 读取角色列表，该接口实际由系统服务提供。
+        - id: share-system-roles-legacy
+          uri: lb://share-system
+          predicates:
+            - Path=/as/roles
+          filters:
+            - StripPrefix=1
+        - id: share-auth-legacy
+          uri: lb://share-auth
+          predicates:
+            - Path=/as/**
+          filters:
+            - StripPrefix=1
+        - id: share-auth
+          uri: lb://share-auth
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
+        - id: share-system
+          uri: lb://share-system
+          predicates:
+            - Path=/system/**
+          filters:
+            - StripPrefix=1
+        - id: share-user-legacy
+          uri: lb://share-system
+          predicates:
+            - Path=/us/**
+          filters:
+            - StripPrefix=1
+        - id: share-gen
+          uri: lb://share-gen
+          predicates:
+            - Path=/code/**
+          filters:
+            - StripPrefix=1
+        - id: share-job
+          uri: lb://share-job
+          predicates:
+            - Path=/schedule/**
+          filters:
+            - StripPrefix=1
+        - id: share-file
+          uri: lb://share-file
+          predicates:
+            - Path=/file/**
+          filters:
+            - StripPrefix=1
+        - id: share-media
+          uri: lb://share-file
+          predicates:
+            - Path=/ms/**
+          filters:
+            - StripPrefix=1
+        - id: share-device
+          uri: lb://share-device
+          predicates:
+            - Path=/device/**
+          filters:
+            - StripPrefix=1
+        - id: share-rule
+          uri: lb://share-rule
+          predicates:
+            - Path=/rule/**
+          filters:
+            - StripPrefix=1
+        - id: share-customer
+          uri: lb://share-customer
+          predicates:
+            - Path=/customer/**
+          filters:
+            - StripPrefix=1
+        # 旧客服路径必须在通用 /cs/** 之前匹配，否则会被教育服务接收。
+        - id: share-customer-legacy
+          uri: lb://share-customer
+          predicates:
+            - Path=/cs/customer-service/**
+          filters:
+            - StripPrefix=1
+        # 天机学堂教育领域的旧接口前缀，保持用户端和管理端调用契约。
+        - id: share-education-legacy
+          uri: lb://share-education
+          predicates:
+            - Path=/cs/**,/ss/**,/ls/**,/es/**,/rs/**
+          filters:
+            - StripPrefix=1
+        # 交易、营销领域的旧接口前缀。
+        - id: share-trade-legacy
+          uri: lb://share-trade
+          predicates:
+            - Path=/ts/**,/prs/**,/ps/**
+          filters:
+            - StripPrefix=1
+        # 管理工作台兼容接口由教育服务提供聚合数据。
+        - id: share-dashboard-legacy
+          uri: lb://share-education
+          predicates:
+            - Path=/ds/**
+          filters:
+            - StripPrefix=1
+
+security:
+  captcha:
+    enabled: false
+    type: math
+  xss:
+    enabled: false
+    exclude-urls: []
+  ignore:
+    whites:
+      - /auth/login
+      - /auth/register
+      - /as/accounts/login
+      - /as/accounts/admin/login
+      - /as/users/register
+      - /as/code/verifycode
+      - /as/accounts/logout
+      - /cs/categorys/**
+      - /cs/courses/page
+      - /cs/courses/portal
+      - /cs/courses/baseInfo/**
+      - /cs/courses/teachers/**
+      - /cs/courses/catas/**
+      - /cs/customer-service/faqs
+      - /ss/**
+      - /customer/faq/public
+      - /code
+      - /actuator/**
+      - /error
+      - /favicon.ico
+      - /doc.html
+      - /swagger-ui/**
+      - /v3/api-docs/**
+      - /webjars/**

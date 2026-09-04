@@ -1,0 +1,463 @@
+name: tianji-share
+
+services:
+  mysql:
+    image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/library/mysql:8.0
+    container_name: tianji-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --max-connections=300
+    environment:
+      MYSQL_ROOT_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      MYSQL_DATABASE: share
+      TZ: Asia/Shanghai
+    ports:
+      # 本机 3306 已有 MySQL，避免覆盖用户正在使用的实例。
+      - "${TJ_MYSQL_PORT:-13306}:3306"
+    volumes:
+      - tianji_mysql_data:/var/lib/mysql
+      - ./sql/share-system.sql:/docker-entrypoint-initdb.d/01-share-system.sql:ro
+      - ./sql/quartz.sql:/docker-entrypoint-initdb.d/02-quartz.sql:ro
+      - ./sql/tianji-education.sql:/docker-entrypoint-initdb.d/10-tianji-education.sql:ro
+      - ./sql/tianji-trade.sql:/docker-entrypoint-initdb.d/11-tianji-trade.sql:ro
+      - ./sql/tianji-customer.sql:/docker-entrypoint-initdb.d/12-tianji-customer.sql:ro
+      - ./sql/tianji-file.sql:/docker-entrypoint-initdb.d/13-tianji-file.sql:ro
+      - ./sql/migrations/V2__customer_menus.sql:/docker-entrypoint-initdb.d/20-V2__customer_menus.sql:ro
+      - ./sql/migrations/V3__remove_human_customer_service.sql:/docker-entrypoint-initdb.d/21-V3__remove_human_customer_service.sql:ro
+      - ./sql/migrations/V4__education_legacy_compatibility.sql:/docker-entrypoint-initdb.d/22-V4__education_legacy_compatibility.sql:ro
+      - ./sql/migrations/V5__education_question_category.sql:/docker-entrypoint-initdb.d/23-V5__education_question_category.sql:ro
+      - ./sql/migrations/V6__file_media.sql:/docker-entrypoint-initdb.d/24-V6__file_media.sql:ro
+      - ./sql/migrations/V7__education_demo_seed.sql:/docker-entrypoint-initdb.d/25-V7__education_demo_seed.sql:ro
+      - ./sql/migrations/V8__trade_demo_seed.sql:/docker-entrypoint-initdb.d/26-V8__trade_demo_seed.sql:ro
+      - ./sql/migrations/V9__trade_demo_consistency.sql:/docker-entrypoint-initdb.d/27-V9__trade_demo_consistency.sql:ro
+      - ./sql/migrations/V10__system_demo_users.sql:/docker-entrypoint-initdb.d/28-V10__system_demo_users.sql:ro
+      - ./sql/migrations/V11__runtime_schema_and_demo_credentials.sql:/docker-entrypoint-initdb.d/29-V11__runtime_schema_and_demo_credentials.sql:ro
+      - ./sql/migrations/V12__trade_cart_course_snapshot.sql:/docker-entrypoint-initdb.d/30-V12__trade_cart_course_snapshot.sql:ro
+      - ./sql/migrations/V13__map_demo_data_to_demo_users.sql:/docker-entrypoint-initdb.d/31-V13__map_demo_data_to_demo_users.sql:ro
+      - ./sql/migrations/V14__customer_evaluation_close.sql:/docker-entrypoint-initdb.d/32-V14__customer_evaluation_close.sql:ro
+      - ./sql/migrations/V15__restrict_customer_admin_menus.sql:/docker-entrypoint-initdb.d/33-V15__restrict_customer_admin_menus.sql:ro
+      - ./sql/migrations/V16__trade_cart_active_unique_index.sql:/docker-entrypoint-initdb.d/34-V16__trade_cart_active_unique_index.sql:ro
+      - ./sql/migrations/V17__education_dashboard_daily.sql:/docker-entrypoint-initdb.d/35-V17__education_dashboard_daily.sql:ro
+      - ./sql/migrations/V18__link_teacher_profiles.sql:/docker-entrypoint-initdb.d/36-V18__link_teacher_profiles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - tianji-net
+
+  redis:
+    image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/library/redis:7-alpine
+    container_name: tianji-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "${TJ_REDIS_PORT:-6379}:6379"
+    volumes:
+      - tianji_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - tianji-net
+
+  nacos:
+    image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/nacos/nacos-server:v2.2.0
+    container_name: tianji-nacos
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      PREFER_HOST_MODE: hostname
+      NACOS_AUTH_ENABLE: "false"
+      JVM_XMS: ${TJ_NACOS_JVM_XMS:-128m}
+      JVM_XMX: ${TJ_NACOS_JVM_XMX:-384m}
+      JVM_XMN: ${TJ_NACOS_JVM_XMN:-64m}
+      TZ: Asia/Shanghai
+    ports:
+      - "${TJ_NACOS_PORT:-8848}:8848"
+      - "${TJ_NACOS_GRPC_PORT:-9848}:9848"
+      - "${TJ_NACOS_GRPC_ALT_PORT:-9849}:9849"
+    volumes:
+      - tianji_nacos_data:/home/nacos/data
+      - tianji_nacos_logs:/home/nacos/logs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8848/nacos/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+  auth:
+    build:
+      context: ./share-auth
+      dockerfile: ../Dockerfile
+      args:
+        JAR_FILE: target/share-auth.jar
+    image: tianji/share-auth:local
+    container_name: tianji-auth
+    restart: unless-stopped
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      TJ_REDIS_HOST: redis
+      TJ_REDIS_PORT: 6379
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+    ports:
+      - "${TJ_AUTH_PORT:-19200}:9200"
+    depends_on:
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+  gateway:
+    build:
+      context: ./share-gateway
+      dockerfile: ../Dockerfile
+      args:
+        JAR_FILE: target/share-gateway.jar
+    image: tianji/share-gateway:local
+    container_name: tianji-gateway
+    restart: unless-stopped
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      TJ_REDIS_HOST: redis
+      TJ_REDIS_PORT: 6379
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+    ports:
+      # 与 share-ui 开发代理默认的 localhost:8080 对齐；如有端口冲突可通过 .env 修改。
+      - "${TJ_GATEWAY_PORT:-8080}:18080"
+    depends_on:
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+  # 三个前端均为独立应用：若依基础管理端、用户端和业务管理端。
+  ruoyi-ui:
+    build:
+      context: .
+      dockerfile: frontends/Dockerfile
+      args:
+        APP_DIR: share-ui
+        BUILD_COMMAND: build:docker
+        TJ_NODE_REGISTRY: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}
+        NPM_REGISTRY: ${TJ_NPM_REGISTRY:-https://registry.npmmirror.com}
+    image: tianji/share-ui:local
+    container_name: tianji-ruoyi-ui
+    restart: unless-stopped
+    ports:
+      - "${TJ_UI_PORT:-18080}:80"
+    depends_on:
+      - gateway
+    networks:
+      - tianji-net
+
+  portal-ui:
+    build:
+      context: .
+      dockerfile: frontends/Dockerfile
+      args:
+        APP_DIR: frontends/portal
+        BUILD_COMMAND: build:docker
+        TJ_NODE_REGISTRY: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}
+        NPM_REGISTRY: ${TJ_NPM_REGISTRY:-https://registry.npmmirror.com}
+    image: tianji/tianji-portal:local
+    container_name: tianji-portal-ui
+    restart: unless-stopped
+    ports:
+      - "${TJ_PORTAL_UI_PORT:-18081}:80"
+    depends_on:
+      - gateway
+    networks:
+      - tianji-net
+
+  business-admin-ui:
+    build:
+      context: .
+      dockerfile: frontends/Dockerfile
+      args:
+        APP_DIR: frontends/business-admin
+        BUILD_COMMAND: build:docker
+        TJ_NODE_REGISTRY: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}
+        NPM_REGISTRY: ${TJ_NPM_REGISTRY:-https://registry.npmmirror.com}
+    image: tianji/tianji-business-admin:local
+    container_name: tianji-business-admin-ui
+    restart: unless-stopped
+    ports:
+      - "${TJ_BUSINESS_ADMIN_UI_PORT:-18082}:80"
+    depends_on:
+      - gateway
+    networks:
+      - tianji-net
+
+  system:
+    build:
+      context: ./share-modules/share-system
+      dockerfile: ../../Dockerfile
+      args:
+        JAR_FILE: target/share-system.jar
+    image: tianji/share-system:local
+    container_name: tianji-system
+    restart: unless-stopped
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      TJ_REDIS_HOST: redis
+      TJ_REDIS_PORT: 6379
+      TJ_MYSQL_HOST: mysql
+      TJ_MYSQL_PORT: 3306
+      TJ_MYSQL_USERNAME: root
+      TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+    ports:
+      - "${TJ_SYSTEM_PORT:-19201}:9201"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+  customer:
+    build:
+      context: ./share-modules/share-customer
+      dockerfile: ../../Dockerfile
+      args:
+        JAR_FILE: target/share-customer.jar
+    image: tianji/share-customer:local
+    container_name: tianji-customer
+    restart: unless-stopped
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      TJ_REDIS_HOST: redis
+      TJ_REDIS_PORT: 6379
+      TJ_MYSQL_HOST: mysql
+      TJ_MYSQL_PORT: 3306
+      TJ_MYSQL_USERNAME: root
+      TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      TJ_PIXEL_API_BASE_URL: "${TJ_PIXEL_API_BASE_URL:-https://api.ai-pixel.online}"
+      TJ_PIXEL_API_ENDPOINT: "${TJ_PIXEL_API_ENDPOINT:-/v1/responses}"
+      TJ_PIXEL_API_MODEL: "${TJ_PIXEL_API_MODEL:-gpt-5.5}"
+      TJ_AI_SECRET: "${TJ_AI_SECRET:-}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+    ports:
+      - "${TJ_CUSTOMER_PORT:-19206}:9206"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+  file:
+    build:
+      context: ./share-modules/share-file
+      dockerfile: ../../Dockerfile
+      args:
+        JAR_FILE: target/share-file.jar
+    image: tianji/share-file:local
+    container_name: tianji-file
+    restart: unless-stopped
+    environment:
+      TJ_REDIS_HOST: redis
+      TJ_REDIS_PORT: 6379
+      NACOS_SERVER_ADDR: nacos:8848
+      TJ_MYSQL_HOST: mysql
+      TJ_MYSQL_PORT: 3306
+      TJ_MYSQL_USERNAME: root
+      TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      TJ_FILE_DOMAIN: "${TJ_FILE_DOMAIN:-http://localhost:8080/file}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+    ports:
+      - "${TJ_FILE_PORT:-19300}:9300"
+    volumes:
+      - tianji_file_uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+  education:
+    build:
+      context: ./share-modules/share-education
+      dockerfile: ../../Dockerfile
+      args:
+        JAR_FILE: target/share-education.jar
+    image: tianji/share-education:local
+    container_name: tianji-education
+    restart: unless-stopped
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      TJ_REDIS_HOST: redis
+      TJ_REDIS_PORT: 6379
+      TJ_MYSQL_HOST: mysql
+      TJ_MYSQL_PORT: 3306
+      TJ_MYSQL_USERNAME: root
+      TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+    ports:
+      - "${TJ_EDUCATION_PORT:-19210}:9210"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+  trade:
+    build:
+      context: ./share-modules/share-trade
+      dockerfile: ../../Dockerfile
+      args:
+        JAR_FILE: target/share-trade.jar
+    image: tianji/share-trade:local
+    container_name: tianji-trade
+    restart: unless-stopped
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      TJ_REDIS_HOST: redis
+      TJ_REDIS_PORT: 6379
+      TJ_MYSQL_HOST: mysql
+      TJ_MYSQL_PORT: 3306
+      TJ_MYSQL_USERNAME: root
+      TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+    ports:
+      - "${TJ_TRADE_PORT:-19211}:9211"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+  gen:
+    build:
+      context: ./share-modules/share-gen
+      dockerfile: ../../Dockerfile
+      args:
+        JAR_FILE: target/share-gen.jar
+    image: tianji/share-gen:local
+    container_name: tianji-gen
+    restart: unless-stopped
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      TJ_REDIS_HOST: redis
+      TJ_REDIS_PORT: 6379
+      TJ_MYSQL_HOST: mysql
+      TJ_MYSQL_PORT: 3306
+      TJ_MYSQL_USERNAME: root
+      TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+    ports:
+      - "${TJ_GEN_PORT:-19202}:9202"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+  job:
+    build:
+      context: ./share-modules/share-job
+      dockerfile: ../../Dockerfile
+      args:
+        JAR_FILE: target/share-job.jar
+    image: tianji/share-job:local
+    container_name: tianji-job
+    restart: unless-stopped
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      TJ_REDIS_HOST: redis
+      TJ_REDIS_PORT: 6379
+      TJ_MYSQL_HOST: mysql
+      TJ_MYSQL_PORT: 3306
+      TJ_MYSQL_USERNAME: root
+      TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+    ports:
+      - "${TJ_JOB_PORT:-19203}:9203"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+  monitor:
+    build:
+      context: ./share-visual/share-monitor
+      dockerfile: ../../Dockerfile
+      args:
+        JAR_FILE: target/share-monitor.jar
+    image: tianji/share-monitor:local
+    container_name: tianji-monitor
+    restart: unless-stopped
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+    ports:
+      - "${TJ_MONITOR_PORT:-19100}:9100"
+    depends_on:
+      nacos:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+volumes:
+  tianji_mysql_data:
+    name: tianji_mysql_data
+  tianji_redis_data:
+    name: tianji_redis_data
+  tianji_nacos_data:
+    name: tianji_nacos_data
+  tianji_nacos_logs:
+    name: tianji_nacos_logs
+  tianji_file_uploads:
+    name: tianji_file_uploads
+
+networks:
+  tianji-net:
+    name: tianji-net
+    driver: bridge

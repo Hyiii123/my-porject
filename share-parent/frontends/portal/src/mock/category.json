@@ -1,0 +1,96 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "id": 1,
+      "name": "前端开发",
+      "description": "学习Web前端技术，包括HTML、CSS、JavaScript等",
+      "icon": "frontend",
+      "sort": 1,
+      "status": 1,
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": 2,
+      "name": "后端开发",
+      "description": "学习后端开发技术，包括Java、Python、Node.js等",
+      "icon": "backend",
+      "sort": 2,
+      "status": 1,
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": 3,
+      "name": "移动开发",
+      "description": "学习移动端开发技术，包括Android、iOS、Flutter等",
+      "icon": "mobile",
+      "sort": 3,
+      "status": 1,
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": 4,
+      "name": "数据库",
+      "description": "学习数据库技术，包括MySQL、MongoDB、Redis等",
+      "icon": "database",
+      "sort": 4,
+      "status": 1,
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": 5,
+      "name": "云计算与DevOps",
+      "description": "学习云计算和DevOps技术，包括Docker、K8s、AWS等",
+      "icon": "cloud",
+      "sort": 5,
+      "status": 1,
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": 6,
+      "name": "人工智能",
+      "description": "学习AI技术，包括机器学习、深度学习、NLP等",
+      "icon": "ai",
+      "sort": 6,
+      "status": 1,
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": 7,
+      "name": "数据科学",
+      "description": "学习数据分析和可视化技术",
+      "icon": "data-science",
+      "sort": 7,
+      "status": 1,
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": 8,
+      "name": "网络安全",
+      "description": "学习网络安全和渗透测试技术",
+      "icon": "security",
+      "sort": 8,
+      "status": 1,
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": 9,
+      "name": "游戏开发",
+      "description": "学习游戏开发技术，包括Unity、Unreal等",
+      "icon": "game",
+      "sort": 9,
+      "status": 1,
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": 10,
+      "name": "区块链",
+      "description": "学习区块链和Web3开发技术",
+      "icon": "blockchain",
+      "sort": 10,
+      "status": 1,
+      "createTime": "2024-01-01 00:00:00"
+    }
+  ]
+}

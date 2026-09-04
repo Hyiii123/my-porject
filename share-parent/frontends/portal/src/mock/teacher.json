@@ -1,0 +1,149 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "id": 1,
+      "name": "张老师",
+      "avatar": "/src/assets/images/teachers/teacher1.svg",
+      "title": "高级前端工程师",
+      "introduction": "10年前端开发经验，曾就职于BAT，精通Vue、React、Angular等主流框架",
+      "specialty": "Vue3、React、TypeScript",
+      "courses": 5,
+      "students": 25680,
+      "rating": 4.9
+    },
+    {
+      "id": 2,
+      "name": "李老师",
+      "avatar": "/src/assets/images/teachers/teacher2.svg",
+      "title": "全栈技术专家",
+      "introduction": "8年全栈开发经验，精通React、Node.js、Next.js等技术栈",
+      "specialty": "React、Node.js、Next.js",
+      "courses": 4,
+      "students": 18950,
+      "rating": 4.8
+    },
+    {
+      "id": 3,
+      "name": "王老师",
+      "avatar": "/src/assets/images/teachers/teacher3.svg",
+      "title": "Java架构师",
+      "introduction": "12年Java开发经验，微服务架构专家，精通SpringCloud生态",
+      "specialty": "Java、SpringBoot、微服务",
+      "courses": 6,
+      "students": 32560,
+      "rating": 4.9
+    },
+    {
+      "id": 4,
+      "name": "赵老师",
+      "avatar": "/src/assets/images/teachers/teacher4.svg",
+      "title": "Python高级工程师",
+      "introduction": "9年Python开发经验，AI和数据分析领域专家",
+      "specialty": "Python、Django、Flask",
+      "courses": 5,
+      "students": 28920,
+      "rating": 4.8
+    },
+    {
+      "id": 5,
+      "name": "陈老师",
+      "avatar": "/src/assets/images/teachers/teacher5.svg",
+      "title": "移动端开发专家",
+      "introduction": "7年移动端开发经验，精通Flutter、React Native、原生开发",
+      "specialty": "Flutter、React Native、iOS",
+      "courses": 3,
+      "students": 12780,
+      "rating": 4.7
+    },
+    {
+      "id": 6,
+      "name": "刘老师",
+      "avatar": "/src/assets/images/teachers/teacher6.svg",
+      "title": "数据库专家",
+      "introduction": "11年数据库架构经验，精通MySQL、MongoDB、Redis等",
+      "specialty": "MySQL、Redis、MongoDB",
+      "courses": 4,
+      "students": 20150,
+      "rating": 4.8
+    },
+    {
+      "id": 7,
+      "name": "杨老师",
+      "avatar": "/src/assets/images/teachers/teacher7.svg",
+      "title": "DevOps工程师",
+      "introduction": "6年运维开发经验，云原生和容器化技术专家",
+      "specialty": "Docker、K8s、AWS",
+      "courses": 3,
+      "students": 15870,
+      "rating": 4.7
+    },
+    {
+      "id": 8,
+      "name": "黄老师",
+      "avatar": "/src/assets/images/teachers/teacher8.svg",
+      "title": "AI算法工程师",
+      "introduction": "8年AI研发经验，深度学习和NLP领域专家",
+      "specialty": "机器学习、深度学习、NLP",
+      "courses": 4,
+      "students": 23480,
+      "rating": 4.9
+    },
+    {
+      "id": 9,
+      "name": "周老师",
+      "avatar": "/src/assets/images/teachers/teacher9.svg",
+      "title": "系统架构师",
+      "introduction": "10年系统编程经验，精通Go、Rust等高性能语言",
+      "specialty": "Go、Rust、系统编程",
+      "courses": 3,
+      "students": 11770,
+      "rating": 4.8
+    },
+    {
+      "id": 10,
+      "name": "吴老师",
+      "avatar": "/src/assets/images/teachers/teacher10.svg",
+      "title": "安全工程师",
+      "introduction": "7年网络安全经验，渗透测试和安全防护专家",
+      "specialty": "Web安全、渗透测试",
+      "courses": 2,
+      "students": 9540,
+      "rating": 4.7
+    },
+    {
+      "id": 11,
+      "name": "郑老师",
+      "avatar": "/src/assets/images/teachers/teacher11.svg",
+      "title": "数据分析师",
+      "introduction": "6年数据分析经验，数据可视化和BI专家",
+      "specialty": "ECharts、D3.js、数据分析",
+      "courses": 3,
+      "students": 14890,
+      "rating": 4.8
+    },
+    {
+      "id": 12,
+      "name": "孙老师",
+      "avatar": "/src/assets/images/teachers/teacher12.svg",
+      "title": "游戏开发工程师",
+      "introduction": "8年游戏开发经验，Unity和Unreal引擎专家",
+      "specialty": "Unity、C#、游戏设计",
+      "courses": 2,
+      "students": 8670,
+      "rating": 4.7
+    },
+    {
+      "id": 13,
+      "name": "马老师",
+      "avatar": "/src/assets/images/teachers/teacher13.svg",
+      "title": "区块链开发工程师",
+      "introduction": "5年区块链开发经验，Web3和智能合约专家",
+      "specialty": "Solidity、Web3、DeFi",
+      "courses": 2,
+      "students": 6450,
+      "rating": 4.6
+    }
+  ]
+}

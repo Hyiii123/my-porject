@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${TJ_MYSQL_HOST:127.0.0.1}:${TJ_MYSQL_PORT:13306}/tj_customer?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true&rewriteBatchedStatements=true
+    username: ${TJ_MYSQL_USERNAME:root}
+    password: ${TJ_MYSQL_PASSWORD:TjLocalRoot@2026}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-timeout: 3000
+      validation-timeout: 1000
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*Mapper.xml
+  type-aliases-package: com.share.customer.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    call-setters-on-nulls: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: input
+      logic-delete-field: delFlag
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+customer:
+  ai:
+    base-url: ${TJ_PIXEL_API_BASE_URL:https://api.ai-pixel.online}
+    endpoint-path: ${TJ_PIXEL_API_ENDPOINT:/v1/responses}
+    model: ${TJ_PIXEL_API_MODEL:gpt-5.5}
+    secret: ${TJ_AI_SECRET:}
+    timeout-ms: ${TJ_PIXEL_API_TIMEOUT_MS:30000}
+    max-retries: ${TJ_PIXEL_API_MAX_RETRIES:1}
+    system-prompt: ${TJ_PIXEL_API_SYSTEM_PROMPT:你是智问学伴的在线客服，请使用简洁、友好、准确的中文回答学习平台用户的问题；不确定时请明确说明，不要编造订单或账号信息。}

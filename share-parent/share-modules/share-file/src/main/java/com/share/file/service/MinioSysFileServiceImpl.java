@@ -2,6 +2,7 @@ package com.share.file.service;
 
 import java.io.InputStream;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.alibaba.nacos.common.utils.IoUtils;
@@ -16,6 +17,7 @@ import io.minio.PutObjectArgs;
  * @author share
  */
 @Service("minioSysFileService")
+@ConditionalOnProperty(name = "minio.enabled", havingValue = "true")
 public class MinioSysFileServiceImpl implements ISysFileService
 {
     @Autowired

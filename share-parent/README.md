@@ -56,6 +56,42 @@ com.share
 
 <img src="https://oscimg.oschina.net/oscnet/up-82e9722ecb846786405a904bafcf19f73f3.png"/>
 
+## Docker 本地启动
+
+本地开发环境使用 Docker Compose 启动 MySQL、Redis、Nacos 和底座服务。Docker 仅配置公共国内镜像加速源，不需要登录阿里云或其他镜像仓库账号；当前已验证的公共源为 `https://docker.m.daocloud.io`。
+
+首次启动前确认 Docker Desktop 已运行，并使用 Java 17 构建：
+
+```powershell
+Copy-Item .env.example .env
+$env:JAVA_HOME = 'C:\Program Files\Java\jdk-17'
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+mvn -DskipTests package
+docker compose -p tianji-share up -d mysql redis nacos
+```
+
+Nacos 健康后导入项目配置，再启动底座服务：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\nacos\import-config.ps1
+docker compose -p tianji-share up -d --build auth gateway system gen job monitor
+docker compose -p tianji-share ps
+```
+
+如果 MySQL 容器已经存在，新增迁移不会被 entrypoint 自动再次执行。此时请在项目根目录执行幂等迁移脚本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\mysql\apply-migrations.ps1
+```
+
+脚本会按文件名顺序执行 `sql/migrations/V*.sql`，使用容器内的 `MYSQL_ROOT_PASSWORD`，不会把数据库密码写入命令行。迁移包含演示数据用户关联修正（`1~12` → `101~112`）、评价状态修正和客服菜单权限修正。
+
+默认访问地址：网关 `http://127.0.0.1:8080`，Nacos `http://127.0.0.1:8848/nacos`，监控 `http://127.0.0.1:19100`。默认管理员账号为 `admin / admin123`。本机 3306 已有 MySQL 时，Compose 使用 13306 映射端口，不会停止或覆盖原实例。
+
+设备服务还依赖 MongoDB 与 EMQX，文件服务还依赖 MinIO；这些外部依赖未纳入本阶段启动清单。
+
+完整的服务边界、接口映射、数据库、Redis、Pixel AI 配置和验收记录见 [docs/MIGRATION.md](docs/MIGRATION.md)。
+
 ## 内置功能
 
 1.  用户管理：用户是系统操作者，该功能主要完成系统用户配置。

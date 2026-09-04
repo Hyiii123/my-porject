@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="225" viewBox="0 0 400 225">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#333333;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="225" fill="url(#grad)" rx="8"/>
+  <text x="200" y="90" font-family="Arial" font-size="42" fill="white" text-anchor="middle" font-weight="bold">Next.js</text>
+  <text x="200" y="140" font-family="Arial" font-size="20" fill="white" text-anchor="middle">全栈开发</text>
+  <text x="200" y="180" font-family="Arial" font-size="14" fill="rgba(255,255,255,0.8)" text-anchor="middle">IT编程课程</text>
+</svg>

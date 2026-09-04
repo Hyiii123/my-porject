@@ -16,6 +16,12 @@
     </description>
 
     <dependencies>
+	    <!-- 教师扩展资料通过 Feign 调用教育服务，避免跨服务直连业务表 -->
+        <dependency>
+            <groupId>com.share</groupId>
+            <artifactId>share-api-education</artifactId>
+        </dependency>
+
     	<!-- SpringCloud Alibaba Nacos -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
