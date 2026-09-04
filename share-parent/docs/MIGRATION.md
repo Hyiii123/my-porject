@@ -187,7 +187,7 @@ docker compose --project-directory /opt/tianji/share-parent -p tianji-share star
 - Maven 全量 `mvn -DskipTests package`：29 个模块构建通过。
 - `share-ui` 执行 `npm run build:prod`、`frontends/portal` 和 `frontends/business-admin` 执行 `npm run build`：三个前端构建通过。
 - 只读 HTTP 冒烟测试：35 项通过；包含网关健康检查、双角色登录、课程/学习/交易/媒资/客服管理查询。
-- 完整 HTTP 写链路冒烟测试：48 项通过；包含报名、学习记录保存、兑换码兑换、购物车下单、演示支付和支付后学习权限。
+- 完整 HTTP 写链路冒烟测试：62 项通过；在基础业务写链路之外，还覆盖 AI 客服会话创建、无 Key 时的 FAQ/知识库降级回复、客服消息历史、服务评价、评价后自动关闭会话，以及管理端会话和消息查询。
 - 实际 HTTP 链路：学生登录 → 创建会话 → 知识库回复 → 评价 → 刷新查询，返回均为业务成功，评价后状态为 `3`（已关闭）。
 - 实际 HTTP 链路：用户端登录 → 创建客服会话 → 无 Key 知识库降级 → 带临时 Key 的服务端代理入口，均返回业务成功；真实第三方 Key 未写入仓库。
 - 管理端知识库、FAQ、会话和统计接口通过管理员权限访问。

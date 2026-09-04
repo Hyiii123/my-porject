@@ -236,6 +236,56 @@ Assert-Success $customerStatistics '客服统计查询' | Out-Null
 if ($IncludeWriteFlow) {
     Write-Host '开始执行可写链路（会产生演示订单和学习记录）'
 
+    $customerSession = Invoke-Api -Method POST -Path '/customer/session' -Token $studentToken -Body @{
+        userName = '冒烟测试学员'
+    } -Name '创建 AI 客服会话'
+    Assert-Success $customerSession '创建 AI 客服会话' | Out-Null
+    $customerSessionId = [string]$customerSession.data.id
+    if ([string]::IsNullOrWhiteSpace($customerSessionId)) {
+        throw '客服会话创建后未返回会话编号'
+    }
+
+    # 不提供 API Key，验证第三方 AI 不可用时仍会通过本地 FAQ/知识库完成降级回复。
+    $customerChat = Invoke-Api -Method POST -Path "/customer/session/$customerSessionId/messages" -Token $studentToken -Body @{
+        content = '如何重置密码？'
+    } -Name '客服知识库降级回复'
+    Assert-Success $customerChat '客服知识库降级回复' | Out-Null
+    if ($null -eq $customerChat.data.message -or [string]::IsNullOrWhiteSpace([string]$customerChat.data.message.content)) {
+        throw '客服消息接口未返回 AI/知识库回复'
+    }
+    if (@($customerChat.data.session.messages).Count -lt 3) {
+        throw '客服会话快照未包含欢迎语、用户问题和客服回复'
+    }
+    $script:Passed++
+    Write-Host '[PASS] 客服会话快照包含完整问答链路'
+
+    $customerMessages = Invoke-Api -Method GET -Path "/customer/session/$customerSessionId/messages" -Token $studentToken -Name '客服消息历史查询'
+    Assert-Success $customerMessages '客服消息历史查询' | Out-Null
+    Assert-Count $customerMessages.data 3 '客服消息历史'
+
+    $customerEvaluation = Invoke-Api -Method POST -Path "/customer/session/$customerSessionId/evaluation" -Token $studentToken -Body @{
+        score = 5
+        tags = @('回答及时')
+        comment = '冒烟测试评价'
+    } -Name '提交客服服务评价'
+    Assert-Success $customerEvaluation '提交客服服务评价' | Out-Null
+
+    $closedCustomerSession = Invoke-Api -Method GET -Path "/customer/session/$customerSessionId" -Token $studentToken -Name '评价后客服会话查询'
+    Assert-Success $closedCustomerSession '评价后客服会话查询' | Out-Null
+    if ([int]$closedCustomerSession.data.status -ne 3) {
+        throw "提交评价后客服会话未关闭：$($closedCustomerSession | ConvertTo-Json -Depth 10 -Compress)"
+    }
+    $script:Passed++
+    Write-Host '[PASS] 提交评价后客服会话已关闭'
+
+    $adminCustomerSessions = Invoke-Api -Method GET -Path '/customer/admin/sessions/list?pageNum=1&pageSize=20' -Token $adminToken -Name '管理端客服会话查询'
+    Assert-Success $adminCustomerSessions '管理端客服会话查询' | Out-Null
+    Assert-Count $adminCustomerSessions 1 '管理端客服会话'
+
+    $adminCustomerMessages = Invoke-Api -Method GET -Path "/customer/admin/sessions/$customerSessionId/messages" -Token $adminToken -Name '管理端客服消息查询'
+    Assert-Success $adminCustomerMessages '管理端客服消息查询' | Out-Null
+    Assert-Count $adminCustomerMessages.data 3 '管理端客服消息'
+
     $enrollment = Invoke-Api -Method POST -Path '/ls/internal/enrollments/20' -Token $studentToken -Body @{} -Name '课程报名幂等创建'
     Assert-Success $enrollment '课程报名幂等创建' | Out-Null
 
