@@ -1,0 +1,52 @@
+# 服务器联调热部署编排，不参与生产 Compose。
+#
+# 使用方式（只替换一个目标服务）：
+#   docker compose -f docker-compose.yml stop customer
+#   docker compose -f docker-compose.hot.yml -p tianji-hot up -d customer-hot
+#
+# customer-hot 只在生产 customer 已停止时注册到 Nacos，保证网关仍能路由到唯一实例；
+# 停止热部署后可用生产 Compose start customer 恢复原服务。
+services:
+  customer-hot:
+    image: ${TJ_MAVEN_IMAGE:-docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17}
+    container_name: tianji-customer-hot
+    working_dir: /workspace
+    command: ["sh", "/workspace/deploy/hot-run.sh"]
+    environment:
+      TZ: Asia/Shanghai
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      MAVEN_OPTS: "-Xms128m -Xmx512m -Dfile.encoding=UTF-8"
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 9206
+      NACOS_SERVER_ADDR: nacos:8848
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "true"
+      TJ_REDIS_HOST: redis
+      TJ_REDIS_PORT: 6379
+      TJ_MYSQL_HOST: mysql
+      TJ_MYSQL_PORT: 3306
+      TJ_MYSQL_USERNAME: root
+      TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      TJ_PIXEL_API_BASE_URL: "${TJ_PIXEL_API_BASE_URL:-https://api.ai-pixel.online}"
+      TJ_PIXEL_API_ENDPOINT: "${TJ_PIXEL_API_ENDPOINT:-/v1/responses}"
+      TJ_PIXEL_API_MODEL: "${TJ_PIXEL_API_MODEL:-gpt-5.5}"
+      TJ_AI_SECRET: "${TJ_AI_SECRET:-}"
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+      SPRING_DEVTOOLS_RESTART_TRIGGER_FILE: reload.trigger
+      SPRING_DEVTOOLS_RESTART_POLL_INTERVAL: 1000ms
+      SPRING_DEVTOOLS_RESTART_QUIET_PERIOD: 400ms
+    volumes:
+      - .:/workspace
+      - tianji_maven_cache:/root/.m2
+    ports:
+      - "${TJ_CUSTOMER_HOT_PORT:-19206}:9206"
+    networks:
+      - tianji-net
+
+volumes:
+  tianji_maven_cache:
+    name: tianji_maven_cache
+
+networks:
+  tianji-net:
+    external: true

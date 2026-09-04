@@ -153,7 +153,33 @@ docker compose -p tianji-share restart auth gateway system education trade custo
 
 演示账号密码：`admin / admin123`。当前 Docker Compose 使用公共国内镜像源，不需要登录阿里云账号；可在 `.env` 中通过 `TJ_DOCKER_REGISTRY` 替换镜像源。
 
-## 9. 验收记录
+## 9. ECS CLI 热部署联调
+
+服务器没有安装 JDK、Maven 和 Node，使用本地 Workbench CLI 连接 ECS，服务器上的
+`docker-compose.hot.yml` 通过 Maven/JDK 17 容器编译客服服务。热服务挂载服务器源码目录，
+启用 Spring Boot DevTools；源码变更后只重新编译并触发上下文重载，不重启 Docker 容器。
+
+生产服务与热服务必须按顺序切换，只允许一个 `share-customer` 实例注册到 Nacos：
+
+```bash
+docker compose --project-directory /opt/tianji/share-parent -p tianji-share stop customer
+docker compose --project-directory /opt/tianji/share-parent \
+  -f /opt/tianji/share-parent/docker-compose.hot.yml -p tianji-hot up -d customer-hot
+```
+
+热服务验证完成后恢复正式容器：
+
+```bash
+docker compose --project-directory /opt/tianji/share-parent \
+  -f /opt/tianji/share-parent/docker-compose.hot.yml -p tianji-hot stop customer-hot
+docker compose --project-directory /opt/tianji/share-parent -p tianji-share start customer
+```
+
+代码文件通过 Workbench CLI 的 `upload`/`download` 传输；不要上传服务器 `.env`，也不要把
+第三方 Pixel API Key 写入仓库。Maven 依赖缓存保存在 `tianji_maven_cache` 卷中，避免每次
+热部署重复下载。
+
+## 10. 验收记录
 
 已执行：
 

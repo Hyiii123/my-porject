@@ -91,6 +91,7 @@ powershell -ExecutionPolicy Bypass -File .\deploy\mysql\apply-migrations.ps1
 设备服务还依赖 MongoDB 与 EMQX，文件服务还依赖 MinIO；这些外部依赖未纳入本阶段启动清单。
 
 完整的服务边界、接口映射、数据库、Redis、Pixel AI 配置和验收记录见 [docs/MIGRATION.md](docs/MIGRATION.md)。
+服务器通过 Workbench CLI 进行单服务热部署联调的步骤也见该文档“ECS CLI 热部署联调”一节。
 
 ## 内置功能
 

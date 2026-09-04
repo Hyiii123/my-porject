@@ -25,7 +25,8 @@ import org.springframework.web.client.RestTemplate;
  * Pixel 第三方 AI 客户端。
  *
  * <p>客户端只允许访问 https://api.ai-pixel.online，支持 Responses 和
- * Chat Completions 两类兼容格式，方便后续只修改 Nacos 配置即可切换接口路径。</p>
+ * Chat Completions 两类兼容格式，方便后续只修改 Nacos 配置即可切换接口路径。
+ * 请求和响应均按 JSON 协议声明，降低第三方网关内容协商不一致的概率。</p>
  */
 @Service
 public class CustomerAiClient {
@@ -78,6 +79,7 @@ public class CustomerAiClient {
         Map<String, Object> requestBody = buildRequest(config, history, userMessage);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         headers.setBearerAuth(secret);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
         int retryCount = Math.min(Math.max(config.getMaxRetries() == null ? 0 : config.getMaxRetries(), 0), 3);

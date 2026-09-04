@@ -65,6 +65,25 @@
         </dependency>
     </dependencies>
 
+    <!--
+        仅用于服务器联调的热加载 profile。生产镜像不携带 DevTools，避免把开发能力带入运行环境。
+        deploy/docker-compose.hot.yml 会以 -Phot-reload 启动该 profile。
+    -->
+    <profiles>
+        <profile>
+            <id>hot-reload</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-devtools</artifactId>
+                    <version>${spring-boot.version}</version>
+                    <scope>runtime</scope>
+                    <optional>true</optional>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
     <build>
         <finalName>${project.artifactId}</finalName>
         <plugins>
