@@ -1,0 +1,32 @@
+# Flyway 数据库迁移编排。
+#
+# 这是一次性任务，不与业务服务并行构建或启动。正式启动前执行：
+# docker compose -p tianji-share -f docker-compose.yml -f docker-compose.migrate.yml run --rm db-migrate
+services:
+  db-migrate:
+    image: ${TJ_MAVEN_IMAGE:-docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17}
+    container_name: tianji-db-migrate
+    working_dir: /workspace
+    command:
+      - sh
+      - -c
+      - >-
+        mvn -N -B -Pdb-migrate flyway:migrate
+        '-Dflyway.url=jdbc:mysql://mysql:3306/share?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8'
+    environment:
+      TZ: Asia/Shanghai
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      FLYWAY_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      MAVEN_OPTS: "-Xms128m -Xmx512m -Dfile.encoding=UTF-8"
+    volumes:
+      - .:/workspace:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tianji-net
+
+networks:
+  tianji-net:
+    external: true

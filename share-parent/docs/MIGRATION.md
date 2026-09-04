@@ -99,19 +99,25 @@ FAQ 新增、修改和删除会清理 `cs:faq:list:*`。Redis 暂时不可用时
 
 ## 7. 数据迁移
 
-首次创建 MySQL 数据卷时，Compose 会按顺序执行：
+首次创建 MySQL 数据卷时，Compose 会按顺序执行基础建表脚本和兼容种子脚本：
 
 1. `sql/share-system.sql`、`sql/quartz.sql`。
 2. `sql/tianji-education.sql`、`sql/tianji-trade.sql`、`sql/tianji-customer.sql`、`sql/tianji-file.sql`。
-3. `sql/migrations/V*.sql` 中的兼容、演示数据和权限迁移。
+3. 现有 `sql/migrations/V*.sql` 会在初始数据卷中提供兼容数据；版本历史由 Flyway
+   迁移任务补齐并持续管理。
 
-已有 MySQL 数据卷不会重复执行 entrypoint 初始化脚本。应在项目根目录执行：
+已有 MySQL 数据卷不会重复执行 entrypoint 初始化脚本。现在应在项目根目录执行
+Flyway 一次性迁移任务：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\deploy\mysql\apply-migrations.ps1
 ```
 
-迁移脚本均按幂等方式编写，使用 `INSERT ... ON DUPLICATE KEY UPDATE`、`INSERT IGNORE` 或条件更新。执行失败时脚本会立即停止；正式环境应先备份对应 schema，再在事务或备份恢复策略下执行。
+该脚本通过 `docker-compose.migrate.yml` 使用 Maven/Flyway 容器执行，不会启动或重启
+业务服务；Flyway 历史记录写入 `share.flyway_schema_history`。迁移密码只从 Compose
+环境变量传入，不写入命令行、SQL 或日志。迁移脚本均按幂等方式编写，使用
+`INSERT ... ON DUPLICATE KEY UPDATE`、`INSERT IGNORE` 或条件更新。执行失败时脚本会
+立即停止；正式环境应先备份对应 schema，再在事务或备份恢复策略下执行。
 
 学习记录和兑换码的写链路可以使用以下脚本验证。只读模式不会写入业务数据，`-IncludeWriteFlow` 会创建或复用演示报名、学习记录、兑换和订单支付数据：
 

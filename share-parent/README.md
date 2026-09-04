@@ -78,13 +78,13 @@ docker compose -p tianji-share up -d --build auth gateway system gen job monitor
 docker compose -p tianji-share ps
 ```
 
-如果 MySQL 容器已经存在，新增迁移不会被 entrypoint 自动再次执行。此时请在项目根目录执行幂等迁移脚本：
+如果 MySQL 容器已经存在，新增迁移不会被 entrypoint 自动再次执行。此时请在项目根目录执行 Flyway 迁移任务：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\deploy\mysql\apply-migrations.ps1
 ```
 
-脚本会按文件名顺序执行 `sql/migrations/V*.sql`，使用容器内的 `MYSQL_ROOT_PASSWORD`，不会把数据库密码写入命令行。迁移包含演示数据用户关联修正（`1~12` → `101~112`）、评价状态修正和客服菜单权限修正。
+脚本通过 `docker-compose.migrate.yml` 启动一次性 Maven/Flyway 容器，按 `sql/migrations/V*.sql` 的版本顺序执行并写入 `share.flyway_schema_history`，不启动或重启业务服务。数据库密码只通过 Compose 环境变量传入，不写入仓库、命令行或日志。迁移包含演示数据用户关联修正（`1~12` → `101~112`）、评价状态修正和客服菜单权限修正。
 
 默认访问地址：网关 `http://127.0.0.1:8080`，Nacos `http://127.0.0.1:8848/nacos`，监控 `http://127.0.0.1:19100`。默认管理员账号为 `admin / admin123`。本机 3306 已有 MySQL 时，Compose 使用 13306 映射端口，不会停止或覆盖原实例。
 

@@ -22,6 +22,7 @@
         <spring-boot.version>3.0.5</spring-boot.version>
         <spring-cloud.version>2022.0.2</spring-cloud.version>
         <spring-cloud-alibaba.version>2022.0.0.0-RC2</spring-cloud-alibaba.version>
+        <flyway.version>9.22.3</flyway.version>
         <spring-boot-admin.version>3.0.4</spring-boot-admin.version>
         <tobato.version>1.27.2</tobato.version>
         <kaptcha.version>2.3.3</kaptcha.version>
@@ -309,6 +310,58 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <!--
+        数据库版本管理 profile。
+        基础建表脚本仍由 MySQL 初始化目录负责，V2 及之后的增量脚本由 Flyway
+        统一记录到 share.flyway_schema_history。迁移脚本中使用 USE 切换逻辑库，
+        因此连接 URL 不绑定单一业务库，并由数据库账号负责跨逻辑库执行权限。
+        密码只从 FLYWAY_PASSWORD 环境变量读取，不写入 POM、命令行或日志。
+    -->
+    <profiles>
+        <profile>
+            <id>db-migrate</id>
+            <properties>
+                <flyway.url>jdbc:mysql://127.0.0.1:13306/share?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=utf8</flyway.url>
+                <flyway.user>root</flyway.user>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.flywaydb</groupId>
+                        <artifactId>flyway-maven-plugin</artifactId>
+                        <version>${flyway.version}</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.flywaydb</groupId>
+                                <artifactId>flyway-mysql</artifactId>
+                                <version>${flyway.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>com.mysql</groupId>
+                                <artifactId>mysql-connector-j</artifactId>
+                                <version>8.0.33</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <url>${flyway.url}</url>
+                            <user>${flyway.user}</user>
+                            <password>${env.FLYWAY_PASSWORD}</password>
+                            <locations>
+                                <location>filesystem:${project.basedir}/sql/migrations</location>
+                            </locations>
+                            <baselineOnMigrate>true</baselineOnMigrate>
+                            <baselineVersion>1</baselineVersion>
+                            <baselineDescription>existing share-parent schema</baselineDescription>
+                            <cleanDisabled>true</cleanDisabled>
+                            <validateMigrationNaming>true</validateMigrationNaming>
+                            <outOfOrder>false</outOfOrder>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
     <modules>
         <module>share-auth</module>
