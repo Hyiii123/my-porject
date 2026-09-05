@@ -46,6 +46,7 @@
 
 - 小节学习记录接口 `GET /ls/learning-records/lessons/{lessonId}` 按当前用户和 `catalog_id` 查询，避免把小节编号误当成课程编号。
 - 兑换码兑换按真实兑换码查询，并校验兑换码、优惠券状态和有效期；领取动作使用条件更新控制并发重复兑换，同一用户重复请求保持幂等。
+- 题库列表补充旧路径 `GET /es/questions/list`，与 `/es/questions/page` 返回相同分页结构，避免被 `/questions/{id}` 当作数字编号解析。
 
 ## 4. 客服接口
 

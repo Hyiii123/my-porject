@@ -303,6 +303,17 @@ public class EducationPortalController extends BaseController {
         return success(educationService.questionPage(params));
     }
 
+    /**
+     * 兼容旧前端 Mock 适配器使用的列表别名。
+     *
+     * <p>如果没有这个固定路径，/questions/{id} 会把 list 当成 Long
+     * 解析并返回参数类型错误；真实前端和历史调用方都应得到同一分页结构。</p>
+     */
+    @GetMapping("/questions/list")
+    public AjaxResult questionList(@RequestParam Map<String, Object> params) {
+        return success(educationService.questionPage(params));
+    }
+
     @GetMapping("/questions/checkName")
     public AjaxResult checkQuestionName(@RequestParam Map<String, Object> params) {
         return success(educationService.checkQuestionName(params));
