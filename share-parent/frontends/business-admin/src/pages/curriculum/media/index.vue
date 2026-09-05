@@ -132,7 +132,7 @@
           </div>
           <template #tip>
             <div class="el-upload__tip">
-              支持 mp4、avi、mov 等视频格式，单个文件不超过 2GB
+              Demo 环境支持 mp4、avi、mov 等视频格式，单个文件不超过 20MB
             </div>
           </template>
         </el-upload>

@@ -1570,24 +1570,27 @@ public class EducationService {
         }
         if (exam == null) throw new ServiceException("考试不存在");
         Map<String, Object> result = examView(exam);
-        List<Long> questionIds = examQuestionMapper.selectList(new LambdaQueryWrapper<EduExamQuestion>()
-                .eq(EduExamQuestion::getExamId, exam.getId()).orderByAsc(EduExamQuestion::getSortNum))
-                .stream().map(EduExamQuestion::getQuestionId).toList();
-        if (questionIds.isEmpty()) {
-            result.put("questions", questionBankMapper.selectList(new LambdaQueryWrapper<EduExamQuestionBank>()
-                    .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId)).stream()
-                    .map(this::questionBankView).toList());
-        } else {
-            result.put("questions", questionBankMapper.selectBatchIds(questionIds).stream()
-                    .map(this::questionBankView).toList());
-        }
+        List<EduExamQuestion> relations = examQuestionMapper.selectList(new LambdaQueryWrapper<EduExamQuestion>()
+                .eq(EduExamQuestion::getExamId, exam.getId()).orderByAsc(EduExamQuestion::getSortNum));
+        List<Long> questionIds = relations.stream().map(EduExamQuestion::getQuestionId).toList();
+        List<EduExamQuestionBank> questions = questionIds.isEmpty()
+                ? questionBankMapper.selectList(new LambdaQueryWrapper<EduExamQuestionBank>()
+                        .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId))
+                : questionIds.stream().map(questionBankMapper::selectById).filter(Objects::nonNull).toList();
+        // /es/exams 是旧用户端答题页使用的接口，必须返回数字题型和数组选项。
+        // 同时保留 questionBankQuestions 供新客户端使用规范化题库字段。
+        result.put("questions", questions.stream().map(this::legacyQuestionView).toList());
+        result.put("questionBankQuestions", questions.stream().map(this::questionBankView).toList());
+        result.put("questionCount", questions.size());
         return result;
     }
 
     public Map<String, Object> examQuestions(Map<String, ?> params) {
-        Long examId = longValue(params.get("examId"));
+        Map<String, ?> request = params == null ? Map.of() : params;
+        Long examId = longValue(request.get("examId"));
+        if (examId == null) examId = longValue(request.get("id"));
         if (examId != null) return exam(examId);
-        Long courseId = longValue(params.get("courseId"));
+        Long courseId = longValue(request.get("courseId"));
         EduExam value = examMapper.selectOne(new LambdaQueryWrapper<EduExam>()
                 .eq(courseId != null, EduExam::getCourseId, courseId)
                 .eq(EduExam::getStatus, ENABLED).orderByAsc(EduExam::getId).last("limit 1"));
@@ -1595,7 +1598,7 @@ public class EducationService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("questions", questionBankMapper.selectList(new LambdaQueryWrapper<EduExamQuestionBank>()
                 .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId)).stream()
-                .map(this::questionBankView).toList());
+                .map(this::legacyQuestionView).toList());
         return result;
     }
 
@@ -1606,8 +1609,9 @@ public class EducationService {
         require(exam != null, "考试不存在");
         value.setId(newId());
         value.setUserId(currentUserId());
-        value.setTotalScore(defaultValue(value.getTotalScore(), exam.getTotalScore()));
-        value.setQuestionCount(defaultValue(value.getQuestionCount(), examQuestionCount(exam.getId())));
+        // 总分和题数必须以服务端考试配置为准，不能信任客户端提交的数值。
+        value.setTotalScore(defaultValue(exam.getTotalScore(), BigDecimal.valueOf(100)));
+        value.setQuestionCount(examQuestionCount(exam.getId()));
         value.setCorrectCount(0);
         value.setStatus(0);
         value.setStartedAt(LocalDateTime.now());
@@ -1621,40 +1625,85 @@ public class EducationService {
 
     @Transactional
     public Map<String, Object> submitExam(Map<String, ?> payload) {
-        Long recordId = longValue(payload.get("recordId"));
+        Map<String, ?> request = payload == null ? Map.of() : payload;
+        Long recordId = longValue(request.get("recordId"));
         EduExamRecord record = recordId == null ? null : examRecordMapper.selectById(recordId);
-        if (record == null) {
-            Long examId = longValue(payload.get("examId"));
-            record = startExam(new EduExamRecord() {{ setExamId(examId); }});
+        if (record != null) {
+            Long userId = currentUserId();
+            require(Objects.equals(record.getUserId(), userId) || SecurityUtils.isAdmin(userId), "无权提交该考试记录");
+            // 已提交记录重复请求直接返回原结果，避免违反 uk_exam_answer 唯一索引或重复累计分数。
+            if (!Integer.valueOf(0).equals(record.getStatus())) return examRecordView(record);
         }
-        Object answersObject = payload.get("answers");
+        if (record == null) {
+            Long examId = longValue(request.get("examId"));
+            if (examId == null) examId = longValue(request.get("id"));
+            require(examId != null, "考试编号不能为空");
+            EduExamRecord newRecord = new EduExamRecord();
+            newRecord.setExamId(examId);
+            record = startExam(newRecord);
+        }
+        EduExam exam = examMapper.selectById(record.getExamId());
+        require(exam != null, "考试不存在");
+
+        List<EduExamQuestion> relations = examQuestionMapper.selectList(new LambdaQueryWrapper<EduExamQuestion>()
+                .eq(EduExamQuestion::getExamId, exam.getId()).orderByAsc(EduExamQuestion::getSortNum));
+        Map<Long, EduExamQuestion> relationByQuestion = relations.stream()
+                .collect(Collectors.toMap(EduExamQuestion::getQuestionId, Function.identity(), (left, right) -> left,
+                        LinkedHashMap::new));
+        boolean hasExplicitQuestions = !relationByQuestion.isEmpty();
+        List<EduExamQuestionBank> examQuestions = hasExplicitQuestions
+                ? relationByQuestion.keySet().stream().map(questionBankMapper::selectById).filter(Objects::nonNull).toList()
+                : questionBankMapper.selectList(new LambdaQueryWrapper<EduExamQuestionBank>()
+                        .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId));
+        Map<Long, EduExamAnswer> existingAnswers = examAnswerMapper.selectList(new LambdaQueryWrapper<EduExamAnswer>()
+                .eq(EduExamAnswer::getRecordId, record.getId())).stream()
+                .collect(Collectors.toMap(EduExamAnswer::getQuestionId, Function.identity(), (left, right) -> right,
+                        LinkedHashMap::new));
+
+        Object answersObject = request.get("answers");
+        // 原 tj-protal 使用 examDetails + id，新接口使用 answers + examId/recordId，两个契约都支持。
+        if (!(answersObject instanceof List<?>)) answersObject = request.get("examDetails");
         int correct = 0;
         BigDecimal score = BigDecimal.ZERO;
+        Set<Long> processedQuestions = new HashSet<>();
         if (answersObject instanceof List<?> answers) {
             for (Object item : answers) {
                 if (!(item instanceof Map<?, ?> answer)) continue;
                 Long questionId = longValue(answer.get("questionId"));
-                String userAnswer = text(answer.get("answer"));
+                require(questionId != null, "题目编号不能为空");
+                require(processedQuestions.add(questionId), "同一题目不能重复提交");
                 EduExamQuestionBank question = questionId == null ? null : questionBankMapper.selectById(questionId);
-                boolean right = question != null && sameAnswer(question.getCorrectAnswer(), userAnswer);
-                BigDecimal itemScore = question == null ? BigDecimal.ZERO : defaultValue(question.getScore(), BigDecimal.ZERO);
+                EduExamQuestion relation = relationByQuestion.get(questionId);
+                require(question != null && (!hasExplicitQuestions || relation != null), "提交的题目不属于该考试");
+                String userAnswer = normalizeAnswer(text(answer.get("answer")), question.getQuestionType());
+                boolean right = question != null && sameAnswer(question.getCorrectAnswer(), userAnswer, question.getQuestionType());
+                BigDecimal itemScore = relation != null && relation.getScore() != null
+                        && relation.getScore().compareTo(BigDecimal.ZERO) > 0
+                        ? relation.getScore() : defaultValue(question.getScore(), BigDecimal.ZERO);
                 if (right) { correct++; score = score.add(itemScore); }
-                EduExamAnswer entity = new EduExamAnswer();
-                entity.setId(newId()); entity.setRecordId(record.getId()); entity.setQuestionId(questionId);
+                EduExamAnswer entity = existingAnswers.get(questionId);
+                if (entity == null) {
+                    entity = new EduExamAnswer();
+                    entity.setId(newId()); entity.setRecordId(record.getId()); entity.setQuestionId(questionId);
+                }
                 entity.setUserAnswer(userAnswer); entity.setIsCorrect(right ? 1 : 0); entity.setScore(right ? itemScore : BigDecimal.ZERO);
-                entity.setCreateTime(LocalDateTime.now());
-                examAnswerMapper.insert(entity);
+                if (entity.getCreateTime() == null) entity.setCreateTime(LocalDateTime.now());
+                if (existingAnswers.containsKey(questionId)) examAnswerMapper.updateById(entity);
+                else { examAnswerMapper.insert(entity); existingAnswers.put(questionId, entity); }
             }
         }
         record.setScore(score);
         record.setCorrectCount(correct);
-        record.setStatus(score.compareTo(BigDecimal.valueOf(60)) >= 0 ? 1 : 2);
+        BigDecimal passScore = defaultValue(exam.getPassScore(), BigDecimal.valueOf(60));
+        record.setStatus(score.compareTo(passScore) >= 0 ? 1 : 2);
         record.setSubmittedAt(LocalDateTime.now());
         record.setUpdateTime(LocalDateTime.now());
         examRecordMapper.updateById(record);
         Map<String, Object> result = examRecordView(record);
         result.put("score", score);
         result.put("correctCount", correct);
+        result.put("passScore", passScore);
+        result.put("questions", examQuestions.stream().map(this::legacyQuestionView).toList());
         return result;
     }
 
@@ -1706,16 +1755,15 @@ public class EducationService {
                 .eq(EduSignRecord::getUserId, userId).eq(EduSignRecord::getSignDate, LocalDate.now()));
         result.put("todayPoints", today == null ? 0 : today.getPoints());
         result.put("totalPoints", totalPoints(userId));
-        result.put("rank", 1);
+        result.put("rank", pointsRank(userId));
         return result;
     }
 
     public List<Map<String, Object>> pointsBoard(Map<String, ?> params) {
-        Map<Long, Integer> totals = pointsMapper.selectList(new LambdaQueryWrapper<EduPointsLedger>()
-                .orderByDesc(EduPointsLedger::getBalanceAfter)).stream()
-                .collect(Collectors.toMap(EduPointsLedger::getUserId, EduPointsLedger::getBalanceAfter, Math::max));
+        Map<Long, Integer> totals = latestPointsByUser();
         List<Map<String, Object>> result = new ArrayList<>();
-        totals.entrySet().stream().sorted(Map.Entry.<Long, Integer>comparingByValue().reversed()).limit(50).forEach(item -> {
+        totals.entrySet().stream().sorted(Map.Entry.<Long, Integer>comparingByValue().reversed()
+                .thenComparing(Map.Entry.comparingByKey())).limit(50).forEach(item -> {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("userId", item.getKey()); row.put("userName", item.getKey().equals(currentUserId()) ? currentUserName() : "学习者" + item.getKey());
             row.put("points", item.getValue()); row.put("rank", result.size() + 1); result.add(row);
@@ -1901,14 +1949,16 @@ public class EducationService {
     private Map<String, Object> questionView(EduQuestion item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("userId", item.getUserId()); result.put("courseId", item.getCourseId()); result.put("title", item.getTitle()); result.put("content", item.getContent()); result.put("category", item.getCategory()); result.put("viewCount", item.getViewCount()); result.put("replyCount", item.getReplyCount()); result.put("replyTimes", item.getReplyCount()); result.put("likeCount", item.getLikeCount()); result.put("likedTimes", item.getLikeCount()); result.put("liked", false); result.put("userName", item.getUserId() != null && item.getUserId().equals(currentUserId()) ? currentUserName() : "学习者"); result.put("createTime", item.getCreateTime()); return result; }
     private Map<String, Object> replyView(EduReply item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("questionId", item.getQuestionId()); result.put("answerId", item.getParentId()); result.put("parentId", item.getParentId()); result.put("userId", item.getUserId()); result.put("content", item.getContent()); result.put("liked", false); result.put("likedTimes", item.getLikeCount()); result.put("replyTimes", 0); result.put("userName", item.getUserId() != null && item.getUserId().equals(currentUserId()) ? currentUserName() : "学习者"); result.put("targetUserName", "提问者"); result.put("createTime", item.getCreateTime()); return result; }
     private Map<String, Object> noteView(EduNote item) { Long userId = currentUserId(); Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("userId", item.getUserId()); result.put("authorId", item.getUserId()); result.put("authorName", item.getUserId() != null && item.getUserId().equals(userId) ? currentUserName() : "学习者"); result.put("title", item.getTitle()); result.put("content", item.getContent()); result.put("courseId", item.getCourseId()); result.put("catalogId", item.getCatalogId()); result.put("visibility", item.getVisibility()); result.put("likedTimes", item.getLikeCount()); result.put("isGathered", noteCollectMapper.selectCount(new LambdaQueryWrapper<EduNoteCollect>().eq(EduNoteCollect::getNoteId, item.getId()).eq(EduNoteCollect::getUserId, userId)) > 0); result.put("liked", noteLikeMapper.selectCount(new LambdaQueryWrapper<EduNoteLike>().eq(EduNoteLike::getNoteId, item.getId()).eq(EduNoteLike::getUserId, userId)) > 0); result.put("createTime", item.getCreateTime()); return result; }
-    private Map<String, Object> examView(EduExam item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("courseId", item.getCourseId()); result.put("examName", item.getExamName()); result.put("name", item.getExamName()); result.put("description", item.getDescription()); result.put("totalScore", item.getTotalScore()); result.put("passScore", item.getPassScore()); result.put("durationMinutes", item.getDurationMinutes()); result.put("status", item.getStatus()); return result; }
-    private Map<String, Object> examRecordView(EduExamRecord item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("examId", item.getExamId()); result.put("score", item.getScore()); result.put("totalScore", item.getTotalScore()); result.put("correctCount", item.getCorrectCount()); result.put("questionCount", item.getQuestionCount()); result.put("status", item.getStatus()); result.put("startedAt", item.getStartedAt()); result.put("submittedAt", item.getSubmittedAt()); EduExam exam = examMapper.selectById(item.getExamId()); if (exam != null) result.put("examName", exam.getExamName()); return result; }
+    private Map<String, Object> examView(EduExam item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("courseId", item.getCourseId()); result.put("courseName", courseName(item.getCourseId())); result.put("examName", item.getExamName()); result.put("name", item.getExamName()); result.put("sectionName", item.getExamName()); result.put("description", item.getDescription()); result.put("totalScore", item.getTotalScore()); result.put("passScore", item.getPassScore()); result.put("durationMinutes", item.getDurationMinutes()); result.put("duration", item.getDurationMinutes() == null ? 0 : item.getDurationMinutes() * 60); result.put("status", item.getStatus()); return result; }
+    private Map<String, Object> examRecordView(EduExamRecord item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("examId", item.getExamId()); result.put("score", item.getScore()); result.put("totalScore", item.getTotalScore()); result.put("correctCount", item.getCorrectCount()); result.put("questionCount", item.getQuestionCount()); result.put("status", item.getStatus()); result.put("statusName", Integer.valueOf(1).equals(item.getStatus()) ? "通过" : Integer.valueOf(2).equals(item.getStatus()) ? "未通过" : "进行中"); result.put("startedAt", item.getStartedAt()); result.put("startTime", item.getStartedAt()); result.put("submittedAt", item.getSubmittedAt()); result.put("endTime", item.getSubmittedAt()); result.put("commitTime", item.getSubmittedAt()); result.put("duration", durationSeconds(item.getStartedAt(), item.getSubmittedAt())); EduExam exam = examMapper.selectById(item.getExamId()); if (exam != null) { result.put("examName", exam.getExamName()); result.put("sectionName", exam.getExamName()); result.put("courseId", exam.getCourseId()); result.put("courseName", courseName(exam.getCourseId())); } return result; }
     private Map<String, Object> questionBankView(EduExamQuestionBank item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("questionType", item.getQuestionType()); result.put("type", item.getQuestionType()); result.put("stem", item.getStem()); result.put("title", item.getStem()); result.put("options", item.getOptionsJson()); result.put("optionsJson", item.getOptionsJson()); result.put("correctAnswer", item.getCorrectAnswer()); result.put("analysis", item.getAnalysis()); result.put("score", item.getScore()); result.put("difficulty", item.getDifficulty()); result.put("categoryId", item.getCategoryId()); return result; }
 
     private Map<String, Object> legacyQuestionView(EduExamQuestionBank item) {
         Map<String, Object> result = questionBankView(item);
-        result.put("type", item.getQuestionType());
+        result.put("questionType", item.getQuestionType());
+        result.put("type", legacyQuestionType(item.getQuestionType()));
         result.put("title", item.getStem());
+        result.put("name", item.getStem());
         result.put("answer", item.getCorrectAnswer());
         result.put("categoryName", "题库题目");
         result.put("createTime", item.getCreateTime());
@@ -1935,7 +1985,75 @@ public class EducationService {
     private String courseName(Long courseId) { return Optional.ofNullable(courseId).map(courseMapper::selectById).map(EduCourse::getCourseName).orElse(""); }
     private int examQuestionCount(Long examId) { int count = examQuestionMapper.selectCount(new LambdaQueryWrapper<EduExamQuestion>().eq(EduExamQuestion::getExamId, examId)).intValue(); return count > 0 ? count : questionBankMapper.selectCount(new LambdaQueryWrapper<EduExamQuestionBank>().eq(EduExamQuestionBank::getStatus, ENABLED)).intValue(); }
     private int totalPoints(Long userId) { return pointsMapper.selectList(new LambdaQueryWrapper<EduPointsLedger>().eq(EduPointsLedger::getUserId, userId)).stream().mapToInt(item -> defaultValue(item.getChangeAmount(), 0)).sum(); }
-    private boolean sameAnswer(String expected, String actual) { if (!StringUtils.hasText(expected) || !StringUtils.hasText(actual)) return false; String left = expected.replaceAll("[\\s,，、]", "").toUpperCase(); String right = actual.replaceAll("[\\s,，、]", "").toUpperCase(); return left.equals(right); }
+    /** 每个用户只取按发生时间排序后的最新流水，避免历史最高余额被误当成当前余额。 */
+    private Map<Long, Integer> latestPointsByUser() {
+        Map<Long, Integer> result = new LinkedHashMap<>();
+        pointsMapper.selectList(new LambdaQueryWrapper<EduPointsLedger>()
+                .orderByDesc(EduPointsLedger::getCreateTime).orderByDesc(EduPointsLedger::getId))
+                .forEach(item -> result.putIfAbsent(item.getUserId(), defaultValue(item.getBalanceAfter(), 0)));
+        return result;
+    }
+    private int pointsRank(Long userId) {
+        Map<Long, Integer> totals = latestPointsByUser();
+        int current = totals.getOrDefault(userId, totalPoints(userId));
+        return 1 + (int) totals.values().stream().filter(value -> value > current).count();
+    }
+    private boolean sameAnswer(String expected, String actual, String questionType) {
+        if (!StringUtils.hasText(expected) || !StringUtils.hasText(actual)) return false;
+        return normalizeAnswer(expected, questionType).equalsIgnoreCase(normalizeAnswer(actual, questionType));
+    }
+    /** 将新题库的类型映射为旧答题页使用的数字题型。 */
+    private int legacyQuestionType(String value) {
+        if (!StringUtils.hasText(value)) return 1;
+        String normalized = normalizeQuestionType(value);
+        return switch (normalized) {
+            case "single" -> 1;
+            case "multiple" -> 2;
+            case "judge" -> 4;
+            case "blank", "fill", "essay" -> 5;
+            default -> intValue(value, 5);
+        };
+    }
+    /** 兼容旧页面提交的 1/2/true 等选项值，并统一保存为 A/B/C 格式。 */
+    private String normalizeAnswer(String value, String questionType) {
+        if (!StringUtils.hasText(value)) return "";
+        String type = normalizeQuestionType(questionType);
+        String raw = value.trim();
+        if (raw.startsWith("[") && raw.endsWith("]")) {
+            try {
+                List<?> values = objectMapper.readValue(raw, List.class);
+                raw = values.stream().map(String::valueOf).collect(Collectors.joining(","));
+            } catch (Exception ignored) { }
+        }
+        if ("judge".equals(type)) {
+            if ("true".equalsIgnoreCase(raw) || "正确".equals(raw) || "1".equals(raw) || "A".equalsIgnoreCase(raw)) return "A";
+            if ("false".equalsIgnoreCase(raw) || "错误".equals(raw) || "0".equals(raw) || "2".equals(raw) || "B".equalsIgnoreCase(raw)) return "B";
+            return raw.replaceAll("[\\s,，、]", "").toUpperCase();
+        }
+        if (!"single".equals(type) && !"multiple".equals(type)) return raw;
+        String[] tokens = raw.split("[,，、;；\\s]+");
+        if (tokens.length == 1 && "multiple".equals(type) && tokens[0].length() > 1
+                && tokens[0].matches("[A-Za-z0-9]+")) {
+            tokens = tokens[0].split("");
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String token : tokens) {
+            if (!StringUtils.hasText(token)) continue;
+            String item = token.trim();
+            if (item.matches("\\d+")) {
+                int index = intValue(item, -1);
+                if (index >= 1 && index <= 26) item = String.valueOf((char) ('A' + index - 1));
+            } else {
+                item = item.toUpperCase();
+            }
+            normalized.add(item);
+            if ("single".equals(type)) break;
+        }
+        if ("multiple".equals(type)) {
+            return normalized.stream().distinct().sorted().collect(Collectors.joining());
+        }
+        return normalized.isEmpty() ? "" : normalized.get(0);
+    }
     private BigDecimal moneyCents(BigDecimal value) { return defaultValue(value, BigDecimal.ZERO).movePointRight(2).setScale(0, RoundingMode.HALF_UP); }
     private Map<String, Object> pageView(long total, List<?> list) { Map<String, Object> result = new LinkedHashMap<>(); result.put("total", total); result.put("list", list); return result; }
     private long safePage(long value) { return value < 1 ? 1 : Math.min(value, 100000); }

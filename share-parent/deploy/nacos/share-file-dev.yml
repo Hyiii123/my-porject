@@ -28,7 +28,8 @@ mybatis-plus:
 file:
   path: ${TJ_FILE_PATH:/app/uploads}
   prefix: /profile
-  domain: ${TJ_FILE_DOMAIN:http://localhost:8080/file}
+  # 返回同源相对地址，避免把 localhost 写入媒资 URL；部署到公网时也无需改数据库中的历史地址。
+  domain: ${TJ_FILE_DOMAIN:/file}
 
 minio:
   enabled: ${TJ_MINIO_ENABLED:false}

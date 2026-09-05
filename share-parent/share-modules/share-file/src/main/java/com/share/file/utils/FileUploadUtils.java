@@ -24,9 +24,10 @@ import com.share.common.core.utils.uuid.Seq;
 public class FileUploadUtils
 {
     /**
-     * 默认大小 50M
+     * Demo 环境单文件上限 20M，与 Spring multipart 配置保持一致。
+     * 正式环境如需支持大媒资，应切换对象存储并单独配置分片上传。
      */
-    public static final long DEFAULT_MAX_SIZE = 50 * 1024 * 1024;
+    public static final long DEFAULT_MAX_SIZE = 20 * 1024 * 1024;
 
     /**
      * 默认的文件名最大长度 100

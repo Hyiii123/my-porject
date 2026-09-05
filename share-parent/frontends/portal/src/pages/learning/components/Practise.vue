@@ -184,7 +184,19 @@ const submit = () => {
 // 提交了
 const postSubjectHandle = async () => {
   const param = params.value.map(el => {
-    return { questionId: el.id, answer: el.answers.sort((i1, i2) => parseInt(i1)-parseInt(i2)).toString(), questionType: el.type }
+    let answer = el.answers
+    if (Array.isArray(answer)) {
+      // 多选题是数组，排序前复制一份，避免修改响应式答案本身。
+      answer = [...answer].sort((left, right) => Number(left) - Number(right)).join(',')
+    } else if (el.type == 4 && typeof answer === 'boolean') {
+      // 判断题的 radio 值是布尔值，接口统一接收 A/B。
+      answer = answer ? 'A' : 'B'
+    } else if (answer !== undefined && answer !== null) {
+      answer = String(answer)
+    } else {
+      answer = ''
+    }
+    return { questionId: el.id, answer, questionType: el.type }
   });
   await postSubject({ examDetails: param, id: examId.value })
     .then((res) => {

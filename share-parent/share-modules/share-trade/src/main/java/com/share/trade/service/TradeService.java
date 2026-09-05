@@ -74,8 +74,14 @@ public class TradeService {
     }
 
     public List<Map<String, Object>> collectableCoupons() {
+        LocalDateTime now = LocalDateTime.now();
         return couponMapper.selectList(new LambdaQueryWrapper<MktCoupon>()
-                .eq(MktCoupon::getStatus, 1).orderByAsc(MktCoupon::getEndTime).orderByAsc(MktCoupon::getId))
+                .eq(MktCoupon::getStatus, 1)
+                .and(wrapper -> wrapper.isNull(MktCoupon::getStartTime).or().le(MktCoupon::getStartTime, now))
+                .and(wrapper -> wrapper.isNull(MktCoupon::getEndTime).or().ge(MktCoupon::getEndTime, now))
+                .and(wrapper -> wrapper.isNull(MktCoupon::getTotalCount).or().eq(MktCoupon::getTotalCount, 0)
+                        .or().apply("COALESCE(received_count, 0) < total_count"))
+                .orderByAsc(MktCoupon::getEndTime).orderByAsc(MktCoupon::getId))
                 .stream().map(this::couponView).toList();
     }
 
@@ -193,19 +199,26 @@ public class TradeService {
     public Map<String, Object> receiveCoupon(Long couponId) {
         MktCoupon coupon = couponMapper.selectById(couponId);
         require(coupon != null && Integer.valueOf(1).equals(coupon.getStatus()), "优惠券不可领取");
+        LocalDateTime now = LocalDateTime.now();
+        require(coupon.getStartTime() == null || !now.isBefore(coupon.getStartTime()), "优惠券尚未生效");
+        require(coupon.getEndTime() == null || !now.isAfter(coupon.getEndTime()), "优惠券已过期");
         MktUserCoupon exists = userCouponMapper.selectOne(new LambdaQueryWrapper<MktUserCoupon>()
                 .eq(MktUserCoupon::getUserId, currentUserId()).eq(MktUserCoupon::getCouponId, couponId)
                 .in(MktUserCoupon::getStatus, Arrays.asList(0, 1)));
         if (exists != null) return userCouponView(exists);
-        int received = defaultValue(coupon.getReceivedCount(), 0);
-        if (coupon.getTotalCount() != null && coupon.getTotalCount() > 0 && received >= coupon.getTotalCount()) {
-            throw new ServiceException("优惠券已领完");
-        }
+        // 领取库存使用条件更新，避免并发请求把 received_count 加到总量以上。
+        LambdaUpdateWrapper<MktCoupon> stockUpdate = new LambdaUpdateWrapper<MktCoupon>()
+                .setSql("received_count = COALESCE(received_count, 0) + 1")
+                .set(MktCoupon::getUpdateTime, now)
+                .eq(MktCoupon::getId, couponId).eq(MktCoupon::getStatus, 1)
+                .and(wrapper -> wrapper.isNull(MktCoupon::getTotalCount)
+                        .or().eq(MktCoupon::getTotalCount, 0)
+                        .or().apply("COALESCE(received_count, 0) < total_count"));
+        require(couponMapper.update(null, stockUpdate) == 1, "优惠券已领完");
         MktUserCoupon value = new MktUserCoupon();
         value.setId(newId()); value.setUserId(currentUserId()); value.setCouponId(couponId); value.setSourceType("receive");
-        value.setStatus(0); value.setReceivedAt(LocalDateTime.now()); value.setExpireAt(coupon.getEndTime()); value.setCreateTime(LocalDateTime.now()); value.setUpdateTime(LocalDateTime.now()); value.setDelFlag(0); value.setVersion(0);
+        value.setStatus(0); value.setReceivedAt(now); value.setExpireAt(coupon.getEndTime()); value.setCreateTime(now); value.setUpdateTime(now); value.setDelFlag(0); value.setVersion(0);
         userCouponMapper.insert(value);
-        coupon.setReceivedCount(received + 1); coupon.setUpdateTime(LocalDateTime.now()); couponMapper.updateById(coupon);
         return userCouponView(value);
     }
 
@@ -449,12 +462,14 @@ public class TradeService {
     }
 
     public Map<String, Object> paymentState(Long orderId) {
-        TrOrder order = findOrder(orderId); Map<String, Object> result = new LinkedHashMap<>(); result.put("orderId", order.getId()); result.put("status", order.getPaymentStatus()); result.put("paymentStatus", order.getPaymentStatus()); result.put("expireTime", order.getExpireTime()); result.put("paidTime", order.getPaidTime()); return result;
+        TrOrder order = findOrder(orderId);
+        require(Objects.equals(order.getUserId(), currentUserId()) || SecurityUtils.isAdmin(currentUserId()), "无权查看该订单");
+        Map<String, Object> result = new LinkedHashMap<>(); result.put("orderId", order.getId()); result.put("status", order.getPaymentStatus()); result.put("paymentStatus", order.getPaymentStatus()); result.put("expireTime", order.getExpireTime()); result.put("paidTime", order.getPaidTime()); return result;
     }
 
     @Transactional
     public Map<String, Object> applyRefund(Map<String, ?> body) {
-        Long detailId = longValue(body == null ? null : body.get("orderDetailId")); TrOrderItem item = detailId == null ? null : itemMapper.selectById(detailId); require(item != null, "订单明细不存在"); TrOrder order = findOrder(item.getOrderId()); require(Objects.equals(order.getUserId(), currentUserId()), "无权申请退款");
+        Long detailId = longValue(body == null ? null : body.get("orderDetailId")); TrOrderItem item = detailId == null ? null : itemMapper.selectById(detailId); require(item != null, "订单明细不存在"); TrOrder order = findOrder(item.getOrderId()); require(Objects.equals(order.getUserId(), currentUserId()), "无权申请退款"); require(Integer.valueOf(1).equals(order.getPaymentStatus()) && Integer.valueOf(1).equals(order.getOrderStatus()), "当前订单不可申请退款");
         TrRefundApply old = refundMapper.selectOne(new LambdaQueryWrapper<TrRefundApply>().eq(TrRefundApply::getOrderId, order.getId()).orderByDesc(TrRefundApply::getCreateTime).last("limit 1")); if (old != null) return refundView(old);
         TrRefundApply value = new TrRefundApply(); value.setId(newId()); value.setRefundNo("REF" + System.currentTimeMillis()); value.setOrderId(order.getId()); value.setUserId(currentUserId()); value.setRefundAmount(item.getPayableAmount()); value.setReason(defaultText(body == null ? null : body.get("refundReason"), defaultText(body == null ? null : body.get("questionDesc"), "用户申请退款"))); value.setStatus(0); value.setCreateTime(LocalDateTime.now()); value.setUpdateTime(LocalDateTime.now()); value.setVersion(0); value.setDelFlag(0); refundMapper.insert(value); return refundView(value);
     }
@@ -462,7 +477,10 @@ public class TradeService {
     public Map<String, Object> refund(Long id) {
         TrRefundApply value = refundMapper.selectById(id);
         if (value == null) { TrOrderItem item = itemMapper.selectById(id); if (item != null) value = refundMapper.selectOne(new LambdaQueryWrapper<TrRefundApply>().eq(TrRefundApply::getOrderId, item.getOrderId()).orderByDesc(TrRefundApply::getCreateTime).last("limit 1")); }
-        if (value == null) throw new ServiceException("退款记录不存在"); return refundView(value);
+        if (value == null) throw new ServiceException("退款记录不存在");
+        TrOrder order = findOrder(value.getOrderId());
+        require(Objects.equals(order.getUserId(), currentUserId()) || SecurityUtils.isAdmin(currentUserId()), "无权查看该退款记录");
+        return refundView(value);
     }
 
     /** 旧管理端订单明细接口按一条课程明细返回一行。 */
@@ -746,7 +764,28 @@ public class TradeService {
     private Map<String, Object> orderView(TrOrder item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("orderNo", item.getOrderNo()); result.put("userId", item.getUserId()); result.put("totalAmount", cents(item.getTotalAmount())); result.put("discountAmount", cents(item.getDiscountAmount())); result.put("realAmount", cents(item.getPayableAmount())); result.put("payableAmount", cents(item.getPayableAmount())); result.put("paidAmount", cents(item.getPaidAmount())); result.put("couponId", item.getCouponId()); result.put("status", toOldOrderStatus(item.getOrderStatus())); result.put("statusName", oldStatusName(toOldOrderStatus(item.getOrderStatus()))); result.put("paymentStatus", item.getPaymentStatus()); result.put("paymentChannel", item.getPaymentChannel()); result.put("createTime", item.getCreateTime()); result.put("payTime", item.getPaidTime()); result.put("expireTime", item.getExpireTime()); result.put("refundTime", item.getRefundTime()); result.put("refundReason", item.getRefundReason()); List<Map<String, Object>> details = itemMapper.selectList(new LambdaQueryWrapper<TrOrderItem>().eq(TrOrderItem::getOrderId, item.getId())).stream().map(detail -> { Map<String, Object> row = new LinkedHashMap<>(); row.put("id", detail.getId()); row.put("courseId", detail.getCourseId()); row.put("name", detail.getCourseName()); row.put("courseName", detail.getCourseName()); row.put("cover", detail.getCourseCoverUrl()); row.put("price", cents(detail.getUnitPrice())); row.put("realPayAmount", cents(detail.getPayableAmount())); row.put("canRefund", item.getPaymentStatus() == 1 && item.getOrderStatus() == 1); row.put("refundStatus", null); return row; }).toList(); result.put("details", details); result.put("couponRule", item.getCouponId() == null ? List.of() : List.of("已使用优惠券")); result.put("message", oldStatusName(toOldOrderStatus(item.getOrderStatus()))); result.put("progressNodes", List.of()); return result; }
     private Map<String, Object> refundView(TrRefundApply item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("refundOrderNo", item.getRefundNo()); result.put("orderId", item.getOrderId()); result.put("refundReason", item.getReason()); result.put("refundChannel", "原支付渠道"); result.put("refundAmount", cents(item.getRefundAmount())); result.put("status", item.getStatus()); result.put("remark", item.getStatus() == 1 || item.getStatus() == 3); result.put("approvalOpinion", item.getAuditRemark()); result.put("createTime", item.getCreateTime()); result.put("approveTime", item.getAuditTime()); result.put("refundedTime", item.getRefundedTime()); return result; }
     private TrOrder findOrder(Long id) { TrOrder value = id == null ? null : orderMapper.selectById(id); if (value == null && id != null) value = orderMapper.selectOne(new LambdaQueryWrapper<TrOrder>().eq(TrOrder::getOrderNo, String.valueOf(id))); if (value == null) throw new ServiceException("订单不存在"); return value; }
-    private BigDecimal discount(BigDecimal total, Long couponId) { if (couponId == null) return BigDecimal.ZERO; MktCoupon coupon = couponMapper.selectById(couponId); if (coupon == null) return BigDecimal.ZERO; BigDecimal threshold = defaultValue(coupon.getThresholdAmount(), BigDecimal.ZERO); if (total.compareTo(threshold) < 0) return BigDecimal.ZERO; BigDecimal value = defaultValue(coupon.getDiscountValue(), BigDecimal.ZERO); BigDecimal discount; if (coupon.getDiscountType() != null && coupon.getDiscountType() == 2) discount = total.multiply(BigDecimal.ONE.subtract(value.divide(BigDecimal.TEN, 4, RoundingMode.HALF_UP))); else discount = value; if (coupon.getMaxDiscountAmount() != null) discount = discount.min(coupon.getMaxDiscountAmount()); return discount.max(BigDecimal.ZERO).min(total); }
+    private BigDecimal discount(BigDecimal total, Long couponId) {
+        if (couponId == null) return BigDecimal.ZERO;
+        MktCoupon coupon = couponMapper.selectById(couponId);
+        require(coupon != null, "优惠券不存在");
+        LocalDateTime now = LocalDateTime.now();
+        require(Integer.valueOf(1).equals(coupon.getStatus()), "优惠券不可用");
+        require(coupon.getStartTime() == null || !now.isBefore(coupon.getStartTime()), "优惠券尚未生效");
+        require(coupon.getEndTime() == null || !now.isAfter(coupon.getEndTime()), "优惠券已过期");
+        require(coupon.getTotalCount() == null || coupon.getTotalCount() == 0
+                || defaultValue(coupon.getReceivedCount(), 0) < coupon.getTotalCount(), "优惠券已领完");
+        BigDecimal threshold = defaultValue(coupon.getThresholdAmount(), BigDecimal.ZERO);
+        if (total.compareTo(threshold) < 0) return BigDecimal.ZERO;
+        BigDecimal value = defaultValue(coupon.getDiscountValue(), BigDecimal.ZERO);
+        BigDecimal discount;
+        if (coupon.getDiscountType() != null && coupon.getDiscountType() == 2) {
+            discount = total.multiply(BigDecimal.ONE.subtract(value.divide(BigDecimal.TEN, 4, RoundingMode.HALF_UP)));
+        } else {
+            discount = value;
+        }
+        if (coupon.getMaxDiscountAmount() != null) discount = discount.min(coupon.getMaxDiscountAmount());
+        return discount.max(BigDecimal.ZERO).min(total);
+    }
     private int toDbOrderStatus(int old) { return switch (old) { case 1 -> 0; case 2, 4, 5 -> 1; case 3 -> 4; case 6 -> 3; default -> old; }; }
     private int toOldOrderStatus(Integer db) { return db == null ? 1 : switch (db) { case 0 -> 1; case 1 -> 4; case 3 -> 6; case 4 -> 3; default -> 3; }; }
     private String oldStatusName(int value) { return switch (value) { case 1 -> "待支付"; case 2 -> "已支付"; case 3 -> "已关闭"; case 4 -> "已完成"; case 5 -> "已报名"; case 6 -> "已退款"; default -> "未知"; }; }

@@ -78,6 +78,14 @@ services:
       MODE: standalone
       PREFER_HOST_MODE: hostname
       NACOS_AUTH_ENABLE: "false"
+      # 使用 MySQL 持久化 Nacos 配置，避免 Nacos 2.x 内置 Derby 在云盘/重启时锁库超时。
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
+      MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&allowPublicKeyRetrieval=true"
       JVM_XMS: ${TJ_NACOS_JVM_XMS:-128m}
       JVM_XMX: ${TJ_NACOS_JVM_XMX:-384m}
       JVM_XMN: ${TJ_NACOS_JVM_XMN:-64m}
@@ -291,7 +299,7 @@ services:
       TJ_MYSQL_PORT: 3306
       TJ_MYSQL_USERNAME: root
       TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
-      TJ_FILE_DOMAIN: "${TJ_FILE_DOMAIN:-http://localhost:8080/file}"
+      TJ_FILE_DOMAIN: "${TJ_FILE_DOMAIN:-/file}"
       JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
     ports:
       - "${TJ_FILE_PORT:-19300}:9300"
