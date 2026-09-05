@@ -5,7 +5,7 @@
 - `portal`：用户端，课程、学习、考试、问答、笔记、订单、优惠券、个人中心和 AI 客服。
 - `business-admin`：业务管理端，课程、媒资、题库、互动、营销、订单、退款、用户和客服管理。
 
-两个应用的 API 都通过 `VITE_API_BASE_URL` 指向 Spring Cloud Gateway，生产构建默认使用 `http://localhost:8080`。页面不再启用原有 Mock 适配器；业务数据由 `share-education`、`share-trade`、`share-customer`、`share-file` 和 `share-system` 服务提供。
+两个应用的 API 都通过 `VITE_API_BASE_URL` 指向 Spring Cloud Gateway，生产构建默认使用当前站点的同源地址，并由 Nginx 转发到网关；本地开发未设置该变量时使用 `http://localhost:8080`。页面不再启用原有 Mock 适配器；业务数据由 `share-education`、`share-trade`、`share-customer`、`share-file` 和 `share-system` 服务提供。
 
 本地开发：
 
