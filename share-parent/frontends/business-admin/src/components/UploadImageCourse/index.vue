@@ -4,7 +4,7 @@
       class="avatar-uploader"
       :class="isCourse?'courseBox':''"
       v-model:file-list="fileList"
-      :action="`${(import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')}/ms/files`"
+      :action="`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? '' : 'http://localhost:8080')).replace(/\/$/, '')}/ms/files`"
       list-type="picture-card"
       :on-success="handleAvatarSuccess"
       :on-change="handleChangeSuccess"
@@ -37,7 +37,8 @@ const props = defineProps({
 let imageUrl = ref(""); //上传的图片路径
 const fileList = ref([]);
 const emit = defineEmits(); //子组件获取父组件事件传值
-const actions = `${(import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')}/ms/files`;
+const defaultBaseURL = import.meta.env.MODE === 'production' ? '' : 'http://localhost:8080';
+const actions = `${(import.meta.env.VITE_API_BASE_URL || defaultBaseURL).replace(/\/$/, '')}/ms/files`;
 const uploadHeaders = { authorization: sessionStorage.getItem(TOKEN_NAME) };
 
 // ------定义方法------

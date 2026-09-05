@@ -10,8 +10,9 @@ const CODE = {
 };
 
 // 开发环境直接访问 Spring Cloud Gateway；部署时通过 VITE_API_BASE_URL 覆盖。
+const defaultBaseURL = import.meta.env.MODE === "production" ? "" : "http://localhost:8080";
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL || defaultBaseURL,
   timeout: 5000,
   withCredentials: false,
 });

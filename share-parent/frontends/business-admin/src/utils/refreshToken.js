@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {USER_KEY, TOKEN_NAME} from "../config/global";
-const host = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+const defaultBaseURL = import.meta.env.MODE === 'production' ? '' : 'http://localhost:8080';
+const host = (import.meta.env.VITE_API_BASE_URL || defaultBaseURL).replace(/\/$/, '');
 
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
 let isRefresh = false;

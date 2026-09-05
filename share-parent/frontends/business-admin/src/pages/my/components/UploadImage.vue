@@ -59,7 +59,8 @@ watch(
 // 定义变量
 let imageUrl = ref(""); //上传的图片路径
 const emit = defineEmits(); //子组件获取父组件事件传值
-let actions = `${(import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')}/ms/files` //上传图片地址
+const defaultBaseURL = import.meta.env.MODE === 'production' ? '' : 'http://localhost:8080'
+let actions = `${(import.meta.env.VITE_API_BASE_URL || defaultBaseURL).replace(/\/$/, '')}/ms/files` //上传图片地址
 let uploadHeaders={"authorization":sessionStorage.getItem(TOKEN_NAME)}//上传图片时需要添加token
 // ------定义方法------
 // 获取上传的图片路径

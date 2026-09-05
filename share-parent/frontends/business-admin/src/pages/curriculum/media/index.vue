@@ -244,7 +244,8 @@ const previewDialogVisible = ref(false)
 const currentMedia = ref(null)
 const previewError = ref(false)
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
+const defaultBaseURL = import.meta.env.MODE === 'production' ? '' : 'http://localhost:8080'
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || defaultBaseURL).replace(/\/$/, '')
 const resolveMediaUrl = (value) => {
   if (!value) return ''
   if (/^(https?:|blob:|data:)/i.test(value)) return value

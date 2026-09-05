@@ -65,7 +65,8 @@ const userInfo = ref(store.getUserInfo)
 
 
 
-const actions = `${(import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')}/ms/files`
+const defaultBaseURL = import.meta.env.MODE === 'production' ? '' : 'http://localhost:8080'
+const actions = `${(import.meta.env.VITE_API_BASE_URL || defaultBaseURL).replace(/\/$/, '')}/ms/files`
 const uploadHeaders = {authorization: store.getToken}
 const tabData = [
   {id: 0, name: '基本信息'},

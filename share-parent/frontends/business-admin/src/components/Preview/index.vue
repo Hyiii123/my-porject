@@ -39,7 +39,8 @@ const videoUrl = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
+const defaultBaseURL = import.meta.env.MODE === 'production' ? '' : 'http://localhost:8080'
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || defaultBaseURL).replace(/\/$/, '')
 
 const resolveMediaUrl = (value) => {
   if (!value) return ''
