@@ -13,27 +13,33 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import defaultAvatar from '@/assets/images/teachers/teacher1.svg'
+import { getRoleList } from '@/api/staffs'
 import { getTeacherser } from '@/api/teacher'
 import { editUser, removeUser, saveUser, usersStatus } from '@/api/user'
 
-const defaultAvatar = '/src/assets/images/teachers/teacher1.svg'
 const searchForm = reactive({ status: '', keyword: '' })
 const pagination = reactive({ page: 1, pageSize: 10, total: 0 })
-const teacherList = ref([]); const allTeachers = ref([]); const loading = ref(false); const submitting = ref(false)
+const teacherList = ref([]); const allTeachers = ref([]); const roleOptions = ref([]); const loading = ref(false); const submitting = ref(false)
 const dialogVisible = ref(false); const viewDialogVisible = ref(false); const dialogTitle = ref(''); const currentTeacher = ref(null); const formRef = ref(null)
-const formData = reactive({ id: null, username: '', nickname: '', title: '', phone: '', email: '', specialty: '', introduction: '', password: '', type: 'teacher' })
+const formData = reactive({ id: null, username: '', nickname: '', title: '', phone: '', email: '', specialty: '', introduction: '', password: '', type: 'teacher', roleIds: [] })
 const formRules = { nickname: [{ required: true, message: '请输入姓名', trigger: 'blur' }], username: [{ required: true, message: '请输入账号', trigger: 'blur' }], phone: [{ required: true, message: '请输入手机号', trigger: 'blur' }], email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }], password: [{ required: true, message: '请输入密码', trigger: 'blur' }, { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }] }
 const statCards = computed(() => [{ label: '教师总数', value: allTeachers.value.length, color: 'linear-gradient(135deg,#667eea,#764ba2)' }, { label: '正常教师', value: allTeachers.value.filter(item => item.status === 1).length, color: 'linear-gradient(135deg,#43e97b,#38f9d7)' }, { label: '课程总数', value: allTeachers.value.reduce((sum, item) => sum + Number(item.courses || item.courseCount || 0), 0), color: 'linear-gradient(135deg,#f093fb,#f5576c)' }])
-function normalize(item) { return { ...item, id: String(item.id ?? item.userId ?? ''), nickname: item.nickname || item.nickName || item.name || item.username, username: item.username || item.userName || '', phone: item.phone || item.phonenumber || '', status: Number(item.enabled ?? (String(item.status) === '0' ? 1 : 0)), rating: Number(item.rating || 0), title: item.title || '授课教师' } }
+function responseData(response) { return response?.data ?? response }
+function enabledStatus(item) { if (item.enabled !== undefined && item.enabled !== null) return Number(item.enabled) === 1 ? 1 : 0; return String(item.status) === '0' ? 1 : 0 }
+function normalize(item) { return { ...item, id: String(item.id ?? item.userId ?? ''), nickname: item.nickname || item.nickName || item.name || item.username || '未命名教师', username: item.username || item.userName || '', phone: item.phone || item.phonenumber || item.cellPhone || '', status: enabledStatus(item), rating: Number(item.rating || 0), title: item.title || '授课教师', specialty: item.specialty || '', introduction: item.introduction || '', roles: Array.isArray(item.roles) ? item.roles : [], roleIds: Array.isArray(item.roleIds) ? item.roleIds.map(Number).filter(Number.isFinite) : [], students: item.students ?? item.studentCount ?? 0 } }
+async function loadRoles() { try { const response = await getRoleList(); const data = responseData(response); roleOptions.value = Array.isArray(data) ? data.map(item => ({ ...item, roleId: Number(item.roleId ?? item.id) })).filter(item => Number.isFinite(item.roleId)) : [] } catch (error) { roleOptions.value = []; ElMessage.warning('角色列表加载失败，新增教师将使用默认角色策略') } }
+function defaultRoleIds() { const common = roleOptions.value.find(item => item.roleKey === 'common'); return common ? [common.roleId] : [] }
 async function getTeacherList() { loading.value = true; try { const response = await getTeacherser({ pageNum: 1, pageSize: 200 }); const source = (response.rows || []).map(normalize); allTeachers.value = source; let rows = source; if (searchForm.status !== '') rows = rows.filter(item => item.status === Number(searchForm.status)); if (searchForm.keyword) { const keyword = searchForm.keyword.trim().toLowerCase(); rows = rows.filter(item => `${item.nickname}${item.username}${item.phone}`.toLowerCase().includes(keyword)) } pagination.total = rows.length; const start = (pagination.page - 1) * pagination.pageSize; teacherList.value = rows.slice(start, start + pagination.pageSize) } catch (error) { teacherList.value = []; pagination.total = 0; ElMessage.error('教师列表加载失败') } finally { loading.value = false } }
 function handleSearch() { pagination.page = 1; getTeacherList() }; function handleReset() { Object.assign(searchForm, { status: '', keyword: '' }); handleSearch() }; function handleSizeChange() { pagination.page = 1; getTeacherList() }
-function handleAdd() { dialogTitle.value = '新增教师'; Object.assign(formData, { id: null, username: `teacher_${Date.now()}`, nickname: '', title: '', phone: '', email: '', specialty: '', introduction: '', password: '', type: 'teacher' }); dialogVisible.value = true }
-function handleEdit(row) { dialogTitle.value = '编辑教师'; Object.assign(formData, { ...row, password: '', type: 'teacher' }); dialogVisible.value = true }
+function handleAdd() { dialogTitle.value = '新增教师'; Object.assign(formData, { id: null, username: `teacher_${Date.now()}`, nickname: '', title: '', phone: '', email: '', specialty: '', introduction: '', password: '', type: 'teacher', roleIds: defaultRoleIds() }); dialogVisible.value = true }
+function handleEdit(row) { dialogTitle.value = '编辑教师'; Object.assign(formData, { ...row, password: '', type: 'teacher', roleIds: [...(row.roleIds || [])] }); dialogVisible.value = true }
 function handleView(row) { currentTeacher.value = row; viewDialogVisible.value = true }
-async function handleSubmit() { if (!(await formRef.value?.validate().catch(() => false))) return; submitting.value = true; try { const response = formData.id ? await editUser({ ...formData }) : await saveUser({ ...formData }); if (response.code === 200) { ElMessage.success(formData.id ? '编辑成功' : '新增成功'); dialogVisible.value = false; await getTeacherList() } } finally { submitting.value = false } }
+function payload() { const value = { id: formData.id, username: formData.username.trim(), nickname: formData.nickname.trim(), title: formData.title.trim(), phone: formData.phone.trim(), email: formData.email.trim(), specialty: formData.specialty.trim(), introduction: formData.introduction.trim(), type: 'teacher' }; if (!formData.id) { value.roleIds = [...(formData.roleIds || defaultRoleIds())]; value.password = formData.password }; return value }
+async function handleSubmit() { if (!(await formRef.value?.validate().catch(() => false))) return; submitting.value = true; try { const response = formData.id ? await editUser(payload()) : await saveUser(payload()); if (response?.code !== 200) throw new Error(response?.msg || '保存失败'); ElMessage.success(formData.id ? '教师编辑成功' : '教师新增成功'); dialogVisible.value = false; await getTeacherList() } catch (error) { ElMessage.error(error?.message || '教师保存失败') } finally { submitting.value = false } }
 async function handleDelete(row) { try { await ElMessageBox.confirm(`确定删除教师“${row.nickname}”吗？`, '请确认', { type: 'warning' }); const response = await removeUser(row.id); if (response.code === 200) { ElMessage.success('删除成功'); getTeacherList() } } catch (error) { if (error !== 'cancel' && error !== 'close') ElMessage.error('删除失败') } }
 async function handleStatusChange(row) { const response = await usersStatus({ id: row.id, status: row.status }); if (response.code !== 200) { row.status = row.status ? 0 : 1; ElMessage.error('状态更新失败') } }
-onMounted(getTeacherList)
+onMounted(async () => { await loadRoles(); await getTeacherList() })
 </script>
 
 <style scoped>

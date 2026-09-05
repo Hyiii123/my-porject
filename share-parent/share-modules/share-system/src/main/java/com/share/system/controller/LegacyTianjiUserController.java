@@ -129,7 +129,11 @@ public class LegacyTianjiUserController extends BaseController {
         SysUser existing = userService.selectUserById(user.getUserId());
         if (existing != null && user.getUserType() == null) user.setUserType(existing.getUserType());
         user.setUpdateBy(SecurityUtils.getUsername());
-        int rows = userService.updateUserProfile(user);
+        // /us/users 是旧业务端的兼容接口。只有请求明确携带 roleIds/roleId 时才走
+        // 若依的完整 updateUser 流程，避免学员、教师资料编辑时意外清空已有角色。
+        int rows = hasRoleAssignment(body)
+                ? userService.updateUser(user)
+                : userService.updateUserProfile(user);
         if (rows > 0) syncTeacherProfile(user, body);
         return toAjax(rows);
     }
@@ -280,10 +284,20 @@ public class LegacyTianjiUserController extends BaseController {
             view.put("rating", teacher.getOrDefault("rating", 0));
         }
         List<SysRole> roles = user.getRoles();
-        if ((roles == null || roles.isEmpty()) && user.getUserId() != null) {
-            roles = roleService.selectRolesByUserId(user.getUserId());
+        // selectRolesByUserId 返回的是“全部角色 + flag”，不能直接把全部角色
+        // 当作用户已分配角色，否则列表会把每个用户都显示成拥有所有角色，
+        // 同时 roleIds 也会因为未完成映射而变成 null。
+        boolean completeRoleMapping = roles != null && !roles.isEmpty() && roles.stream()
+                .allMatch(role -> role != null && role.getRoleId() != null);
+        if (!completeRoleMapping && user.getUserId() != null) {
+            List<Long> assignedRoleIds = roleService.selectRoleListByUserId(user.getUserId());
+            List<SysRole> allRoles = roleService.selectRoleAll();
+            roles = allRoles == null || assignedRoleIds == null ? List.of() : allRoles.stream()
+                    .filter(role -> role != null && assignedRoleIds.contains(role.getRoleId()))
+                    .toList();
         }
         view.put("roles", roles == null ? List.of() : roles.stream().map(SysRole::getRoleKey).toList());
+        view.put("roleIds", roles == null ? List.of() : roles.stream().map(SysRole::getRoleId).toList());
         return view;
     }
 
@@ -361,7 +375,26 @@ public class LegacyTianjiUserController extends BaseController {
         String legacyStatus = valueString(source.get("status"));
         user.setStatus("1".equals(legacyStatus) ? "0" : "0".equals(legacyStatus) ? "1" : legacyStatus);
         user.setUserType(legacyUserType(text(source, "type", null)));
+        if (source.containsKey("roleIds")) {
+            user.setRoleIds(longArray(source.get("roleIds")));
+        } else if (source.containsKey("roleId")) {
+            user.setRoleIds(longArray(source.get("roleId")));
+        }
         return user;
+    }
+
+    private boolean hasRoleAssignment(Map<String, Object> body) {
+        return body != null && (body.containsKey("roleIds") || body.containsKey("roleId"));
+    }
+
+    private Long[] longArray(Object value) {
+        if (value == null) return new Long[0];
+        if (value instanceof List<?> list) {
+            return list.stream().map(item -> longValue(item, null))
+                    .filter(item -> item != null).toArray(Long[]::new);
+        }
+        Long item = longValue(value, null);
+        return item == null ? new Long[0] : new Long[]{item};
     }
 
     private void applyLegacyType(SysUser query, String type) {
