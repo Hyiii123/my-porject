@@ -44,6 +44,26 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-07 15:00:00 - 修复全站课程封面图片无法显示与 404 碎图缺陷
+
+* **任务背景**：用户反馈学员端门户首页推荐流中课程卡片（例如《Next.js 14 服务端渲染 (SSR) 全栈实战》）封面图片破损，显示浏览器原生碎图图标。
+* **根因定位**：
+  1. **Nginx 静态目录访问权限缺失**：`tianji-portal-ui` 容器中的 `/usr/share/nginx/html/src/assets/images` 及其子目录权限在历史文件解压更新后被置为 `drw-r--r--`（缺少目录执行/穿透权限 `+x`）。
+  2. **双重 404 导致碎图**：由于 Nginx 工作进程（以非 root 的 `nginx` 用户身份运行）无法遍历读取无 `+x` 权限的目录，浏览器请求 `/src/assets/images/courses/*.svg` 直接返回 `404 Not Found`。而前端 `@error` 回退的 `default-cover.svg` 同样位于该目录内，导致回退再次 404，最终在浏览器中渲染原生碎图图标。
+* **核心修复与运维处置**：
+  1. **目录权限彻底放行**：
+     - 在线上针对 `tianji-portal-ui` 和 `tianji-business-admin-ui` 容器执行递归权限修正：
+       ```bash
+       docker exec tianji-portal-ui chmod -R 755 /usr/share/nginx/html
+       docker exec tianji-business-admin-ui chmod -R 755 /usr/share/nginx/html
+       ```
+     - 确保 Nginx 进程对所有静态资源具备合法的可读（`r`）与目录遍历执行（`x`）权限。
+  2. **资产完整性与响应状态全量验证**：
+     - 针对数据库 `tj_education.edu_course` 现存全部 320 门课程所引用的全量 25 种不同 SVG 封面及缺省封面（共 26 种不同资源），编写 Python 脚本对学员端门户（端口 18081）及业务管理端（端口 18082）进行逐一 HTTP HEAD/GET 状态测试。
+     - **测试结果**：学员端 18081 端口 26/26 全部返回 `200 OK`，业务管理端 18082 端口 26/26 全部返回 `200 OK`，`Content-Type` 准确标记为 `image/svg+xml`。
+  3. **冒烟全链路核验**：
+     - 运行 `deploy/smoke-test.ps1 -BaseUrl "http://47.120.32.166:8080" -IncludeWriteFlow`，**62/62 项全链路冒烟测试 100% 保持通过**。
+
 ### 2026-09-07 14:50:00 - 扩充 300 门真实 IT 专业课程与完整教学大纲上线
 
 * **任务背景**：针对全站此前仅有 20 门基础课程、课程体系较为单薄的问题，依据真实 MOOCCubeX / Coursera IT 课程体系，扩充 300 门 100% 纯 IT 领域的高质量前沿专业课程与配套教学大纲。
