@@ -720,6 +720,9 @@ public class EducationService {
         final Set<Long> enrolledSet = enrolledIds;
         List<Map<String, Object>> scoredList = new ArrayList<>();
 
+        // 密集特征向量构建 (Dense Skill Vector Embedding)
+        double[] userVector = buildUserSkillVector(userSkills);
+
         for (EduCourse c : allActive) {
             if (enrolledSet.contains(c.getId())) {
                 continue;
@@ -729,6 +732,12 @@ public class EducationService {
             String recommendReason = "精选高分技术好课";
             String matchTag = "精选进阶";
 
+            // 1. 向量空间相似度检索 (Cosine Similarity Search)
+            double[] courseVector = buildCourseSkillVector(c);
+            double vectorSimilarity = computeCosineSimilarity(userVector, courseVector);
+            double vectorScore = vectorSimilarity * 35.0;
+
+            // 2. 离散技术栈图谱重叠度计算
             double skillMatchScore = 0.0;
             String bestMatchedSkill = null;
             if (StringUtils.hasText(c.getSkills()) && userSkills != null && !userSkills.isEmpty()) {
@@ -742,7 +751,9 @@ public class EducationService {
                     }
                 }
             }
-            score += Math.min(35.0, skillMatchScore);
+
+            // 综合密集向量相似度与离散技能加权（取其高者）
+            score += Math.max(Math.min(35.0, skillMatchScore), vectorScore);
 
             boolean roleMatched = false;
             if (StringUtils.hasText(intendedRole) && StringUtils.hasText(c.getTargetRole())) {
@@ -768,6 +779,9 @@ public class EducationService {
             if (roleMatched) {
                 recommendReason = "契合您的目标岗位【" + c.getTargetRole() + "】";
                 matchTag = "岗位强匹配";
+            } else if (vectorSimilarity >= 0.35) {
+                recommendReason = "基于技术图谱向量契合度 (" + Math.round(vectorSimilarity * 100) + "%) 推荐";
+                matchTag = "向量高匹配";
             } else if (bestMatchedSkill != null) {
                 recommendReason = "基于您的【" + bestMatchedSkill + "】技术栈进阶";
                 matchTag = "技能图谱匹配";
@@ -781,6 +795,7 @@ public class EducationService {
 
             Map<String, Object> view = courseView(c);
             view.put("matchScore", Math.min(99, Math.max(65, (int) Math.round(score))));
+            view.put("vectorSimilarity", (int) Math.round(vectorSimilarity * 100));
             view.put("recommendReason", recommendReason);
             view.put("matchTag", matchTag);
             view.put("_score", score);
@@ -814,6 +829,60 @@ public class EducationService {
             if (result.size() >= safeLimit) break;
         }
         return result;
+    }
+
+    /** 标准化 50 维 IT 技术栈特征向量空间字典 (Dense Skill Vector Dimensions) */
+    private static final List<String> IT_SKILL_DIMENSIONS = List.of(
+            "Java", "SpringBoot", "SpringCloud", "MyBatis", "MySQL", "Redis", "微服务", "高并发",
+            "Vue3", "React18", "TypeScript", "JavaScript", "Next.js", "HTML/CSS", "Pinia", "Redux", "前端工程化",
+            "Python", "机器学习", "深度学习", "PyTorch", "TensorFlow", "大模型", "Scikit-learn", "Transformer", "NLP",
+            "Node.js", "Express", "Django", "Flask", "MongoDB", "RESTful API",
+            "Docker", "K8s", "Linux", "DevOps", "容器编排", "DockerCompose", "CI/CD",
+            "Go", "Goroutine", "Rust", "网络编程", "系统编程", "内存安全",
+            "数据可视化", "ECharts", "Unity", "Solidity", "网络安全"
+    );
+
+    /** 密集向量构建：将用户多维技能画像映射为 50 维归一化特征向量 */
+    private double[] buildUserSkillVector(Map<String, Integer> userSkills) {
+        double[] vec = new double[IT_SKILL_DIMENSIONS.size()];
+        if (userSkills == null || userSkills.isEmpty()) return vec;
+        for (int i = 0; i < IT_SKILL_DIMENSIONS.size(); i++) {
+            String dim = IT_SKILL_DIMENSIONS.get(i);
+            if (userSkills.containsKey(dim)) {
+                vec[i] = Math.min(1.0, Math.max(0.0, userSkills.get(dim) / 100.0));
+            }
+        }
+        return vec;
+    }
+
+    /** 密集向量构建：将课程覆盖技能标签映射为 50 维特征向量 */
+    private double[] buildCourseSkillVector(EduCourse course) {
+        double[] vec = new double[IT_SKILL_DIMENSIONS.size()];
+        if (course == null || !StringUtils.hasText(course.getSkills())) return vec;
+        String[] skills = course.getSkills().split("[,，、]+");
+        Set<String> set = Arrays.stream(skills).map(String::trim).filter(StringUtils::hasText).collect(Collectors.toSet());
+        for (int i = 0; i < IT_SKILL_DIMENSIONS.size(); i++) {
+            String dim = IT_SKILL_DIMENSIONS.get(i);
+            if (set.contains(dim)) {
+                vec[i] = 1.0;
+            }
+        }
+        return vec;
+    }
+
+    /** 嵌入式密集向量相似度计算引擎：计算多维特征向量余弦夹角 (Cosine Similarity) */
+    private double computeCosineSimilarity(double[] vecA, double[] vecB) {
+        if (vecA == null || vecB == null || vecA.length != vecB.length) return 0.0;
+        double dotProduct = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+        for (int i = 0; i < vecA.length; i++) {
+            dotProduct += vecA[i] * vecB[i];
+            normA += vecA[i] * vecA[i];
+            normB += vecB[i] * vecB[i];
+        }
+        if (normA <= 0.000001 || normB <= 0.000001) return 0.0;
+        return Math.max(0.0, Math.min(1.0, dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))));
     }
 
     /** 读取当前或指定学员的多维学习画像 */
