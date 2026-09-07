@@ -5,7 +5,7 @@
       <div class="container">
         <div class="header-content">
           <div class="course-cover">
-            <img :src="course.cover" :alt="course.title" />
+            <img :src="course.cover || defaultCover" :alt="course.title" @error="handleImgError" />
           </div>
           <div class="course-info">
             <h1 class="course-title">{{ course.title }}</h1>
@@ -147,7 +147,7 @@
           </template>
           <div class="like-list">
             <div v-for="(item, index) in likeCourses" :key="index" class="like-item" @click="$router.push(`/details/index?id=${item.id}`)">
-              <img :src="item.cover" :alt="item.title" />
+              <img :src="item.cover || defaultCover" :alt="item.title" @error="handleImgError" />
               <div class="like-info">
                 <div class="like-title">{{ item.title }}</div>
                 <div class="like-price">¥{{ (item.price / 100).toFixed(0) }}</div>
@@ -170,12 +170,19 @@ import { getAllNotes } from '@/api/notes.js'
 import { getCourseLearning, getRecommendClassList, signUp } from '@/api/class.js'
 import { putCarts } from '@/api/order.js'
 import { getServiceFaqs } from '@/api/customerService.js'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
 
 const route = useRoute()
 const router = useRouter()
 
+const handleImgError = (e) => {
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
+
 // 课程数据
-const course = ref({ id: null, title: '课程加载中', cover: '', price: 0, originalPrice: 0, teacherName: '讲师团队', learners: 0, lessons: 0, description: '' })
+const course = ref({ id: null, title: '课程加载中', cover: defaultCover, price: 0, originalPrice: 0, teacherName: '讲师团队', learners: 0, lessons: 0, description: '' })
 
 // 教师信息
 const teacher = ref({ name: '讲师团队', avatar: '', title: '', description: '' })
@@ -269,7 +276,7 @@ const loadCourse = async () => {
         ...value,
         id: value.id || courseId,
         title: value.title || value.courseName || value.name || '未命名课程',
-        cover: value.cover || value.coverUrl || '',
+        cover: value.cover || value.coverUrl || defaultCover,
         price: Number(value.price || 0),
         originalPrice: Number(value.originalPrice ?? value.price ?? 0),
         learners: Number(value.learners ?? value.learnerCount ?? 0),
@@ -326,7 +333,7 @@ const loadCourse = async () => {
     if (recommendResponse.status === 'fulfilled' && recommendResponse.value?.code === 200) {
       const data = recommendResponse.value.data
       const rows = Array.isArray(data) ? data : (data?.list || [])
-      replaceReactive(likeCourses, rows.filter(item => Number(item.id) !== courseId).slice(0, 4).map(item => ({ ...item, title: item.title || item.courseName, cover: item.cover || item.coverUrl || '', price: Number(item.price || 0) })))
+      replaceReactive(likeCourses, rows.filter(item => Number(item.id) !== courseId).slice(0, 4).map(item => ({ ...item, title: item.title || item.courseName, cover: item.cover || item.coverUrl || defaultCover, price: Number(item.price || 0) })))
     }
     isBuyed.value = learningResponse.status === 'fulfilled' && learningResponse.value?.code === 200 && learningResponse.value.data != null
   } catch (error) {

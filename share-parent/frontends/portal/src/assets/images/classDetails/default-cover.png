@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="225" viewBox="0 0 400 225">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E293B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0F172A;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="225" fill="url(#bgGrad)" rx="8"/>
+  <circle cx="340" cy="50" r="100" fill="#3B82F6" opacity="0.08" />
+  <circle cx="60" cy="180" r="70" fill="#2563EB" opacity="0.06" />
+  <g transform="translate(176, 50)">
+    <rect width="48" height="48" rx="12" fill="url(#accentGrad)" />
+    <path d="M12 26L24 18L36 26L24 34L12 26Z" fill="#FFFFFF" />
+    <path d="M16 28.5V33C16 35.2 19.6 37 24 37C28.4 37 32 35.2 32 33V28.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none" />
+    <path d="M36 26V33" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
+  </g>
+  <text x="200" y="132" font-family="Arial, -apple-system, sans-serif" font-size="22" fill="#FFFFFF" text-anchor="middle" font-weight="600" letter-spacing="1">智问学伴</text>
+  <text x="200" y="160" font-family="Arial, -apple-system, sans-serif" font-size="14" fill="#94A3B8" text-anchor="middle" letter-spacing="2">精品在线课程</text>
+</svg>

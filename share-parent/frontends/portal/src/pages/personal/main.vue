@@ -72,7 +72,7 @@
         <div v-if="recentLearning.length" class="recent-list">
           <div v-for="item in recentLearning" :key="item.courseId" class="recent-item" @click="$router.push(`/learning/index?courseId=${item.courseId}`)">
             <div class="course-cover">
-              <img :src="item.cover" alt="" />
+              <img :src="item.cover || defaultCover" alt="" @error="handleImgError($event, item)" />
             </div>
             <div class="course-info">
               <h4>{{ item.courseName }}</h4>
@@ -98,6 +98,14 @@ import { getUserInfo } from '@/api/user.js'
 import { getMylessons, getTodayPoints, getMyCoupon } from '@/api/class.js'
 import { getOrderListes } from '@/api/order.js'
 import defaultAvatar from '@/assets/images/users/default-avatar.svg'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
+
+const handleImgError = (e, item) => {
+  if (item) item.cover = defaultCover
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
 
 const loading = ref(false)
 const userInfo = ref({})
@@ -112,7 +120,7 @@ const normalizeLearning = (item = {}) => ({
   ...item,
   courseId: item.courseId || item.id,
   courseName: item.courseName || item.title || '未命名课程',
-  cover: item.cover || item.coverUrl || defaultAvatar,
+  cover: item.cover || item.coverUrl || defaultCover,
   progress: Math.min(100, Math.max(0, Number(item.progress ?? item.progressPercent ?? 0)))
 })
 

@@ -50,7 +50,7 @@
               class="recommend-item"
               @click="$router.push(`/details/index?id=${course.id}`)"
             >
-              <img :src="course.cover" :alt="course.title" />
+              <img :src="course.cover || defaultCover" :alt="course.title" @error="handleImgError($event, course)" />
               <div class="recommend-info">
                 <div class="recommend-title">{{ course.title }}</div>
                 <div class="recommend-price">¥{{ (course.price / 100).toFixed(0) }}</div>
@@ -70,6 +70,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { SuccessFilled } from '@element-plus/icons-vue'
 import { getOrderDetails } from '@/api/order.js'
 import { getRecommendClassList } from '@/api/class.js'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
+
+const handleImgError = (e, item) => {
+  if (item) item.cover = defaultCover
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -111,7 +119,7 @@ onMounted(async () => {
     recommendCourses.value = rows.slice(0, 3).map(course => ({
       ...course,
       title: course.title || course.courseName,
-      cover: course.cover || course.coverUrl || '',
+      cover: course.cover || course.coverUrl || defaultCover,
       price: Number(course.price || 0)
     }))
   }

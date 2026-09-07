@@ -2,7 +2,7 @@
 <template>
   <div class="classCards" @click="goDetails(data.id)">
     <div class="image-wrapper">
-      <img :src="data.coverUrl || '/src/assets/images/classDetails/default-cover.png'" alt="课程封面" class="cover-img" loading="lazy" />
+      <img :src="data.coverUrl || defaultCover" alt="课程封面" class="cover-img" loading="lazy" @error="handleImgError" />
       <span v-if="data.categoryName" class="category-badge">{{ data.categoryName }}</span>
     </div>
     <div class="card-content">
@@ -28,6 +28,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router';
+import defaultCover from '@/assets/images/courses/default-cover.svg';
 
 const router = useRouter();
 const props = defineProps({
@@ -40,6 +41,12 @@ const props = defineProps({
     default: 'default'
   }
 });
+
+const handleImgError = (e) => {
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover;
+  }
+};
 
 const goDetails = id => {
   if (id) {

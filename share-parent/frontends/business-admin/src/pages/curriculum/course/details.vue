@@ -7,8 +7,9 @@
         <div class="headerBox-left">
           <div>
             <img
-              :src="courseData.data.coverUrl"
+              :src="courseData.data.coverUrl || defaultCover"
               alt=""
+              @error="handleImgError"
               style="width: 382px; height: 215px; border-radius: 8px"
             />
           </div>
@@ -137,6 +138,7 @@ import { ref, reactive, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ElMessage } from "element-plus"
 import { formatTimeOrdinary } from "@/utils/index";
+import defaultCover from "@/assets/images/courses/default-cover.svg"
 // 获取vuex存储数据
 import { useUserStore } from "@/store"
 // 公用数据
@@ -145,6 +147,15 @@ import { useUserStore } from "@/store"
 import { getCourseDetail, getcourseTeacher, getcoursesListData } from "@/api/curriculum"
 // 导入组件
 import TableSwitchBar from "./components/TableSwitch.vue" // 切换表格
+
+const handleImgError = (e) => {
+  if (courseData.data) {
+    courseData.data.coverUrl = defaultCover
+  }
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
 import CourseAbout from "./components/CourseAbout.vue"// 课程介绍
 import courseCatalogue from "./components/courseCatalogue.vue"// 课程目录
 import CourseVideo from "./components/CourseVideo.vue"// 课程视频

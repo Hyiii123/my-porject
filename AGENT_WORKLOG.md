@@ -44,6 +44,19 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-07 03:35:00 - 课程图片加载 404 与封面兜底机制全面修复
+* **问题现象**：学员端首页及搜索页中部分课程（如“Web前端性能优化”）卡片出现图片裂开碎图现象。
+* **根因分析**：
+  1. **静态资源文件名映射偏差**：数据库和 Mock 数据引用的图片路径（如 `/src/assets/images/courses/performance.svg`、`golang.svg`、`nextjs.svg`、`nodejs.svg`、`visualization.svg`）与磁盘中的实际文件（`web.svg`、`go.svg`、`next.js.svg`、`node.js.svg`、`d3.js.svg`）名称不匹配，导致 Nginx 返回 404；
+  2. **兜底资源缺失**：历史代码引用了 `default-cover.png`，但工程中该文件实际并不存在；
+  3. **缺乏图片容灾机制**：组件中的 `<img>` 标签未绑定 `@error` 事件，网络错误或 404 时直接展示浏览器破碎图标。
+* **解决方案与成果**：
+  1. **补齐别名图片**：在 `frontends/portal` 与 `frontends/business-admin` 中创建对应的软同名/别名 SVG 文件，确保两种命名都能 200 OK 加载；
+  2. **创建学术风统一兜底图**：设计并加入 16:9 学术蓝现代课程默认封面 `default-cover.svg` 及兼容图 `default-cover.png`；
+  3. **全面容灾兜底**：在学生端所有涉及课程封面渲染的组件（`ClassCards.vue`、`main/index.vue`、`classSearch/index.vue`、`classDetails/index.vue`、`myClass/index.vue`、`pay/carts.vue`、`pay/settlement.vue`、`pay/success.vue`、`personal/main.vue`、`personal/components/ClassCards.vue`、`OrderCards.vue`）和管理端（`curriculum/course/index.vue`、`details.vue`、`order/index.vue`、`refund/index.vue`）统一挂载 `@error="handleImgError"` 与 `defaultCover` 自动替换机制；
+  4. **严格遵循发布铁律**：先将补丁包上传至 ECS，按单服务串行排队构建原则先后重构 `portal-ui` 与 `business-admin-ui`，避免云盘限流；冒烟测试 35 项全通；
+  5. 静态图片直接通过 Nginx 验证返回 `HTTP 200 OK`，彻底解决裂图。
+
 ### 2026-09-07 03:15:00 - 云盘限流教训固化与全站发布闭环
 * **关键成果**：
   1. 深度复盘并发构建引发的云盘 IOPS 耗尽瓶颈，在本文档及 `docs/AGENT_HANDOFF.md` 固化了“禁止并发构建”的操作铁律；
@@ -82,6 +95,7 @@
 | **8** | **Windows 本地构建后端报 Java 版本不匹配** | 操作系统全局默认可能是 Java 8，而项目已升级为 Spring Boot 3 + Spring Cloud 2022，强制要求 Java 17。 | 设置当前终端环境变量：`$env:JAVA_HOME = 'C:\Program Files\Java\jdk-17'; $env:Path = "$env:JAVA_HOME\bin;$env:Path"`，严禁擅自降级 POM。 |
 | **9** | **执行了增量 SQL 但数据库表结构没有变化** | Docker 启动 MySQL 时，`docker-entrypoint-initdb.d` 仅在**全新空卷**创建时执行，已有数据卷绝对不会重新执行初始化 SQL。 | 必须使用 Flyway 增量机制，通过 `deploy/mysql/apply-migrations.ps1` 写入 `share.flyway_schema_history`。 |
 | **10** | **本地同时启动 portal 与 business-admin 端口冲突** | 两个前端工程的 Vite 配置默认端口都是 `18081`。 | 业务管理端启动时显式指定不同端口：`npm run dev:prod -- --port 18083`。 |
+| **11** | **前端静态课程图片 404 导致裂图** | 数据库/Mock 封面路径与前端静态资源文件名不一致（如 `performance.svg` vs `web.svg`、`golang.svg` vs `go.svg`），且组件未挂载 `@error` 容灾事件与默认封面回退。 | 1. 补齐所有别名图片文件；<br>2. 新增深色学术科技风 16:9 标准默认课程封面 `default-cover.svg`；<br>3. 所有渲染课程封面的 Vue 组件统一挂载 `@error="handleImgError"` 与 `defaultCover` 容灾回退。 |
 
 ---
 

@@ -23,7 +23,7 @@
             </div>
             <div class="item-course" @click="$router.push(`/details/index?id=${item.courseId}`)">
               <div class="course-cover">
-                <img :src="item.cover" :alt="item.courseName" />
+                <img :src="item.cover || defaultCover" :alt="item.courseName" @error="handleImgError($event, item)" />
               </div>
               <div class="course-info">
                 <h4 class="course-title">{{ item.courseName }}</h4>
@@ -90,11 +90,19 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import { getCarts, delCarts } from '@/api/order.js'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
 
 const router = useRouter()
 
 // 购物车数据
 const cartList = ref([])
+
+const handleImgError = (e, item) => {
+  if (item) item.cover = defaultCover
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
 
 const normalizeCart = (item = {}) => ({
   ...item,
@@ -102,7 +110,7 @@ const normalizeCart = (item = {}) => ({
   courseId: item.courseId,
   courseName: item.courseName || item.title || `课程 ${item.courseId || ''}`,
   teacherName: item.teacherName || '讲师团队',
-  cover: item.cover || item.coverUrl || '',
+  cover: item.cover || item.coverUrl || defaultCover,
   price: Number(item.price || 0),
   originalPrice: Number(item.originalPrice ?? item.price ?? 0),
   checked: item.checked !== false

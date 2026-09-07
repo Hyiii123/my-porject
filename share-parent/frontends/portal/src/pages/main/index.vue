@@ -99,7 +99,7 @@
           @click="$router.push(`/details?id=${course.id}`)"
         >
           <div class="course-cover">
-            <img :src="course.cover || '/src/assets/images/classDetails/default-cover.png'" :alt="course.title" loading="lazy" />
+            <img :src="course.cover || defaultCover" :alt="course.title" loading="lazy" @error="handleImgError" />
             <div class="course-badge free" v-if="course.price === 0">免费学习</div>
           </div>
           <div class="course-info">
@@ -137,7 +137,7 @@
           >
             <div class="rank-badge" :class="`rank-${index + 1}`">{{ index + 1 }}</div>
             <div class="course-cover">
-              <img :src="course.cover || '/src/assets/images/classDetails/default-cover.png'" :alt="course.title" />
+              <img :src="course.cover || defaultCover" :alt="course.title" @error="handleImgError" />
             </div>
             <div class="course-info">
               <h4 class="title" :title="course.title">{{ course.title }}</h4>
@@ -170,7 +170,7 @@
             @click="$router.push(`/details?id=${course.id}`)"
           >
             <div class="cover-box">
-              <img :src="course.cover || '/src/assets/images/classDetails/default-cover.png'" :alt="course.title" />
+              <img :src="course.cover || defaultCover" :alt="course.title" @error="handleImgError" />
               <span class="new-tag">NEW</span>
             </div>
             <div class="content-box">
@@ -207,6 +207,7 @@ import { useRouter } from 'vue-router'
 import { Reading, ArrowRight } from '@element-plus/icons-vue'
 import { getClassCategorys, getRecommendClassList, classSeach, getMylessons } from '@/api/class.js'
 import { getBanners } from '@/api/home.js'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
 
 const router = useRouter()
 
@@ -218,11 +219,17 @@ const newCourses = ref([])
 const allCourses = ref([])
 const recentLearning = ref(null)
 
+const handleImgError = (e) => {
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
+
 const normalizeCourse = (course = {}) => ({
   ...course,
   id: course.id,
   title: course.title || course.courseName || '未命名课程',
-  cover: course.cover || course.coverUrl || '',
+  cover: course.cover || course.coverUrl || defaultCover,
   teacherName: course.teacherName || '讲师团队',
   price: Number(course.price || 0),
   originalPrice: Number(course.originalPrice ?? course.price ?? 0),

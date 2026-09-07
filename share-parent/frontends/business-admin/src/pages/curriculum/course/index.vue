@@ -56,7 +56,7 @@
         <el-table-column label="课程信息" min-width="300">
           <template #default="{ row }">
             <div class="course-info">
-              <img :src="row.cover" class="course-cover" />
+              <img :src="row.cover || defaultCover" class="course-cover" @error="handleImgError($event, row)" />
               <div class="course-detail">
                 <div class="course-title">{{ row.title }}</div>
                 <div class="course-meta">{{ row.categoryName }} · {{ row.teacherName }}</div>
@@ -170,6 +170,7 @@ import { Plus, SuccessFilled } from '@element-plus/icons-vue'
 import { getTypeAll } from '@/api/api'
 import { getTeacherser } from '@/api/teacher'
 import { getCoursesPage, baseInfoSave, baseUpShelf, baseDownShelf, baseBeforeUpShelf, deleteCourses } from '@/api/curriculum'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
 
 // 分类数据
 const categories = ref([])
@@ -186,6 +187,13 @@ const statCards = computed(() => [
   { label: '已下架', value: allCourses.value.filter(item => Number(item.status) === 2).length, bgColor: '#64748b' },
   { label: '已完结', value: allCourses.value.filter(item => Number(item.status) === 3).length, bgColor: '#0d9488' }
 ])
+
+const handleImgError = (e, item) => {
+  if (item) item.cover = defaultCover
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
 
 // 搜索
 const searchForm = reactive({
@@ -232,7 +240,7 @@ const normalizeCategory = item => ({ id: item.id, name: item.name || item.catego
 const normalizeCourse = item => ({
   ...item,
   title: item.title || item.courseName,
-  cover: item.cover || item.coverUrl || '/src/assets/images/courses/vue3.svg',
+  cover: item.cover || item.coverUrl || defaultCover,
   lessons: item.lessons ?? item.lessonCount ?? 0,
   learners: item.learners ?? item.learnerCount ?? 0,
   price: Number(item.price ?? 0),

@@ -12,7 +12,7 @@
           <div class="course-list">
             <div v-for="course in selectedCourses" :key="course.id" class="course-item">
               <div class="course-cover">
-                <img :src="course.cover" :alt="course.title" />
+                <img :src="course.cover || defaultCover" :alt="course.title" @error="handleImgError($event, course)" />
               </div>
               <div class="course-info">
                 <h4>{{ course.title }}</h4>
@@ -99,12 +99,20 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { confirmOrderInfo, setOrder } from '@/api/order.js'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
 
 const route = useRoute()
 const router = useRouter()
 
 // 选中的课程（从购物车或课程详情页传入）
 const selectedCourses = ref([])
+
+const handleImgError = (e, item) => {
+  if (item) item.cover = defaultCover
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
 
 // 可用优惠券
 const availableCoupons = ref([])
@@ -151,7 +159,7 @@ const normalizeCourse = (course = {}) => ({
   courseId: course.courseId,
   title: course.title || course.courseName || '未命名课程',
   teacherName: course.teacherName || '讲师团队',
-  cover: course.cover || course.coverUrl || '',
+  cover: course.cover || course.coverUrl || defaultCover,
   price: Number(course.price || 0),
   originalPrice: Number(course.originalPrice ?? course.price ?? 0),
   quantity: Math.max(1, Number(course.quantity || 1))

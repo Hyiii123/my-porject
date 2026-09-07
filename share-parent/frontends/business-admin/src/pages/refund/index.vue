@@ -74,7 +74,7 @@
         <el-table-column label="课程信息" min-width="200">
           <template #default="{ row }">
             <div class="course-info">
-              <img :src="row.courseCover" class="course-cover" />
+              <img :src="row.courseCover || defaultCover" class="course-cover" @error="handleImgError($event, row)" />
               <span>{{ row.courseName }}</span>
             </div>
           </template>
@@ -212,6 +212,14 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getDetails, getRefundPage, refundApproval } from '@/api/refund'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
+
+const handleImgError = (e, item) => {
+  if (item) item.courseCover = defaultCover
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
 
 const searchForm = reactive({ status: '', keyword: '' })
 const pagination = reactive({ page: 1, pageSize: 10, total: 0 })
@@ -241,7 +249,7 @@ const normalizeRefund = item => ({
   ...item,
   userName: item.userName || `用户${item.userId || ''}`,
   courseName: item.courseName || '课程',
-  courseCover: item.courseCover || '/src/assets/images/courses/vue3.svg',
+  courseCover: item.courseCover || defaultCover,
   payAmount: item.payAmount ?? money(item.payAmountCents),
   refundAmount: typeof item.refundAmount === 'number' ? money(item.refundAmount) : (item.refundAmount || '0.00'),
   reason: item.reason || item.refundReason || '-',

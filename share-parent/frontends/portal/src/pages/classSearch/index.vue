@@ -80,7 +80,7 @@
           @click="$router.push(`/details/index?id=${course.id}`)"
         >
           <div class="course-cover">
-            <img :src="course.cover" :alt="course.title" />
+            <img :src="course.cover || defaultCover" :alt="course.title" @error="handleImgError" />
             <div class="course-badge" v-if="course.price === 0">免费</div>
           </div>
           <div class="course-info">
@@ -122,6 +122,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import { classSeach, getClassCategorys } from '@/api/class.js'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
 
 const route = useRoute()
 const router = useRouter()
@@ -162,11 +163,17 @@ const total = ref(0)
 const courseList = ref([])
 const loading = ref(false)
 
+const handleImgError = (e) => {
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
+
 const normalizeCourse = (course = {}) => ({
   ...course,
   id: course.id,
   title: course.title || course.courseName || '未命名课程',
-  cover: course.cover || course.coverUrl || '',
+  cover: course.cover || course.coverUrl || defaultCover,
   teacherName: course.teacherName || '讲师团队',
   categoryId: String(course.categoryId ?? ''),
   price: Number(course.price || 0),

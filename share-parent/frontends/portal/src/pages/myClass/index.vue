@@ -60,7 +60,7 @@
         >
           <div class="course-content">
             <div class="course-cover">
-              <img :src="course.cover" :alt="course.courseName" />
+              <img :src="course.cover || defaultCover" :alt="course.courseName" @error="handleImgError($event, course)" />
               <div class="course-badge" v-if="course.progress === 100">已完成</div>
             </div>
             <div class="course-info">
@@ -127,6 +127,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Reading, Check, Clock, User } from '@element-plus/icons-vue'
 import { getMylessons, delMyClass, restartMyLesson } from '@/api/class.js'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
 
 const router = useRouter()
 
@@ -142,13 +143,20 @@ const totalHours = computed(() => Math.round(courses.value.reduce((sum, course) 
 const courses = ref([])
 const restartingCourseId = ref(null)
 
+const handleImgError = (e, item) => {
+  if (item) item.cover = defaultCover
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+}
+
 const normalizeCourse = (course = {}) => ({
   ...course,
   id: course.id,
   courseId: course.courseId || course.id,
   courseName: course.courseName || course.title || '未命名课程',
   teacherName: course.teacherName || '讲师团队',
-  cover: course.cover || course.coverUrl || '',
+  cover: course.cover || course.coverUrl || defaultCover,
   progress: Math.min(100, Math.max(0, Number(course.progress ?? course.progressPercent ?? 0))),
   completedLessons: Number(course.completedLessons || 0),
   totalLessons: Number(course.totalLessons || course.lessonCount || 0),
