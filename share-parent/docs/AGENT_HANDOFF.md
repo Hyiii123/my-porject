@@ -234,7 +234,7 @@ docker compose --project-directory /opt/tianji/share-parent -p tianji-share star
 - **本地后端**：优先只启动/重建被改服务，前端始终指向 Gateway `8080`。变更教育接口时重启/替换 education，不要重启 auth、trade、customer。
 - **服务器客服改动**：采用上述 `customer-hot` 机制；网关继续经 Nacos 发现唯一 `share-customer` 实例。
 - **服务器其他后端改动**：当前没有通用热容器模板。验证通过后只执行目标服务 `up -d --build <service>`；避免全站重启。
-- **生产前端改动**：静态 Nginx 容器不会自动读取服务器源码。只重建对应 UI 镜像/容器，并用浏览器强制刷新验证；Nginx 已对静态资源设置长缓存，因此若文件名不带 hash 或 CDN 在前，需要额外核查缓存策略。
+- **生产前端改动**：静态 Nginx 容器不会自动读取服务器源码。只重建对应 UI 镜像/容器，并用浏览器强制刷新验证；Nginx 已对静态资源设置长缓存，因此若文件名不带 hash 或 CDN 在前，需要额外核查缓存策略。`frontends/nginx.conf` 是 `ruoyi-ui`、`portal-ui`、`business-admin-ui` 三个镜像共同 COPY 的模板，因此修改该文件必须定向重建这三个 UI 容器：`docker compose --project-directory /opt/tianji/share-parent -p tianji-share up -d --build ruoyi-ui portal-ui business-admin-ui`。
 
 ## 8. 验收与诊断入口
 
