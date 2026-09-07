@@ -44,6 +44,25 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-07 14:35:00 - 学员管理页面适配 5,000+ 学员展示与服务端分页修复
+
+* **任务背景**：导入 5,000 名真实 IT 学员后，用户反馈业务管理端（`tianji-business-admin-ui`，端口 18082）“学员管理”页面仍只显示 6 个历史演示学员，无法浏览新导入的学员群体。
+* **根因定位**：
+  1. **后端用户类型过滤条件限制**：后端若依用户系统 `/us/students/page`（由 `LegacyTianjiUserController.java` 实现）写死根据 `userType == "01"`（即学员身份）进行条件过滤；新导入的 5,100 名学员在 SQL 脚本中 `user_type` 默认赋予了 `'00'`（系统用户默认值），导致被接口逻辑过滤。
+  2. **前端假分页与统计限制**：原 `frontends/business-admin/src/pages/userlist/student/index.vue` 采用了一次性请求 `pageSize: 200` 的前端截取假分页，且顶部统计卡片（学员总数、正常学员、禁用学员）统计的是前端数组的 `length`，上限仅为 200。
+* **核心架构改造与修复**：
+  1. **数据库层修复与迁移文件同步**：
+     - 在线上数据库执行 `UPDATE share.sys_user SET user_type = '01' WHERE user_id >= 201;`，将 5,100 名真实学员用户类型批量同步修正为 `'01'`。
+     - 深度更新本地 `V20__real_world_learners_and_portrait_dataset.sql` 与 `V21__scale_5000_real_world_it_learners.sql`，将所有 `sys_user` 批量插入语句中的 `'00'` 全量替换为 `'01'`，彻底消除未来环境重建时复现的风险。
+  2. **前端页面服务端真实分页与异步统计改造**：
+     - 重构 `frontends/business-admin/src/pages/userlist/student/index.vue`，废除前端数组截取，实现标准的服务端分页参数传递（`pageNum`、`pageSize`、`userName`、`status`、`sex`）。
+     - 新增 `getStudentStats()` 方法，并发请求全量与禁用学员接口，顶部统计卡片实时精确展示：**学员总数：5,106**、**正常学员：5,105**、**禁用学员：1**。
+  3. **遵循云盘保护准则的纯静态构建部署**：
+     - 本地执行 `npm run build` 生成 `dist/`，打包压缩后通过 Workbench 上传至 ECS，单容器替换 `tianji-business-admin-ui` 静态资源并重启，避免服务器 Node.js 构建带来的 I/O 击穿风险。
+* **验证结果**：
+  - 接口实测：`/us/students/page` 正确返回 `total: 5106`，翻页正常。
+  - 冒烟测试：运行 `deploy/smoke-test.ps1 -BaseUrl "http://47.120.32.166:8080" -IncludeWriteFlow`，**62/62 项全链路冒烟测试无误通过**。
+
 ### 2026-09-07 14:20:00 - 5,000 名真实 IT 学员画像还原与嵌入式密集向量检索引擎落地
 
 * **任务背景**：深入挖掘清华大学 MOOCCubeX 与英国开放大学 OULAD 真实学术与工业级学习分析数据集，剔除非 IT 课程，聚焦 100% IT 专业领域，将学员规模扩充至 5,000 人（万人级真实在线教育体量），并在微服务内部落地高性能嵌入式密集向量余弦相似度检索引擎。

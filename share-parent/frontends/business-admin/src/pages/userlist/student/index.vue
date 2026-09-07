@@ -137,10 +137,14 @@ const formRules = {
   password: [{ required: true, message: '请输入初始密码', trigger: 'blur' }, { min: 6, message: '密码长度不能少于 6 位', trigger: 'blur' }]
 }
 
+const totalCount = ref(0)
+const activeCount = ref(0)
+const disabledCount = ref(0)
+
 const statCards = computed(() => [
-  { label: '学员总数', value: allStudents.value.length, tip: '当前学员账号', color: '#2563eb' },
-  { label: '正常学员', value: allStudents.value.filter(item => item.status === 1).length, tip: '可以正常学习', color: '#16a34a' },
-  { label: '禁用学员', value: allStudents.value.filter(item => item.status === 0).length, tip: '暂时禁止登录', color: '#ea580c' }
+  { label: '学员总数', value: totalCount.value, tip: '当前学员账号', color: '#2563eb' },
+  { label: '正常学员', value: activeCount.value, tip: '可以正常学习', color: '#16a34a' },
+  { label: '禁用学员', value: disabledCount.value, tip: '暂时禁止登录', color: '#ea580c' }
 ])
 
 function normalize(item) {
@@ -156,20 +160,41 @@ function normalize(item) {
   }
 }
 
+async function getStudentStats() {
+  try {
+    const [allRes, disRes] = await Promise.all([
+      getStudents({ pageNum: 1, pageSize: 1 }),
+      getStudents({ pageNum: 1, pageSize: 1, status: 0 })
+    ])
+    const total = Number(allRes?.total || 0)
+    const dis = Number(disRes?.total || 0)
+    totalCount.value = total
+    disabledCount.value = dis
+    activeCount.value = Math.max(0, total - dis)
+  } catch (e) {}
+}
+
 async function getStudentList() {
   loading.value = true
   try {
-    const response = await getStudents({ pageNum: 1, pageSize: 200 })
-    const source = Array.isArray(response?.rows) ? response.rows.map(normalize) : []
-    allStudents.value = source
-    let rows = source
-    if (searchForm.status !== '' && searchForm.status !== null && searchForm.status !== undefined) rows = rows.filter(item => item.status === Number(searchForm.status))
-    if (searchForm.gender !== '' && searchForm.gender !== null && searchForm.gender !== undefined) rows = rows.filter(item => Number(item.gender) === Number(searchForm.gender))
-    const keyword = searchForm.keyword.trim().toLowerCase()
-    if (keyword) rows = rows.filter(item => `${item.nickname}${item.username}${item.phone}${item.email}`.toLowerCase().includes(keyword))
-    pagination.total = rows.length
-    const start = (pagination.page - 1) * pagination.pageSize
-    studentList.value = rows.slice(start, start + pagination.pageSize)
+    const params = {
+      pageNum: pagination.page,
+      pageSize: pagination.pageSize
+    }
+    if (searchForm.status !== '' && searchForm.status !== null && searchForm.status !== undefined) {
+      params.status = searchForm.status
+    }
+    if (searchForm.gender !== '' && searchForm.gender !== null && searchForm.gender !== undefined) {
+      params.sex = String(searchForm.gender)
+    }
+    const keyword = searchForm.keyword.trim()
+    if (keyword) {
+      params.userName = keyword
+    }
+    const response = await getStudents(params)
+    const rows = Array.isArray(response?.rows) ? response.rows.map(normalize) : []
+    studentList.value = rows
+    pagination.total = Number(response?.total || 0)
   } catch (error) {
     studentList.value = []
     pagination.total = 0
@@ -210,6 +235,7 @@ async function handleStatusChange(row) {
     if (response?.code !== 200) throw new Error(response?.msg || '状态更新失败')
     const source = allStudents.value.find(item => item.id === row.id); if (source) source.status = next
     ElMessage.success(`学员已${next === 1 ? '启用' : '禁用'}`)
+    getStudentStats()
   } catch (error) { row.status = previous; ElMessage.error(error?.message || '状态更新失败') }
 }
 
@@ -225,12 +251,15 @@ async function handleDelete(row) {
   try {
     await ElMessageBox.confirm(`确定删除学员“${row.nickname}”吗？删除后不可恢复。`, '请确认', { type: 'warning' })
     const response = await removeUser(row.id); if (response?.code !== 200) throw new Error(response?.msg || '删除失败')
-    ElMessage.success('学员删除成功'); await getStudentList()
+    ElMessage.success('学员删除成功'); await getStudentList(); getStudentStats()
   } catch (error) { if (error !== 'cancel' && error !== 'close') ElMessage.error(error?.message || '学员删除失败') }
 }
 
 function genderText(value) { return Number(value) === 0 ? '男' : Number(value) === 1 ? '女' : '—' }
-onMounted(getStudentList)
+onMounted(() => {
+  getStudentList()
+  getStudentStats()
+})
 </script>
 
 <style scoped>
