@@ -118,6 +118,50 @@
       </div>
     </div>
 
+    <!-- 智能个性化专属推荐 (基于多维用户画像与技术图谱) -->
+    <div class="section container" v-if="personalizedCourses.length">
+      <div class="section-header">
+        <div class="header-left">
+          <h3 class="section-title">🎯 为您专属推荐</h3>
+          <span class="section-sub">基于您的学习轨迹、技术偏好与 IT 知识图谱智能多路召回</span>
+        </div>
+        <el-button type="primary" link @click="$router.push('/search/index')">全部课程 <el-icon><ArrowRight /></el-icon></el-button>
+      </div>
+      <div class="course-grid">
+        <div
+          v-for="course in personalizedCourses"
+          :key="course.id"
+          class="course-card personalized-card"
+          @click="$router.push(`/details?id=${course.id}`)"
+        >
+          <div class="course-cover">
+            <img :src="course.cover || defaultCover" :alt="course.title" loading="lazy" @error="handleImgError" />
+            <div class="course-badge match" v-if="course.matchTag">{{ course.matchTag }}</div>
+            <div class="match-score-badge" v-if="course.matchScore">{{ course.matchScore }}% 契合</div>
+          </div>
+          <div class="course-info">
+            <h4 class="course-title" :title="course.title">{{ course.title }}</h4>
+            <div class="recommend-reason-row" v-if="course.recommendReason">
+              <span class="reason-icon">💡</span>
+              <span class="reason-text">{{ course.recommendReason }}</span>
+            </div>
+            <div class="course-meta">
+              <span class="teacher">{{ course.teacherName }}</span>
+              <span class="difficulty-tag" v-if="course.difficulty">
+                {{ course.difficulty === 1 ? '初级入门' : course.difficulty === 3 ? '高级架构' : '中级进阶' }}
+              </span>
+              <span class="learners">{{ course.learners }} 人在学</span>
+            </div>
+            <div class="course-price">
+              <span v-if="course.price > 0" class="price">¥{{ (course.price / 100).toFixed(2) }}</span>
+              <span v-else class="free">免费</span>
+              <span v-if="course.originalPrice > course.price" class="original-price">¥{{ (course.originalPrice / 100).toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 热门排行与新课速递 -->
     <div class="section container rank-and-new-row">
       <!-- 热门好课排行 -->
@@ -205,7 +249,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Reading, ArrowRight, Pointer } from '@element-plus/icons-vue'
-import { getClassCategorys, getRecommendClassList, classSeach, getMylessons, getCourseLikeRanking } from '@/api/class.js'
+import { getClassCategorys, getRecommendClassList, classSeach, getMylessons, getCourseLikeRanking, getPersonalizedRecommendations } from '@/api/class.js'
 import { getBanners } from '@/api/home.js'
 import defaultCover from '@/assets/images/courses/default-cover.svg'
 
@@ -214,6 +258,7 @@ const router = useRouter()
 const banners = ref([])
 const categories = ref([])
 const recommendCourses = ref([])
+const personalizedCourses = ref([])
 const hotCourses = ref([])
 const rankingCourses = ref([])
 const newCourses = ref([])
@@ -278,14 +323,15 @@ onMounted(async () => {
     { bg: '#334155', tag: '技能拓展专题' }
   ]
 
-  const [bannerResponse, categoryResponse, courseResponse, recommendResponse, hotResponse, newResponse, rankingResponse] = await Promise.allSettled([
+  const [bannerResponse, categoryResponse, courseResponse, recommendResponse, hotResponse, newResponse, rankingResponse, personalizedResponse] = await Promise.allSettled([
     getBanners(),
     getClassCategorys({ includeDisabled: false }),
     classSeach({ pageNo: 1, pageSize: 200 }),
     getRecommendClassList('home'),
     getRecommendClassList('hot'),
     getRecommendClassList('new'),
-    getCourseLikeRanking({ limit: 10 })
+    getCourseLikeRanking({ limit: 10 }),
+    getPersonalizedRecommendations({ limit: 4 })
   ])
 
   if (bannerResponse.status === 'fulfilled' && bannerResponse.value?.code === 200) {
@@ -331,6 +377,23 @@ onMounted(async () => {
   if (hotResponse.status === 'fulfilled' && hotResponse.value?.code === 200) hotCourses.value = normalizeRows(hotResponse.value)
   if (rankingResponse.status === 'fulfilled' && rankingResponse.value?.code === 200) rankingCourses.value = normalizeRows(rankingResponse.value)
   if (newResponse.status === 'fulfilled' && newResponse.value?.code === 200) newCourses.value = normalizeRows(newResponse.value)
+  if (personalizedResponse.status === 'fulfilled' && personalizedResponse.value?.code === 200) {
+    const pRows = normalizeRows(personalizedResponse.value)
+    if (pRows.length) {
+      personalizedCourses.value = pRows
+    }
+  }
+
+  // 兜底：若未返回个性化推荐（如新用户或未登录），从重磅推荐平滑兜底
+  if (!personalizedCourses.value.length && recommendCourses.value.length) {
+    personalizedCourses.value = recommendCourses.value.slice(0, 4).map((c, idx) => ({
+      ...c,
+      matchTag: idx === 0 ? '综合推荐' : '热门匹配',
+      matchScore: 95 - idx * 5,
+      recommendReason: '根据全站高频热度与实战技能匹配推荐',
+      difficulty: c.difficulty || 2
+    }))
+  }
 
   if (allCourses.value.length) {
     categories.value = categories.value.map(category => ({
@@ -644,6 +707,16 @@ onMounted(async () => {
     }
   }
 
+  &.personalized-card {
+    border-color: #BFDBFE;
+    box-shadow: 0 2px 6px -1px rgba(37, 99, 235, 0.08);
+
+    &:hover {
+      border-color: #2563EB;
+      box-shadow: 0 10px 20px -3px rgba(37, 99, 235, 0.15);
+    }
+  }
+
   .course-cover {
     height: 150px;
     position: relative;
@@ -667,6 +740,23 @@ onMounted(async () => {
       font-weight: 600;
       background: #059669;
       color: #FFFFFF;
+
+      &.match {
+        background: #0284C7;
+      }
+    }
+
+    .match-score-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(15, 23, 42, 0.75);
+      color: #38BDF8;
+      backdrop-filter: blur(4px);
     }
   }
 
@@ -690,12 +780,46 @@ onMounted(async () => {
       transition: color 0.2s ease;
     }
 
+    .recommend-reason-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #EFF6FF;
+      border: 1px solid #DBEAFE;
+      border-radius: 4px;
+      padding: 4px 8px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: #1E40AF;
+      line-height: 1.4;
+
+      .reason-icon {
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+      .reason-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
     .course-meta {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-size: 12px;
       color: #64748B;
       margin-bottom: 12px;
+
+      .difficulty-tag {
+        display: inline-block;
+        padding: 1px 6px;
+        background: #F1F5F9;
+        border-radius: 3px;
+        font-size: 11px;
+        color: #475569;
+      }
     }
 
     .course-price {

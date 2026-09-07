@@ -44,6 +44,32 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-07 12:00:00 - 用户画像与个性化课程推荐引擎落地
+
+* **任务背景**：基于公开 IT 课程数据集（Coursera/MOOCCubeX/OULAD/Udemy）参数，为系统构建用户画像功能和多路召回个性化推荐引擎，为后续精准推荐奠定数据基座。
+* **三步落地路线实施**：
+  1. **第一步 — 课程技术标签与难度标定（冷启动数据基座）**：
+     - Flyway 迁移 `V19__course_skills_and_user_portrait.sql`：为 `edu_course` 补充 `difficulty_level`（1~3级）、`skills`（技能标签 CSV）、`target_role`（目标岗位）、`prerequisites`（前置技能）四字段。
+     - 为数据库中全部 20 门课程标注标准 IT 技能标签（Java, SpringBoot, Redis, Vue3, Python, MySQL, Docker 等 50+ 标签）和难度级别。
+  2. **第二步 — 用户画像数据模型与计算服务**：
+     - 新增 `edu_user_portrait` 表，存储用户技术偏好标签向量 (`skill_weights` JSON)、自律完课指数 (`completion_rate`)、难度适配偏好 (`preferred_difficulty`)、学习风格、学习频率、价格敏感度等多维度特征。
+     - 后端 `EducationService` 新增 `calculateAndSaveUserPortrait()` 方法，分析学员学习记录（已学课程技能交集）、考试记录（通过率）、学习时长、打卡行为自动计算画像特征标签（如"Java技术栈"、"系统进阶期"、"夜间专注"）。
+     - 事件驱动更新逻辑：每次请求画像时自动刷新计算。
+  3. **第三步 — 学员端专属推荐与技能雷达看板**：
+     - 后端推荐接口 `GET /cs/courses/recommendations/personalized`：多路召回算法（技能重叠匹配 + 岗位方向匹配 + 难度适配 + 点赞热度加权 + 多样性去重），返回含 `matchScore`、`recommendReason`、`matchTag` 的排序推荐列表。
+     - 后端画像接口 `GET /cs/user/portrait` 与 `PUT /cs/user/portrait/preferences`。
+     - 学员门户"个人中心" (`personal/main.vue`)：展示技能雷达进度条、画像特征标签、目标岗位/难度阶段/完课率/学时统计卡片、偏好定制弹窗。
+     - 学员门户首页 (`main/index.vue`)：新增"🎯 为您专属推荐"信息流板块，含契合度徽章、推荐理由行、难度标签。未登录用户自动从重磅推荐兜底填充。
+* **网关白名单**：`share-gateway-dev.yml` 添加 `/cs/courses/recommendations/**`、`/cs/courses/recommend/**`、`/cs/user/portrait/**` 到 `security.ignore.whites`，已推送 Nacos。
+* **部署验证**：
+  - 本地 Maven 编译 (`share-education.jar` ~106MB) 和前端 Vite 构建均通过。
+  - 服务器严格串行部署：V19 迁移 → 上传 jar → 单容器重建 education → portal dist 同步 → gateway 重启。
+  - 冒烟测试 **62/62 PASS**（含完整可写链路）。
+* **关键坑点**：
+  - `personal/main.vue` 中 `menu-grid` div 未闭合导致 Vue 编译器报 `Element is missing end tag`，需手动补 `</div>` 闭合。
+  - `main/index.vue` 中推荐好课的 `course-grid` 和 `section container` 在插入个性化推荐板块前缺少闭合标签，导致模板嵌套错误。
+  - `EduExamRecord` 不含 `isPass` 和 `courseId`，需通过 `examMapper.selectById()` 关联查询 `eduExam` 获取 `passScore` 和 `courseId`。
+
 ### 2026-09-07 04:30:00 - Redis 秒杀抢购、高频点赞榜与模拟沙箱支付闭环落地
 * **任务背景**：深入复用 `share-common-redis` 基础设施，在教育与交易微服务中落地高并发秒杀库存预扣、ZSet 课程高频点赞热榜、及全链路模拟沙箱支付。
 * **架构改造与核心实现**：

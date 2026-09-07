@@ -64,6 +64,90 @@
         </div>
       </div>
 
+      <!-- 智能学习画像与技能雷达 -->
+      <el-card class="portrait-card" shadow="hover">
+        <template #header>
+          <div class="portrait-header">
+            <div class="header-left">
+              <span class="portrait-title">🎯 智能学习画像与技能图谱</span>
+              <span class="portrait-sub">基于公开 IT 课程数据集参数与您的学习行为多维建模</span>
+            </div>
+            <el-button type="primary" size="small" plain @click="openPrefDialog">定制偏好</el-button>
+          </div>
+        </template>
+        
+        <div class="portrait-content" v-loading="portraitLoading">
+          <div class="portrait-meta-row">
+            <div class="meta-item">
+              <span class="meta-label">目标岗位</span>
+              <span class="meta-val role-badge">{{ portrait.intendedRole || '全栈开发工程师' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">自适应阶段</span>
+              <span class="meta-val diff-badge">{{ portrait.difficultyName || '中级进阶' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">自律完课率</span>
+              <span class="meta-val highlight-val">{{ portrait.completionRate || 0 }}%</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">有效学时</span>
+              <span class="meta-val highlight-val">{{ portrait.totalStudyHours || 0 }}h</span>
+            </div>
+          </div>
+
+          <!-- 画像特征标签 -->
+          <div class="portrait-tags" v-if="portrait.tags && portrait.tags.length">
+            <span class="tag-title">特征标签：</span>
+            <el-tag v-for="(tag, idx) in portrait.tags" :key="idx" class="persona-tag" effect="light" round>
+              {{ tag }}
+            </el-tag>
+          </div>
+
+          <!-- 核心技能掌握度进度条 -->
+          <div class="skills-section" v-if="portrait.skillsRadar && portrait.skillsRadar.length">
+            <div class="skills-heading">核心技术技能掌握度评估</div>
+            <div class="skills-grid">
+              <div v-for="s in portrait.skillsRadar" :key="s.skill" class="skill-item">
+                <div class="skill-info">
+                  <span class="skill-name">{{ s.skill }}</span>
+                  <span class="skill-score">{{ s.score }} 分</span>
+                </div>
+                <el-progress :percentage="s.score" :stroke-width="8" :color="getSkillColor(s.score)" :show-text="false" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- 偏好调整弹窗 -->
+      <el-dialog v-model="prefDialogVisible" title="定制您的学习画像与推荐偏好" width="460px">
+        <el-form :model="prefForm" label-width="110px">
+          <el-form-item label="目标岗位角色">
+            <el-select v-model="prefForm.intendedRole" placeholder="请选择目标技术岗位" style="width: 100%">
+              <el-option label="Java后端工程师" value="Java后端工程师" />
+              <el-option label="前端开发工程师" value="前端开发工程师" />
+              <el-option label="Python全栈工程师" value="Python全栈工程师" />
+              <el-option label="AI大模型/算法工程师" value="AI算法工程师" />
+              <el-option label="Go后端开发工程师" value="Go后端开发工程师" />
+              <el-option label="数据库专家/架构师" value="数据库专家/后端架构师" />
+              <el-option label="DevOps/运维工程师" value="DevOps/运维工程师" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="适配难度偏好">
+            <el-radio-group v-model="prefForm.preferredDifficulty">
+              <el-radio :label="1">初级入门</el-radio>
+              <el-radio :label="2">中级进阶</el-radio>
+              <el-radio :label="3">高级架构</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="prefDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="savingPref" @click="savePreferences">保存生效</el-button>
+        </template>
+      </el-dialog>
+
       <!-- 最近学习 -->
       <el-card class="recent-card" shadow="hover">
         <template #header>
@@ -95,7 +179,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getUserInfo } from '@/api/user.js'
-import { getMylessons, getTodayPoints, getMyCoupon } from '@/api/class.js'
+import { getMylessons, getTodayPoints, getMyCoupon, getUserPortrait, updateUserPortraitPreferences } from '@/api/class.js'
 import { getOrderListes } from '@/api/order.js'
 import defaultAvatar from '@/assets/images/users/default-avatar.svg'
 import defaultCover from '@/assets/images/courses/default-cover.svg'
@@ -112,6 +196,49 @@ const userInfo = ref({})
 const learning = ref([])
 const stats = ref({ learning: 0, points: 0, orders: 0, coupons: 0 })
 
+// 用户学习画像数据与偏好弹窗
+const portrait = ref({})
+const portraitLoading = ref(false)
+const prefDialogVisible = ref(false)
+const savingPref = ref(false)
+const prefForm = ref({
+  intendedRole: 'Java后端工程师',
+  preferredDifficulty: 2
+})
+
+const getSkillColor = (score) => {
+  if (score >= 80) return '#2563EB'
+  if (score >= 60) return '#059669'
+  if (score >= 40) return '#D97706'
+  return '#94A3B8'
+}
+
+const openPrefDialog = () => {
+  prefForm.value = {
+    intendedRole: portrait.value.intendedRole || 'Java后端工程师',
+    preferredDifficulty: Number(portrait.value.preferredDifficulty || 2)
+  }
+  prefDialogVisible.value = true
+}
+
+const savePreferences = async () => {
+  savingPref.value = true
+  try {
+    const res = await updateUserPortraitPreferences(prefForm.value)
+    if (res?.code === 200) {
+      ElMessage.success('画像偏好更新成功')
+      portrait.value = res.data || {}
+      prefDialogVisible.value = false
+    } else {
+      ElMessage.error(res?.msg || '保存失败')
+    }
+  } catch (err) {
+    ElMessage.error(err?.message || '网络请求错误')
+  } finally {
+    savingPref.value = false
+  }
+}
+
 const recentLearning = computed(() => learning.value.slice(0, 3))
 
 const listFrom = (data) => Array.isArray(data) ? data : (data?.list || data?.rows || [])
@@ -127,12 +254,13 @@ const normalizeLearning = (item = {}) => ({
 const loadData = async () => {
   loading.value = true
   try {
-    const [userResponse, learningResponse, pointsResponse, orderResponse, couponResponse] = await Promise.allSettled([
+    const [userResponse, learningResponse, pointsResponse, orderResponse, couponResponse, portraitResponse] = await Promise.allSettled([
       getUserInfo(),
       getMylessons({ pageNo: 1, pageSize: 20 }),
       getTodayPoints(),
       getOrderListes({ pageNo: 1, pageSize: 1 }),
-      getMyCoupon({ pageNo: 1, pageSize: 1, status: 1 })
+      getMyCoupon({ pageNo: 1, pageSize: 1, status: 1 }),
+      getUserPortrait()
     ])
     if (userResponse.status === 'fulfilled' && userResponse.value?.code === 200) {
       userInfo.value = userResponse.value.data || {}
@@ -149,6 +277,9 @@ const loadData = async () => {
     if (couponResponse.status === 'fulfilled' && couponResponse.value?.code === 200) {
       stats.value.coupons = Number(couponResponse.value.data?.total ?? listFrom(couponResponse.value.data).length)
     }
+    if (portraitResponse.status === 'fulfilled' && portraitResponse.value?.code === 200) {
+      portrait.value = portraitResponse.value.data || {}
+    }
     stats.value.learning = learning.value.length
   } catch (error) {
     ElMessage.error(error?.message || '个人中心数据加载失败')
@@ -160,7 +291,7 @@ const loadData = async () => {
 onMounted(loadData)
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .personal-container {
   background: #f5f7fa;
   min-height: 100vh;
@@ -296,6 +427,138 @@ onMounted(loadData)
   font-size: 14px;
   font-weight: 600;
   color: #0F172A;
+}
+
+/* 学习画像卡片 */
+.portrait-card {
+  border-radius: 12px;
+  border: none;
+  margin-bottom: 24px;
+}
+
+.portrait-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.portrait-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  display: block;
+}
+
+.portrait-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+  display: block;
+}
+
+.portrait-meta-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 18px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.meta-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+
+  &.role-badge {
+    color: #2563eb;
+  }
+
+  &.diff-badge {
+    color: #059669;
+  }
+
+  &.highlight-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+}
+
+.portrait-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.tag-title {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.persona-tag {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.skills-section {
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 16px;
+}
+
+.skills-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 12px;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.skill-item {
+  background: #f8fafc;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+}
+
+.skill-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.skill-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.skill-score {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
 }
 
 /* 最近学习 */

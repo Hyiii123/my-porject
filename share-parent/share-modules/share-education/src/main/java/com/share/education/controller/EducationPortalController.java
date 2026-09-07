@@ -95,6 +95,21 @@ public class EducationPortalController extends BaseController {
         return success(educationService.courseLikeRanking(limit));
     }
 
+    @GetMapping({"/courses/recommendations/personalized", "/courses/recommend/personalized"})
+    public AjaxResult personalizedRecommendations(@RequestParam(required = false, defaultValue = "6") int limit) {
+        return success(educationService.personalizedRecommendations(limit));
+    }
+
+    @GetMapping("/user/portrait")
+    public AjaxResult userPortrait() {
+        return success(educationService.getUserPortrait(null));
+    }
+
+    @PutMapping("/user/portrait/preferences")
+    public AjaxResult updatePortraitPreferences(@RequestBody Map<String, Object> body) {
+        return success(educationService.updateUserPortraitPreferences(null, body));
+    }
+
     @GetMapping("/courses/baseInfo/{id}")
     public AjaxResult course(@PathVariable Long id) {
         return success(educationService.legacyCourse(id));

@@ -129,6 +129,10 @@ security:
       - /cs/courses/page
       - /cs/courses/portal
       - /cs/courses/ranking/**
+      - /cs/courses/recommendations/**
+      - /cs/courses/recommend/**
+      - /cs/user/portrait/**
+      - /cs/user/portrait
       - /cs/courses/baseInfo/**
       - /cs/courses/teachers/**
       - /cs/courses/catas/**

@@ -291,3 +291,26 @@ request({
 		liked: data.liked
 	}
 })
+
+// 获取学员多维动态学习画像与技能图谱
+export const getUserPortrait = () =>
+request({
+	url: `${COURSE_API_PREFIX}/user/portrait`,
+	method: 'get'
+})
+
+// 更新学员画像偏好（目标角色与自适应难度）
+export const updateUserPortraitPreferences = (data) =>
+request({
+	url: `${COURSE_API_PREFIX}/user/portrait/preferences`,
+	method: 'put',
+	data
+})
+
+// 获取多路召回的个性化课程专属推荐流
+export const getPersonalizedRecommendations = (params) =>
+request({
+	url: `${COURSE_API_PREFIX}/courses/recommendations/personalized`,
+	method: 'get',
+	params
+})

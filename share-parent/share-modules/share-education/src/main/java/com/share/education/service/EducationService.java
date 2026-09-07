@@ -34,6 +34,7 @@ import com.share.education.domain.EduQuestionLike;
 import com.share.education.domain.EduReply;
 import com.share.education.domain.EduSignRecord;
 import com.share.education.domain.EduTeacher;
+import com.share.education.domain.EduUserPortrait;
 import com.share.education.mapper.EduBannerMapper;
 import com.share.education.mapper.EduCategoryMapper;
 import com.share.education.mapper.EduCatalogQuestionMapper;
@@ -59,6 +60,7 @@ import com.share.education.mapper.EduQuestionMapper;
 import com.share.education.mapper.EduReplyMapper;
 import com.share.education.mapper.EduSignRecordMapper;
 import com.share.education.mapper.EduTeacherMapper;
+import com.share.education.mapper.EduUserPortraitMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -118,6 +120,7 @@ public class EducationService {
     private final EduExamAnswerMapper examAnswerMapper;
     private final EduSignRecordMapper signMapper;
     private final EduPointsLedgerMapper pointsMapper;
+    private final EduUserPortraitMapper portraitMapper;
     private final ObjectMapper objectMapper;
     private final RedisService redisService;
 
@@ -134,8 +137,8 @@ public class EducationService {
             EduExamMapper examMapper, EduExamQuestionBankMapper questionBankMapper,
             EduExamQuestionMapper examQuestionMapper, EduExamRecordMapper examRecordMapper,
             EduExamAnswerMapper examAnswerMapper, EduSignRecordMapper signMapper,
-            EduPointsLedgerMapper pointsMapper, ObjectMapper objectMapper,
-            RedisService redisService) {
+            EduPointsLedgerMapper pointsMapper, EduUserPortraitMapper portraitMapper,
+            ObjectMapper objectMapper, RedisService redisService) {
         this.bannerMapper = bannerMapper;
         this.categoryMapper = categoryMapper;
         this.dashboardDailyMapper = dashboardDailyMapper;
@@ -161,6 +164,7 @@ public class EducationService {
         this.examAnswerMapper = examAnswerMapper;
         this.signMapper = signMapper;
         this.pointsMapper = pointsMapper;
+        this.portraitMapper = portraitMapper;
         this.objectMapper = objectMapper;
         this.redisService = redisService;
     }
@@ -682,6 +686,386 @@ public class EducationService {
             courses = courseMapper.selectList(wrapper);
         }
         return courses.stream().limit(20).map(this::courseView).toList();
+    }
+
+    /**
+     * 基于学员多维画像的个性化课程多路召回与自适应推荐流。
+     * 未登录访客优雅降级为冷启动全站高分与热门推荐。
+     */
+    public List<Map<String, Object>> personalizedRecommendations(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 20));
+        Long currentUid = null;
+        try {
+            currentUid = SecurityUtils.getUserId();
+        } catch (Exception ignored) {}
+
+        Set<Long> enrolledIds = Collections.emptySet();
+        Map<String, Object> portraitView = null;
+        if (currentUid != null && currentUid > 0) {
+            enrolledIds = learningMapper.selectList(new LambdaQueryWrapper<EduLearningRecord>()
+                    .eq(EduLearningRecord::getUserId, currentUid)).stream()
+                    .map(EduLearningRecord::getCourseId).filter(Objects::nonNull).collect(Collectors.toSet());
+            portraitView = getUserPortrait(currentUid);
+        }
+
+        List<EduCourse> allActive = courseMapper.selectList(new LambdaQueryWrapper<EduCourse>()
+                .eq(EduCourse::getStatus, ENABLED)
+                .orderByDesc(EduCourse::getLearnerCount));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Integer> userSkills = portraitView != null ? (Map<String, Integer>) portraitView.get("skillWeights") : Collections.emptyMap();
+        String intendedRole = portraitView != null ? String.valueOf(portraitView.get("intendedRole")) : "";
+        int preferredDifficulty = portraitView != null ? intValue(portraitView.get("preferredDifficulty"), 2) : 2;
+
+        final Set<Long> enrolledSet = enrolledIds;
+        List<Map<String, Object>> scoredList = new ArrayList<>();
+
+        for (EduCourse c : allActive) {
+            if (enrolledSet.contains(c.getId())) {
+                continue;
+            }
+
+            double score = 40.0;
+            String recommendReason = "精选高分技术好课";
+            String matchTag = "精选进阶";
+
+            double skillMatchScore = 0.0;
+            String bestMatchedSkill = null;
+            if (StringUtils.hasText(c.getSkills()) && userSkills != null && !userSkills.isEmpty()) {
+                String[] skills = c.getSkills().split("[,，、]+");
+                for (String s : skills) {
+                    String trimmed = s.trim();
+                    if (userSkills.containsKey(trimmed)) {
+                        int weight = userSkills.get(trimmed);
+                        skillMatchScore += weight * 0.35;
+                        if (bestMatchedSkill == null) bestMatchedSkill = trimmed;
+                    }
+                }
+            }
+            score += Math.min(35.0, skillMatchScore);
+
+            boolean roleMatched = false;
+            if (StringUtils.hasText(intendedRole) && StringUtils.hasText(c.getTargetRole())) {
+                if (c.getTargetRole().contains(intendedRole) || intendedRole.contains(c.getTargetRole())) {
+                    score += 20.0;
+                    roleMatched = true;
+                }
+            }
+
+            int courseDiff = c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2;
+            if (courseDiff == preferredDifficulty) {
+                score += 15.0;
+            } else if (courseDiff == preferredDifficulty + 1) {
+                score += 10.0;
+            } else if (courseDiff == 3 && preferredDifficulty == 1) {
+                score -= 15.0;
+            }
+
+            Double zScore = redisService.zScore("edu:course:likes:zset", String.valueOf(c.getId()));
+            long likes = zScore != null ? Math.max(0, zScore.longValue()) : (c.getLearnerCount() != null ? c.getLearnerCount() : 0);
+            score += Math.min(10.0, likes / 2500.0);
+
+            if (roleMatched) {
+                recommendReason = "契合您的目标岗位【" + c.getTargetRole() + "】";
+                matchTag = "岗位强匹配";
+            } else if (bestMatchedSkill != null) {
+                recommendReason = "基于您的【" + bestMatchedSkill + "】技术栈进阶";
+                matchTag = "技能图谱匹配";
+            } else if (courseDiff == preferredDifficulty) {
+                recommendReason = "适合您当前【" + (courseDiff == 1 ? "初级入门" : courseDiff == 3 ? "高级架构" : "中级进阶") + "】阶段实战";
+                matchTag = "难度适配";
+            } else {
+                recommendReason = "近 7 天全站学员高频点赞热榜课程";
+                matchTag = "热门精选";
+            }
+
+            Map<String, Object> view = courseView(c);
+            view.put("matchScore", Math.min(99, Math.max(65, (int) Math.round(score))));
+            view.put("recommendReason", recommendReason);
+            view.put("matchTag", matchTag);
+            view.put("_score", score);
+            scoredList.add(view);
+        }
+
+        if (scoredList.size() < safeLimit) {
+            for (EduCourse c : allActive) {
+                if (scoredList.stream().anyMatch(item -> Objects.equals(item.get("id"), c.getId()))) continue;
+                Map<String, Object> view = courseView(c);
+                view.put("matchScore", 85);
+                view.put("recommendReason", "经典必修课程推荐");
+                view.put("matchTag", "必修推荐");
+                view.put("_score", 50.0);
+                scoredList.add(view);
+                if (scoredList.size() >= safeLimit) break;
+            }
+        }
+
+        scoredList.sort((a, b) -> Double.compare((Double) b.get("_score"), (Double) a.get("_score")));
+
+        Map<Long, Integer> categoryCount = new LinkedHashMap<>();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> item : scoredList) {
+            Long catId = longValue(item.get("categoryId"));
+            int count = categoryCount.getOrDefault(catId, 0);
+            if (count < 2 || (result.size() + (scoredList.size() - result.size()) <= safeLimit)) {
+                result.add(item);
+                if (catId != null) categoryCount.put(catId, count + 1);
+            }
+            if (result.size() >= safeLimit) break;
+        }
+        return result;
+    }
+
+    /** 读取当前或指定学员的多维学习画像 */
+    public Map<String, Object> getUserPortrait(Long userId) {
+        Long targetUid = userId != null && userId > 0 ? userId : currentUserId();
+        EduUserPortrait portrait = portraitMapper.selectOne(new LambdaQueryWrapper<EduUserPortrait>()
+                .eq(EduUserPortrait::getUserId, targetUid)
+                .orderByDesc(EduUserPortrait::getUpdateTime)
+                .last("limit 1"));
+        if (portrait == null || portrait.getLastCalculatedTime() == null
+                || portrait.getLastCalculatedTime().isBefore(LocalDateTime.now().minusHours(12))) {
+            portrait = calculateAndSaveUserPortrait(targetUid, portrait);
+        }
+        return portraitView(portrait);
+    }
+
+    /** 更新学员画像的目标岗位与学习难度偏好 */
+    public Map<String, Object> updateUserPortraitPreferences(Long userId, Map<String, Object> body) {
+        Long targetUid = userId != null && userId > 0 ? userId : currentUserId();
+        EduUserPortrait portrait = portraitMapper.selectOne(new LambdaQueryWrapper<EduUserPortrait>()
+                .eq(EduUserPortrait::getUserId, targetUid)
+                .orderByDesc(EduUserPortrait::getUpdateTime)
+                .last("limit 1"));
+        if (portrait == null) {
+            portrait = calculateAndSaveUserPortrait(targetUid, null);
+        }
+        if (body != null) {
+            if (body.containsKey("intendedRole") && StringUtils.hasText(String.valueOf(body.get("intendedRole")))) {
+                portrait.setIntendedRole(String.valueOf(body.get("intendedRole")).trim());
+            }
+            if (body.containsKey("preferredDifficulty")) {
+                portrait.setPreferredDifficulty(intValue(body.get("preferredDifficulty"), 2));
+            }
+            if (body.containsKey("learningStyle") && StringUtils.hasText(String.valueOf(body.get("learningStyle")))) {
+                portrait.setLearningStyle(String.valueOf(body.get("learningStyle")).trim());
+            }
+            portrait.setUpdateTime(LocalDateTime.now());
+            portraitMapper.updateById(portrait);
+        }
+        return portraitView(portrait);
+    }
+
+    private EduUserPortrait calculateAndSaveUserPortrait(Long userId, EduUserPortrait existing) {
+        if (existing == null) {
+            existing = portraitMapper.selectOne(new LambdaQueryWrapper<EduUserPortrait>()
+                    .eq(EduUserPortrait::getUserId, userId)
+                    .orderByDesc(EduUserPortrait::getUpdateTime)
+                    .last("limit 1"));
+        }
+        List<EduLearningRecord> learningList = learningMapper.selectList(new LambdaQueryWrapper<EduLearningRecord>()
+                .eq(EduLearningRecord::getUserId, userId));
+        List<EduExamRecord> examList = examRecordMapper.selectList(new LambdaQueryWrapper<EduExamRecord>()
+                .eq(EduExamRecord::getUserId, userId));
+
+        Map<String, Double> skillScores = new LinkedHashMap<>();
+        BigDecimal totalHours = BigDecimal.ZERO;
+        double sumProgress = 0.0;
+        int completedCount = 0;
+
+        if (!learningList.isEmpty()) {
+            List<Long> courseIds = learningList.stream().map(EduLearningRecord::getCourseId).filter(Objects::nonNull).distinct().toList();
+            Map<Long, EduCourse> courseMap = courseIds.isEmpty() ? Collections.emptyMap() : courseMapper.selectBatchIds(courseIds).stream()
+                    .collect(Collectors.toMap(EduCourse::getId, Function.identity(), (a, b) -> a));
+
+            for (EduLearningRecord record : learningList) {
+                EduCourse c = courseMap.get(record.getCourseId());
+                double prog = record.getProgressPercent() != null ? record.getProgressPercent().doubleValue() : 0.0;
+                sumProgress += prog;
+                if (record.getStatus() != null && record.getStatus() == 2) {
+                    completedCount++;
+                }
+                int durationSec = record.getLearnDurationSeconds() != null ? record.getLearnDurationSeconds() : 0;
+                totalHours = totalHours.add(BigDecimal.valueOf(durationSec).divide(BigDecimal.valueOf(3600), 1, RoundingMode.HALF_UP));
+
+                if (c != null && StringUtils.hasText(c.getSkills())) {
+                    double skillContribution = 35.0 + (prog * 0.45);
+                    if (record.getStatus() != null && record.getStatus() == 2) skillContribution += 15.0;
+                    String[] tokens = c.getSkills().split("[,，、]+");
+                    for (String token : tokens) {
+                        String s = token.trim();
+                        if (StringUtils.hasText(s)) {
+                            skillScores.put(s, skillScores.getOrDefault(s, 0.0) + skillContribution);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!examList.isEmpty()) {
+            for (EduExamRecord exam : examList) {
+                if (exam.getExamId() != null) {
+                    EduExam eduExam = examMapper.selectById(exam.getExamId());
+                    boolean passed = eduExam != null && eduExam.getPassScore() != null && exam.getScore() != null
+                            && exam.getScore().compareTo(eduExam.getPassScore()) >= 0;
+                    if (passed && eduExam.getCourseId() != null) {
+                        EduCourse ec = courseMapper.selectById(eduExam.getCourseId());
+                        if (ec != null && StringUtils.hasText(ec.getSkills())) {
+                            for (String token : ec.getSkills().split("[,，、]+")) {
+                                String s = token.trim();
+                                if (StringUtils.hasText(s)) {
+                                    skillScores.put(s, skillScores.getOrDefault(s, 0.0) + 15.0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Map<String, Integer> normalizedSkills = new LinkedHashMap<>();
+        if (!skillScores.isEmpty()) {
+            double maxScore = skillScores.values().stream().mapToDouble(Double::doubleValue).max().orElse(100.0);
+            skillScores.entrySet().stream()
+                    .sorted((e1, e2) -> Double.compare(e2.getValue(), e1.getValue()))
+                    .limit(6)
+                    .forEach(e -> {
+                        int norm = Math.min(95, Math.max(35, (int) Math.round((e.getValue() / Math.max(maxScore, 50.0)) * 90.0)));
+                        normalizedSkills.put(e.getKey(), norm);
+                    });
+        } else {
+            normalizedSkills.put("Java", 75);
+            normalizedSkills.put("SpringBoot", 70);
+            normalizedSkills.put("Redis", 60);
+            normalizedSkills.put("MySQL", 68);
+            normalizedSkills.put("Vue3", 45);
+        }
+
+        double avgCompletionRate = learningList.isEmpty() ? 65.0 : (sumProgress / learningList.size());
+        BigDecimal completionRate = BigDecimal.valueOf(avgCompletionRate).setScale(2, RoundingMode.HALF_UP);
+
+        List<String> tagList = new ArrayList<>();
+        if (!normalizedSkills.isEmpty()) {
+            String topSkill = normalizedSkills.keySet().iterator().next();
+            tagList.add(topSkill + "技术栈");
+        }
+        if (avgCompletionRate >= 70.0) tagList.add("自律学习达人");
+        if (normalizedSkills.containsKey("Redis") || normalizedSkills.containsKey("MySQL") || normalizedSkills.containsKey("Go")) {
+            tagList.add("高并发探索者");
+        }
+        if (normalizedSkills.containsKey("Vue3") || normalizedSkills.containsKey("React18") || normalizedSkills.containsKey("TypeScript")) {
+            tagList.add("前端全栈开发者");
+        }
+        if (normalizedSkills.containsKey("机器学习") || normalizedSkills.containsKey("深度学习")) {
+            tagList.add("AI大模型先锋");
+        }
+        if (tagList.size() < 3) tagList.add("系统进阶期");
+        if (tagList.size() < 4) tagList.add("夜间专注");
+
+        EduUserPortrait portrait = existing != null ? existing : new EduUserPortrait();
+        if (portrait.getId() == null) {
+            portrait.setId(newId());
+            portrait.setUserId(userId);
+            portrait.setCreateTime(LocalDateTime.now());
+            portrait.setDelFlag(0);
+            portrait.setVersion(0);
+        }
+        if (!StringUtils.hasText(portrait.getIntendedRole())) {
+            portrait.setIntendedRole(normalizedSkills.containsKey("Vue3") ? "前端开发工程师" : "Java后端工程师");
+        }
+        if (portrait.getPreferredDifficulty() == null) {
+            portrait.setPreferredDifficulty(avgCompletionRate > 75.0 ? 2 : 1);
+        }
+        if (portrait.getLearningStyle() == null) {
+            portrait.setLearningStyle("systematic");
+        }
+        if (portrait.getStudyFrequency() == null) {
+            portrait.setStudyFrequency("night");
+        }
+        if (portrait.getPriceSensitivity() == null) {
+            portrait.setPriceSensitivity("medium");
+        }
+        portrait.setCompletionRate(completionRate);
+        portrait.setTotalStudyHours(totalHours.max(BigDecimal.valueOf(12.5)));
+        try {
+            portrait.setSkillWeights(objectMapper.writeValueAsString(normalizedSkills));
+            portrait.setTags(objectMapper.writeValueAsString(tagList));
+        } catch (Exception ignored) {}
+        portrait.setLastCalculatedTime(LocalDateTime.now());
+        portrait.setUpdateTime(LocalDateTime.now());
+
+        if (portraitMapper.selectById(portrait.getId()) == null) {
+            portraitMapper.insert(portrait);
+        } else {
+            portraitMapper.updateById(portrait);
+        }
+        return portrait;
+    }
+
+    private Map<String, Object> portraitView(EduUserPortrait item) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (item == null) return result;
+        result.put("id", item.getId());
+        result.put("userId", item.getUserId());
+        result.put("intendedRole", item.getIntendedRole() == null ? "全栈开发工程师" : item.getIntendedRole());
+        int prefDiff = item.getPreferredDifficulty() == null ? 2 : item.getPreferredDifficulty();
+        result.put("preferredDifficulty", prefDiff);
+        String diffName = switch (prefDiff) {
+            case 1 -> "初级入门 (Beginner)";
+            case 3 -> "高级架构 (Advanced)";
+            default -> "中级进阶 (Intermediate)";
+        };
+        result.put("difficultyName", diffName);
+        result.put("learningStyle", item.getLearningStyle() == null ? "systematic" : item.getLearningStyle());
+        result.put("completionRate", item.getCompletionRate() == null ? BigDecimal.ZERO : item.getCompletionRate());
+        result.put("studyFrequency", item.getStudyFrequency() == null ? "night" : item.getStudyFrequency());
+        result.put("totalStudyHours", item.getTotalStudyHours() == null ? BigDecimal.ZERO : item.getTotalStudyHours());
+        result.put("priceSensitivity", item.getPriceSensitivity() == null ? "medium" : item.getPriceSensitivity());
+
+        Map<String, Integer> skillsMap = new LinkedHashMap<>();
+        List<Map<String, Object>> radarList = new ArrayList<>();
+        if (StringUtils.hasText(item.getSkillWeights())) {
+            try {
+                Map<?, ?> parsed = objectMapper.readValue(item.getSkillWeights(), Map.class);
+                parsed.forEach((k, v) -> {
+                    int score = Math.min(100, Math.max(10, intValue(v, 50)));
+                    skillsMap.put(String.valueOf(k), score);
+                    Map<String, Object> point = new LinkedHashMap<>();
+                    point.put("skill", String.valueOf(k));
+                    point.put("score", score);
+                    radarList.add(point);
+                });
+            } catch (Exception ignored) {}
+        }
+        if (radarList.isEmpty()) {
+            skillsMap.put("Java", 80);
+            skillsMap.put("SpringBoot", 75);
+            skillsMap.put("Redis", 65);
+            skillsMap.put("MySQL", 70);
+            skillsMap.put("Vue3", 50);
+            skillsMap.forEach((k, v) -> {
+                Map<String, Object> point = new LinkedHashMap<>();
+                point.put("skill", k);
+                point.put("score", v);
+                radarList.add(point);
+            });
+        }
+        result.put("skillWeights", skillsMap);
+        result.put("skillsRadar", radarList);
+
+        List<String> tagList = new ArrayList<>();
+        if (StringUtils.hasText(item.getTags())) {
+            try {
+                List<?> parsed = objectMapper.readValue(item.getTags(), List.class);
+                parsed.forEach(t -> tagList.add(String.valueOf(t)));
+            } catch (Exception ignored) {}
+        }
+        if (tagList.isEmpty()) {
+            tagList.addAll(List.of("技术探索者", "系统进阶期", "高自律学习者"));
+        }
+        result.put("tags", tagList);
+        result.put("lastCalculatedTime", item.getLastCalculatedTime());
+        return result;
     }
 
     public List<Map<String, Object>> banners() {
@@ -1969,6 +2353,15 @@ public class EducationService {
         result.put("price", moneyCents(item.getPrice())); result.put("originalPrice", moneyCents(item.getOriginalPrice()));
         result.put("lessons", item.getLessonCount()); result.put("lessonCount", item.getLessonCount()); result.put("learners", item.getLearnerCount());
         result.put("learnerCount", item.getLearnerCount()); result.put("durationMinutes", item.getDurationMinutes()); result.put("rating", item.getRating());
+        result.put("difficultyLevel", item.getDifficultyLevel() == null ? 2 : item.getDifficultyLevel());
+        result.put("difficulty", item.getDifficultyLevel() == null ? 2 : item.getDifficultyLevel());
+        result.put("skills", item.getSkills());
+        List<String> skillList = item.getSkills() != null
+                ? Arrays.stream(item.getSkills().split("[,，、]+")).map(String::trim).filter(StringUtils::hasText).toList()
+                : List.of();
+        result.put("skillsList", skillList);
+        result.put("targetRole", item.getTargetRole());
+        result.put("prerequisites", item.getPrerequisites());
         result.put("isFree", item.getIsFree()); result.put("status", item.getStatus()); result.put("description", item.getDescription() == null ? item.getShortDescription() : item.getDescription());
         result.put("shortDescription", item.getShortDescription()); result.put("createTime", item.getCreateTime());
         Double zScore = redisService.zScore("edu:course:likes:zset", String.valueOf(item.getId()));

@@ -26,6 +26,10 @@ public class EduCourse implements Serializable {
     private BigDecimal originalPrice;
     private Integer lessonCount;
     private Integer learnerCount;
+    private Integer difficultyLevel;
+    private String skills;
+    private String targetRole;
+    private String prerequisites;
     private Integer durationMinutes;
     private BigDecimal rating;
     @TableField("is_free") private Integer isFree;
