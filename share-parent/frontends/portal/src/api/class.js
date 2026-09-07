@@ -271,3 +271,23 @@ request({
 	method: 'get',
 	params
 })
+
+// 获取课程高频点赞排行榜（基于 Redis ZSet）
+export const getCourseLikeRanking = (params) =>
+request({
+	url: `${COURSE_API_PREFIX}/courses/ranking/likes`,
+	method: 'get',
+	params
+})
+
+// 课程点赞与取消点赞
+export const likeCourse = (data) =>
+request({
+	url: `${COURSE_API_PREFIX}/likes`,
+	method: 'post',
+	data: {
+		bizType: 'COURSE',
+		bizId: data.bizId,
+		liked: data.liked
+	}
+})

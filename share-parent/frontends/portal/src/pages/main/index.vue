@@ -124,13 +124,13 @@
       <div class="hot-section">
         <div class="section-header">
           <div class="header-left">
-            <h3 class="section-title">热门学习排行</h3>
-            <span class="section-sub">学员最受欢迎课程 TOP 榜</span>
+            <h3 class="section-title">🔥 课程高频点赞榜</h3>
+            <span class="section-sub">Redis ZSet 实时热度排行榜 · 学员高频点赞认证</span>
           </div>
         </div>
         <div class="hot-course-list">
           <div
-            v-for="(course, index) in hotCourses.slice(0, 5)"
+            v-for="(course, index) in (rankingCourses.length ? rankingCourses : hotCourses).slice(0, 5)"
             :key="course.id"
             class="hot-course-item"
             @click="$router.push(`/details?id=${course.id}`)"
@@ -143,7 +143,7 @@
               <h4 class="title" :title="course.title">{{ course.title }}</h4>
               <div class="meta">
                 <span>{{ course.teacherName }}</span>
-                <span>{{ course.learners }} 学员</span>
+                <span><el-icon><Pointer /></el-icon> {{ course.likeCount || course.likes || course.learners || 0 }} 赞</span>
               </div>
             </div>
             <div class="price">
@@ -204,8 +204,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Reading, ArrowRight } from '@element-plus/icons-vue'
-import { getClassCategorys, getRecommendClassList, classSeach, getMylessons } from '@/api/class.js'
+import { Reading, ArrowRight, Pointer } from '@element-plus/icons-vue'
+import { getClassCategorys, getRecommendClassList, classSeach, getMylessons, getCourseLikeRanking } from '@/api/class.js'
 import { getBanners } from '@/api/home.js'
 import defaultCover from '@/assets/images/courses/default-cover.svg'
 
@@ -215,6 +215,7 @@ const banners = ref([])
 const categories = ref([])
 const recommendCourses = ref([])
 const hotCourses = ref([])
+const rankingCourses = ref([])
 const newCourses = ref([])
 const allCourses = ref([])
 const recentLearning = ref(null)
@@ -277,13 +278,14 @@ onMounted(async () => {
     { bg: '#334155', tag: '技能拓展专题' }
   ]
 
-  const [bannerResponse, categoryResponse, courseResponse, recommendResponse, hotResponse, newResponse] = await Promise.allSettled([
+  const [bannerResponse, categoryResponse, courseResponse, recommendResponse, hotResponse, newResponse, rankingResponse] = await Promise.allSettled([
     getBanners(),
     getClassCategorys({ includeDisabled: false }),
     classSeach({ pageNo: 1, pageSize: 200 }),
     getRecommendClassList('home'),
     getRecommendClassList('hot'),
-    getRecommendClassList('new')
+    getRecommendClassList('new'),
+    getCourseLikeRanking({ limit: 10 })
   ])
 
   if (bannerResponse.status === 'fulfilled' && bannerResponse.value?.code === 200) {
@@ -327,6 +329,7 @@ onMounted(async () => {
   if (courseResponse.status === 'fulfilled' && courseResponse.value?.code === 200) allCourses.value = normalizeRows(courseResponse.value)
   if (recommendResponse.status === 'fulfilled' && recommendResponse.value?.code === 200) recommendCourses.value = normalizeRows(recommendResponse.value)
   if (hotResponse.status === 'fulfilled' && hotResponse.value?.code === 200) hotCourses.value = normalizeRows(hotResponse.value)
+  if (rankingResponse.status === 'fulfilled' && rankingResponse.value?.code === 200) rankingCourses.value = normalizeRows(rankingResponse.value)
   if (newResponse.status === 'fulfilled' && newResponse.value?.code === 200) newCourses.value = normalizeRows(newResponse.value)
 
   if (allCourses.value.length) {

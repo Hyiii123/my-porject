@@ -6,7 +6,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.share.common.core.exception.ServiceException;
+import com.share.common.redis.service.RedisService;
 import com.share.common.security.utils.SecurityUtils;
+import java.util.concurrent.TimeUnit;
 import com.share.common.core.web.domain.AjaxResult;
 import com.share.education.api.RemoteEducationService;
 import com.share.trade.domain.MktCoupon;
@@ -57,11 +59,12 @@ public class TradeService {
     private final TrPaymentOrderMapper paymentMapper;
     private final TrRefundApplyMapper refundMapper;
     private final RemoteEducationService educationService;
+    private final RedisService redisService;
 
     public TradeService(MktCouponMapper couponMapper, MktCouponCodeMapper couponCodeMapper, MktUserCouponMapper userCouponMapper,
             TrCartMapper cartMapper, TrOrderMapper orderMapper, TrOrderItemMapper itemMapper,
             TrPaymentOrderMapper paymentMapper, TrRefundApplyMapper refundMapper,
-            RemoteEducationService educationService) {
+            RemoteEducationService educationService, RedisService redisService) {
         this.couponMapper = couponMapper;
         this.couponCodeMapper = couponCodeMapper;
         this.userCouponMapper = userCouponMapper;
@@ -71,6 +74,7 @@ public class TradeService {
         this.paymentMapper = paymentMapper;
         this.refundMapper = refundMapper;
         this.educationService = educationService;
+        this.redisService = redisService;
     }
 
     public List<Map<String, Object>> collectableCoupons() {
@@ -202,24 +206,65 @@ public class TradeService {
         LocalDateTime now = LocalDateTime.now();
         require(coupon.getStartTime() == null || !now.isBefore(coupon.getStartTime()), "优惠券尚未生效");
         require(coupon.getEndTime() == null || !now.isAfter(coupon.getEndTime()), "优惠券已过期");
+
+        Long userId = currentUserId();
+        String userSetKey = "trade:seckill:coupon:users:" + couponId;
+        String stockKey = "trade:seckill:coupon:stock:" + couponId;
+
+        // 1. Redis Set 防重过滤
+        if (Boolean.TRUE.equals(redisService.sIsMember(userSetKey, String.valueOf(userId)))) {
+            MktUserCoupon exists = userCouponMapper.selectOne(new LambdaQueryWrapper<MktUserCoupon>()
+                    .eq(MktUserCoupon::getUserId, userId).eq(MktUserCoupon::getCouponId, couponId)
+                    .in(MktUserCoupon::getStatus, Arrays.asList(0, 1)));
+            if (exists != null) return userCouponView(exists);
+        }
+
         MktUserCoupon exists = userCouponMapper.selectOne(new LambdaQueryWrapper<MktUserCoupon>()
-                .eq(MktUserCoupon::getUserId, currentUserId()).eq(MktUserCoupon::getCouponId, couponId)
+                .eq(MktUserCoupon::getUserId, userId).eq(MktUserCoupon::getCouponId, couponId)
                 .in(MktUserCoupon::getStatus, Arrays.asList(0, 1)));
-        if (exists != null) return userCouponView(exists);
-        // 领取库存使用条件更新，避免并发请求把 received_count 加到总量以上。
-        LambdaUpdateWrapper<MktCoupon> stockUpdate = new LambdaUpdateWrapper<MktCoupon>()
-                .setSql("received_count = COALESCE(received_count, 0) + 1")
-                .set(MktCoupon::getUpdateTime, now)
-                .eq(MktCoupon::getId, couponId).eq(MktCoupon::getStatus, 1)
-                .and(wrapper -> wrapper.isNull(MktCoupon::getTotalCount)
-                        .or().eq(MktCoupon::getTotalCount, 0)
-                        .or().apply("COALESCE(received_count, 0) < total_count"));
-        require(couponMapper.update(null, stockUpdate) == 1, "优惠券已领完");
-        MktUserCoupon value = new MktUserCoupon();
-        value.setId(newId()); value.setUserId(currentUserId()); value.setCouponId(couponId); value.setSourceType("receive");
-        value.setStatus(0); value.setReceivedAt(now); value.setExpireAt(coupon.getEndTime()); value.setCreateTime(now); value.setUpdateTime(now); value.setDelFlag(0); value.setVersion(0);
-        userCouponMapper.insert(value);
-        return userCouponView(value);
+        if (exists != null) {
+            redisService.sAdd(userSetKey, String.valueOf(userId));
+            return userCouponView(exists);
+        }
+
+        // 2. Redis 原子预扣库存（有限额券）
+        boolean hasLimit = coupon.getTotalCount() != null && coupon.getTotalCount() > 0;
+        if (hasLimit) {
+            if (redisService.getCacheObject(stockKey) == null) {
+                int initStock = Math.max(0, coupon.getTotalCount() - defaultValue(coupon.getReceivedCount(), 0));
+                redisService.setCacheObjectIfAbsent(stockKey, initStock, 24L, TimeUnit.HOURS);
+            }
+            long remaining = redisService.decrement(stockKey);
+            if (remaining < 0) {
+                redisService.decrement(stockKey, -1);
+                throw new ServiceException("优惠券已领完");
+            }
+        }
+
+        try {
+            // 3. 领取库存使用数据库条件更新，做双重兜底
+            LambdaUpdateWrapper<MktCoupon> stockUpdate = new LambdaUpdateWrapper<MktCoupon>()
+                    .setSql("received_count = COALESCE(received_count, 0) + 1")
+                    .set(MktCoupon::getUpdateTime, now)
+                    .eq(MktCoupon::getId, couponId).eq(MktCoupon::getStatus, 1)
+                    .and(wrapper -> wrapper.isNull(MktCoupon::getTotalCount)
+                            .or().eq(MktCoupon::getTotalCount, 0)
+                            .or().apply("COALESCE(received_count, 0) < total_count"));
+            require(couponMapper.update(null, stockUpdate) == 1, "优惠券已领完");
+            MktUserCoupon value = new MktUserCoupon();
+            value.setId(newId()); value.setUserId(userId); value.setCouponId(couponId); value.setSourceType("receive");
+            value.setStatus(0); value.setReceivedAt(now); value.setExpireAt(coupon.getEndTime()); value.setCreateTime(now); value.setUpdateTime(now); value.setDelFlag(0); value.setVersion(0);
+            userCouponMapper.insert(value);
+
+            // 成功落库后写入 Redis 用户防重集合
+            redisService.sAdd(userSetKey, String.valueOf(userId));
+            return userCouponView(value);
+        } catch (Exception e) {
+            if (hasLimit) {
+                redisService.decrement(stockKey, -1);
+            }
+            throw e;
+        }
     }
 
     @Transactional
@@ -413,6 +458,65 @@ public class TradeService {
         Map<String, Object> body = new LinkedHashMap<>(); body.put("courseId", courseId); body.put("price", 0); body.put("free", true); body.put("courseName", "免费课程 " + courseId);
         Map<String, Object> result = placeOrder(body);
         TrOrder order = findOrder(longValue(result.get("id"))); order.setOrderStatus(1); order.setPaymentStatus(1); order.setPaidAmount(BigDecimal.ZERO); order.setPaidTime(LocalDateTime.now()); order.setUpdateTime(LocalDateTime.now()); orderMapper.updateById(order); enrollPurchasedCourses(order); return orderView(order);
+    }
+
+    /**
+     * 高并发课程秒杀抢购：
+     * 1. 基于 Redis Set 防重（一人限抢一门）
+     * 2. 基于 Redis 原子预扣名额（防止超卖）
+     * 3. 快速生成秒杀订单并开通学习权限
+     */
+    @Transactional
+    public Map<String, Object> seckillCourse(Long courseId) {
+        require(courseId != null, "秒杀课程编号不能为空");
+        Long userId = currentUserId();
+        String userKey = "trade:seckill:course:users:" + courseId;
+        String stockKey = "trade:seckill:course:stock:" + courseId;
+
+        // 1. Redis Set 防重校验
+        if (Boolean.TRUE.equals(redisService.sIsMember(userKey, String.valueOf(userId)))) {
+            throw new ServiceException("您已抢购过该课程，不可重复参与");
+        }
+
+        // 2. Redis 原子预扣库存（默认每门课程限抢50个名额，冷启动自动预热）
+        if (redisService.getCacheObject(stockKey) == null) {
+            redisService.setCacheObjectIfAbsent(stockKey, 50, 24L, TimeUnit.HOURS);
+        }
+        long remaining = redisService.decrement(stockKey);
+        if (remaining < 0) {
+            redisService.decrement(stockKey, -1);
+            throw new ServiceException("秒杀名额已抢光，下次请早！");
+        }
+
+        try {
+            // 3. 生成秒杀订单并直接激活权益
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("courseId", courseId);
+            body.put("price", 0);
+            body.put("free", true);
+            body.put("courseName", "⚡限时秒杀 " + courseId);
+            Map<String, Object> result = placeOrder(body);
+            TrOrder order = findOrder(longValue(result.get("id")));
+            order.setOrderStatus(1);
+            order.setPaymentStatus(1);
+            order.setPaidAmount(BigDecimal.ZERO);
+            order.setPaidTime(LocalDateTime.now());
+            order.setUpdateTime(LocalDateTime.now());
+            orderMapper.updateById(order);
+            enrollPurchasedCourses(order);
+
+            // 成功落库后写入 Redis 用户防重集合
+            redisService.sAdd(userKey, String.valueOf(userId));
+
+            Map<String, Object> view = orderView(order);
+            view.put("seckillSuccess", true);
+            view.put("remainingQuota", Math.max(0, remaining));
+            return view;
+        } catch (Exception e) {
+            // 异常时回退 Redis 预扣库存
+            redisService.decrement(stockKey, -1);
+            throw e;
+        }
     }
 
     @Transactional

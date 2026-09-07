@@ -6,7 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.share.common.core.exception.ServiceException;
+import com.share.common.redis.service.RedisService;
 import com.share.common.security.utils.SecurityUtils;
+import org.springframework.data.redis.core.ZSetOperations.TypedTuple;
 import com.share.education.domain.EduBanner;
 import com.share.education.domain.EduCategory;
 import com.share.education.domain.EduCatalogQuestion;
@@ -117,6 +119,7 @@ public class EducationService {
     private final EduSignRecordMapper signMapper;
     private final EduPointsLedgerMapper pointsMapper;
     private final ObjectMapper objectMapper;
+    private final RedisService redisService;
 
     public EducationService(EduBannerMapper bannerMapper, EduCategoryMapper categoryMapper,
             EduDashboardDailyMapper dashboardDailyMapper,
@@ -131,7 +134,8 @@ public class EducationService {
             EduExamMapper examMapper, EduExamQuestionBankMapper questionBankMapper,
             EduExamQuestionMapper examQuestionMapper, EduExamRecordMapper examRecordMapper,
             EduExamAnswerMapper examAnswerMapper, EduSignRecordMapper signMapper,
-            EduPointsLedgerMapper pointsMapper, ObjectMapper objectMapper) {
+            EduPointsLedgerMapper pointsMapper, ObjectMapper objectMapper,
+            RedisService redisService) {
         this.bannerMapper = bannerMapper;
         this.categoryMapper = categoryMapper;
         this.dashboardDailyMapper = dashboardDailyMapper;
@@ -158,6 +162,7 @@ public class EducationService {
         this.signMapper = signMapper;
         this.pointsMapper = pointsMapper;
         this.objectMapper = objectMapper;
+        this.redisService = redisService;
     }
 
     public List<Map<String, Object>> listCategories(boolean includeDisabled) {
@@ -1469,6 +1474,30 @@ public class EducationService {
 
     @Transactional
     public boolean like(String bizType, Long bizId, boolean liked) {
+        if ("COURSE".equalsIgnoreCase(bizType)) {
+            requireCourse(bizId);
+            Long userId = currentUserId();
+            String userSetKey = "edu:course:likes:users:" + bizId;
+            String rankingZSetKey = "edu:course:likes:zset";
+
+            if (liked) {
+                if (Boolean.TRUE.equals(redisService.sIsMember(userSetKey, String.valueOf(userId)))) {
+                    return true;
+                }
+                redisService.sAdd(userSetKey, String.valueOf(userId));
+                redisService.zIncrementScore(rankingZSetKey, String.valueOf(bizId), 1.0);
+            } else {
+                if (Boolean.FALSE.equals(redisService.sIsMember(userSetKey, String.valueOf(userId)))) {
+                    return false;
+                }
+                redisService.sRemove(userSetKey, String.valueOf(userId));
+                Double score = redisService.zIncrementScore(rankingZSetKey, String.valueOf(bizId), -1.0);
+                if (score != null && score < 0) {
+                    redisService.zAdd(rankingZSetKey, String.valueOf(bizId), 0.0);
+                }
+            }
+            return liked;
+        }
         if ("NOTE".equalsIgnoreCase(bizType)) {
             EduNote note = requireNote(bizId);
             EduNoteLike old = noteLikeMapper.selectOne(new LambdaQueryWrapper<EduNoteLike>()
@@ -1499,6 +1528,48 @@ public class EducationService {
         }
         questionMapper.updateById(question);
         return liked;
+    }
+
+    /**
+     * 获取高频课程点赞排行榜（基于 Redis ZSet，支持空榜自动冷启动预热）。
+     */
+    public List<Map<String, Object>> courseLikeRanking(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 50));
+        String rankingKey = "edu:course:likes:zset";
+        Long size = redisService.zCard(rankingKey);
+        if (size == null || size == 0) {
+            List<EduCourse> courses = courseMapper.selectList(new LambdaQueryWrapper<EduCourse>()
+                    .eq(EduCourse::getStatus, ENABLED)
+                    .orderByDesc(EduCourse::getLearnerCount)
+                    .last("limit 20"));
+            for (EduCourse c : courses) {
+                double initialScore = c.getLearnerCount() != null ? c.getLearnerCount().doubleValue() : 10.0;
+                redisService.zAdd(rankingKey, String.valueOf(c.getId()), initialScore);
+            }
+        }
+
+        Set<TypedTuple<Object>> rankingTuples = redisService.zReverseRangeWithScores(rankingKey, 0, safeLimit - 1);
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (rankingTuples == null || rankingTuples.isEmpty()) {
+            return result;
+        }
+
+        int rank = 1;
+        for (TypedTuple<Object> tuple : rankingTuples) {
+            if (tuple.getValue() == null) continue;
+            Long courseId = longValue(tuple.getValue());
+            if (courseId == null) continue;
+            EduCourse course = courseMapper.selectById(courseId);
+            if (course == null || !Integer.valueOf(ENABLED).equals(course.getStatus())) continue;
+
+            Map<String, Object> view = courseView(course);
+            view.put("rank", rank++);
+            long likes = tuple.getScore() != null ? Math.max(0, tuple.getScore().longValue()) : 0L;
+            view.put("likes", likes);
+            view.put("likeCount", likes);
+            result.add(view);
+        }
+        return result;
     }
 
     public Map<String, Object> examsPage(Map<String, ?> params) {
@@ -1900,6 +1971,18 @@ public class EducationService {
         result.put("learnerCount", item.getLearnerCount()); result.put("durationMinutes", item.getDurationMinutes()); result.put("rating", item.getRating());
         result.put("isFree", item.getIsFree()); result.put("status", item.getStatus()); result.put("description", item.getDescription() == null ? item.getShortDescription() : item.getDescription());
         result.put("shortDescription", item.getShortDescription()); result.put("createTime", item.getCreateTime());
+        Double zScore = redisService.zScore("edu:course:likes:zset", String.valueOf(item.getId()));
+        long likes = zScore != null ? Math.max(0, zScore.longValue()) : 0L;
+        result.put("likeCount", likes);
+        result.put("likes", likes);
+        boolean isLiked = false;
+        try {
+            Long currentUid = SecurityUtils.getUserId();
+            if (currentUid != null && currentUid > 0) {
+                isLiked = Boolean.TRUE.equals(redisService.sIsMember("edu:course:likes:users:" + item.getId(), String.valueOf(currentUid)));
+            }
+        } catch (Exception ignored) {}
+        result.put("isLiked", isLiked);
         List<Map<String, Object>> teacherList = teachers(item.getId());
         if (!teacherList.isEmpty()) { result.put("teacherId", teacherList.get(0).get("id")); result.put("teacherName", teacherList.get(0).get("name")); }
         return result;

@@ -128,6 +128,7 @@ security:
       - /cs/categorys/**
       - /cs/courses/page
       - /cs/courses/portal
+      - /cs/courses/ranking/**
       - /cs/courses/baseInfo/**
       - /cs/courses/teachers/**
       - /cs/courses/catas/**

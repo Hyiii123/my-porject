@@ -13,6 +13,7 @@
               <span><el-icon><User /></el-icon> {{ course.teacherName }}</span>
               <span><el-icon><Reading /></el-icon> {{ course.learners }}人在学</span>
               <span><el-icon><Clock /></el-icon> {{ course.lessons }}课时</span>
+              <span><el-icon><Pointer /></el-icon> {{ likeCount }}人点赞</span>
             </div>
             <div class="course-desc">{{ course.description }}</div>
             <div class="course-actions">
@@ -24,8 +25,12 @@
               <div class="action-buttons">
                 <el-button v-if="!isBuyed && course.price > 0" type="primary" size="large" @click="handleBuy">立即购买</el-button>
                 <el-button v-if="!isBuyed && course.price > 0" size="large" @click="handleAddCart">加入购物车</el-button>
+                <el-button v-if="!isBuyed && course.price > 0" type="danger" size="large" :loading="seckilling" @click="handleSeckill">⚡ 限时秒杀抢购</el-button>
                 <el-button v-if="!isBuyed && course.price === 0" type="primary" size="large" @click="handleEnroll">免费报名</el-button>
                 <el-button v-if="isBuyed" type="primary" size="large" @click="handleLearn">马上学习</el-button>
+                <el-button :type="isLiked ? 'primary' : 'default'" size="large" :plain="!isLiked" @click="handleToggleLike">
+                  <el-icon><Pointer /></el-icon> {{ isLiked ? '已点赞' : '点赞' }} ({{ likeCount }})
+                </el-button>
               </div>
             </div>
           </div>
@@ -164,11 +169,11 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Reading, Clock, VideoPlay, Document, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
+import { User, Reading, Clock, VideoPlay, Document, ArrowRight, ArrowDown, Pointer } from '@element-plus/icons-vue'
 import { getClassDetails, getClassTeachers, getClassList, getAskList, getReply } from '@/api/classDetails.js'
 import { getAllNotes } from '@/api/notes.js'
-import { getCourseLearning, getRecommendClassList, signUp } from '@/api/class.js'
-import { putCarts } from '@/api/order.js'
+import { getCourseLearning, getRecommendClassList, signUp, likeCourse } from '@/api/class.js'
+import { putCarts, seckillCourse } from '@/api/order.js'
 import { getServiceFaqs } from '@/api/customerService.js'
 import defaultCover from '@/assets/images/courses/default-cover.svg'
 
@@ -207,6 +212,46 @@ const activeTab = ref('intro')
 
 // 是否已购买
 const isBuyed = ref(false)
+
+// 点赞与秒杀状态
+const likeCount = ref(0)
+const isLiked = ref(false)
+const seckilling = ref(false)
+
+// 课程点赞与取消点赞
+const handleToggleLike = async () => {
+  if (!course.value.id) return
+  const targetStatus = !isLiked.value
+  try {
+    const res = await likeCourse({ bizId: course.value.id, liked: targetStatus })
+    if (res?.code === 200) {
+      isLiked.value = targetStatus
+      likeCount.value = targetStatus ? likeCount.value + 1 : Math.max(0, likeCount.value - 1)
+      ElMessage.success(targetStatus ? '点赞成功！已同步至热度榜' : '已取消点赞')
+    }
+  } catch (error) {
+    ElMessage.error(error?.message || '点赞操作失败，请先登录')
+  }
+}
+
+// 课程限时秒杀抢购
+const handleSeckill = async () => {
+  if (!course.value.id) return
+  seckilling.value = true
+  try {
+    const res = await seckillCourse(course.value.id)
+    if (res?.code === 200) {
+      ElMessage.success('⚡ 恭喜您，秒杀抢购成功！已为您自动开通课程权限')
+      isBuyed.value = true
+    } else {
+      ElMessage.error(res?.msg || '秒杀名额已抢光或抢购失败')
+    }
+  } catch (error) {
+    ElMessage.error(error?.message || '抢购失败，请先登录')
+  } finally {
+    seckilling.value = false
+  }
+}
 
 // 购买
 const handleBuy = () => {
@@ -283,6 +328,8 @@ const loadCourse = async () => {
         lessons: Number(value.lessons ?? value.lessonCount ?? 0),
         description: value.description || value.shortDescription || ''
       }
+      likeCount.value = Number(value.likeCount ?? value.likes ?? 0)
+      isLiked.value = Boolean(value.isLiked)
     }
 
     if (teacherResponse.status === 'fulfilled' && teacherResponse.value?.code === 200) {

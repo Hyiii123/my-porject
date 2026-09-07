@@ -90,6 +90,11 @@ public class EducationPortalController extends BaseController {
         return success(educationService.portalCourses(params));
     }
 
+    @GetMapping("/courses/ranking/likes")
+    public AjaxResult courseLikeRanking(@RequestParam(required = false, defaultValue = "10") int limit) {
+        return success(educationService.courseLikeRanking(limit));
+    }
+
     @GetMapping("/courses/baseInfo/{id}")
     public AjaxResult course(@PathVariable Long id) {
         return success(educationService.legacyCourse(id));

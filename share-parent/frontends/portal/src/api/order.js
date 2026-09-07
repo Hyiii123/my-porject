@@ -44,6 +44,13 @@ export const enrolledFreeCourse = (id) =>
 		method: 'post'
 	})
 
+// 课程限时秒杀抢购（高并发 Redis 原子预扣库存）
+export const seckillCourse = (id) =>
+	request({
+		url: `${TRADE_API_PREFIX}/seckill/courses/${id}`,
+		method: 'post'
+	})
+
 // 订单支付取消
 export const cancelOrder = (id) =>
 	request({

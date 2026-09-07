@@ -44,6 +44,28 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-07 04:30:00 - Redis 秒杀抢购、高频点赞榜与模拟沙箱支付闭环落地
+* **任务背景**：深入复用 `share-common-redis` 基础设施，在教育与交易微服务中落地高并发秒杀库存预扣、ZSet 课程高频点赞热榜、及全链路模拟沙箱支付。
+* **架构改造与核心实现**：
+  1. **公共基础设施升级 (`share-common-redis`)**：在 `RedisService` 补齐高并发原子操作，包括 `decrement`（原子递减）、`setCacheObjectIfAbsent`（分布式互斥锁）、Set 集合去重操作（`sAdd`、`sIsMember`、`sRemove`、`sCard`）、ZSet 有序集合排行（`zAdd`、`zIncrementScore`、`zReverseRangeWithScores`、`zScore`、`zCard`）。
+  2. **高频点赞榜与冷启动预热 (`share-education`)**：
+     - 点赞去重与计数：采用 Set 键 `edu:course:likes:users:{bizId}` 实现用户防重，ZSet 键 `edu:course:likes:zset` 记录全站课程点赞实时分值；
+     - 自动冷启动预热：当 ZSet 为空时，自动从 DB 查询已上架课程学习人次（`learners`）作为基底初始化热度分；
+     - 开放公开排行榜接口 `GET /cs/courses/ranking/likes`，在网关 Nacos 配置 `security.ignore.whites` 中放行免鉴权访问。
+  3. **高并发库存预扣与秒杀抢购 (`share-trade`)**：
+     - 优惠券领取原子扣减：Redis 预扣库存键 `trade:seckill:coupon:stock:{id}` 结合 Set `trade:seckill:coupon:users:{id}` 防刷防超领，数据库 `received_count < total_count` 条件更新兜底；
+     - 课程秒杀直购通道：新增 `POST /ts/seckill/courses/{courseId}`，Redis 原子预扣配额（`trade:seckill:course:stock:{id}`），扣减失败即刻快速失败，扣减成功生成已支付秒杀订单并自动报读入学课程。
+  4. **全链路沙箱模拟支付 (`share-trade` & `frontends/portal`)**：
+     - 后端支持 `/ts/pay/order/{orderId}/simulate` 与 `/ts/pay/order/{orderId}/demo-success` 双别名，自动更新订单状态为已支付（`PAY_SUCCESS`）并调用 Feign 发放课程入学权益；
+     - 前端支付页 `payment.vue` 增强沙箱环境视觉提示与一键快捷模拟支付能力。
+  5. **学生端门户联动 (`frontends/portal`)**：
+     - 首页 `main/index.vue` 热榜无缝对接 `GET /cs/courses/ranking/likes`，展示前 5 热门点赞课程与点赞徽章；
+     - 详情页 `classDetails/index.vue` 新增实时点赞/取消点赞按钮，并提供“⚡ 限时秒杀抢购”入口。
+* **发布与验证**：
+  - 本地 JDK 17 打包 `share-education` 与 `share-trade`，构建静态产物直接更新，完全避免 ECS 磁盘并发构建与 IOPS 耗尽；
+  - 串行重构 `education` 与 `trade` 容器；
+  - 自动化冒烟测试 35 项 100% 全部通过；点赞榜、秒杀抢购、沙箱支付真实 HTTP 调用全部验证成功。
+
 ### 2026-09-07 03:35:00 - 课程图片加载 404 与封面兜底机制全面修复
 * **问题现象**：学员端首页及搜索页中部分课程（如“Web前端性能优化”）卡片出现图片裂开碎图现象。
 * **根因分析**：
@@ -96,6 +118,8 @@
 | **9** | **执行了增量 SQL 但数据库表结构没有变化** | Docker 启动 MySQL 时，`docker-entrypoint-initdb.d` 仅在**全新空卷**创建时执行，已有数据卷绝对不会重新执行初始化 SQL。 | 必须使用 Flyway 增量机制，通过 `deploy/mysql/apply-migrations.ps1` 写入 `share.flyway_schema_history`。 |
 | **10** | **本地同时启动 portal 与 business-admin 端口冲突** | 两个前端工程的 Vite 配置默认端口都是 `18081`。 | 业务管理端启动时显式指定不同端口：`npm run dev:prod -- --port 18083`。 |
 | **11** | **前端静态课程图片 404 导致裂图** | 数据库/Mock 封面路径与前端静态资源文件名不一致（如 `performance.svg` vs `web.svg`、`golang.svg` vs `go.svg`），且组件未挂载 `@error` 容灾事件与默认封面回退。 | 1. 补齐所有别名图片文件；<br>2. 新增深色学术科技风 16:9 标准默认课程封面 `default-cover.svg`；<br>3. 所有渲染课程封面的 Vue 组件统一挂载 `@error="handleImgError"` 与 `defaultCover` 容灾回退。 |
+| **12** | **新开放免鉴权接口被网关拦截报 401** | Spring Cloud Gateway 默认会对微服务路由实施统一鉴权，仅在 `security.ignore.whites` 中的接口放行。 | 新增面向未登录用户的公开接口（如 `/cs/courses/ranking/**` 点赞榜）时，必须同步在 Nacos 的 `share-gateway-dev.yml` 配置的 `security.ignore.whites` 中声明放行，并通过 Nacos OpenAPI 更新配置。 |
+| **13** | **后端服务构建耗尽服务器突发磁盘 IOPS** | 服务器 ECS 未安装 Maven 且磁盘突发积分宝贵，直接在服务器容器内执行编译会耗尽 IOPS 并造成死机。且 Dockerfile 直接通过 `COPY ${JAR_FILE} app.jar` 运行。 | 在本地利用已配置好的 JDK 17 执行 `mvn clean package -DskipTests` 生成目标 JAR，将更新的 JAR 打包压缩后通过 Workbench CLI 上传，服务器仅需 10 秒轻量 `docker build` 替换容器。 |
 
 ---
 

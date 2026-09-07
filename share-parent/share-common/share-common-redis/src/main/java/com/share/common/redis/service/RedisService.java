@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.BoundSetOperations;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.ZSetOperations.TypedTuple;
 import org.springframework.stereotype.Component;
 
 /**
@@ -279,5 +280,123 @@ public class RedisService
     public Collection<String> keys(final String pattern)
     {
         return redisTemplate.keys(pattern);
+    }
+
+    /**
+     * 原子递减
+     *
+     * @param key 缓存键
+     * @param delta 递减值
+     * @return 递减后的数值
+     */
+    public long decrement(final String key, final long delta)
+    {
+        Long value = redisTemplate.opsForValue().decrement(key, delta);
+        return value == null ? 0L : value;
+    }
+
+    /**
+     * 原子递减（默认步长1）
+     *
+     * @param key 缓存键
+     * @return 递减后的数值
+     */
+    public long decrement(final String key)
+    {
+        return decrement(key, 1L);
+    }
+
+    /**
+     * 分布式锁 / 防重互斥写入 (setNX)
+     *
+     * @param key 缓存键
+     * @param value 缓存值
+     * @param timeout 超时时间
+     * @param timeUnit 时间单位
+     * @return true=获取成功并写入；false=已存在
+     */
+    public <T> Boolean setCacheObjectIfAbsent(final String key, final T value, final Long timeout, final TimeUnit timeUnit)
+    {
+        return redisTemplate.opsForValue().setIfAbsent(key, value, timeout, timeUnit);
+    }
+
+    /**
+     * 向 Set 集合中添加成员
+     */
+    public Long sAdd(final String key, final Object... values)
+    {
+        return redisTemplate.opsForSet().add(key, values);
+    }
+
+    /**
+     * 判断元素是否为 Set 集合成员
+     */
+    public Boolean sIsMember(final String key, final Object value)
+    {
+        return redisTemplate.opsForSet().isMember(key, value);
+    }
+
+    /**
+     * 从 Set 集合中移除成员
+     */
+    public Long sRemove(final String key, final Object... values)
+    {
+        return redisTemplate.opsForSet().remove(key, values);
+    }
+
+    /**
+     * 获取 Set 集合成员数量
+     */
+    public Long sCard(final String key)
+    {
+        return redisTemplate.opsForSet().size(key);
+    }
+
+    /**
+     * 向 Sorted Set (ZSet) 添加成员与分值
+     */
+    public Boolean zAdd(final String key, final Object value, final double score)
+    {
+        return redisTemplate.opsForZSet().add(key, value, score);
+    }
+
+    /**
+     * 原子增加 ZSet 成员分值
+     */
+    public Double zIncrementScore(final String key, final Object value, final double delta)
+    {
+        return redisTemplate.opsForZSet().incrementScore(key, value, delta);
+    }
+
+    /**
+     * 倒序获取 ZSet 成员列表（带分值）
+     */
+    public Set<TypedTuple<Object>> zReverseRangeWithScores(final String key, final long start, final long end)
+    {
+        return redisTemplate.opsForZSet().reverseRangeWithScores(key, start, end);
+    }
+
+    /**
+     * 倒序获取 ZSet 成员列表
+     */
+    public Set<Object> zReverseRange(final String key, final long start, final long end)
+    {
+        return redisTemplate.opsForZSet().reverseRange(key, start, end);
+    }
+
+    /**
+     * 获取 ZSet 成员当前分值
+     */
+    public Double zScore(final String key, final Object value)
+    {
+        return redisTemplate.opsForZSet().score(key, value);
+    }
+
+    /**
+     * 获取 ZSet 集合元素总数
+     */
+    public Long zCard(final String key)
+    {
+        return redisTemplate.opsForZSet().zCard(key);
     }
 }

@@ -147,6 +147,12 @@ public class TradeController extends BaseController {
     }
 
     @RequiresLogin
+    @PostMapping("/seckill/courses/{courseId}")
+    public AjaxResult seckillCourse(@PathVariable Long courseId) {
+        return success(tradeService.seckillCourse(courseId));
+    }
+
+    @RequiresLogin
     @PutMapping("/orders/{id}/cancel")
     public AjaxResult cancel(@PathVariable Long id) {
         return success(tradeService.cancelOrder(id));
@@ -170,9 +176,9 @@ public class TradeController extends BaseController {
         return success(tradeService.createPayment(body));
     }
 
-    /** 仅供本地 Demo 验收使用，生产环境应替换为第三方支付回调。 */
+    /** 仅供本地及演示沙箱使用，模拟第三方支付成功回调。 */
     @RequiresLogin
-    @PostMapping("/pay/order/{orderId}/demo-success")
+    @PostMapping({"/pay/order/{orderId}/demo-success", "/pay/order/{orderId}/simulate"})
     public AjaxResult simulatePayment(@PathVariable Long orderId) {
         return success(tradeService.simulatePayment(orderId));
     }

@@ -50,6 +50,19 @@
             <span>{{ selectedMethodName }}支付</span>
           </template>
           <div class="qrcode-content">
+            <!-- 沙箱测试提示 -->
+            <el-alert
+              title="模拟沙箱支付测试"
+              type="success"
+              :closable="false"
+              show-icon
+              style="margin-bottom: 16px; border-radius: 6px; text-align: left;"
+            >
+              <template #default>
+                当前处于演示沙箱环境。点击下方【立即模拟支付成功】，系统将通过 Redis 与订单链路自动核销并开通您的课程学习权限。
+              </template>
+            </el-alert>
+
             <div class="qrcode-box">
               <qrcode-vue v-if="payUrl" :value="payUrl" :size="220" level="M" />
               <div v-else class="qrcode-placeholder">
@@ -62,8 +75,8 @@
               <p>二维码完成支付</p>
             </div>
             <div class="payment-actions">
-              <el-button type="primary" size="large" :loading="paying" @click="handleSimulatePay">
-                模拟支付成功
+              <el-button type="success" size="large" :loading="paying" @click="handleSimulatePay">
+                <el-icon><Check /></el-icon> 立即模拟支付成功
               </el-button>
               <el-button size="large" @click="handleCancel">
                 取消支付
@@ -86,7 +99,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Clock, Iphone, WalletFilled, SuccessFilled } from '@element-plus/icons-vue'
+import { Clock, Iphone, WalletFilled, SuccessFilled, Check } from '@element-plus/icons-vue'
 import QrcodeVue from 'qrcode.vue'
 import { getOrderDetails, getPayMethod, getPayUrl, getPayState, simulatePaySuccess, cancelOrder } from '@/api/order.js'
 
