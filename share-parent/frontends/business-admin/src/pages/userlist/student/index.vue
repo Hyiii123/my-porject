@@ -138,9 +138,9 @@ const formRules = {
 }
 
 const statCards = computed(() => [
-  { label: '学员总数', value: allStudents.value.length, tip: '当前学员账号', color: 'linear-gradient(135deg,#667eea,#764ba2)' },
-  { label: '正常学员', value: allStudents.value.filter(item => item.status === 1).length, tip: '可以正常学习', color: 'linear-gradient(135deg,#43e97b,#38f9d7)' },
-  { label: '禁用学员', value: allStudents.value.filter(item => item.status === 0).length, tip: '暂时禁止登录', color: 'linear-gradient(135deg,#f093fb,#f5576c)' }
+  { label: '学员总数', value: allStudents.value.length, tip: '当前学员账号', color: '#2563eb' },
+  { label: '正常学员', value: allStudents.value.filter(item => item.status === 1).length, tip: '可以正常学习', color: '#16a34a' },
+  { label: '禁用学员', value: allStudents.value.filter(item => item.status === 0).length, tip: '暂时禁止登录', color: '#ea580c' }
 ])
 
 function normalize(item) {
@@ -239,12 +239,12 @@ onMounted(getStudentList)
 .page-header h2 { margin: 0; color: #303133; font-size: 20px; }
 .page-header p { margin: 6px 0 0; color: #909399; font-size: 13px; }
 .stat-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
-.stat-card { border: 0; border-radius: 12px; }
+.stat-card { border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
 .stat-content { display: flex; align-items: center; gap: 14px; }
-.stat-icon { display: flex; width: 54px; height: 54px; align-items: center; justify-content: center; border-radius: 12px; color: #fff; font-size: 22px; font-weight: 700; }
+.stat-icon { display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 8px; color: #fff; font-size: 18px; font-weight: 700; }
 .stat-content strong, .stat-content span { display: block; }
-.stat-content strong { color: #303133; font-size: 15px; }.stat-content span { margin-top: 6px; color: #909399; font-size: 12px; }
-.search-card { margin-bottom: 20px; }.search-card :deep(.el-card__body) { padding-bottom: 4px; }.table-card :deep(.el-card__body) { padding: 0; }
+.stat-content strong { color: #0f172a; font-size: 14px; font-weight: 600; }.stat-content span { margin-top: 4px; color: #64748b; font-size: 12px; }
+.search-card { margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 8px; }.search-card :deep(.el-card__body) { padding-bottom: 4px; }.table-card { border: 1px solid #e2e8f0; border-radius: 8px; }.table-card :deep(.el-card__body) { padding: 0; }
 .user-info { display: flex; align-items: center; gap: 10px; }.user-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }.user-name { color: #303133; font-weight: 600; }.user-account { margin-top: 4px; color: #909399; font-size: 12px; }
 .status-cell { display: flex; align-items: center; gap: 6px; }.pagination { display: flex; justify-content: flex-end; padding: 18px; }
 .student-detail { padding: 4px 0; }.detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }.detail-header > :last-child { margin-left: auto; }.detail-avatar { width: 62px; height: 62px; border-radius: 50%; object-fit: cover; }.detail-header h3 { margin: 0 0 6px; }.detail-header p { margin: 0; color: #909399; font-size: 13px; }

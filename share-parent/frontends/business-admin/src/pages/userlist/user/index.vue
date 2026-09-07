@@ -201,10 +201,10 @@ const formRules = {
 }
 
 const statCards = computed(() => [
-  { label: '用户总数', value: allUsers.value.length, tip: '当前系统账号', color: 'linear-gradient(135deg,#667eea,#764ba2)' },
-  { label: '管理员', value: allUsers.value.filter(item => item.type === 'admin').length, tip: '拥有系统管理权限', color: 'linear-gradient(135deg,#f093fb,#f5576c)' },
-  { label: '正常账号', value: allUsers.value.filter(item => item.status === 1).length, tip: '可以正常登录', color: 'linear-gradient(135deg,#43e97b,#38f9d7)' },
-  { label: '已禁用', value: allUsers.value.filter(item => item.status === 0).length, tip: '暂时禁止登录', color: 'linear-gradient(135deg,#f6d365,#fda085)' }
+  { label: '用户总数', value: allUsers.value.length, tip: '当前系统账号', color: '#2563eb' },
+  { label: '管理员', value: allUsers.value.filter(item => item.type === 'admin').length, tip: '拥有系统管理权限', color: '#4f46e5' },
+  { label: '正常账号', value: allUsers.value.filter(item => item.status === 1).length, tip: '可以正常登录', color: '#16a34a' },
+  { label: '已禁用', value: allUsers.value.filter(item => item.status === 0).length, tip: '暂时禁止登录', color: '#ea580c' }
 ])
 
 function dataOf(response) {
@@ -398,14 +398,15 @@ onMounted(async () => {
 .page-header h2 { margin: 0; color: #303133; font-size: 20px; }
 .page-header p { margin: 6px 0 0; color: #909399; font-size: 13px; }
 .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-.stat-card { border: 0; border-radius: 12px; }
+.stat-card { border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
 .stat-content { display: flex; align-items: center; gap: 14px; }
-.stat-icon { display: flex; width: 52px; height: 52px; align-items: center; justify-content: center; flex: 0 0 auto; border-radius: 12px; color: #fff; font-size: 21px; font-weight: 700; }
+.stat-icon { display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; flex: 0 0 auto; border-radius: 8px; color: #fff; font-size: 18px; font-weight: 700; }
 .stat-content strong, .stat-content span { display: block; }
-.stat-content strong { color: #303133; font-size: 15px; }
-.stat-content span { margin-top: 6px; color: #909399; font-size: 12px; }
-.search-card { margin-bottom: 20px; }
+.stat-content strong { color: #0f172a; font-size: 14px; font-weight: 600; }
+.stat-content span { margin-top: 4px; color: #64748b; font-size: 12px; }
+.search-card { margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 8px; }
 .search-card :deep(.el-card__body) { padding-bottom: 4px; }
+.table-card { border: 1px solid #e2e8f0; border-radius: 8px; }
 .table-card :deep(.el-card__body) { padding: 0; }
 .user-info { display: flex; align-items: center; gap: 10px; }
 .user-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }

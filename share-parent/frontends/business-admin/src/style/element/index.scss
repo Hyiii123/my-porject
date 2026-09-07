@@ -1,14 +1,72 @@
-/* 只需要重写你需要的即可 */
+/* Element Plus 现代在线教育管理后台变量规范 */
 @forward 'element-plus/theme-chalk/src/common/var.scss' with (
   $colors: (
     'primary': (
-      'base': #ff734f,
+      'base': #2563EB,
     ),
     'active': (
-      'base': #ff734f,
+      'base': #2563EB,
+    ),
+    'success': (
+      'base': #059669,
+    ),
+    'warning': (
+      'base': #D97706,
+    ),
+    'danger': (
+      'base': #DC2626,
     ),
   )
 );
+
+// 基础按钮规范 (统一 6px 圆角与专业交互)
+.el-button {
+  border-radius: 6px !important;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &--primary {
+    background-color: #2563EB !important;
+    border-color: #2563EB !important;
+    color: #FFFFFF !important;
+    &:hover, &:focus {
+      background-color: #1D4ED8 !important;
+      border-color: #1D4ED8 !important;
+      color: #FFFFFF !important;
+    }
+    &:active {
+      background-color: #1E40AF !important;
+      border-color: #1E40AF !important;
+      color: #FFFFFF !important;
+    }
+  }
+
+  &--default {
+    background-color: #FFFFFF !important;
+    border-color: #CBD5E1 !important;
+    color: #334155 !important;
+    &:hover, &:focus {
+      color: #2563EB !important;
+      border-color: #2563EB !important;
+      background-color: #EFF6FF !important;
+    }
+    &:active {
+      background-color: #DBEAFE !important;
+    }
+  }
+
+  &--danger {
+    background-color: #DC2626 !important;
+    border-color: #DC2626 !important;
+    color: #FFFFFF !important;
+    &:hover, &:focus {
+      background-color: #B91C1C !important;
+      border-color: #B91C1C !important;
+      color: #FFFFFF !important;
+    }
+  }
+}
+
 .el-input .el-input__wrapper {
   &:hover {
     box-shadow: none !important;
@@ -18,7 +76,7 @@
   font-weight: 400;
 }
 .el-menu-item.is-active {
-  color: #ff734f;
+  color: #2563EB;
 }
 .el-form-item {
   margin-bottom: 20px;

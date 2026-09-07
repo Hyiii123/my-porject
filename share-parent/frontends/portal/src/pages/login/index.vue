@@ -1,21 +1,14 @@
 <!-- 登录页面 -->
 <template>
   <div class="login-container">
-    <!-- 背景装饰 -->
-    <div class="bg-decoration">
-      <div class="circle circle-1"></div>
-      <div class="circle circle-2"></div>
-      <div class="circle circle-3"></div>
-    </div>
-
-    <!-- 登录卡片 -->
+    <!-- 登录主卡片 -->
     <div class="login-card">
       <div class="login-header">
         <div class="login-logo">
           <div class="login-logo-icon">智</div>
         </div>
         <h1 class="title">智问学伴</h1>
-        <p class="subtitle">在线教育平台</p>
+        <p class="subtitle">让学习更高效 · 在线教育平台</p>
       </div>
 
       <div class="login-tabs">
@@ -23,7 +16,7 @@
           :class="['tab-item', { active: act === 'pass' }]"
           @click="changeLoginType('pass')"
         >
-          账号登录
+          密码登录
         </span>
         <span
           :class="['tab-item', { active: act === 'phone' }]"
@@ -43,9 +36,9 @@
       <Register v-if="act === 'register'" @goHandle="goHandle"></Register>
     </div>
 
-    <!-- 底部信息 -->
+    <!-- 底部版权信息 -->
     <div class="footer">
-      <p>Copyright © 2026 智问学伴在线教育平台</p>
+      <p>智问学伴 在线教育系统 · 持续赋能每一位求知者</p>
     </div>
   </div>
 </template>
@@ -87,141 +80,101 @@ watchEffect(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: #F8FAFC;
+  background-image: radial-gradient(#E2E8F0 1px, transparent 1px);
+  background-size: 24px 24px;
   position: relative;
-  overflow: hidden;
-}
-
-.bg-decoration {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.circle-1 {
-  width: 300px;
-  height: 300px;
-  top: -100px;
-  left: -100px;
-  animation: float 6s ease-in-out infinite;
-}
-
-.circle-2 {
-  width: 200px;
-  height: 200px;
-  bottom: -50px;
-  right: -50px;
-  animation: float 8s ease-in-out infinite reverse;
-}
-
-.circle-3 {
-  width: 150px;
-  height: 150px;
-  top: 50%;
-  right: 10%;
-  animation: float 10s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+  padding: 24px 16px;
 }
 
 .login-card {
-  width: 420px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  padding: 40px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
+  width: 400px;
+  max-width: 100%;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 36px 32px;
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
   z-index: 1;
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
 }
 
 .login-logo {
   display: inline-flex;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .login-logo-icon {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 20px;
+  width: 48px;
+  height: 48px;
+  background: #2563EB;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 40px;
+  color: #FFFFFF;
+  font-size: 22px;
   font-weight: 700;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
 
 .title {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
-  color: #303133;
-  margin: 0 0 8px 0;
+  color: #0F172A;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.3px;
 }
 
 .subtitle {
-  font-size: 14px;
-  color: #909399;
+  font-size: 13px;
+  color: #64748B;
   margin: 0;
 }
 
 .login-tabs {
   display: flex;
   justify-content: center;
-  gap: 40px;
+  gap: 32px;
   margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid #E2E8F0;
 }
 
 .tab-item {
-  font-size: 16px;
-  color: #606266;
+  font-size: 15px;
+  color: #64748B;
   cursor: pointer;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
   border-bottom: 2px solid transparent;
-  transition: all 0.2s;
-}
+  font-weight: 500;
+  transition: all 0.2s ease;
 
-.tab-item:hover {
-  color: #409eff;
-}
+  &:hover {
+    color: #2563EB;
+  }
 
-.tab-item.active {
-  color: #409eff;
-  border-bottom-color: #409eff;
-  font-weight: 600;
+  &.active {
+    color: #2563EB;
+    border-bottom-color: #2563EB;
+    font-weight: 600;
+  }
 }
 
 .footer {
-  position: absolute;
-  bottom: 20px;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 13px;
+  margin-top: 32px;
+  color: #94A3B8;
+  font-size: 12px;
+  text-align: center;
 }
 
-/* 响应式 */
 @media (max-width: 480px) {
   .login-card {
-    width: 90%;
-    padding: 30px 20px;
-    margin: 20px;
+    width: 100%;
+    padding: 24px 20px;
   }
 }
 </style>

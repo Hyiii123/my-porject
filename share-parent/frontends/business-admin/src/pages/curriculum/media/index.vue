@@ -8,25 +8,25 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+          <div class="stat-icon" style="background: #2563eb">
             <span class="stat-number">{{ total }}</span>
           </div>
           <div class="stat-label">视频总数</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+          <div class="stat-icon" style="background: #0d9488">
             <span class="stat-number">{{ totalSize }}</span>
           </div>
           <div class="stat-label">总容量</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+          <div class="stat-icon" style="background: #16a34a">
             <span class="stat-number">{{ usedCount }}</span>
           </div>
           <div class="stat-label">已使用</div>

@@ -39,25 +39,25 @@
       <!-- 功能菜单 -->
       <div class="menu-grid">
         <div class="menu-item" @click="$router.push('/my-class/index')">
-          <div class="menu-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+          <div class="menu-icon icon-primary">
             <span>课</span>
           </div>
           <div class="menu-text">我的课表</div>
         </div>
         <div class="menu-item" @click="$router.push('/notes/index')">
-          <div class="menu-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+          <div class="menu-icon icon-success">
             <span>笔</span>
           </div>
           <div class="menu-text">我的笔记</div>
         </div>
         <div class="menu-item" @click="$router.push('/points/index')">
-          <div class="menu-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+          <div class="menu-icon icon-warning">
             <span>分</span>
           </div>
           <div class="menu-text">我的积分</div>
         </div>
         <div class="menu-item" @click="$router.push('/pay/carts')">
-          <div class="menu-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">
+          <div class="menu-icon icon-slate">
             <span>车</span>
           </div>
           <div class="menu-text">购物车</div>
@@ -248,40 +248,46 @@ onMounted(loadData)
 }
 
 .menu-item {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 20px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
 }
 
 .menu-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.08);
 }
 
 .menu-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 12px;
+  margin: 0 auto 10px;
+
+  &.icon-primary { background: #EFF6FF; span { color: #2563EB; } }
+  &.icon-success { background: #ECFDF5; span { color: #059669; } }
+  &.icon-warning { background: #FFFBEB; span { color: #D97706; } }
+  &.icon-slate { background: #F1F5F9; span { color: #475569; } }
 }
 
 .menu-icon span {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
-  color: #fff;
 }
 
 .menu-text {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: #0F172A;
 }
 
 /* 最近学习 */

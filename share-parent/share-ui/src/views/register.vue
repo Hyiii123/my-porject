@@ -1,76 +1,89 @@
 <template>
   <div class="register">
-    <el-form ref="registerRef" :model="registerForm" :rules="registerRules" class="register-form">
-      <h3 class="title">在线教育管理系统</h3>
-      <el-form-item prop="username">
-        <el-input
-          v-model="registerForm.username"
-          type="text"
-          size="large"
-          auto-complete="off"
-          placeholder="账号"
-        >
-          <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="password">
-        <el-input
-          v-model="registerForm.password"
-          type="password"
-          size="large"
-          auto-complete="off"
-          placeholder="密码"
-          @keyup.enter="handleRegister"
-        >
-          <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="confirmPassword">
-        <el-input
-          v-model="registerForm.confirmPassword"
-          type="password"
-          size="large"
-          auto-complete="off"
-          placeholder="确认密码"
-          @keyup.enter="handleRegister"
-        >
-          <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="code" v-if="captchaEnabled">
-        <el-input
-          size="large"
-          v-model="registerForm.code"
-          auto-complete="off"
-          placeholder="验证码"
-          style="width: 63%"
-          @keyup.enter="handleRegister"
-        >
-          <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
-        </el-input>
-        <div class="register-code">
-          <img :src="codeUrl" @click="getCode" class="register-code-img"/>
+    <div class="register-card">
+      <div class="register-header">
+        <div class="logo-box">
+          <span class="logo-text">智</span>
         </div>
-      </el-form-item>
-      <el-form-item style="width:100%;">
-        <el-button
-          :loading="loading"
-          size="large"
-          type="primary"
-          style="width:100%;"
-          @click.prevent="handleRegister"
-        >
-          <span v-if="!loading">注 册</span>
-          <span v-else>注 册 中...</span>
-        </el-button>
-        <div style="float: right;">
+        <h3 class="title">在线教育管理系统</h3>
+        <p class="subtitle">创建管理人员账户</p>
+      </div>
+
+      <el-form ref="registerRef" :model="registerForm" :rules="registerRules" class="register-form">
+        <el-form-item prop="username">
+          <el-input
+            v-model="registerForm.username"
+            type="text"
+            size="large"
+            auto-complete="off"
+            placeholder="账号"
+          >
+            <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="password">
+          <el-input
+            v-model="registerForm.password"
+            type="password"
+            size="large"
+            auto-complete="off"
+            placeholder="密码"
+            @keyup.enter="handleRegister"
+          >
+            <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="confirmPassword">
+          <el-input
+            v-model="registerForm.confirmPassword"
+            type="password"
+            size="large"
+            auto-complete="off"
+            placeholder="确认密码"
+            @keyup.enter="handleRegister"
+          >
+            <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="code" v-if="captchaEnabled">
+          <div class="code-wrapper">
+            <el-input
+              size="large"
+              v-model="registerForm.code"
+              auto-complete="off"
+              placeholder="验证码"
+              class="code-input"
+              @keyup.enter="handleRegister"
+            >
+              <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
+            </el-input>
+            <div class="register-code">
+              <img :src="codeUrl" @click="getCode" class="register-code-img" title="点击切换验证码"/>
+            </div>
+          </div>
+        </el-form-item>
+        <div class="form-options">
+          <span></span>
           <router-link class="link-type" :to="'/login'">使用已有账户登录</router-link>
         </div>
-      </el-form-item>
-    </el-form>
+        <el-form-item style="width:100%; margin-bottom: 0;">
+          <el-button
+            :loading="loading"
+            size="large"
+            type="primary"
+            class="register-btn"
+            @click.prevent="handleRegister"
+          >
+            <span v-if="!loading">注 册</span>
+            <span v-else>注 册 中...</span>
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
     <!--  底部  -->
     <div class="el-register-footer">
-      <span>Copyright © 2018-2023 ruoyi.vip All Rights Reserved.</span>
+      <span>Copyright © 2024 智问学伴在线教育平台 · 基础管理端</span>
     </div>
   </div>
 </template>
@@ -124,7 +137,7 @@ function handleRegister() {
       loading.value = true;
       register(registerForm.value).then(res => {
         const username = registerForm.value.username;
-        ElMessageBox.alert("<font color='red'>恭喜你，您的账号 " + username + " 注册成功！</font>", "系统提示", {
+        ElMessageBox.alert("<font color='#16a34a'>恭喜你，您的账号 " + username + " 注册成功！</font>", "系统提示", {
           dangerouslyUseHTMLString: true,
           type: "success",
         }).then(() => {
@@ -156,63 +169,144 @@ getCode();
 <style lang='scss' scoped>
 .register {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100%;
-  background-image: url("../assets/images/login-background.jpg");
-  background-size: cover;
+  min-height: 100vh;
+  background-color: #0f172a;
+  background-image: radial-gradient(#334155 1px, transparent 1px);
+  background-size: 24px 24px;
+  position: relative;
+  padding: 20px;
+  box-sizing: border-box;
 }
-.title {
-  margin: 0px auto 30px auto;
+
+.register-card {
+  width: 420px;
+  max-width: 100%;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  padding: 36px 32px 30px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.register-header {
   text-align: center;
-  color: #707070;
+  margin-bottom: 24px;
+}
+
+.logo-box {
+  width: 44px;
+  height: 44px;
+  background: #2563eb;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+.logo-text {
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
 }
 
 .register-form {
-  border-radius: 6px;
-  background: #ffffff;
-  width: 400px;
-  padding: 25px 25px 5px 25px;
   .el-input {
-    height: 40px;
-    input {
-      height: 40px;
+    height: 42px;
+    :deep(.el-input__wrapper) {
+      border-radius: 6px;
+      box-shadow: 0 0 0 1px #cbd5e1 inset;
+      transition: all 0.2s;
+      &:hover {
+        box-shadow: 0 0 0 1px #94a3b8 inset;
+      }
+      &.is-focus {
+        box-shadow: 0 0 0 1.5px #2563eb inset;
+      }
     }
   }
-  .input-icon {
-    height: 39px;
-    width: 14px;
-    margin-left: 0px;
-  }
 }
-.register-tip {
-  font-size: 13px;
-  text-align: center;
-  color: #bfbfbf;
+
+.code-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
 }
+
+.code-input {
+  flex: 1;
+}
+
 .register-code {
-  width: 33%;
-  height: 40px;
-  float: right;
+  width: 115px;
+  height: 42px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
   img {
+    width: 100%;
+    height: 100%;
     cursor: pointer;
     vertical-align: middle;
   }
 }
-.el-register-footer {
-  height: 40px;
-  line-height: 40px;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  text-align: center;
-  color: #fff;
-  font-family: Arial;
-  font-size: 12px;
-  letter-spacing: 1px;
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  font-size: 13px;
+  .link-type {
+    color: #2563eb;
+    text-decoration: none;
+    &:hover {
+      color: #1d4ed8;
+    }
+  }
 }
-.register-code-img {
-  height: 40px;
-  padding-left: 12px;
+
+.register-btn {
+  width: 100%;
+  height: 44px;
+  background-color: #2563eb;
+  border-color: #2563eb;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  transition: all 0.2s;
+  &:hover {
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
+  }
+}
+
+.el-register-footer {
+  margin-top: 32px;
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
 }
 </style>

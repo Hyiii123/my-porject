@@ -7,8 +7,8 @@
       <div class="learning-stats">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-content">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
-              <el-icon :size="28" color="#fff"><Reading /></el-icon>
+            <div class="stat-icon icon-primary">
+              <el-icon :size="24"><Reading /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ totalCourses }}</div>
@@ -18,8 +18,8 @@
         </el-card>
         <el-card shadow="hover" class="stat-card">
           <div class="stat-content">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
-              <el-icon :size="28" color="#fff"><Check /></el-icon>
+            <div class="stat-icon icon-success">
+              <el-icon :size="24"><Check /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ completedCourses }}</div>
@@ -29,8 +29,8 @@
         </el-card>
         <el-card shadow="hover" class="stat-card">
           <div class="stat-content">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
-              <el-icon :size="28" color="#fff"><Clock /></el-icon>
+            <div class="stat-icon icon-warning">
+              <el-icon :size="24"><Clock /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ totalHours }}</div>
@@ -258,8 +258,9 @@ onMounted(loadCourses)
 }
 
 .stat-card {
-  border-radius: 12px;
-  border: none;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
 }
 
 .stat-content {
@@ -269,23 +270,36 @@ onMounted(loadCourses)
 }
 
 .stat-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  &.icon-primary {
+    background: #EFF6FF;
+    color: #2563EB;
+  }
+  &.icon-success {
+    background: #ECFDF5;
+    color: #059669;
+  }
+  &.icon-warning {
+    background: #FFFBEB;
+    color: #D97706;
+  }
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
-  color: #303133;
+  color: #0F172A;
 }
 
 .stat-label {
-  font-size: 14px;
-  color: #909399;
+  font-size: 13px;
+  color: #64748B;
 }
 
 /* 筛选 */
@@ -301,15 +315,17 @@ onMounted(loadCourses)
 }
 
 .course-card {
-  border-radius: 12px;
-  border: none;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .course-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.08);
 }
 
 .course-content {

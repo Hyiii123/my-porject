@@ -180,11 +180,11 @@ const teachers = ref([])
 // 统计卡片
 const allCourses = ref([])
 const statCards = computed(() => [
-  { label: '课程总数', value: allCourses.value.length, bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-  { label: '已上架', value: allCourses.value.filter(item => Number(item.status) === 1).length, bgColor: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
-  { label: '待上架', value: allCourses.value.filter(item => Number(item.status) === 0).length, bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
-  { label: '已下架', value: allCourses.value.filter(item => Number(item.status) === 2).length, bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
-  { label: '已完结', value: allCourses.value.filter(item => Number(item.status) === 3).length, bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' }
+  { label: '课程总数', value: allCourses.value.length, bgColor: '#2563eb' },
+  { label: '已上架', value: allCourses.value.filter(item => Number(item.status) === 1).length, bgColor: '#16a34a' },
+  { label: '待上架', value: allCourses.value.filter(item => Number(item.status) === 0).length, bgColor: '#ea580c' },
+  { label: '已下架', value: allCourses.value.filter(item => Number(item.status) === 2).length, bgColor: '#64748b' },
+  { label: '已完结', value: allCourses.value.filter(item => Number(item.status) === 3).length, bgColor: '#0d9488' }
 ])
 
 // 搜索
@@ -412,34 +412,36 @@ onMounted(async () => {
 }
 
 .stat-card {
-  border-radius: 12px;
-  border: none;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .stat-card-content {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .stat-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .stat-number {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
 }
 
 .stat-label {
-  font-size: 14px;
-  color: #606266;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .search-card {

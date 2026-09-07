@@ -10,7 +10,7 @@
               <div class="logo-icon">智</div>
               <div class="logo-text">
                 <span class="logo-name">智问学伴</span>
-                <span class="logo-slogan">ZHIWEN XUEBAN</span>
+                <span class="logo-slogan">ONLINE EDUCATION</span>
               </div>
             </div>
           </router-link>
@@ -21,7 +21,7 @@
           <div class="search-box">
             <el-input
               v-model="input"
-              placeholder="搜索课程、教师..."
+              placeholder="搜索感兴趣的课程、讲师..."
               size="large"
               @keyup.enter="SearchHandle"
             >
@@ -40,21 +40,21 @@
           <!-- 购物车 -->
           <div class="nav-item" @click="$router.push('/pay/carts')">
             <el-badge :value="cartCount" :hidden="cartCount === 0" class="badge">
-              <el-icon :size="22"><ShoppingCart /></el-icon>
+              <el-icon :size="20"><ShoppingCart /></el-icon>
             </el-badge>
             <span class="nav-text">购物车</span>
           </div>
 
           <!-- 我的学习 -->
           <div class="nav-item" @click="$router.push('/my-class/index')">
-            <el-icon :size="22"><Reading /></el-icon>
+            <el-icon :size="20"><Reading /></el-icon>
             <span class="nav-text">我的学习</span>
           </div>
 
           <!-- 客服中心 -->
           <div class="nav-item customer-service-nav" @click="router.push({ name: 'customerServiceIndex' })">
-            <el-icon :size="22"><Service /></el-icon>
-            <span class="nav-text">客服中心</span>
+            <el-icon :size="20"><Service /></el-icon>
+            <span class="nav-text">智能客服</span>
           </div>
 
           <!-- 分割线 -->
@@ -64,7 +64,7 @@
           <div v-if="isLoggedIn" class="user-section">
             <el-dropdown trigger="click" @command="handleCommand">
               <div class="user-trigger">
-                <el-avatar :size="36" :src="userInfo.avatar || '/src/assets/images/users/default-avatar.svg'" />
+                <el-avatar :size="34" :src="userInfo.avatar || '/src/assets/images/users/default-avatar.svg'" />
                 <span class="username">{{ userInfo.nickname }}</span>
                 <el-icon class="arrow-icon"><ArrowDown /></el-icon>
               </div>
@@ -100,8 +100,8 @@
           </div>
 
           <div v-else class="login-section">
-            <el-button type="primary" @click="$router.push('/login')">登录</el-button>
-            <el-button @click="$router.push('/login')">注册</el-button>
+            <el-button type="primary" class="header-btn" @click="$router.push('/login')">登录</el-button>
+            <el-button type="primary" class="header-btn" @click="$router.push('/login?md=register')">注册</el-button>
           </div>
         </div>
       </div>
@@ -203,20 +203,21 @@ const handleLogout = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .header {
-  background: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
   position: sticky;
   top: 0;
   z-index: 1000;
-  height: 70px;
+  height: 64px;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 20px;
   height: 100%;
 }
 
@@ -224,7 +225,7 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   height: 100%;
-  gap: 32px;
+  gap: 28px;
 }
 
 /* 左侧Logo */
@@ -241,20 +242,22 @@ const handleLogout = () => {
 .logo-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .logo-icon {
-  width: 42px;
-  height: 42px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  background: #2563EB;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 22px;
+  color: #FFFFFF;
+  font-size: 18px;
   font-weight: 700;
+  letter-spacing: -0.5px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
 .logo-text {
@@ -263,22 +266,23 @@ const handleLogout = () => {
 }
 
 .logo-name {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  color: #303133;
+  color: #0F172A;
   line-height: 1.2;
 }
 
 .logo-slogan {
-  font-size: 10px;
-  color: #909399;
-  letter-spacing: 1px;
+  font-size: 9px;
+  color: #64748B;
+  letter-spacing: 0.8px;
+  font-weight: 500;
 }
 
 /* 中间搜索框 */
 .header-center {
   flex: 1;
-  max-width: 520px;
+  max-width: 480px;
 }
 
 .search-box {
@@ -286,64 +290,77 @@ const handleLogout = () => {
 }
 
 .search-box :deep(.el-input__wrapper) {
-  border-radius: 8px 0 0 8px;
-  box-shadow: 0 0 0 1px #dcdfe6 inset;
+  border-radius: 6px 0 0 6px;
+  border-color: #E2E8F0;
+  box-shadow: none !important;
+  transition: all 0.2s ease;
+  &:hover, &.is-focus {
+    border-color: #2563EB;
+  }
 }
 
 .search-box :deep(.el-input-group__append) {
-  border-radius: 0 8px 8px 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: transparent;
+  border-radius: 0 6px 6px 0;
+  background: #2563EB;
+  border-color: #2563EB;
+  padding: 0;
 }
 
 .search-box :deep(.el-input-group__append .el-button) {
-  color: #fff;
+  color: #FFFFFF;
   border: none;
+  background: transparent;
+  padding: 0 16px;
+  font-weight: 500;
 }
 
 .search-icon {
-  color: #909399;
+  color: #94A3B8;
 }
 
 /* 右侧功能区 */
 .header-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 8px;
-  transition: all 0.2s;
-  color: #606266;
-}
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  color: #475569;
 
-.nav-item:hover {
-  background: #f5f7fa;
-  color: #409eff;
+  &:hover {
+    background: #F1F5F9;
+    color: #2563EB;
+  }
 }
 
 .nav-text {
-  font-size: 12px;
+  font-size: 11px;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .badge :deep(.el-badge__content) {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: #DC2626;
+  border: none;
+  font-size: 11px;
 }
 
 .divider {
   width: 1px;
-  height: 24px;
-  background: #e4e7ed;
-  margin: 0 4px;
+  height: 20px;
+  background: #E2E8F0;
+  margin: 0 2px;
 }
 
 /* 用户信息 */
@@ -355,21 +372,20 @@ const handleLogout = () => {
 .user-trigger {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
   transition: all 0.2s;
-}
-
-.user-trigger:hover {
-  background: #f5f7fa;
+  &:hover {
+    background: #F1F5F9;
+  }
 }
 
 .username {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  color: #303133;
+  color: #0F172A;
   max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -378,53 +394,74 @@ const handleLogout = () => {
 
 .arrow-icon {
   font-size: 12px;
-  color: #909399;
+  color: #94A3B8;
   transition: transform 0.2s;
 }
 
-/* 登录按钮 */
+/* 登录和注册按钮统一规范 */
 .login-section {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+
+  :deep(.header-btn) {
+    height: 32px;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    background-color: #2563EB !important;
+    border-color: #2563EB !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.12);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover, &:focus {
+      background-color: #1D4ED8 !important;
+      border-color: #1D4ED8 !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.22);
+    }
+
+    &:active {
+      background-color: #1E40AF !important;
+      border-color: #1E40AF !important;
+      color: #FFFFFF !important;
+    }
+  }
 }
 
-.login-section .el-button--primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: transparent;
-}
-
-/* 下拉菜单样式 */
+/* 下拉菜单 */
 :deep(.el-dropdown-menu__item) {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 8px 16px;
+  font-size: 13px;
 }
 
-:deep(.el-dropdown-menu__item .el-icon) {
-  font-size: 16px;
-}
-
-/* 响应式 */
+/* 响应式适配 */
 @media (max-width: 768px) {
   .header-content {
-    gap: 16px;
+    gap: 12px;
   }
-
+  .logo-slogan {
+    display: none;
+  }
   .header-center {
-    max-width: 300px;
+    max-width: 180px;
   }
-
+  .search-box :deep(.el-input-group__append) {
+    display: none;
+  }
+  .search-box :deep(.el-input__wrapper) {
+    border-radius: 6px;
+  }
+  .nav-text, .username {
+    display: none;
+  }
   .nav-item {
-    padding: 6px 8px;
-  }
-
-  .nav-text {
-    display: none;
-  }
-
-  .username {
-    display: none;
+    padding: 4px 6px;
   }
 }
 </style>

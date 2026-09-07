@@ -399,24 +399,28 @@ onMounted(loadCart)
 
 .checkout-btn {
   width: 140px;
-  height: 48px;
-  font-size: 16px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: transparent;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: #2563EB;
+  border-color: #2563EB;
+  transition: all 0.2s;
 }
 
 .checkout-btn:hover {
-  opacity: 0.9;
+  background: #1D4ED8;
+  border-color: #1D4ED8;
 }
 
 /* 空购物车 */
 .empty-cart {
-  background: #fff;
-  border-radius: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
   padding: 80px 0;
   text-align: center;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 /* 响应式 */

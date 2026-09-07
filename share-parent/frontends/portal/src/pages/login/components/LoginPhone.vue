@@ -28,7 +28,7 @@
         </div>
       </el-form-item>
       <el-form-item class="marg-bt-15">
-        <div class="bt" @click="submitForm(formRef)">登 录</div>
+        <el-button type="primary" class="login-btn" :loading="loading" @click="submitForm(formRef)">登 录</el-button>
       </el-form-item>
     </el-form>
     <div class="font-bt text-center"  @click="goRegister">
@@ -134,18 +134,52 @@ onBeforeUnmount(() => {
 </script>
 <style lang="scss" scoped>
 .loginPhone {
-    margin-top: 40px;
+  margin-top: 24px;
 }
 .code-row {
-    display: flex;
-    gap: 10px;
-    width: 100%;
+  display: flex;
+  gap: 12px;
+  width: 100%;
 }
 .code-row :deep(.el-input) {
-    flex: 1;
+  flex: 1;
 }
 .code-button {
-    width: 118px;
-    flex-shrink: 0;
+  width: 118px;
+  height: 40px;
+  flex-shrink: 0;
+  font-size: 13px;
+  border-radius: 6px;
+  border-color: #CBD5E1;
+  color: #334155;
+  background-color: #F8FAFC;
+  &:hover {
+    color: #2563EB;
+    border-color: #2563EB;
+    background-color: #EFF6FF;
+  }
+}
+.login-btn {
+  width: 100%;
+  height: 40px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 6px;
+  background-color: #2563EB !important;
+  border-color: #2563EB !important;
+  color: #FFFFFF !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.15);
+  &:hover, &:focus {
+    background-color: #1D4ED8 !important;
+    border-color: #1D4ED8 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  }
+  &:active {
+    background-color: #1E40AF !important;
+    border-color: #1E40AF !important;
+    color: #FFFFFF !important;
+  }
 }
 </style>

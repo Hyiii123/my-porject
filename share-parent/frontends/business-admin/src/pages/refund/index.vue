@@ -7,33 +7,33 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+          <div class="stat-icon" style="background: #2563eb">
             <span class="stat-number">{{ total }}</span>
           </div>
           <div class="stat-label">退款申请总数</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+          <div class="stat-icon" style="background: #ea580c">
             <span class="stat-number">{{ pendingCount }}</span>
           </div>
           <div class="stat-label">待审批</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+          <div class="stat-icon" style="background: #16a34a">
             <span class="stat-number">{{ approvedCount }}</span>
           </div>
           <div class="stat-label">已通过</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">
+          <div class="stat-icon" style="background: #dc2626">
             <span class="stat-number">{{ rejectedCount }}</span>
           </div>
           <div class="stat-label">已拒绝</div>

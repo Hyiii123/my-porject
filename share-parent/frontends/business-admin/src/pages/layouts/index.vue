@@ -14,18 +14,22 @@ import Header from "./components/Header.vue";
 </script>
 <style lang="scss" scoped>
 .layoutsWrapper {
-  // min-height: 100vh;
+  min-height: 100vh;
   display: flex;
+  background-color: var(--color-background);
+
   .contain {
-    padding-left: 226px;
-    overflow: hidden;
-    min-width: 1366px;
+    padding-left: 220px;
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
   }
   .mainWrapper {
-    padding-top: 66px;
-    padding-left: 20px;
-    padding-right: 20px;
-    // padding-bottom: 20px;
+    padding-top: 64px;
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-bottom: 32px;
+    box-sizing: border-box;
   }
 }
 </style>

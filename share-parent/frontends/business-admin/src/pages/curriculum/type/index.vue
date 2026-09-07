@@ -8,25 +8,25 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+          <div class="stat-icon" style="background: #2563eb">
             <span class="stat-number">{{ total }}</span>
           </div>
           <div class="stat-label">分类总数</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+          <div class="stat-icon" style="background: #16a34a">
             <span class="stat-number">{{ activeCount }}</span>
           </div>
           <div class="stat-label">启用分类</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+          <div class="stat-icon" style="background: #0284c7">
             <span class="stat-number">{{ courseCount }}</span>
           </div>
           <div class="stat-label">课程总数</div>
@@ -129,10 +129,10 @@ const formRef = ref(null)
 const formData = reactive({ id: null, name: '', parentId: '0', description: '', sort: 1 })
 const formRules = { name: [{ required: true, message: '请输入分类名称', trigger: 'blur' }] }
 const gradients = [
-  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+  '#2563eb',
+  '#0284c7',
+  '#0d9488',
+  '#4f46e5'
 ]
 
 const flatten = (items, level = 1) => (items || []).flatMap(item => [

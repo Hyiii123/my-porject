@@ -1,10 +1,10 @@
 <template>
   <div class="dashboard-container">
     <div class="stat-cards">
-      <el-card v-for="(item, index) in statCards" :key="index" class="stat-card" shadow="hover" v-loading="loading">
+      <el-card v-for="(item, index) in statCards" :key="index" class="stat-card" shadow="never" v-loading="loading">
         <div class="stat-card-content">
-          <div class="stat-icon" :style="{ background: item.bgColor }">
-            <el-icon :size="28" color="#fff"><component :is="item.icon" /></el-icon>
+          <div class="stat-icon" :style="{ backgroundColor: item.bgColor, color: item.iconColor }">
+            <el-icon :size="24"><component :is="item.icon" /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ item.value }}</div>
@@ -23,7 +23,7 @@
     </div>
 
     <div class="chart-section">
-      <el-card class="chart-card" shadow="hover" v-loading="loading">
+      <el-card class="chart-card" shadow="never" v-loading="loading">
         <template #header>
           <div class="card-header">
             <span>访问趋势</span>
@@ -50,7 +50,7 @@
     </div>
 
     <div class="bottom-section">
-      <el-card class="recent-orders" shadow="hover">
+      <el-card class="recent-orders" shadow="never">
         <template #header>
           <div class="card-header">
             <span>最近订单</span>
@@ -74,7 +74,7 @@
         </el-table>
       </el-card>
 
-      <el-card class="hot-courses" shadow="hover">
+      <el-card class="hot-courses" shadow="never">
         <template #header>
           <div class="card-header">
             <span>热门课程</span>
@@ -83,7 +83,7 @@
         </template>
         <div v-if="hotCourses.length" class="course-list">
           <div v-for="(course, index) in hotCourses" :key="course.id || index" class="course-item">
-            <div class="course-rank" :class="{ 'top-3': index < 3 }">{{ index + 1 }}</div>
+            <div class="course-rank" :class="{ 'top-3': index < 3, [`rank-${index+1}`]: index < 3 }">{{ index + 1 }}</div>
             <div class="course-info">
               <div class="course-name">{{ course.title }}</div>
               <div class="course-meta">
@@ -98,7 +98,7 @@
       </el-card>
     </div>
 
-    <el-card class="todo-section" shadow="hover">
+    <el-card class="todo-section" shadow="never">
       <template #header>
         <div class="card-header"><span>待办事项</span></div>
       </template>
@@ -133,10 +133,10 @@ const recentOrders = ref([])
 const hotCourses = ref([])
 
 const statCards = reactive([
-  { label: '今日访问量', value: '--', icon: User, bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', change: '--', changeType: 'up' },
-  { label: '今日订单数', value: '--', icon: ShoppingCart, bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', change: '--', changeType: 'up' },
-  { label: '今日收入', value: '--', icon: Money, bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', change: '--', changeType: 'up' },
-  { label: '新增学员', value: '--', icon: Reading, bgColor: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', change: '--', changeType: 'up' }
+  { label: '今日访问量', value: '--', icon: User, bgColor: '#EFF6FF', iconColor: '#2563EB', change: '--', changeType: 'up' },
+  { label: '今日订单数', value: '--', icon: ShoppingCart, bgColor: '#F0FDF4', iconColor: '#16A34A', change: '--', changeType: 'up' },
+  { label: '今日收入', value: '--', icon: Money, bgColor: '#FEF3C7', iconColor: '#D97706', change: '--', changeType: 'up' },
+  { label: '新增学员', value: '--', icon: Reading, bgColor: '#EEF2FF', iconColor: '#4F46E5', change: '--', changeType: 'up' }
 ])
 
 const todoItems = reactive([
@@ -258,53 +258,57 @@ onMounted(loadDashboard)
 </script>
 
 <style scoped>
-.dashboard-container { padding: 20px; background: #f5f7fa; min-height: 100%; }
-.stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
-.stat-card { border-radius: 12px; border: none; }
+.dashboard-container { padding: 24px; background: #f8fafc; min-height: 100%; }
+.stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.stat-card { border-radius: 8px; border: 1px solid #e2e8f0; background: #ffffff; transition: transform 0.2s, box-shadow 0.2s; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
 .stat-card :deep(.el-card__body) { padding: 20px; }
-.stat-card-content { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
-.stat-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.stat-card-content { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.stat-icon { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
 .stat-info { flex: 1; }
-.stat-value { font-size: 24px; font-weight: 700; color: #303133; margin-bottom: 4px; }
-.stat-label { font-size: 14px; color: #909399; }
-.stat-footer { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
-.stat-change { font-size: 14px; display: flex; align-items: center; gap: 4px; }
-.stat-change.up { color: #67c23a; }
-.stat-change.down { color: #f56c6c; }
-.stat-period { font-size: 12px; color: #909399; }
+.stat-value { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
+.stat-label { font-size: 13px; color: #64748b; }
+.stat-footer { display: flex; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid #f1f5f9; }
+.stat-change { font-size: 13px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
+.stat-change.up { color: #16a34a; }
+.stat-change.down { color: #dc2626; }
+.stat-period { font-size: 12px; color: #94a3b8; }
 .chart-section { margin-bottom: 20px; }
-.chart-card { border-radius: 12px; border: none; }
+.chart-card { border-radius: 8px; border: 1px solid #e2e8f0; background: #ffffff; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
-.card-header span { font-size: 16px; font-weight: 600; color: #303133; }
-.chart-placeholder { height: 300px; display: flex; align-items: flex-end; justify-content: center; padding: 20px 0; }
-.chart-bars { display: flex; align-items: flex-end; gap: 30px; height: 100%; width: 100%; max-width: 900px; }
+.card-header span { font-size: 15px; font-weight: 600; color: #0f172a; }
+.chart-placeholder { height: 280px; display: flex; align-items: flex-end; justify-content: center; padding: 20px 0; }
+.chart-bars { display: flex; align-items: flex-end; gap: 28px; height: 100%; width: 100%; max-width: 900px; }
 .chart-bars.month-bars { gap: 5px; }
 .chart-bar-item { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; min-width: 0; }
 .bar-wrapper { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
-.bar { width: 40px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); border-radius: 6px 6px 0 0; position: relative; transition: height .5s ease; min-height: 0; }
-.month-bars .bar { width: 16px; }
-.bar-value { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #606266; font-weight: 600; white-space: nowrap; }
-.bar-label { margin-top: 8px; font-size: 13px; color: #909399; white-space: nowrap; }
+.bar { width: 32px; background: #2563eb; border-radius: 4px 4px 0 0; position: relative; transition: height .4s ease, background-color .2s; min-height: 0; }
+.bar:hover { background: #1d4ed8; }
+.month-bars .bar { width: 14px; }
+.bar-value { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #64748b; font-weight: 600; white-space: nowrap; }
+.bar-label { margin-top: 8px; font-size: 12px; color: #64748b; white-space: nowrap; }
 .month-bars .bar-label { font-size: 10px; transform: rotate(-45deg); transform-origin: top center; margin-top: 12px; }
 .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-.recent-orders, .hot-courses { border-radius: 12px; border: none; }
-.price { color: #f56c6c; font-weight: 600; }
-.course-list { display: flex; flex-direction: column; gap: 16px; }
-.course-item { display: flex; align-items: center; gap: 16px; padding: 12px; background: #f8f9fa; border-radius: 8px; transition: background .2s; }
-.course-item:hover { background: #ecf5ff; }
-.course-rank { width: 28px; height: 28px; border-radius: 8px; background: #909399; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
-.course-rank.top-3 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.recent-orders, .hot-courses { border-radius: 8px; border: 1px solid #e2e8f0; background: #ffffff; }
+.price { color: #dc2626; font-weight: 600; }
+.course-list { display: flex; flex-direction: column; gap: 10px; }
+.course-item { display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 6px; transition: all .2s; }
+.course-item:hover { background: #f1f5f9; border-color: #e2e8f0; }
+.course-rank { width: 24px; height: 24px; border-radius: 6px; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.course-rank.rank-1 { background: #2563eb; color: #ffffff; }
+.course-rank.rank-2 { background: #0284c7; color: #ffffff; }
+.course-rank.rank-3 { background: #0d9488; color: #ffffff; }
 .course-info { flex: 1; min-width: 0; }
-.course-name { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.course-meta { display: flex; gap: 12px; font-size: 12px; color: #909399; }
-.course-price { font-size: 16px; font-weight: 700; color: #f56c6c; white-space: nowrap; }
-.todo-section { border-radius: 12px; border: none; }
+.course-name { font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.course-meta { display: flex; gap: 12px; font-size: 12px; color: #94a3b8; }
+.course-price { font-size: 14px; font-weight: 700; color: #dc2626; white-space: nowrap; }
+.todo-section { border-radius: 8px; border: 1px solid #e2e8f0; background: #ffffff; }
 .todo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.todo-item { display: flex; align-items: center; gap: 12px; padding: 20px; background: #f8f9fa; border-radius: 12px; cursor: pointer; transition: all .2s; }
-.todo-item:hover { background: #ecf5ff; transform: translateY(-2px); }
-.todo-count { font-size: 28px; font-weight: 700; color: #409eff; }
-.todo-label { flex: 1; font-size: 14px; color: #606266; }
-.todo-arrow { color: #c0c4cc; }
+.todo-item { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: all .2s; }
+.todo-item:hover { background: #f8fafc; border-color: #93c5fd; transform: translateY(-1px); }
+.todo-count { font-size: 24px; font-weight: 700; color: #2563eb; }
+.todo-label { flex: 1; font-size: 13px; color: #475569; font-weight: 500; }
+.todo-arrow { color: #94a3b8; font-size: 14px; }
 @media (max-width: 1200px) {
   .stat-cards { grid-template-columns: repeat(2, 1fr); }
   .bottom-section { grid-template-columns: 1fr; }

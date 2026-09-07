@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <main class="customer-service-page">
     <div class="service-container">
       <section class="service-hero">
@@ -492,7 +492,7 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
-  color: #667eea;
+  color: #2563EB;
   font-size: 13px;
   font-weight: 600;
 }
@@ -557,21 +557,21 @@ onMounted(async () => {
 }
 
 .status-dot.connected {
-  background: #667eea;
+  background: #2563EB;
   box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.12);
 }
 
 .api-settings-button {
   height: 48px;
-  color: #667eea;
+  color: #2563EB;
   background: #fff;
-  border-color: #e4e7ff;
+  border-color: #DBEAFE;
 }
 
 .api-settings-button:hover {
-  color: #5969d9;
-  background: #f6f7ff;
-  border-color: #cfd4ff;
+  color: #1D4ED8;
+  background: #EFF6FF;
+  border-color: #BFDBFE;
 }
 
 .service-layout {
@@ -591,7 +591,7 @@ onMounted(async () => {
   padding: 20px;
   background: #fff;
   border: 1px solid #edf0f6;
-  border-radius: 14px;
+  border-radius: 8px;
   box-shadow: 0 5px 20px rgba(45, 58, 93, 0.04);
 }
 
@@ -610,8 +610,8 @@ onMounted(async () => {
   width: 54px;
   height: 54px;
   color: #fff;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 16px;
+  background: #2563EB;
+  border-radius: 8px;
 }
 
 .service-intro-card h2 {
@@ -648,7 +648,7 @@ onMounted(async () => {
 
 .service-feature .el-icon {
   margin-top: 2px;
-  color: #667eea;
+  color: #2563EB;
 }
 
 .service-feature span {
@@ -710,12 +710,12 @@ onMounted(async () => {
   font-size: 12px;
   background: #f6f7fb;
   border: 0;
-  border-radius: 14px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
 .faq-categories button.active {
-  color: #667eea;
+  color: #2563EB;
   background: #eef0ff;
 }
 
@@ -757,12 +757,12 @@ onMounted(async () => {
 }
 
 .faq-item:hover {
-  color: #667eea;
+  color: #2563EB;
 }
 
 .faq-item:hover .el-icon {
   transform: translateX(3px);
-  color: #667eea;
+  color: #2563EB;
 }
 
 .faq-item:disabled {
@@ -785,7 +785,7 @@ onMounted(async () => {
   flex-shrink: 0;
   width: 34px;
   height: 34px;
-  color: #667eea;
+  color: #2563EB;
   background: #e7e9ff;
   border-radius: 10px;
 }
@@ -804,7 +804,7 @@ onMounted(async () => {
   overflow: hidden;
   background: #fff;
   border: 1px solid #edf0f6;
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: 0 7px 26px rgba(45, 58, 93, 0.06);
 }
 
@@ -829,7 +829,7 @@ onMounted(async () => {
   width: 44px;
   height: 44px;
   color: #fff;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #2563EB;
   border-radius: 13px;
 }
 
@@ -858,7 +858,7 @@ onMounted(async () => {
 }
 
 .new-session-button:hover {
-  color: #667eea;
+  color: #2563EB;
   background: #f3f4ff;
 }
 
@@ -904,7 +904,7 @@ onMounted(async () => {
 }
 
 .service-avatar {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #2563EB;
 }
 
 .user-avatar {
@@ -948,7 +948,7 @@ onMounted(async () => {
 
 .user-message .message-bubble {
   color: #fff;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #2563EB;
   border: 0;
   border-radius: 13px 4px 13px 13px;
 }
@@ -992,7 +992,7 @@ onMounted(async () => {
 }
 
 .quick-title .el-icon {
-  color: #667eea;
+  color: #2563EB;
 }
 
 .quick-list {
@@ -1003,18 +1003,18 @@ onMounted(async () => {
 
 .quick-list button {
   padding: 6px 11px;
-  color: #667eea;
+  color: #2563EB;
   font-size: 12px;
   background: #f2f3ff;
   border: 1px solid #e8eaff;
-  border-radius: 14px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
 .quick-list button:hover {
   color: #fff;
-  background: #667eea;
-  border-color: #667eea;
+  background: #2563EB;
+  border-color: #2563EB;
 }
 
 .service-actions {
@@ -1103,7 +1103,7 @@ onMounted(async () => {
 
 .message-input :deep(.el-input-group__append) {
   padding: 0;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #2563EB;
   border-color: transparent;
 }
 

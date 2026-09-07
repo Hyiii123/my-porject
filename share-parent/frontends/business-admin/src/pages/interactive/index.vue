@@ -7,25 +7,25 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+          <div class="stat-icon" style="background: #2563eb">
             <span class="stat-number">{{ total }}</span>
           </div>
           <div class="stat-label">问题总数</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+          <div class="stat-icon" style="background: #16a34a">
             <span class="stat-number">{{ solvedCount }}</span>
           </div>
           <div class="stat-label">已解决</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+          <div class="stat-icon" style="background: #ea580c">
             <span class="stat-number">{{ unsolvedCount }}</span>
           </div>
           <div class="stat-label">待解决</div>

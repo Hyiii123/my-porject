@@ -1,20 +1,13 @@
 <template>
   <div class="login-container">
-    <!-- 背景装饰 -->
-    <div class="bg-decoration">
-      <div class="circle circle-1"></div>
-      <div class="circle circle-2"></div>
-      <div class="circle circle-3"></div>
-    </div>
-
     <!-- 登录卡片 -->
     <div class="login-card">
       <div class="login-header">
-        <div class="logo">
-          <el-icon :size="48" color="#409eff"><Monitor /></el-icon>
+        <div class="logo-box">
+          <span class="logo-text">智</span>
         </div>
         <h1 class="title">智问学伴</h1>
-        <p class="subtitle">在线教育平台 · 管理后台</p>
+        <p class="subtitle">在线教育平台 · 业务管理后台</p>
       </div>
 
       <el-form
@@ -59,13 +52,11 @@
           </el-button>
         </el-form-item>
       </el-form>
-
-
     </div>
 
     <!-- 底部信息 -->
     <div class="footer">
-      <p>Copyright © 2024 智问学伴在线教育平台</p>
+      <p>Copyright © 2024 智问学伴在线教育平台 · 业务管理系统</p>
     </div>
   </div>
 </template>
@@ -74,7 +65,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock, Monitor } from '@element-plus/icons-vue'
+import { User, Lock } from '@element-plus/icons-vue'
 import { userLogins, getUserInfo } from '@/api/user'
 import { useUserStore } from '@/store'
 
@@ -146,82 +137,61 @@ const handleForgot = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: #0f172a;
+  background-image: radial-gradient(#334155 1px, transparent 1px);
+  background-size: 24px 24px;
   position: relative;
   overflow: hidden;
-}
-
-.bg-decoration {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.circle-1 {
-  width: 300px;
-  height: 300px;
-  top: -100px;
-  left: -100px;
-  animation: float 6s ease-in-out infinite;
-}
-
-.circle-2 {
-  width: 200px;
-  height: 200px;
-  bottom: -50px;
-  right: -50px;
-  animation: float 8s ease-in-out infinite reverse;
-}
-
-.circle-3 {
-  width: 150px;
-  height: 150px;
-  top: 50%;
-  right: 10%;
-  animation: float 10s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .login-card {
   width: 420px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
+  max-width: 100%;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
   padding: 40px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
   z-index: 1;
+  box-sizing: border-box;
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
-.logo {
+.logo-box {
+  width: 44px;
+  height: 44px;
+  background: #2563eb;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 16px;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+.logo-text {
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .title {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
-  color: #303133;
-  margin: 0 0 8px 0;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
 }
 
 .subtitle {
-  font-size: 14px;
-  color: #909399;
+  font-size: 13px;
+  color: #64748b;
   margin: 0;
 }
 
@@ -230,17 +200,18 @@ const handleForgot = () => {
 }
 
 .login-form :deep(.el-input__wrapper) {
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px #dcdfe6 inset;
-  padding: 4px 15px;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px #cbd5e1 inset;
+  padding: 4px 14px;
+  transition: all 0.2s;
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #c0c4cc inset;
+  box-shadow: 0 0 0 1px #94a3b8 inset;
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #409eff inset;
+  box-shadow: 0 0 0 1.5px #2563eb inset;
 }
 
 .form-options {
@@ -248,54 +219,47 @@ const handleForgot = () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  font-size: 13px;
 }
 
 .forgot-link {
-  color: #409eff;
+  color: #2563eb;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  transition: color 0.2s;
 }
 
 .forgot-link:hover {
-  color: #66b1ff;
+  color: #1d4ed8;
 }
 
 .login-btn {
   width: 100%;
-  height: 48px;
-  border-radius: 10px;
-  font-size: 16px;
+  height: 44px;
+  background-color: #2563eb;
+  border-color: #2563eb;
+  border-radius: 6px;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 4px;
+  letter-spacing: 2px;
+  transition: all 0.2s;
 }
 
-.login-footer {
-  text-align: center;
-  margin-top: 20px;
-}
-
-.demo-tip {
-  color: #909399;
-  font-size: 13px;
-  margin: 0;
-  padding: 10px;
-  background: #f5f7fa;
-  border-radius: 8px;
+.login-btn:hover {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
 .footer {
-  position: absolute;
-  bottom: 20px;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 13px;
+  margin-top: 32px;
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
 }
 
-/* 响应式 */
 @media (max-width: 480px) {
   .login-card {
-    width: 90%;
-    padding: 30px 20px;
-    margin: 20px;
+    padding: 28px 20px;
   }
 }
 </style>

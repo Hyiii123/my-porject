@@ -15,13 +15,13 @@
         <el-input v-model="fromData.password" placeholder="请输入密码" />
       </el-form-item>
       <el-form-item prop="code" label="">
-        <div class="fx-sb">
+        <div class="code-row">
           <el-input v-model="fromData.code" placeholder="请确认短信验证码" />
-          <span class="bt bt-grey" @click="verifycodeHandle">发送验证码</span> 
+          <el-button class="code-button" @click="verifycodeHandle">发送验证码</el-button>
         </div>
       </el-form-item>
       <el-form-item class="marg-bt-15">
-        <div class="bt" @click="submitForm(formRef)">注册</div>
+        <el-button type="primary" class="login-btn" :loading="loading" @click="submitForm(formRef)">注 册</el-button>
       </el-form-item>
     </el-form>
     <div class="font-bt text-center" @click="goLogin()">
@@ -38,6 +38,7 @@ import { ElMessage } from "element-plus";
 
 const store = useUserStore();
 const router = useRouter()
+const loading = ref(false);
 
 const emit = defineEmits(['goHandle'])
 // 登录数据初始化
@@ -135,15 +136,52 @@ const goLogin = () => {
 </script>
 <style lang="scss" scoped>
 .loginPass {
-    margin-top: 40px;
-    .fx-sb .bt{
-      position: absolute;
-      width: 80px;
-      height: 28px;
-      line-height: 28px;
-      font-size: 14px;
-      right: 10px;
-      top: 6px;
+  margin-top: 24px;
+
+  .code-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+
+    .code-button {
+      flex-shrink: 0;
+      width: 110px;
+      height: 40px;
+      font-size: 13px;
+      border-radius: 6px;
+      border-color: #CBD5E1;
+      color: #334155;
+      background-color: #F8FAFC;
+      &:hover {
+        color: #2563EB;
+        border-color: #2563EB;
+        background-color: #EFF6FF;
+      }
     }
+  }
+
+  .login-btn {
+    width: 100%;
+    height: 40px;
+    font-size: 15px;
+    font-weight: 500;
+    border-radius: 6px;
+    background-color: #2563EB !important;
+    border-color: #2563EB !important;
+    color: #FFFFFF !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.15);
+    &:hover, &:focus {
+      background-color: #1D4ED8 !important;
+      border-color: #1D4ED8 !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    }
+    &:active {
+      background-color: #1E40AF !important;
+      border-color: #1E40AF !important;
+      color: #FFFFFF !important;
+    }
+  }
 }
 </style>

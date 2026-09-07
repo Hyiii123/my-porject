@@ -82,17 +82,19 @@ a {
 // 页面主按钮
 .button,
 .addBox .el-button--primary {
-  height: 40px;
-  line-height: 40px;
-  border-radius: 20px;
+  height: 36px;
+  line-height: 36px;
+  border-radius: 6px !important;
   border: 0 none;
-  padding: 0 30px;
+  padding: 0 20px;
+  font-weight: 500;
 }
 // 主按钮，例如搜索，添加
 .primary,
 .addBox .el-button--primary {
   background: var(--color-btnbackground);
   color: var(--color-white);
+  border-radius: 6px !important;
   &:hover,
   &:active {
     background: var(--color-btnhoverbackground);
@@ -107,44 +109,59 @@ a {
 }
 // 次要按钮例如重置按钮
 .buttonSub {
-  background: var(--color-btnSubbackground);
-  color: var(--color-font1);
+  height: 36px;
+  border-radius: 6px !important;
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  padding: 0 16px;
+  font-weight: 500;
   &:hover,
-  &:active,
-  &:visited {
-    background: var(--color-btnbackground);
-    color: var(--color-white);
+  &:active {
+    background: #E2E8F0;
+    color: #0F172A;
+    border-color: #94A3B8;
   }
   &:focus {
-    background: var(--color-btnSubbackground);
-    color: var(--color-font1);
+    background: #F1F5F9;
+    color: #334155;
   }
 }
 // 警示性按钮，例如删除
 .deleteButton {
-  background: var(--color-error2);
-  color: var(--color-white);
+  height: 36px;
+  border-radius: 6px !important;
+  background: #DC2626;
+  color: #FFFFFF;
+  border: 1px solid #DC2626;
+  padding: 0 16px;
+  font-weight: 500;
   &:hover,
   &:active {
-    background: var(--color-error2hover);
-    color: var(--color-white);
+    background: #B91C1C;
+    border-color: #B91C1C;
+    color: #FFFFFF;
   }
 }
 // 默认按钮 比如取消
 .buttonPrimary {
-  background: var(--color-white);
-  color: var(--color-font7);
-  border: 1px solid var(--color-font8);
+  height: 36px;
+  border-radius: 6px !important;
+  background: #FFFFFF;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  padding: 0 16px;
+  font-weight: 500;
   &:hover,
   &:active {
-    background: var(--color-white);
-    color: var(--color-font7);
-    border: 1px solid var(--color-font8);
+    background: #EFF6FF;
+    color: #2563EB;
+    border-color: #2563EB;
   }
   &:focus {
-    background: var(--color-white);
-    color: var(--color-font7);
-    border: 1px solid var(--color-font8);
+    background: #FFFFFF;
+    color: #334155;
+    border-color: #CBD5E1;
   }
 }
 // 文字按钮

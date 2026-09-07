@@ -88,63 +88,94 @@ const onerrorImg = () => {
 header {
   position: fixed;
   top: 0;
+  left: 226px;
   z-index: 998;
-  padding-left: 226px;
   width: calc(100% - 226px);
-  background-color: var(--color-white);
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
   text-align: left;
-  padding: 18px 0;
+  padding: 0 28px;
+  height: 60px;
+  display: flex;
+  align-items: center;
   font-size: 14px;
+  box-sizing: border-box;
 
-  .wecom{
-    margin: 4px 10px 0 0;
+  .wecom {
+    margin: 0 16px 0 0;
   }
   .headerInfo {
-    padding-right: 40px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
     .line {
-      padding: 0 5px;
+      padding: 0 8px;
+      color: #94a3b8;
+    }
+    .textDefault1 {
+      color: #475569;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color 0.2s;
+      &:hover {
+        color: #2563eb;
+      }
+    }
+    .ft-cl-des {
+      color: #0f172a;
+      font-weight: 600;
+      cursor: default;
     }
   }
   .headIcon {
-    width: 30px;
-    height: 30px;
-    border-radius: 100%;
-    margin-right: 13px;
-    &:hover{
-      // 透明度80%
-      opacity: 0.8;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 10px;
+    object-fit: cover;
+    border: 1px solid #e2e8f0;
+    transition: opacity 0.2s;
+    &:hover {
+      opacity: 0.85;
     }
   }
   .vline {
     margin: 0 16px;
-    background: #b5abab;
+    background: #e2e8f0;
     width: 1px;
-    height: 17px;
+    height: 18px;
   }
   .back {
     position: relative;
     cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+    &:hover {
+      background-color: #f1f5f9;
+    }
     img {
-      position: relative;
-      top: 2px;
-      margin-left: 2px;
-      width: 18px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
     }
   }
 }
-.fx-1{
-  .marg-lt-20{
+.fx-al-ct {
+  display: flex;
+  align-items: center;
+  a {
     display: flex;
-    flex-direction: column-reverse;
-    justify-content: space-around;
-  }
-}
-.out{
-  // 设置其hover状态的样式
-  &:hover{
-    // 设置其透明度为0.8
-    opacity: 0.8;
+    align-items: center;
+    color: #1e293b;
+    font-weight: 500;
+    text-decoration: none;
+    &:hover {
+      color: #2563eb;
+    }
   }
 }
 </style>

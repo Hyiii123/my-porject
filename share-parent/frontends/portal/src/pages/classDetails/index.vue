@@ -1,7 +1,7 @@
 <template>
   <div class="course-detail">
     <!-- 课程头部 -->
-    <div class="course-header" :style="{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }">
+    <div class="course-header">
       <div class="container">
         <div class="header-content">
           <div class="course-cover">
@@ -351,8 +351,10 @@ onMounted(loadCourse)
 
 /* 课程头部 */
 .course-header {
-  padding: 40px 0;
-  color: #fff;
+  padding: 44px 0;
+  background: #0F172A;
+  border-bottom: 1px solid #1E293B;
+  color: #FFFFFF;
 }
 
 .header-content {
@@ -363,9 +365,10 @@ onMounted(loadCourse)
 .course-cover {
   width: 380px;
   height: 234px;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .course-cover img {
@@ -379,16 +382,19 @@ onMounted(loadCourse)
 }
 
 .course-title {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
-  margin: 0 0 16px;
+  color: #FFFFFF;
+  margin: 0 0 14px;
+  line-height: 1.3;
 }
 
 .course-meta {
   display: flex;
-  gap: 24px;
+  gap: 20px;
   margin-bottom: 16px;
-  opacity: 0.9;
+  color: #94A3B8;
+  font-size: 13px;
 }
 
 .course-meta span {
@@ -398,9 +404,9 @@ onMounted(loadCourse)
 }
 
 .course-desc {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.6;
-  opacity: 0.9;
+  color: #CBD5E1;
   margin-bottom: 24px;
 }
 
@@ -408,9 +414,10 @@ onMounted(loadCourse)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 16px 20px;
 }
 
 .price-section {
@@ -420,19 +427,20 @@ onMounted(loadCourse)
 }
 
 .price {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
+  color: #F87171;
 }
 
 .free {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  color: #67c23a;
+  color: #34D399;
 }
 
 .original-price {
-  font-size: 16px;
-  opacity: 0.7;
+  font-size: 15px;
+  color: #64748B;
   text-decoration: line-through;
 }
 
@@ -451,9 +459,11 @@ onMounted(loadCourse)
 
 .main-content {
   flex: 1;
-  background: #fff;
-  border-radius: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
   padding: 24px;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
 }
 
 .detail-tabs :deep(.el-tabs__header) {

@@ -1,44 +1,61 @@
 :root {
-  // 主题色板
+  // 现代在线教育管理后台 SaaS 主题色板
+  --color-main: #2563EB;
+  --color-hover: #1D4ED8;
+  --color-active: #1E40AF;
+  --color-primary-light: #EFF6FF;
 
-  --color-main: #2080f7;
-  --color-hover: #83c0ff;
-  --color-active: #1c55cf;
-  --color-success: #00be76;
-  --color-warning: #ffad33;
-  --color-error: #d9021c;
-  --color-error2: #FD7065;
-  --color-error2hover: #da5658;
-  --color-fonttip: #FF1B1B;
-  --color-background: #f9f9f9;
-  --color-background1: #fdfafa;
-  --color-btnbackground: #ff734f;
-  --color-btnhoverbackground: #f16440;
-  --color-tabBtnbackground: #FFEDE9;
-  --color-btnselectbackground: #ffebe2;
-  --color-btnSubbackground: #f5efef;
-  --color-tabheadbackground: #f2ebe5;
-  --color-tabbackground: #fdfcfa;
-  --color-tabhoverbackground: #f7f3f0;
-  --color-rawerbackground: #FAF7F7;
-  --color-tabborder: #f5efee;
-  --color-bodybackground: #f4f8fb;
-  --color-seletebackground: #FAF4EE;
-  --color-forbidden: #f3ebeb;
-  --color-tabsgbg: #F9F1EA;
-  --color-font1: #332929;
-  --color-font2: #666666;
-  --color-font3: #e9e9eb;
-  --color-font4: #bac0cd;
-  --color-font5: #887e7e;
-  --color-font6: #bdbdbd;
-  --color-font7: #333333;
-  --color-font8: #e5e4e4;
-  --color-font9: #B5ABAB;;
-  --color-black: #000000;
-  --color-white: #ffffff;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
+  --color-error2: #EF4444;
+  --color-error2hover: #B91C1C;
+  --color-fonttip: #DC2626;
+
+  // 背景底板
+  --color-background: #F8FAFC;
+  --color-background1: #FFFFFF;
+  --color-bodybackground: #F8FAFC;
+  --color-rawerbackground: #FFFFFF;
+
+  // 按钮与标签交互色
+  --color-btnbackground: #2563EB;
+  --color-btnhoverbackground: #1D4ED8;
+  --color-tabBtnbackground: #EFF6FF;
+  --color-btnselectbackground: #DBEAFE;
+  --color-btnSubbackground: #F1F5F9;
+  --color-tabheadbackground: #F8FAFC;
+  --color-tabbackground: #FFFFFF;
+  --color-tabhoverbackground: #F1F5F9;
+  --color-tabborder: #E2E8F0;
+  --color-seletebackground: #EFF6FF;
+  --color-forbidden: #F1F5F9;
+  --color-tabsgbg: #F8FAFC;
+
+  // 现代 Slate 文字阶梯
+  --color-font1: #0F172A; // 主要标题、高反差文字
+  --color-font2: #475569; // 正文主要文字
+  --color-font3: #64748B; // 次级描述
+  --color-font4: #94A3B8; // 占位符、次要文字
+  --color-font5: #64748B;
+  --color-font6: #CBD5E1; // 边框
+  --color-font7: #0F172A;
+  --color-font8: #E2E8F0;
+  --color-font9: #94A3B8;
+  --color-black: #0F172A;
+  --color-white: #FFFFFF;
+
+  // 字阶
   --font-size12: 12px;
   --font-size13: 13px;
   --font-size14: 14px;
   --font-size16: 16px;
+
+  // 视觉规范 Token (控制在 6-8px，微边框与克制阴影)
+  --radius-sm: 4px;
+  --radius-base: 6px;
+  --radius-md: 8px;
+  --border-subtle: 1px solid #E2E8F0;
+  --shadow-subtle: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-hover: 0 4px 10px -2px rgba(15, 23, 42, 0.08);
 }

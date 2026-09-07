@@ -1,201 +1,204 @@
-/* 只需要重写你需要的即可 */
+/* Element Plus 自定义变量与组件样式覆盖 */
 @forward 'element-plus/theme-chalk/src/common/var.scss' with (
   $colors: (
     'primary': (
-      'base': #2080F7,
+      'base': #2563EB,
+    ),
+    'success': (
+      'base': #059669,
+    ),
+    'warning': (
+      'base': #D97706,
+    ),
+    'danger': (
+      'base': #DC2626,
     ),
   ),
 );
 
-.el-collapse-item__content{
-  font-size: 14px;
-}
-// Elmessage 
-.el-button{
-  background: #2080F7 !important;
-  border-radius: 4px;
-}
+// 基础按钮规范 (6px 圆角，平滑过渡，字体统一)
+.el-button {
+  border-radius: 6px !important;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-// 表单 相关
-.el-form-item{
-  margin-bottom: 20px;
-}
-.el-form-item__error{
-  left: auto;
-  top: 4;
-  right: 0;
-}
-.el-input__wrapper{
-  padding: 5px 11px;
-}
-.el-input__wrapper.is-focus{
-  box-shadow:0 0 0 1px var(--color-font1) inset;
-}
-// 弹框 dialog
-.el-dialog__header{
-  // padding-bottom: 0;
-  margin-right: 0;
-}
+  &--primary {
+    background-color: #2563EB !important;
+    border-color: #2563EB !important;
+    color: #FFFFFF !important;
+    &:hover, &:focus {
+      background-color: #1D4ED8 !important;
+      border-color: #1D4ED8 !important;
+      color: #FFFFFF !important;
+    }
+    &:active {
+      background-color: #1E40AF !important;
+      border-color: #1E40AF !important;
+      color: #FFFFFF !important;
+    }
+  }
 
-.el-pagination.is-background .btn-next, .el-pagination.is-background .btn-prev, .el-pagination.is-background .el-pager li{
-  background-color: #fff;
-  border: 1px solid #D9D9D9;
-  border-radius: 2px;
-}
-.el-pagination__sizes .el-input__wrapper{
-  padding: 1px 11px;
-  margin-left: 16px;
-}
-// Elmessagebox 样式更改
-.el-message-box__btns .el-button{
-  background: #E1E6F0 !important;
-  color: #19232B;
-}
-.el-message-box__btns .el-button:hover, .el-message-box__btns .el-button:active{
-  background: #CDD3E0 !important;
-  color: #19232B;
-  border:solid 1px transparent;
-}
-.el-message-box__btns .el-button--primary{
-  background: var(--color-main) !important;
-  color: #fff;
-}
-.el-message-box__btns .el-button--primary:hover{
-  background: #519FFF !important;
-  color: #fff;
-  border:solid 1px transparent;
-}
-.el-message-box__btns .el-button--primary:active{
-  background: #1C55CF !important;
-  color: #fff;
-  border:solid 1px transparent;
-}
+  &--default {
+    background-color: #FFFFFF !important;
+    border-color: #CBD5E1 !important;
+    color: #334155 !important;
+    &:hover, &:focus {
+      color: #2563EB !important;
+      border-color: #2563EB !important;
+      background-color: #EFF6FF !important;
+    }
+    &:active {
+      background-color: #DBEAFE !important;
+    }
+  }
 
-.el-message-box__btns .el-button:focus-visible{
-  outline: 0 solid var(--el-button-outline-color);
-  outline-offset: 0px;
-}
+  &--success {
+    background-color: #059669 !important;
+    border-color: #059669 !important;
+    color: #FFFFFF !important;
+  }
 
-// 课程目录的使用了collapse
-.el-collapse-item__header, .el-collapse-item__wrap{
-  background-color: transparent;
-  border:none;
-  color: #FFF;
-}
-.el-collapse{
-  border:none;
-}
+  &--warning {
+    background-color: #D97706 !important;
+    border-color: #D97706 !important;
+    color: #FFFFFF !important;
+  }
 
-// 视频播放模块 
-.classLearning .el-input__wrapper{
-  height: 33px;
-  background-color: #000000;
-  box-shadow: 0 0 0 0 transparent
-}
-.classLearning .el-input .el-input__count .el-input__count-inner{
-  background-color: #000000;
-}
-.classLearning .el-textarea__inner{
-  background-color: #000000;
-  box-shadow: 0 0 0 0 transparent
-}
-.classLearning .el-textarea .el-input__count{
-  background-color: #000000;
-}
-.classLearning .el-input__inner{
-  color: #7A838A;
-}
-.classLearning .questCont .el-checkbox__label{
-  color: #fff;
-}
-.classLearning .questCont .el-checkbox__inner{
-  background-color: #292F37;
-}
-// 答题
-.classLearning .ExQuestions .el-textarea__inner{
-  background-color: #fff;
-  box-shadow: 0 0 0 1px var(--el-input-border-color,var(--el-border-color)) inset;
-}
-.classLearning .ExQuestions .el-textarea .el-input__count{
-  background-color: #fff;
-}
-.el-checkbox__inner{
-  border-radius: 12px;
-}
-.el-radio-group{
-  display: block;
-}
-.el-radio-group label{
-  width: 100%;
-  line-height: 40px;
-}
-.el-checkbox{
-  width: 100%;
-  line-height: 40px;
-  height: 40px;
-}
-// 我的课程
-.el-table .el-table__cell{
-  padding: 12px 0 ;
-}
-// 购物车
-.cartsWrapper .el-checkbox__inner{
-  border-radius: 0;
-}
-.cartsWrapper .el-checkbox{
-  width: 50px;
-  line-height: 40px;
-  height: 40px;
-}
-
-
-// 弹框 - 退款使用
-.myOrderDetailsWrapper .el-dialog__body{
-  padding:20px 30px 20px 30px;
-}
-.myOrderDetailsWrapper .el-dialog__header{
-  padding: 20px 30px 0px 30px;
-  font-weight: 600;
-}
-.myOrderDetailsWrapper .el-dialog__headerbtn{
-  right: 8px;
-}
-
-.el-textarea__inner:focus{
-  box-shadow: 0 0 0 1px var(--color-font1) inset;
-}
-.el-cascader .el-input.is-focus .el-input__wrapper {
-  box-shadow: 0 0 0 1px var(--color-font1,var(--color-font1)) inset;
-}
-
-.el-pagination.is-background .el-pager li:not(.is-disabled).is-active{
-  background-color: var(--color-main);
-}
-
-.el-table, .el-table thead{
-  color: var(--color-font1);
- }
-
- .el-checkbox__input.is-checked .el-checkbox__inner{
-  background-color: var(--color-main);
-  border-color:var(--color-main);
- }
- .el-checkbox__input.is-checked+.el-checkbox__label {
-  color: var(--color-main);
-}
-.el-select-dropdown__item.selected{
-  font-size: 14px;
-  font-weight: 400;
-  color: #19232B;
-  :hover{
-    color: var(--color-main);
+  &--danger {
+    background-color: #DC2626 !important;
+    border-color: #DC2626 !important;
+    color: #FFFFFF !important;
   }
 }
-.el-select-dropdown__item.hover{
-  color:var(--color-main);
-  // background-color: #fff;
+
+// 表单规范
+.el-form-item {
+  margin-bottom: 20px;
 }
-.el-select-dropdown__item:hover{
-  // background-color: var(--color-hover);
+.el-form-item__error {
+  left: auto;
+  top: 4px;
+  right: 0;
+  color: var(--color-error);
+}
+.el-input__wrapper {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  box-shadow: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &.is-focus {
+    border-color: var(--color-main) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+  }
+}
+
+.el-textarea__inner {
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  &:focus {
+    border-color: var(--color-main) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+  }
+}
+
+// 弹窗 Dialog
+.el-dialog {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+
+  &__header {
+    padding: 20px 24px;
+    margin-right: 0;
+    border-bottom: 1px solid #F1F5F9;
+    .el-dialog__title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-font1);
+    }
+  }
+  &__body {
+    padding: 24px;
+  }
+  &__footer {
+    padding: 16px 24px;
+    border-top: 1px solid #F1F5F9;
+  }
+}
+
+// 表格 Table
+.el-table {
+  --el-table-header-bg-color: #F8FAFC;
+  --el-table-border-color: #E2E8F0;
+  --el-table-row-hover-bg-color: #F1F5F9;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #E2E8F0;
+  color: var(--color-font1);
+
+  th.el-table__cell {
+    font-weight: 600;
+    color: var(--color-font2);
+    font-size: 13px;
+  }
+
+  .el-table__cell {
+    padding: 12px 0;
+  }
+}
+
+// 分页 Pagination
+.el-pagination.is-background {
+  .btn-next, .btn-prev, .el-pager li {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    color: var(--color-font2);
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: var(--color-main);
+      color: var(--color-main);
+    }
+
+    &.is-active {
+      background-color: var(--color-main) !important;
+      border-color: var(--color-main) !important;
+      color: #FFFFFF !important;
+    }
+  }
+}
+
+// 复选框 Checkbox
+.el-checkbox__inner {
+  border-radius: 4px;
+  border-color: #CBD5E1;
+  transition: all 0.2s ease;
+}
+
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: var(--color-main);
+  border-color: var(--color-main);
+}
+.el-checkbox__input.is-checked + .el-checkbox__label {
   color: var(--color-main);
+}
+
+// 视频学习专区
+.classLearning .el-input__wrapper {
+  height: 34px;
+  background-color: #1E293B;
+  border-color: #334155;
+  box-shadow: none !important;
+}
+.classLearning .el-input__inner {
+  color: #E2E8F0;
+}
+.classLearning .el-textarea__inner {
+  background-color: #1E293B;
+  border-color: #334155;
+  color: #E2E8F0;
 }

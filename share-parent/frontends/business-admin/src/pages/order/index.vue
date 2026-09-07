@@ -7,33 +7,33 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+          <div class="stat-icon" style="background: #2563eb">
             <span class="stat-number">{{ totalAmount }}</span>
           </div>
           <div class="stat-label">累计订单金额（元）</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+          <div class="stat-icon" style="background: #ea580c">
             <span class="stat-number">{{ pendingAmount }}</span>
           </div>
           <div class="stat-label">待支付金额（元）</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+          <div class="stat-icon" style="background: #16a34a">
             <span class="stat-number">{{ paidAmount }}</span>
           </div>
           <div class="stat-label">实收金额（元）</div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="never" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">
+          <div class="stat-icon" style="background: #64748b">
             <span class="stat-number">{{ refundAmount }}</span>
           </div>
           <div class="stat-label">已退款金额（元）</div>
