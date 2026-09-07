@@ -128,12 +128,16 @@ export default [
         meta: { title: '个人中心首页' },
         children:[
           {
-            // 个人中心父页面本身只负责左侧导航和子路由承载，
-            // 没有默认子路由时访问 /personal/main 会出现空白页。
             path: '',
+            name: 'personalOverviewDefault',
+            component: () => import('@/pages/personal/main.vue'),
+            meta: { title: '学习画像', hidden: true },
+          },
+          {
+            path: 'overview',
             name: 'personalOverview',
             component: () => import('@/pages/personal/main.vue'),
-            meta: { title: '个人中心概览', hidden: true },
+            meta: { title: '学习画像', active: 'overview', icon: '&#xe612;' },
           },
           {
             path: 'myClass',

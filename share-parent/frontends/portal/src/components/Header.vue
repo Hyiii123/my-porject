@@ -173,7 +173,7 @@ const SearchHandle = () => {
 const handleCommand = (command) => {
   switch (command) {
     case 'personal':
-      router.push('/personal/main');
+      router.push('/personal/main/overview');
       break;
     case 'myClass':
       router.push('/my-class/index');
@@ -185,7 +185,7 @@ const handleCommand = (command) => {
       router.push('/points/index');
       break;
     case 'orders':
-      router.push('/personal/main');
+      router.push('/personal/main/myOrder');
       break;
     case 'logout':
       handleLogout();

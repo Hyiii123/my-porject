@@ -21,6 +21,9 @@ const currentPath = ref('')
 
 const activeClass = computed(() => item => {
   const active = item.meta?.active || item.path.split('/').filter(Boolean).at(-1)
+  if (item.path.endsWith('/overview') && (currentPath.value === 'main' || currentPath.value === 'overview' || currentPath.value === '')) {
+    return true
+  }
   return active ? currentPath.value === active || currentPath.value.startsWith(`${active}/`) : false
 })
 

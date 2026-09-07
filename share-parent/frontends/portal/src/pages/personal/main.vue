@@ -104,16 +104,67 @@
             </el-tag>
           </div>
 
-          <!-- 核心技能掌握度进度条 -->
+          <!-- 核心技能掌握度评估与多维雷达图 -->
           <div class="skills-section" v-if="portrait.skillsRadar && portrait.skillsRadar.length">
-            <div class="skills-heading">核心技术技能掌握度评估</div>
-            <div class="skills-grid">
-              <div v-for="s in portrait.skillsRadar" :key="s.skill" class="skill-item">
-                <div class="skill-info">
-                  <span class="skill-name">{{ s.skill }}</span>
-                  <span class="skill-score">{{ s.score }} 分</span>
+            <div class="skills-heading">🎯 核心技能多维雷达图与掌握度评估</div>
+            <div class="radar-container">
+              <!-- 左侧：动态 SVG 技能雷达图 -->
+              <div class="radar-chart-wrapper">
+                <svg viewBox="0 0 380 320" class="radar-svg">
+                  <!-- 同心多边形背景网格 (20%, 40%, 60%, 80%, 100%) -->
+                  <polygon
+                    v-for="level in [0.2, 0.4, 0.6, 0.8, 1.0]"
+                    :key="level"
+                    :points="getWebPolygonPoints(level)"
+                    class="radar-web-grid"
+                  />
+                  <!-- 辐射轴线 -->
+                  <line
+                    v-for="(axis, idx) in radarAxes"
+                    :key="idx"
+                    :x1="190"
+                    :y1="160"
+                    :x2="axis.x"
+                    :y2="axis.y"
+                    class="radar-axis-line"
+                  />
+                  <!-- 技能数据多边形 -->
+                  <polygon
+                    :points="radarDataPolygon"
+                    class="radar-data-polygon"
+                  />
+                  <!-- 各技能顶点数据小圆点 -->
+                  <circle
+                    v-for="(pt, idx) in radarDataPoints"
+                    :key="idx"
+                    :cx="pt.x"
+                    :cy="pt.y"
+                    r="4"
+                    class="radar-data-dot"
+                  />
+                  <!-- 技能与分值标签 -->
+                  <text
+                    v-for="(label, idx) in radarLabels"
+                    :key="idx"
+                    :x="label.x"
+                    :y="label.y"
+                    :text-anchor="label.anchor"
+                    class="radar-label-text"
+                  >
+                    {{ label.text }} ({{ label.score }}分)
+                  </text>
+                </svg>
+              </div>
+
+              <!-- 右侧：技能进度明细条 -->
+              <div class="skills-grid">
+                <div v-for="s in portrait.skillsRadar" :key="s.skill" class="skill-item">
+                  <div class="skill-info">
+                    <span class="skill-name">{{ s.skill }}</span>
+                    <span class="skill-score">{{ s.score }} 分</span>
+                  </div>
+                  <el-progress :percentage="s.score" :stroke-width="8" :color="getSkillColor(s.score)" :show-text="false" />
                 </div>
-                <el-progress :percentage="s.score" :stroke-width="8" :color="getSkillColor(s.score)" :show-text="false" />
               </div>
             </div>
           </div>
@@ -212,6 +263,86 @@ const getSkillColor = (score) => {
   if (score >= 40) return '#D97706'
   return '#94A3B8'
 }
+
+const RADAR_CX = 190
+const RADAR_CY = 160
+const RADAR_R = 95
+
+const radarAxes = computed(() => {
+  const list = portrait.value.skillsRadar || []
+  const n = list.length
+  if (!n) return []
+  return list.map((_, i) => {
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / n
+    return {
+      x: Number((RADAR_CX + RADAR_R * Math.cos(angle)).toFixed(1)),
+      y: Number((RADAR_CY + RADAR_R * Math.sin(angle)).toFixed(1))
+    }
+  })
+})
+
+const getWebPolygonPoints = (level) => {
+  const list = portrait.value.skillsRadar || []
+  const n = list.length
+  if (!n) return ''
+  return list.map((_, i) => {
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / n
+    const x = (RADAR_CX + RADAR_R * level * Math.cos(angle)).toFixed(1)
+    const y = (RADAR_CY + RADAR_R * level * Math.sin(angle)).toFixed(1)
+    return `${x},${y}`
+  }).join(' ')
+}
+
+const radarDataPolygon = computed(() => {
+  const list = portrait.value.skillsRadar || []
+  const n = list.length
+  if (!n) return ''
+  return list.map((s, i) => {
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / n
+    const scoreRatio = Math.max(0.1, Math.min(1.0, (s.score || 0) / 100))
+    const x = (RADAR_CX + RADAR_R * scoreRatio * Math.cos(angle)).toFixed(1)
+    const y = (RADAR_CY + RADAR_R * scoreRatio * Math.sin(angle)).toFixed(1)
+    return `${x},${y}`
+  }).join(' ')
+})
+
+const radarDataPoints = computed(() => {
+  const list = portrait.value.skillsRadar || []
+  const n = list.length
+  if (!n) return []
+  return list.map((s, i) => {
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / n
+    const scoreRatio = Math.max(0.1, Math.min(1.0, (s.score || 0) / 100))
+    return {
+      x: Number((RADAR_CX + RADAR_R * scoreRatio * Math.cos(angle)).toFixed(1)),
+      y: Number((RADAR_CY + RADAR_R * scoreRatio * Math.sin(angle)).toFixed(1)),
+      score: s.score
+    }
+  })
+})
+
+const radarLabels = computed(() => {
+  const list = portrait.value.skillsRadar || []
+  const n = list.length
+  if (!n) return []
+  return list.map((s, i) => {
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / n
+    const cosVal = Math.cos(angle)
+    const sinVal = Math.sin(angle)
+    const x = RADAR_CX + (RADAR_R + 24) * cosVal
+    const y = RADAR_CY + (RADAR_R + 14) * sinVal + 4
+    let anchor = 'middle'
+    if (cosVal > 0.3) anchor = 'start'
+    else if (cosVal < -0.3) anchor = 'end'
+    return {
+      text: s.skill,
+      score: s.score,
+      x: Number(x.toFixed(1)),
+      y: Number(y.toFixed(1)),
+      anchor
+    }
+  })
+})
 
 const openPrefDialog = () => {
   prefForm.value = {
@@ -524,16 +655,91 @@ onMounted(loadData)
 }
 
 .skills-heading {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  color: #334155;
-  margin-bottom: 12px;
+  color: #1e293b;
+  margin-bottom: 14px;
+}
+
+.radar-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+  }
+}
+
+.radar-chart-wrapper {
+  flex: 0 0 380px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+
+  @media (max-width: 900px) {
+    flex: 1;
+    width: 100%;
+  }
+}
+
+.radar-svg {
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+  overflow: visible;
+}
+
+.radar-web-grid {
+  fill: none;
+  stroke: #cbd5e1;
+  stroke-width: 1;
+  stroke-dasharray: 2, 2;
+}
+
+.radar-axis-line {
+  stroke: #e2e8f0;
+  stroke-width: 1;
+}
+
+.radar-data-polygon {
+  fill: rgba(37, 99, 235, 0.22);
+  stroke: #2563eb;
+  stroke-width: 2.5;
+  transition: all 0.4s ease;
+}
+
+.radar-data-dot {
+  fill: #2563eb;
+  stroke: #ffffff;
+  stroke-width: 2;
+  transition: all 0.3s ease;
+}
+
+.radar-label-text {
+  font-size: 11px;
+  fill: #334155;
+  font-weight: 500;
 }
 
 .skills-grid {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+  gap: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .skill-item {
