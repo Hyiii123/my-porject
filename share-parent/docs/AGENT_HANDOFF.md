@@ -234,7 +234,7 @@ docker compose --project-directory /opt/tianji/share-parent -p tianji-share star
 - **本地后端**：优先只启动/重建被改服务，前端始终指向 Gateway `8080`。变更教育接口时重启/替换 education，不要重启 auth、trade、customer。
 - **服务器客服改动**：采用上述 `customer-hot` 机制；网关继续经 Nacos 发现唯一 `share-customer` 实例。
 - **服务器其他后端改动**：当前没有通用热容器模板。验证通过后只执行目标服务 `up -d --build <service>`；避免全站重启。
-- **生产前端改动**：静态 Nginx 容器不会自动读取服务器源码。只重建对应 UI 镜像/容器，并用浏览器强制刷新验证；Nginx 已对静态资源设置长缓存，因此若文件名不带 hash 或 CDN 在前，需要额外核查缓存策略。`frontends/nginx.conf` 是 `ruoyi-ui`、`portal-ui`、`business-admin-ui` 三个镜像共同 COPY 的模板，因此修改该文件必须定向重建这三个 UI 容器：`docker compose --project-directory /opt/tianji/share-parent -p tianji-share up -d --build ruoyi-ui portal-ui business-admin-ui`。
+- **生产前端改动**：静态 Nginx 容器不会自动读取服务器源码。只重建对应 UI 镜像/容器，并用浏览器强制刷新验证；Nginx 已对静态资源设置长缓存，因此若文件名不带 hash 或 CDN 在前，需要额外核查缓存策略。`frontends/nginx.conf` 是 `ruoyi-ui`、`portal-ui`、`business-admin-ui` 三个镜像共同 COPY 的模板。**严禁在服务器上一条命令同时并发构建多个前端服务**（例如 `up -d --build ruoyi-ui portal-ui business-admin-ui`），因为并发执行 `npm ci` 与多进程 Vite 打包会瞬间解压数万个碎片小文件，迅速耗尽云服务器云盘的突发 IO 积分（Burst I/O Credits），导致磁盘硬件级限流、CPU 高 iowait、数据库与网关超时假死！若需更新多个前端，必须**严格串行排队构建**（先构建一个，等待启动并平息后再构建下一个），或者优先在本地构建好静态产物后仅同步产物。
 
 ## 8. 验收与诊断入口
 
@@ -318,6 +318,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy\smoke-test.ps1 -Inc
 | 以为设备代码已清完仍有可达入口 | 只删了 Maven 模块，漏了 Nginx 代理或配置 | 清理后扫描模块、Nacos、Nginx、Docker、SQL、DTO 和运行时实例；本文已移除遗留 `/device` 正则 |
 | 搜索出现 charging/station 等误报 | 命中 `node_modules` 或编译产物的第三方内容 | 残留扫描排除 `node_modules`、`target`、`dist`、`.git`，再人工判断领域语义 |
 | Git 看起来有旧设备目录 | `target` 是被忽略的构建产物 | 用 `git status --ignored`、`git check-ignore -v` 区分源码与生成物；不要误把它添加进提交 |
+| 在服务器并发构建多个前端/服务导致超时或假死 | Docker 并发执行 `npm ci` 和多路 Vite 编译打包，瞬间产生数万小文件写 I/O，耗尽云盘突发积分并触发硬件级限流（I/O Throttling） | **绝对禁止并发构建**；多服务必须**串行排队构建**（`docker compose ... up -d --build svc1` 等启动平息后再 `svc2`）；或优先**在本地打出静态产物包，服务器只做纯文件同步/镜像封装** |
 
 ## 13. 接手后的第一小时清单
 
