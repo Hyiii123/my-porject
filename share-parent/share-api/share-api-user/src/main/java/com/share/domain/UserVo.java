@@ -16,6 +16,4 @@ public class UserVo {
     @Schema(description = "微信open id")
     private String wxOpenId;
 
-    @Schema(description = "押金状态（0：未验证 1：免押金 2：已交押金）")
-    private String depositStatus;
 }

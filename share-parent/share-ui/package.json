@@ -1,8 +1,8 @@
 {
   "name": "ruoyi",
   "version": "3.6.3",
-  "description": "共享充电宝管理系统",
-  "author": "共享充电宝",
+  "description": "在线教育管理系统",
+  "author": "在线教育平台",
   "license": "MIT",
   "type": "module",
   "scripts": {

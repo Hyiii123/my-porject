@@ -68,12 +68,6 @@ spring:
             - Path=/ms/**
           filters:
             - StripPrefix=1
-        - id: share-device
-          uri: lb://share-device
-          predicates:
-            - Path=/device/**
-          filters:
-            - StripPrefix=1
         - id: share-rule
           uri: lb://share-rule
           predicates:
