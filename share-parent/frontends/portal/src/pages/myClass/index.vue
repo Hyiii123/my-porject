@@ -229,7 +229,7 @@ const handleRemove = (course) => {
 onMounted(loadCourses)
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .my-class-container {
   background: #f5f7fa;
   min-height: 100vh;
