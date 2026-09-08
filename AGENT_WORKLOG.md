@@ -66,7 +66,7 @@
      - `recommend_model_service.py` 算法服务标题对齐为 `Zhiwen Custom Recommendation Algorithm Service`；
      - `share-education`、`share-trade`、`share-customer` 的 `pom.xml` 及 Application 类注释全部更新为“智问学伴...”。
   3. **线上数据资产迁移与对齐 (V24 迁移脚本)**：
-     - 新增并在线上执行持久化迁移脚本 `V24__replace_tianji_with_zhiwen.sql`；
+     - 新增并在线上执行持久化迁移脚本 `V24__align_brand_identity_to_zhiwen.sql`；
      - `share.sys_user` 库中 5,100 名学员与管理员邮箱统一由 `@tianji.com` 替换为 `@zhiwen.com`；
      - `tj_education` 库中教师表与课程表中天机文案完成全面清洗对齐。
   4. **全链路验证与发布交付**：

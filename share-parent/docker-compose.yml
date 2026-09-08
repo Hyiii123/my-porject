@@ -21,10 +21,10 @@ services:
       - tianji_mysql_data:/var/lib/mysql
       - ./sql/share-system.sql:/docker-entrypoint-initdb.d/01-share-system.sql:ro
       - ./sql/quartz.sql:/docker-entrypoint-initdb.d/02-quartz.sql:ro
-      - ./sql/tianji-education.sql:/docker-entrypoint-initdb.d/10-tianji-education.sql:ro
-      - ./sql/tianji-trade.sql:/docker-entrypoint-initdb.d/11-tianji-trade.sql:ro
-      - ./sql/tianji-customer.sql:/docker-entrypoint-initdb.d/12-tianji-customer.sql:ro
-      - ./sql/tianji-file.sql:/docker-entrypoint-initdb.d/13-tianji-file.sql:ro
+      - ./sql/zhiwen-education.sql:/docker-entrypoint-initdb.d/10-zhiwen-education.sql:ro
+      - ./sql/zhiwen-trade.sql:/docker-entrypoint-initdb.d/11-zhiwen-trade.sql:ro
+      - ./sql/zhiwen-customer.sql:/docker-entrypoint-initdb.d/12-zhiwen-customer.sql:ro
+      - ./sql/zhiwen-file.sql:/docker-entrypoint-initdb.d/13-zhiwen-file.sql:ro
       - ./sql/migrations/V2__customer_menus.sql:/docker-entrypoint-initdb.d/20-V2__customer_menus.sql:ro
       - ./sql/migrations/V3__remove_human_customer_service.sql:/docker-entrypoint-initdb.d/21-V3__remove_human_customer_service.sql:ro
       - ./sql/migrations/V4__education_legacy_compatibility.sql:/docker-entrypoint-initdb.d/22-V4__education_legacy_compatibility.sql:ro

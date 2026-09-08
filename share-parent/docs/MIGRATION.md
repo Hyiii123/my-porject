@@ -103,7 +103,7 @@ FAQ 新增、修改和删除会清理 `cs:faq:list:*`。Redis 暂时不可用时
 首次创建 MySQL 数据卷时，Compose 会按顺序执行基础建表脚本和兼容种子脚本：
 
 1. `sql/share-system.sql`、`sql/quartz.sql`。
-2. `sql/tianji-education.sql`、`sql/tianji-trade.sql`、`sql/tianji-customer.sql`、`sql/tianji-file.sql`。
+2. `sql/zhiwen-education.sql`、`sql/zhiwen-trade.sql`、`sql/zhiwen-customer.sql`、`sql/zhiwen-file.sql`。
 3. 现有 `sql/migrations/V*.sql` 会在初始数据卷中提供兼容数据；版本历史由 Flyway
    迁移任务补齐并持续管理。
 

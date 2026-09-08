@@ -117,7 +117,7 @@ Compose 项目名固定为 `tianji-share`。服务的容器名大多以 `tianji-
 
 ### 数据库规则
 
-- 基础建表脚本：`sql/share-system.sql`、`sql/quartz.sql`、`sql/tianji-education.sql`、`sql/tianji-trade.sql`、`sql/tianji-customer.sql`、`sql/tianji-file.sql`。
+- 基础建表脚本：`sql/share-system.sql`、`sql/quartz.sql`、`sql/zhiwen-education.sql`、`sql/zhiwen-trade.sql`、`sql/zhiwen-customer.sql`、`sql/zhiwen-file.sql`。
 - 增量变更只能新增 `sql/migrations/V<连续版本>__<说明>.sql`，不能修改已经执行过的迁移文件。
 - 新 MySQL 数据卷会执行 `docker-entrypoint-initdb.d` 中的脚本；**已有数据卷不会再次执行**，这是最常见的“SQL 已改但服务没变化”原因。
 - 已有环境执行：
