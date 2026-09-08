@@ -1,28 +1,73 @@
 <template>
   <div class="home-container">
-    <!-- 轮播图/英雄区 -->
-    <div class="banner-section">
-      <el-carousel height="380px" :interval="6000" arrow="hover">
-        <el-carousel-item v-for="banner in banners" :key="banner.id">
-          <div class="banner-item" :style="{ backgroundColor: banner.bgColor }">
-            <div class="container banner-inner">
-              <div class="banner-content">
-                <span class="banner-badge">{{ banner.tag || '官方精选' }}</span>
-                <h2 class="banner-title">{{ banner.title }}</h2>
-                <p class="banner-subtitle">{{ banner.subtitle }}</p>
-                <div class="banner-actions">
-                  <el-button type="primary" size="large" @click="goBanner(banner)" class="action-btn">
-                    立即开启学习
-                  </el-button>
-                  <el-button size="large" @click="$router.push('/search/index')" class="browse-btn">
-                    浏览全部课程
-                  </el-button>
-                </div>
-              </div>
+    <!-- 顶部核心区：AI 多智能体协同决策看板 (替换原 Banner 轮播图) -->
+    <div class="hero-agent-section container">
+      <!-- 多智能体协同推理实时动态看板 (Live Agent Reasoning HUD) -->
+      <AgentReasoningHUD @recalculate="handleRecalculateRecommendations" />
+    </div>
+
+    <!-- 智能个性化专属推荐 (基于多智能体协同系统与 IT 知识图谱) -->
+    <div class="section container personalized-section" v-if="personalizedCourses.length">
+      <div class="section-header">
+        <div class="header-left">
+          <h3 class="section-title">🎯 为您专属推荐 · 多智能体可解释决策流</h3>
+          <span class="section-sub">画像Agent诊断 · 算法SPI预测 · 课程分析Agent解构 · 大模型推演解释</span>
+        </div>
+        <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
+          <el-button type="success" plain round size="small" @click="openLearningPathModal">
+            🗺️ 查看 AI 学习成长路径
+          </el-button>
+          <el-button type="primary" link @click="$router.push('/search/index')">全部课程 <el-icon><ArrowRight /></el-icon></el-button>
+        </div>
+      </div>
+      <div class="course-grid">
+        <div
+          v-for="course in personalizedCourses"
+          :key="course.id"
+          class="course-card personalized-card"
+          @click="$router.push(`/details?id=${course.id}`)"
+        >
+          <div class="course-cover">
+            <img :src="course.cover || defaultCover" :alt="course.title" loading="lazy" @error="handleImgError" />
+            <div class="course-badge match" v-if="course.matchTag">{{ course.matchTag }}</div>
+            <div class="match-score-badge" v-if="course.matchScore">{{ course.matchScore }}% 契合</div>
+            <div class="stage-tag-badge" v-if="course.learningStage">{{ course.learningStage.slice(0, 4) }}</div>
+          </div>
+          <div class="course-info">
+            <h4 class="course-title" :title="course.title">{{ course.title }}</h4>
+
+            <!-- AI 推荐理由 (Explainable AI 大模型推演理由) -->
+            <div class="recommend-reason-row" v-if="course.recommendReason">
+              <span class="reason-icon">💡</span>
+              <span class="reason-text">{{ course.recommendReason }}</span>
+            </div>
+
+            <!-- 专项弥补短板标签 -->
+            <div class="skill-gap-row" v-if="course.skillGapFilled">
+              <span class="gap-icon">🎯</span>
+              <span class="gap-text">突破: {{ course.skillGapFilled }}</span>
+            </div>
+
+            <!-- 先修技能与实战标注 -->
+            <div class="prereq-row" v-if="course.prerequisiteSkills && course.prerequisiteSkills.length">
+              <span class="prereq-badge">先修: {{ course.prerequisiteSkills.join('、') }}</span>
+            </div>
+
+            <div class="course-meta">
+              <span class="teacher">{{ course.teacherName }}</span>
+              <span class="difficulty-tag" v-if="course.difficulty">
+                {{ course.difficulty === 1 ? '初级入门' : course.difficulty === 3 ? '高级架构' : '中级进阶' }}
+              </span>
+              <span class="learners">{{ course.learners }} 人在学</span>
+            </div>
+            <div class="course-price">
+              <span v-if="course.price > 0" class="price">¥{{ (course.price / 100).toFixed(2) }}</span>
+              <span v-else class="free">免费</span>
+              <span v-if="course.originalPrice > course.price" class="original-price">¥{{ (course.originalPrice / 100).toFixed(2) }}</span>
             </div>
           </div>
-        </el-carousel-item>
-      </el-carousel>
+        </div>
+      </div>
     </div>
 
     <!-- 继续学习快捷横幅 (登录用户专享) -->
@@ -118,72 +163,6 @@
       </div>
     </div>
 
-    <!-- 智能个性化专属推荐 (基于多智能体协同系统与 IT 知识图谱) -->
-    <div class="section container" v-if="personalizedCourses.length">
-      <!-- 多智能体协同推理实时动态看板 (Live Agent Reasoning HUD) -->
-      <AgentReasoningHUD @recalculate="handleRecalculateRecommendations" />
-
-      <div class="section-header">
-        <div class="header-left">
-          <h3 class="section-title">🎯 为您专属推荐 · 多智能体可解释决策流</h3>
-          <span class="section-sub">画像Agent诊断 · 算法SPI预测 · 课程分析Agent解构 · 大模型推演解释</span>
-        </div>
-        <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
-          <el-button type="success" plain round size="small" @click="openLearningPathModal">
-            🗺️ 查看 AI 学习成长路径
-          </el-button>
-          <el-button type="primary" link @click="$router.push('/search/index')">全部课程 <el-icon><ArrowRight /></el-icon></el-button>
-        </div>
-      </div>
-      <div class="course-grid">
-        <div
-          v-for="course in personalizedCourses"
-          :key="course.id"
-          class="course-card personalized-card"
-          @click="$router.push(`/details?id=${course.id}`)"
-        >
-          <div class="course-cover">
-            <img :src="course.cover || defaultCover" :alt="course.title" loading="lazy" @error="handleImgError" />
-            <div class="course-badge match" v-if="course.matchTag">{{ course.matchTag }}</div>
-            <div class="match-score-badge" v-if="course.matchScore">{{ course.matchScore }}% 契合</div>
-            <div class="stage-tag-badge" v-if="course.learningStage">{{ course.learningStage.slice(0, 4) }}</div>
-          </div>
-          <div class="course-info">
-            <h4 class="course-title" :title="course.title">{{ course.title }}</h4>
-
-            <!-- AI 推荐理由 (Explainable AI 大模型推演理由) -->
-            <div class="recommend-reason-row" v-if="course.recommendReason">
-              <span class="reason-icon">💡</span>
-              <span class="reason-text">{{ course.recommendReason }}</span>
-            </div>
-
-            <!-- 专项弥补短板标签 -->
-            <div class="skill-gap-row" v-if="course.skillGapFilled">
-              <span class="gap-icon">🎯</span>
-              <span class="gap-text">突破: {{ course.skillGapFilled }}</span>
-            </div>
-
-            <!-- 先修技能与实战标注 -->
-            <div class="prereq-row" v-if="course.prerequisiteSkills && course.prerequisiteSkills.length">
-              <span class="prereq-badge">先修: {{ course.prerequisiteSkills.join('、') }}</span>
-            </div>
-
-            <div class="course-meta">
-              <span class="teacher">{{ course.teacherName }}</span>
-              <span class="difficulty-tag" v-if="course.difficulty">
-                {{ course.difficulty === 1 ? '初级入门' : course.difficulty === 3 ? '高级架构' : '中级进阶' }}
-              </span>
-              <span class="learners">{{ course.learners }} 人在学</span>
-            </div>
-            <div class="course-price">
-              <span v-if="course.price > 0" class="price">¥{{ (course.price / 100).toFixed(2) }}</span>
-              <span v-else class="free">免费</span>
-              <span v-if="course.originalPrice > course.price" class="original-price">¥{{ (course.originalPrice / 100).toFixed(2) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- 热门排行与新课速递 -->
     <div class="section container rank-and-new-row">
@@ -276,14 +255,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Reading, ArrowRight, Pointer, Loading } from '@element-plus/icons-vue'
 import { getClassCategorys, getRecommendClassList, classSeach, getMylessons, getCourseLikeRanking, getPersonalizedRecommendations, getPersonalizedLearningPath } from '@/api/class.js'
-import { getBanners } from '@/api/home.js'
 import defaultCover from '@/assets/images/courses/default-cover.svg'
 import AgentReasoningHUD from '@/components/AgentReasoningHUD.vue'
 import CareerPathDrawer from '@/components/CareerPathDrawer.vue'
 
 const router = useRouter()
 
-const banners = ref([])
 const categories = ref([])
 const recommendCourses = ref([])
 const personalizedCourses = ref([])
@@ -348,10 +325,6 @@ const stats = computed(() => [
   { value: '99.2%', label: '学员好评率' }
 ])
 
-const goBanner = (banner) => {
-  router.push(banner.link || '/search/index')
-}
-
 const calcProgress = (item) => {
   if (!item) return 0
   const learned = Number(item.learnedSections || 0)
@@ -369,15 +342,7 @@ const goLearning = (item) => {
 }
 
 onMounted(async () => {
-  const bannerPalettes = [
-    { bg: '#1E293B', tag: '实战体系课' },
-    { bg: '#0F766E', tag: '前沿技术研习' },
-    { bg: '#1E40AF', tag: '系统化进阶' },
-    { bg: '#334155', tag: '技能拓展专题' }
-  ]
-
-  const [bannerResponse, categoryResponse, courseResponse, recommendResponse, hotResponse, newResponse, rankingResponse, personalizedResponse] = await Promise.allSettled([
-    getBanners(),
+  const [categoryResponse, courseResponse, recommendResponse, hotResponse, newResponse, rankingResponse, personalizedResponse] = await Promise.allSettled([
     getClassCategorys({ includeDisabled: false }),
     classSeach({ pageNo: 1, pageSize: 200 }),
     getRecommendClassList('home'),
@@ -386,33 +351,6 @@ onMounted(async () => {
     getCourseLikeRanking({ limit: 10 }),
     getPersonalizedRecommendations({ limit: 4 })
   ])
-
-  if (bannerResponse.status === 'fulfilled' && bannerResponse.value?.code === 200) {
-    const rows = Array.isArray(bannerResponse.value.data) ? bannerResponse.value.data : []
-    banners.value = rows.map((banner, index) => {
-      const palette = bannerPalettes[index % bannerPalettes.length]
-      return {
-        ...banner,
-        subtitle: banner.subtitle || '面向未来职业发展的专业在线教育知识库',
-        bgColor: palette.bg,
-        tag: palette.tag
-      }
-    })
-  }
-
-  // 兜底 banner 保证即使接口为空也具备专业视觉
-  if (!banners.value.length) {
-    banners.value = [
-      {
-        id: 'default-1',
-        title: '专业在线教育平台 · 智问学伴',
-        subtitle: '融汇体系化课程与 AI 智能助教，随时随地开启沉浸式学习',
-        bgColor: '#1E293B',
-        tag: '新一代在线学习',
-        link: '/search/index'
-      }
-    ]
-  }
 
   if (categoryResponse.status === 'fulfilled' && categoryResponse.value?.code === 200) {
     const data = categoryResponse.value.data
@@ -485,91 +423,20 @@ onMounted(async () => {
   box-sizing: border-box;
 }
 
-/* 轮播图/英雄区 */
-.banner-section {
-  width: 100%;
-  margin-bottom: 32px;
+/* 顶部核心区：AI 多智能体协同决策看板 */
+.hero-agent-section {
+  padding-top: 24px;
+  margin-bottom: 24px;
 }
 
-.banner-item {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  position: relative;
-  transition: background-color 0.4s ease;
-}
-
-.banner-inner {
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
-
-.banner-content {
-  max-width: 600px;
-  color: #FFFFFF;
-
-  .banner-badge {
-    display: inline-block;
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(4px);
-    color: #FFFFFF;
-    font-size: 12px;
-    font-weight: 500;
-    padding: 3px 12px;
-    border-radius: 4px;
-    margin-bottom: 16px;
-    letter-spacing: 0.5px;
-  }
-
-  .banner-title {
-    font-size: 32px;
-    font-weight: 700;
-    line-height: 1.25;
-    margin: 0 0 12px 0;
-    letter-spacing: -0.5px;
-  }
-
-  .banner-subtitle {
-    font-size: 15px;
-    color: #CBD5E1;
-    line-height: 1.5;
-    margin: 0 0 24px 0;
-  }
-
-  .banner-actions {
-    display: flex;
-    gap: 12px;
-
-    .action-btn {
-      background: #2563EB;
-      border-color: #2563EB;
-      font-weight: 600;
-      padding: 0 24px;
-      &:hover {
-        background: #1D4ED8;
-        border-color: #1D4ED8;
-      }
-    }
-
-    .browse-btn {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.3);
-      color: #FFFFFF;
-      font-weight: 500;
-      &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        color: #FFFFFF;
-      }
-    }
-  }
+.personalized-section {
+  margin-bottom: 36px;
 }
 
 /* 继续学习快捷条 */
 .continue-learning-wrapper {
-  margin-top: -16px;
-  margin-bottom: 32px;
+  margin-top: 0;
+  margin-bottom: 36px;
   position: relative;
   z-index: 10;
 }
