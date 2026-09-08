@@ -48,6 +48,45 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-08 06:05:00 - IT 行业主流技术知识库全域大规模导入（对齐 CS-Notes / JavaGuide / 大厂高频技术图谱 V26）完工发布
+
+* **任务背景**：
+  响应用户明确指示：“你应该收集it行业知识库，导入数据库作为知识库”。作为定位高品质 IT 在线职业与实训教育平台（“智问学伴”），平台客服不仅需要处理常规业务咨询，更需要作为学员的“全天候智能技术导师”，对学员在学习、实训过程中提问的 IT 核心技术、底层原理、高并发调优及大模型前沿技术给出权威、详尽、具备工业级深度的技术解答。
+* **技术知识库设计与对齐依据**：
+  全面对齐业界权威开源技术图谱（CS-Notes、JavaGuide、各大厂官方技术标准与高频技术面试题库），覆盖 11 大核心技术领域、122 条专业深度技术问答条目（IDs 101~222）：
+  1. **Java与后端开发** (12条, IDs 101~112)：HashMap 底层原理与扩容机制、ConcurrentHashMap 线程安全（分段锁与 CAS+synchronized）、基本类型与自动装拆箱缓存池、String 不可变性与 StringBuilder、反射核心原理与性能开销、异常体系与 Checked/Unchecked、线程池 7 大参数与拒绝策略、ThreadLocal 原理与内存泄漏防御、JVM 运行时数据区与堆栈划分、JVM 垃圾回收（G1/ZGC）、对象强软弱虚引用、Java 8 Stream API 避坑指南；
+  2. **Spring与微服务** (12条, IDs 113~124)：IoC 与 DI 核心解耦思想、Bean 完整生命周期（实例化到销毁八步法）、Bean 线程安全性与 5 大作用域、Spring AOP 底层（JDK 动态代理与 CGLIB）、Spring 事务传播机制与失效场景、Spring Boot 自动装配（`@EnableAutoConfiguration` / `AutoConfiguration.imports`）、`@SpringBootApplication` 组合注解、Spring Cloud 微服务 5 大核心组件生态、Nacos 注册/配置中心架构（Raft/Distro/长轮询）、OpenFeign 声明式 RPC 与超时重试、Sentinel 流量防护与滑动时间窗口（LeapArray）、Gateway 过滤器链与响应式 Netty 架构；
+  3. **MySQL与数据存储** (12条, IDs 125~136)：InnoDB 与 MyISAM 本质区别、索引选择 B+ 树的深层原因、聚簇索引/二级索引与回表查询、最左前缀原则与常见索引失效场景、事务 ACID 特性底层支撑（undo log / redo log / WAL）、四种事务隔离级别与 ReadView 快照读、MVCC 多版本并发控制底层（隐藏列与版本链）、当前读与 Next-Key Lock 解决幻读、慢 SQL 排查与 EXPLAIN 关键指标（type / rows / Extra）、主从复制原理（binlog/RelayLog）与主从延迟解决、分库分表与 ShardingSphere 路由改写架构、乐观锁（version 版本号）与悲观锁（FOR UPDATE）；
+  4. **Redis与高性能缓存** (12条, IDs 137~148)：单线程模型与 I/O 多路复用 epoll 高并发原理、五种基础数据结构底层编码（SDS/跳表SkipList/QuickList/ListPack/HashTable）、缓存穿透/击穿/雪崩三维防御（布隆过滤器/互斥锁/随机TTL）、分布式锁实现（SETNX PX + Lua 脚本释放）、Redlock 红锁算法与争议、持久化机制（RDB 写时复制 COW、AOF 刷盘与混合持久化）、8 种内存淘汰策略（LRU 与 LFU 深度对比）、惰性删除与定期删除协同、主从复制/哨兵 Sentinel 与集群 Cluster 选型、Redis Cluster 16384 哈希槽与数据分片、Redis 与 MySQL 双写一致性（Cache Aside 旁路缓存与延迟双删）、BigKey 与 HotKey 治理排查与热点打散；
+  5. **消息队列与中间件** (10条, IDs 149~158)：MQ 核心三大价值（异步解耦、削峰填谷、事件驱动）、Kafka / RocketMQ / RabbitMQ 全维度选型对比、Kafka 极限吞吐与零拷贝（sendfile/PageCache）、Kafka 分区与消费者组 Rebalance 机制、消息队列绝对顺序消费方案（生产/队列/消费三闭环）、高可靠消息防丢失（acks=all / ISR / 手动提交 Offset）、消费幂等性设计（唯一业务号/防重表/状态机）、消息积压 Backlog 应急扩容方案、RocketMQ 事务半消息与两阶段回查、RabbitMQ 延时队列（TTL + 死信交换机 DLX）；
+  6. **前端与全栈工程** (12条, IDs 159~170)：Vue 3 相比 Vue 2 重大突破（Proxy/Composition API/Tree-shaking）、Vue 3 响应式原理（Proxy + Reflect + track/trigger 依赖收集）、ref 与 reactive 差异与 `.value` 拆包机制、虚拟 DOM 与 Vue 3 快速 Diff 优化（Patch Flags / 静态提升 / 最长递增子序列 LIS）、computed 缓存与 watch/watchEffect 侦听区别、Vue 组件通信 6 大方式、React 核心（Fiber 架构/双向链表调和中断）、React Hooks 原理与闭包陷阱规避、Vite 极速冷启动（Native ESM + esbuild）对比 Webpack、浏览器跨域 CORS 原理与生产 Nginx 反向代理、TypeScript interface 与 type 区别及泛型应用、前端 Core Web Vitals 核心指标优化（LCP / INP / CLS）；
+  7. **云原生与Linux运维** (12条, IDs 171~182)：Docker 容器与虚拟机本质区别（Namespaces / Cgroups / UnionFS）、Docker 镜像分层存储与 Overlay2 写时复制、高质量 Dockerfile 编写黄金实践（多阶段构建/缓存复用/.dockerignore）、Docker Compose 容器编排与 bridge 网络服务名 DNS 解析、K8s 核心架构组件（Master 节点与 Node 节点各组件职能）、K8s Pod / Service / Ingress 拓扑网络关系、K8s 存活探针（liveness）与就绪探针（readiness）差异、Linux 系统高负载与 CPU/iowait 排查定位全套指令（top/vmstat/iostat/pidstat）、Linux 文本处理三剑客 grep/sed/awk 高频实操、Nginx 反向代理与负载均衡策略（轮询/加权/ip_hash/动静分离）、Nginx 高性能调优关键配置（worker_processes / sendfile / gzip / keepalive）、CI/CD 持续集成自动化流水线标准化落地；
+  8. **计算机网络与安全** (10条, IDs 183~192)：TCP 三次握手与四次挥手深度状态机及 2MSL 原因、TCP 与 UDP 协议全方位对比、TCP 可靠传输实现（确认重传/滑动窗口/慢启动/拥塞控制）、HTTP 1.1 / 2.0 / 3.0 (QUIC) 协议演进、HTTPS 混合加密握手流程（CA 根证书防伪签名/预主密钥）、HTTP 高频状态码全面解析（200/301/302/304/401/403/404/500/502/504）、Session / Cookie / Token 与 JWT 选型、无状态 JWT 内部三段结构与主动注销黑名单设计、常见 Web 安全漏洞防御（SQL 注入预编译 / XSS 转义与 HttpOnly / CSRF SameSite）、对称加密（AES）与非对称加密（RSA/ECC）原理与选型；
+  9. **数据结构与算法基础** (10条, IDs 193~202)：大 O 复杂度分析法则、数组与链表底层内存与局部性访问性能对比、哈希表哈希冲突解法（拉链法与开放寻址法）、二叉树前序/中序/后序深度遍历与层序 BFS 遍历、二叉搜索树 BST / 平衡二叉树 AVL 与红黑树演进与旋转平衡、快速排序与归并排序分治思想对比、二分查找边界细节与旋转有序数组对数查找、LRU 缓存淘汰算法（哈希表 + 双向链表 O(1) 设计）、动态规划四步法与状态转移方程推导、DFS 递归回溯与 BFS 队列广度优先适用场景；
+  10. **人工智能与现代大模型** (10条, IDs 203~212)：Transformer 核心架构与自注意力机制（Self-Attention / QKV 点积 / 多头注意力）、大模型 RAG 检索增强生成与向量数据库（Vector DB / HNSW 索引）、文本向量化嵌入（Text Embedding）与余弦相似度计算、大模型微调（Fine-Tuning）与提示工程（Prompt Engineering）选型策略、参数高效微调 LoRA（低秩适配 $W = W_0 + \frac{\alpha}{r}BA$）显存节约原理、AI Agent 智能体四大支柱（规划/记忆/工具/行动）、大模型生成控制参数调优（Temperature / Top_p / Top_k）、大模型“幻觉”工业落地五重防御（RAG约束/Guardrails/降低温度）、思维链（CoT, Chain of Thought）提示词工程实践、AI 大模型在智能在线教育场景（代码审查 Code Review / 智能导学 / 学情诊断）落地架构；
+  11. **系统架构与设计模式** (10条, IDs 213~222)：面向对象设计 SOLID 五大原则、单例模式双重检查锁定（DCL）与 `volatile` 防指令重排、策略模式与责任链模式在业务开发中的解耦应用、分布式 CAP 定理与 BASE 理论内涵、分布式事务选型（2PC / TCC / Seata AT 模式）、分布式唯一 ID 雪花算法（Snowflake 64 位结构与时钟回拨防御）、高并发架构三板斧（多级缓存/流量限流/服务降级）、微服务雪崩效应防范与熔断器状态机机制、领域驱动设计（DDD）战略设计（限界上下文）与战术设计（聚合根/实体/值对象）、读写分离与 CQRS（命令查询职责分离）在千万级系统中的应用。
+* **核心落地与验证**：
+  1. **数据库扩充与持久化迁移 (V26)**：
+     - 生成并上传迁移脚本 `share-parent/sql/migrations/V26__import_it_industry_knowledge_base.sql` 到线上 ECS 服务器；
+     - 在 `tianji-mysql` 容器中成功执行，`tj_customer.cs_knowledge` 数据库条目由 80 条扩充至 **202 条**，细分 21 大领域分类，全部采用 `utf8mb4` 编码；
+     - 清空 Redis `cs:*` 业务缓存键；
+  2. **高精度关键词与匹配打分优化**：
+     - 精准修复了短特征误匹配缺陷（如原先 `DI` 误匹配 `redis`、`GC` 误匹配 `springcloud` 等两字母子串），全面优化中英文自然搜索词素；
+     - 双基准套件联合验证：
+       * 30 组客服业务提问：**30/30 (100.0%)** 满分通过；
+       * 122 组 IT 行业技术提问：**122/122 (100.0%)** 满分通过；
+       * 152 组全域联合基准测试：**152/152 (100.0%)** 满分通过，零冲突、零串扰；
+  3. **线上生产环境网关 API 全链路验证**：
+     - 管理端知识库查询接口：验证 `total = 202` 条；
+     - 学生端客服会话自然语言问答交互测试：
+       * “Java 中 HashMap 的底层实现原理与扩容机制是怎样的？” ➔ 精准命中本地知识库（`model: local-knowledge`）；
+       * “Redis 为什么速度这么快？单线程模型为什么能支撑高并发？” ➔ 精准命中本地知识库（`model: local-knowledge`）；
+       * “MySQL 索引为什么选择 B+ 树而不是 B 树？” ➔ 精准命中本地知识库（`model: local-knowledge`）；
+       * “什么是大模型的 RAG？向量数据库起什么作用？” ➔ 精准命中本地知识库（`model: local-knowledge`）；
+       * “课程配套的源码在哪里下载？” ➔ 精准命中原有客服知识库（`model: local-knowledge`）；
+  4. **自动化冒烟测试**：
+     - 执行全站冒烟测试套件（含可写链路与业务流程）：**62/62 项通过 (100%)**。
+
 ### 2026-09-08 05:55:00 - 客服业务知识库与高频 FAQ 全域大规模扩充（对齐公开权威在线教育语料库 V25）完工发布
 
 * **任务背景**：
