@@ -169,7 +169,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, SuccessFilled } from '@element-plus/icons-vue'
 import { getTypeAll } from '@/api/api'
 import { getTeacherser } from '@/api/teacher'
-import { getCoursesPage, baseInfoSave, baseUpShelf, baseDownShelf, baseBeforeUpShelf, deleteCourses } from '@/api/curriculum'
+import { getCoursesPage, getCourseStatistics, baseInfoSave, baseUpShelf, baseDownShelf, baseBeforeUpShelf, deleteCourses } from '@/api/curriculum'
 import defaultCover from '@/assets/images/courses/default-cover.svg'
 
 // 分类数据
@@ -178,14 +178,21 @@ const categories = ref([])
 // 教师数据
 const teachers = ref([])
 
-// 统计卡片
-const allCourses = ref([])
+// 统计卡片 (真实数据库全量状态对齐)
+const courseStats = reactive({
+  total: 0,
+  published: 0,
+  pending: 0,
+  offline: 0,
+  finished: 0
+})
+
 const statCards = computed(() => [
-  { label: '课程总数', value: allCourses.value.length, bgColor: '#2563eb' },
-  { label: '已上架', value: allCourses.value.filter(item => Number(item.status) === 1).length, bgColor: '#16a34a' },
-  { label: '待上架', value: allCourses.value.filter(item => Number(item.status) === 0).length, bgColor: '#ea580c' },
-  { label: '已下架', value: allCourses.value.filter(item => Number(item.status) === 2).length, bgColor: '#64748b' },
-  { label: '已完结', value: allCourses.value.filter(item => Number(item.status) === 3).length, bgColor: '#0d9488' }
+  { label: '课程总数', value: courseStats.total, bgColor: '#2563eb' },
+  { label: '已上架', value: courseStats.published, bgColor: '#16a34a' },
+  { label: '待上架', value: courseStats.pending, bgColor: '#ea580c' },
+  { label: '已下架', value: courseStats.offline, bgColor: '#64748b' },
+  { label: '已完结', value: courseStats.finished, bgColor: '#0d9488' }
 ])
 
 const handleImgError = (e, item) => {
@@ -265,7 +272,12 @@ const loadReferenceData = async () => {
 const getCourseList = async () => {
   loading.value = true
   try {
-    const params = { pageNo: pagination.page, pageSize: pagination.pageSize, keyword: searchForm.keyword }
+    const params = {
+      pageNo: pagination.page,
+      pageSize: pagination.pageSize,
+      keyword: searchForm.keyword,
+      admin: true
+    }
     if (activeTab.value !== 'all') params.status = Number(activeTab.value)
     if (searchForm.categoryId) params.categoryId = searchForm.categoryId
     const res = await getCoursesPage(params)
@@ -273,17 +285,40 @@ const getCourseList = async () => {
     const data = res.data?.list || res.data?.rows || res.data || []
     courseList.value = (Array.isArray(data) ? data : []).map(normalizeCourse)
     pagination.total = Number(res.data?.total ?? res.total ?? courseList.value.length)
-    if (activeTab.value === 'all' && !searchForm.keyword && !searchForm.categoryId) allCourses.value = courseList.value
   } catch (error) { ElMessage.error(error?.message || '课程加载失败') }
   finally { loading.value = false }
 }
 
 const loadCourseStats = async () => {
   try {
-    const res = await getCoursesPage({ pageNo: 1, pageSize: 200 })
-    const data = res.data?.list || res.data?.rows || res.data || []
-    allCourses.value = (Array.isArray(data) ? data : []).map(normalizeCourse)
-  } catch (error) { allCourses.value = [] }
+    const res = await getCourseStatistics()
+    if (res?.code === 200 && res.data) {
+      courseStats.total = Number(res.data.total ?? 0)
+      courseStats.published = Number(res.data.published ?? 0)
+      courseStats.pending = Number(res.data.pending ?? 0)
+      courseStats.offline = Number(res.data.offline ?? 0)
+      courseStats.finished = Number(res.data.finished ?? 0)
+      return
+    }
+  } catch (error) {
+    console.warn('获取课程统计接口未响应，采用聚合查询兜底', error)
+  }
+  try {
+    const [totalRes, pubRes, pendRes, offRes, finRes] = await Promise.all([
+      getCoursesPage({ pageNo: 1, pageSize: 1, admin: true }),
+      getCoursesPage({ pageNo: 1, pageSize: 1, status: 1, admin: true }),
+      getCoursesPage({ pageNo: 1, pageSize: 1, status: 0, admin: true }),
+      getCoursesPage({ pageNo: 1, pageSize: 1, status: 2, admin: true }),
+      getCoursesPage({ pageNo: 1, pageSize: 1, status: 3, admin: true })
+    ])
+    courseStats.total = Number(totalRes.data?.total ?? 0)
+    courseStats.published = Number(pubRes.data?.total ?? 0)
+    courseStats.pending = Number(pendRes.data?.total ?? 0)
+    courseStats.offline = Number(offRes.data?.total ?? 0)
+    courseStats.finished = Number(finRes.data?.total ?? 0)
+  } catch (e) {
+    console.error('兜底统计加载失败', e)
+  }
 }
 
 // Tab 切换

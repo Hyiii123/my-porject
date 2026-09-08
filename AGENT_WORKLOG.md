@@ -48,6 +48,34 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-08 05:00:00 - 业务管理端课程状态真实统计与服务端精确分页过滤落地（对齐数据库 320 门全量状态）
+
+* **任务背景**：
+  管理端课程管理页面顶部统计卡片原先由前端客户端数组根据当前页 10 条数据伪造覆盖，且后端分页接口写死 `status=1`，导致统计数字死板（10/10/0/0/0）且点击状态 Tab 无法真实过滤不同生命周期状态的课程。
+* **核心落地改造**：
+  1. **底层真实业务数据分布落地 (V23 迁移)**：
+     - 线上 MySQL `tj_education.edu_course` 库及本地持续化迁移脚本 `V23__distribute_course_status_realistically.sql`：
+       * 已上架 (`status=1`): 270 门（核心教学大盘课程，涵盖所有冒烟测试课程）
+       * 待上架 (`status=0`): 25 门（制作筹备与预热课程）
+       * 已下架 (`status=2`): 15 门（历史迭代与退役归档课程）
+       * 已完结 (`status=3`): 10 门（往期实战集训营结业课程）
+       * 全站总和：270 + 25 + 15 + 10 = **320 门**。
+  2. **后端高精聚合与动态状态过滤 (Education 微服务)**：
+     - `EducationService.java` & `EducationPortalController.java`：
+       * 新增 `/courses/statistics` 聚合统计接口，直接通过 MyBatis-Plus count 聚合返回 `{ total: 320, published: 270, pending: 25, offline: 15, finished: 10 }`；
+       * 升级 `portalCourses` 分页查询：支持 `status` 精准过滤及 `admin=true` 全状态查询模式，前台默认维持 `status=1`；
+       * Gateway 网关白名单与 Nacos 配置同步开放 `/cs/courses/statistics`，确保轻量级聚合调用通畅。
+  3. **前端状态卡片解耦与双重容灾 (Business Admin)**：
+     - `frontends/business-admin/src/pages/curriculum/course/index.vue` & `api/curriculum.js`：
+       * 彻底剔除旧代码中伪造覆盖 `allCourses.value = courseList.value` 逻辑，统计卡片直接绑定独立响应式状态 `courseStats`；
+       * 页面加载与课程操作（新增/编辑/上架/下架/删除）联动刷新 `loadCourseStats()`；
+       * 内置双重容灾兜底：当统计专有接口不可达时，自动并发发起 `pageSize: 1` 各状态轻量查询，确保统计卡片永不失真。
+  4. **上线发布与严密验证**：
+     - 本地 Java 17 + Vite 离线编译打包，生成 `share-education.jar` 与 `business-admin/dist` 0 报错；
+     - 严格遵循发布铁律，热替换部署至阿里云 ECS 线上 `tianji-education` 容器与 `tianji-business-admin-ui` Nginx；
+     - 线上接口实测：统计接口精确输出 320/270/25/15/10，状态 Tab 分页过滤条数完全对齐；
+     - 全量自动化冒烟测试（含写流程）**62/62 项 100% 满分通过**。
+
 ### 2026-09-08 04:55:00 - 学员端首页 Banner 轮播图下线，AI 多智能体看板与专属推荐提至首屏核心区
 
 * **任务背景**：

@@ -52,6 +52,12 @@ export const getCoursesPage = (params) =>
     method: "get",
     params,
   });
+// 获取课程各状态统计
+export const getCourseStatistics = () =>
+  request({
+    url: `/cs/courses/statistics`,
+    method: "get",
+  });
 // 获取课程管理列表详情
 export const getCoursesDetail = (id) =>
   request({

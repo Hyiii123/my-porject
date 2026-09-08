@@ -553,7 +553,7 @@ public class EducationService {
         return legacySubjectGroups(courseId);
     }
 
-    /** 首页课程分页，data 结构兼容旧用户端：{total,list}。 */
+    /** 首页与管理端课程分页，data 结构兼容旧用户端：{total,list}。 */
     public Map<String, Object> portalCourses(Map<String, ?> params) {
         long pageNo = number(params, "pageNo", number(params, "pageNum", 1));
         long pageSize = number(params, "pageSize", 10);
@@ -561,9 +561,23 @@ public class EducationService {
         String keyword = text(params.get("keyword"));
         String sortBy = text(params.get("sortBy"));
         String priceType = text(params.get("priceType"));
+
+        Integer status = null;
+        Object statusObj = params.get("status");
+        if (statusObj != null && StringUtils.hasText(String.valueOf(statusObj))) {
+            try {
+                status = Integer.valueOf(String.valueOf(statusObj).trim());
+            } catch (Exception ignored) {
+            }
+        }
+        boolean isAdmin = "true".equalsIgnoreCase(String.valueOf(params.get("admin")))
+                || "admin".equalsIgnoreCase(String.valueOf(params.get("role")))
+                || Boolean.TRUE.equals(params.get("admin"));
+
         Page<EduCourse> page = new Page<>(safePage(pageNo), safeSize(pageSize));
         LambdaQueryWrapper<EduCourse> wrapper = new LambdaQueryWrapper<EduCourse>()
-                .eq(EduCourse::getStatus, ENABLED)
+                .eq(status != null, EduCourse::getStatus, status)
+                .eq(status == null && !isAdmin, EduCourse::getStatus, ENABLED)
                 .eq(categoryId != null && categoryId > 0, EduCourse::getCategoryId, categoryId)
                 .eq("free".equalsIgnoreCase(priceType), EduCourse::getIsFree, 1)
                 .gt("paid".equalsIgnoreCase(priceType), EduCourse::getPrice, BigDecimal.ZERO)
@@ -583,6 +597,22 @@ public class EducationService {
         }
         courseMapper.selectPage(page, wrapper);
         return pageView(page.getTotal(), page.getRecords().stream().map(this::courseView).toList());
+    }
+
+    /** 获取全站课程各状态分布统计，数据源直接对齐数据库真实表。 */
+    public Map<String, Object> courseStatistics() {
+        Map<String, Object> stats = new LinkedHashMap<>();
+        long total = defaultValue(courseMapper.selectCount(new LambdaQueryWrapper<>()), 0L);
+        long published = defaultValue(courseMapper.selectCount(new LambdaQueryWrapper<EduCourse>().eq(EduCourse::getStatus, 1)), 0L);
+        long pending = defaultValue(courseMapper.selectCount(new LambdaQueryWrapper<EduCourse>().eq(EduCourse::getStatus, 0)), 0L);
+        long offline = defaultValue(courseMapper.selectCount(new LambdaQueryWrapper<EduCourse>().eq(EduCourse::getStatus, 2)), 0L);
+        long finished = defaultValue(courseMapper.selectCount(new LambdaQueryWrapper<EduCourse>().eq(EduCourse::getStatus, 3)), 0L);
+        stats.put("total", total);
+        stats.put("published", published);
+        stats.put("pending", pending);
+        stats.put("offline", offline);
+        stats.put("finished", finished);
+        return stats;
     }
 
     public Map<String, Object> course(Long id) {

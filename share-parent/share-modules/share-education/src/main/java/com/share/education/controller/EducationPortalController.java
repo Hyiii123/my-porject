@@ -80,6 +80,11 @@ public class EducationPortalController extends BaseController {
         return success(educationService.portalCourses(params));
     }
 
+    @GetMapping({"/courses/statistics", "/courses/stats"})
+    public AjaxResult courseStatistics() {
+        return success(educationService.courseStatistics());
+    }
+
     @GetMapping("/courses/simpleInfo/list")
     public AjaxResult simpleCourses() {
         return success(educationService.simpleCourses());

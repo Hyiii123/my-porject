@@ -127,6 +127,8 @@ security:
       - /as/accounts/logout
       - /cs/categorys/**
       - /cs/courses/page
+      - /cs/courses/statistics
+      - /cs/courses/stats
       - /cs/courses/portal
       - /cs/courses/ranking/**
       - /cs/courses/recommendations/**
