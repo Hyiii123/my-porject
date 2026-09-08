@@ -288,16 +288,28 @@ const handleImgError = (e) => {
   }
 }
 
-const normalizeCourse = (course = {}) => ({
-  ...course,
-  id: course.id,
-  title: course.title || course.courseName || '未命名课程',
-  cover: course.cover || course.coverUrl || defaultCover,
-  teacherName: course.teacherName || '讲师团队',
-  price: Number(course.price || 0),
-  originalPrice: Number(course.originalPrice ?? course.price ?? 0),
-  learners: Number(course.learners ?? course.learnerCount ?? 0)
-})
+const normalizeCourse = (course = {}) => {
+  let price = Number(course.price || 0)
+  let originalPrice = Number(course.originalPrice ?? course.price ?? 0)
+  // 金额单位归一化保护：全站统一以分（cents）为标准单位。
+  // 若接口返回大于 0 且小于 1000 的元单位数值（如 199 元），防御性自动换算为分（19900 分）
+  if (price > 0 && price < 1000) {
+    price = Math.round(price * 100)
+  }
+  if (originalPrice > 0 && originalPrice < 1000) {
+    originalPrice = Math.round(originalPrice * 100)
+  }
+  return {
+    ...course,
+    id: course.id,
+    title: course.title || course.courseName || '未命名课程',
+    cover: course.cover || course.coverUrl || defaultCover,
+    teacherName: course.teacherName || '讲师团队',
+    price,
+    originalPrice,
+    learners: Number(course.learners ?? course.learnerCount ?? 0)
+  }
+}
 
 const normalizeRows = (response) => {
   const data = response?.data

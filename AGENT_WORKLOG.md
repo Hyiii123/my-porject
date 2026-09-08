@@ -48,6 +48,31 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-08 05:38:00 - 智能体个性化推荐卡片价格与数据库全面对齐完工发布
+
+* **任务背景**：
+  响应用户明确反馈：“价格应该跟数据库对上”。排查发现学员端首页推荐卡片价格展示出现 100 倍缩减偏差（如数据库中售价 199.00 元、原价 399.00 元，卡片却展示为 `¥1.99 ¥3.99`；ID 23 课程售价 399.00 元，展示为 `¥3.99`）。
+* **根本原因排查**：
+  1. **数据库存储标准**：`tj_education.edu_course` 中 `price` 与 `original_price` 以元（Yuan）为单位存储为 `DECIMAL(10,2)`（例如 `199.00`、`399.00`）。
+  2. **全站协议约定**：全站通用接口（如 `/cs/courses/portal`、`/cs/courses/recommend/*`、`/courses/baseInfo/*`、交易订单结算与购物车）在输出给前端时，统一通过 `moneyCents(BigDecimal)` 转换为**分（cents）**（例如 `199.00 元` -> `19900 分`），前端所有卡片与详情页模板统一通过 `¥{{ (course.price / 100).toFixed(2) }}` 格式化为元。
+  3. **偏差所在**：`RecommendationAgent.java` 在组装 `CandidateCourseDTO` 时，误用了 `c.getPrice().longValue()`（取出了元数值 `199L`），并且在 `EducationService.personalizedRecommendations` 中直接用 `vo.getPrice()` 覆盖了 `courseView` 中的 `moneyCents` 分值，导致推荐接口输出了 `price: 199`。前端模板执行 `199 / 100` 后渲染出 `¥1.99`。
+* **核心落地改造**：
+  1. **后端推荐 Agent 价格单位标准化**：
+     - `RecommendationAgent.java`：在 `recallCandidates` 与 `fallbackRecall` 中，将价格转换规范化为 `c.getPrice().multiply(BigDecimal.valueOf(100)).longValue()`，原始价格同理；
+     - `EducationService.java`：在 `personalizedRecommendations` 中，价格映射优先严格采用 `moneyCents(c.getPrice())` 与数据库实体对齐，避免 DTO 标量偏差。
+  2. **前端防御性货币单位归一化**：
+     - `frontends/portal/src/pages/main/index.vue` 与 `classSearch/index.vue`：在 `normalizeCourse` 中加入货币单位自动归一化逻辑，防御性兼容元与分单位。
+  3. **线上缓存刷新与验证发布**：
+     - 本地 JDK 17 重新打包 `share-education.jar`（10/10 模块构建 0 报错），Vite 重新构建 `portal/dist`；
+     - 产物热同步至阿里云 ECS `tianji-education` 与 `tianji-portal-ui`，清除 Redis `edu:ai:recommend:*` 历史缓存；
+     - 实测 `/cs/courses/recommendations/personalized` 接口：
+       - ID 23 课程（Next.js 14）：Price `39900`（¥399.00），OriginalPrice `44900`（¥449.00）；
+       - ID 33 课程（NestJS）：Price `29900`（¥299.00），OriginalPrice `39900`（¥399.00）；
+       - ID 28 课程（Node.js）：Price `12900`（¥129.00），OriginalPrice `22900`（¥229.00）；
+       - ID 6 课程（Node.js 后端）：Price `18900`（¥189.00），OriginalPrice `37900`（¥379.00）；
+       - 讲师团队名精准对齐为“智问教研团队”；
+     - 线上冒烟测试 62/62 项 100% 通过（含可写链路与交易链）。
+
 ### 2026-09-08 05:25:00 - 全站“天机”/“tianji”全域对齐与品牌重命名“智问”/“zhiwen”完工发布
 
 * **任务背景**：

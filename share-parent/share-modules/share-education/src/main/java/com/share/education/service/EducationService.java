@@ -746,8 +746,16 @@ public class EducationService {
             view.put("courseName", vo.getTitle());
             view.put("cover", vo.getCover());
             view.put("coverUrl", vo.getCoverUrl());
-            view.put("price", vo.getPrice());
-            view.put("originalPrice", vo.getOriginalPrice());
+            if (c != null && c.getPrice() != null) {
+                view.put("price", moneyCents(c.getPrice()));
+            } else {
+                view.put("price", vo.getPrice());
+            }
+            if (c != null && c.getOriginalPrice() != null) {
+                view.put("originalPrice", moneyCents(c.getOriginalPrice()));
+            } else {
+                view.put("originalPrice", vo.getOriginalPrice());
+            }
             view.put("teacherName", vo.getTeacherName());
             view.put("difficulty", vo.getDifficulty());
             view.put("learners", vo.getLearners());

@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,37 +50,44 @@ public class RecommendationAgent {
      * @return 结构化候选课程列表
      */
     public List<CandidateCourseDTO> recallCandidates(UserProfileContext profile, int targetCount) {
-        int recallPoolSize = Math.max(targetCount * 2, 20);
-
-        // 1. 调用算法引擎 SPI 召回首批候选 (包含用户自研模型的打分)
-        List<AlgorithmCandidateDTO> algoCandidates = algorithmEngine.recallCandidates(
-            profile.getUserId(), profile, recallPoolSize
-        );
+        // 1. 调用可插拔/实验算法引擎召回基础候选池
+        List<AlgorithmCandidateDTO> algoCandidates = algorithmEngine.recallCandidates(profile.getUserId(), profile, targetCount * 2);
 
         if (algoCandidates == null || algoCandidates.isEmpty()) {
-            log.warn("算法引擎 [{}] 召回为空，启用系统兜底召回", algorithmEngine.getEngineName());
             return fallbackRecall(profile, targetCount);
         }
 
-        // 2. 批量加载课程与分类详情
+        // 2. 批量拉取课程实体与分类
         List<Long> courseIds = algoCandidates.stream()
             .map(AlgorithmCandidateDTO::getCourseId)
-            .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
-        Map<Long, EduCourse> courseMap = courseMapper.selectBatchIds(courseIds).stream()
-            .collect(Collectors.toMap(EduCourse::getId, c -> c, (a, b) -> a));
+        List<EduCourse> courses = courseMapper.selectBatchIds(courseIds);
+        Map<Long, EduCourse> courseMap = courses.stream()
+            .filter(c -> c.getStatus() != null && c.getStatus() == 1)
+            .collect(Collectors.toMap(EduCourse::getId, c -> c));
 
-        Map<Long, String> categoryMap = categoryMapper.selectList(new LambdaQueryWrapper<EduCategory>()).stream()
-            .collect(Collectors.toMap(EduCategory::getId, EduCategory::getCategoryName, (a, b) -> a));
+        // 3. 批量拉取分类信息
+        Set<Long> categoryIds = courses.stream()
+            .map(EduCourse::getCategoryId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
 
-        // 3. 组装候选 DTO 并进行多样性打散 (同一大类不超过 2 门，保证视野宽阔)
+        Map<Long, String> categoryMap = categoryIds.isEmpty() ? Collections.emptyMap() :
+            categoryMapper.selectBatchIds(categoryIds).stream()
+                .collect(Collectors.toMap(EduCategory::getId, EduCategory::getCategoryName));
+
+        // 4. 多样性控制与重排组装 (每个分类至多保留 3 门)
         List<CandidateCourseDTO> result = new ArrayList<>();
         Map<Long, Integer> categoryCount = new HashMap<>();
 
         for (AlgorithmCandidateDTO ac : algoCandidates) {
             EduCourse c = courseMap.get(ac.getCourseId());
-            if (c == null || c.getStatus() == null || c.getStatus() != 1) {
+            if (c == null) continue;
+
+            // 过滤用户已购课程
+            if (profile != null && profile.getEnrolledCourseIds() != null
+                && profile.getEnrolledCourseIds().contains(c.getId())) {
                 continue;
             }
 
@@ -99,8 +107,8 @@ public class RecommendationAgent {
                 .coverUrl(c.getCoverUrl())
                 .categoryId(catId)
                 .categoryName(categoryMap.getOrDefault(catId, "前沿技术"))
-                .price(c.getPrice() != null ? c.getPrice().longValue() : 0L)
-                .originalPrice(c.getOriginalPrice() != null ? c.getOriginalPrice().longValue() : 0L)
+                .price(c.getPrice() != null ? c.getPrice().multiply(BigDecimal.valueOf(100)).longValue() : 0L)
+                .originalPrice(c.getOriginalPrice() != null ? c.getOriginalPrice().multiply(BigDecimal.valueOf(100)).longValue() : 0L)
                 .teacherName("智问教研团队")
                 .difficultyLevel(c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2)
                 .skills(c.getSkills())
@@ -132,8 +140,8 @@ public class RecommendationAgent {
             .coverUrl(c.getCoverUrl())
             .categoryId(c.getCategoryId())
             .categoryName("热门好课")
-            .price(c.getPrice() != null ? c.getPrice().longValue() : 0L)
-            .originalPrice(c.getOriginalPrice() != null ? c.getOriginalPrice().longValue() : 0L)
+            .price(c.getPrice() != null ? c.getPrice().multiply(BigDecimal.valueOf(100)).longValue() : 0L)
+            .originalPrice(c.getOriginalPrice() != null ? c.getOriginalPrice().multiply(BigDecimal.valueOf(100)).longValue() : 0L)
             .teacherName("智问教研团队")
             .difficultyLevel(c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2)
             .skills(c.getSkills())
