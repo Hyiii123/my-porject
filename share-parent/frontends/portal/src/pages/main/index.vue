@@ -125,7 +125,12 @@
           <h3 class="section-title">🎯 为您专属推荐</h3>
           <span class="section-sub">基于您的学习轨迹、技术偏好与 IT 知识图谱智能多路召回</span>
         </div>
-        <el-button type="primary" link @click="$router.push('/search/index')">全部课程 <el-icon><ArrowRight /></el-icon></el-button>
+        <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
+          <el-button type="success" plain round size="small" @click="openLearningPathModal">
+            🗺️ 查看 AI 学习成长路径
+          </el-button>
+          <el-button type="primary" link @click="$router.push('/search/index')">全部课程 <el-icon><ArrowRight /></el-icon></el-button>
+        </div>
       </div>
       <div class="course-grid">
         <div
@@ -242,14 +247,64 @@
         </div>
       </div>
     </div>
+
+    <!-- AI 学习成长路径规划弹窗 -->
+    <el-dialog
+      v-model="pathModalVisible"
+      title="🚀 AI 多智能体个性化学习成长路径规划"
+      width="820px"
+      append-to-body
+      class="learning-path-dialog"
+    >
+      <div v-if="learningPathLoading" class="path-loading" style="text-align: center; padding: 40px 0;">
+        <el-icon class="is-loading" :size="32"><Loading /></el-icon>
+        <p style="margin-top: 12px; color: #64748b; font-size: 14px;">多智能体推荐流水线正在解析您的学情并进行路线拓扑编排...</p>
+      </div>
+      <div v-else-if="learningPathData" class="path-modal-body">
+        <div class="path-banner-summary" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+          <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px;">🎯 规划目标岗位：<span style="color: #38bdf8;">{{ learningPathData.intendedRole }}</span></div>
+          <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 8px;">{{ learningPathData.overallGoal }} · 共规划 {{ learningPathData.totalCourses }} 门进阶课 · 预计 {{ learningPathData.totalEstimatedHours }} 深度学时</div>
+          <div style="font-size: 12px; color: #94a3b8;" v-if="learningPathData.referenceStandard">📌 行业标准依据：{{ learningPathData.referenceStandard }}</div>
+        </div>
+        <div class="path-stages-container">
+          <div v-for="stage in learningPathData.stages" :key="stage.stageIndex" class="stage-section" style="margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; background: #fafafa;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div>
+                <span style="display: inline-block; background: #0284c7; color: #fff; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-right: 8px;">Stage {{ stage.stageIndex }}</span>
+                <span style="font-weight: 700; font-size: 15px; color: #1e293b;">{{ stage.stageName }}</span>
+              </div>
+              <span style="font-size: 12px; color: #64748b;">⏱️ 预计 {{ stage.estimatedHours }} 学时</span>
+            </div>
+            <div style="font-size: 13px; color: #475569; margin-bottom: 12px;">{{ stage.stageGoal }}</div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+              <div
+                v-for="c in stage.courses"
+                :key="c.courseId"
+                style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s;"
+                @click="goCourseDetail(c.courseId)"
+              >
+                <div style="font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📘 {{ c.courseName }}</div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #0284c7; margin-bottom: 6px;">
+                  <span>{{ c.difficultyAssessment }}</span>
+                  <span style="color: #10b981;">实战占比 {{ c.practicalWeight }}%</span>
+                </div>
+                <div style="font-size: 11px; color: #64748b;" v-if="c.prerequisiteSkills && c.prerequisiteSkills.length">
+                  先修依赖：{{ c.prerequisiteSkills.join('、') }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Reading, ArrowRight, Pointer } from '@element-plus/icons-vue'
-import { getClassCategorys, getRecommendClassList, classSeach, getMylessons, getCourseLikeRanking, getPersonalizedRecommendations } from '@/api/class.js'
+import { Reading, ArrowRight, Pointer, Loading } from '@element-plus/icons-vue'
+import { getClassCategorys, getRecommendClassList, classSeach, getMylessons, getCourseLikeRanking, getPersonalizedRecommendations, getPersonalizedLearningPath } from '@/api/class.js'
 import { getBanners } from '@/api/home.js'
 import defaultCover from '@/assets/images/courses/default-cover.svg'
 
@@ -264,6 +319,32 @@ const rankingCourses = ref([])
 const newCourses = ref([])
 const allCourses = ref([])
 const recentLearning = ref(null)
+
+const pathModalVisible = ref(false)
+const learningPathLoading = ref(false)
+const learningPathData = ref(null)
+
+const openLearningPathModal = async () => {
+  pathModalVisible.value = true
+  if (learningPathData.value) return
+  learningPathLoading.value = true
+  try {
+    const res = await getPersonalizedLearningPath()
+    if (res && res.code === 200 && res.data) {
+      learningPathData.value = res.data
+    }
+  } catch (e) {
+    console.error('获取学习路径规划失败:', e)
+  } finally {
+    learningPathLoading.value = false
+  }
+}
+
+const goCourseDetail = (courseId) => {
+  if (!courseId) return
+  pathModalVisible.value = false
+  router.push(`/details?id=${courseId}`)
+}
 
 const handleImgError = (e) => {
   if (e?.target && e.target.src !== defaultCover) {

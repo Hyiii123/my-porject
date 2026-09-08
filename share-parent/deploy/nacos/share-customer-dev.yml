@@ -26,10 +26,10 @@ mybatis-plus:
 
 customer:
   ai:
-    base-url: ${TJ_PIXEL_API_BASE_URL:https://api.ai-pixel.online}
-    endpoint-path: ${TJ_PIXEL_API_ENDPOINT:/v1/responses}
-    model: ${TJ_PIXEL_API_MODEL:gpt-5.5}
-    secret: ${TJ_AI_SECRET:}
+    base-url: ${TJ_PIXEL_API_BASE_URL:https://ai-pixel.online}
+    endpoint-path: ${TJ_PIXEL_API_ENDPOINT:/v1/chat/completions}
+    model: ${TJ_PIXEL_API_MODEL:gpt-5.4-mini}
+    secret: ${TJ_AI_SECRET:sk-bbca5271c9ed04fa86449bf5e18e236cdd42830e47a1b32591ffba7aff538ec9}
     timeout-ms: ${TJ_PIXEL_API_TIMEOUT_MS:30000}
     max-retries: ${TJ_PIXEL_API_MAX_RETRIES:1}
     system-prompt: ${TJ_PIXEL_API_SYSTEM_PROMPT:你是智问学伴的在线客服，请使用简洁、友好、准确的中文回答学习平台用户的问题；不确定时请明确说明，不要编造订单或账号信息。}

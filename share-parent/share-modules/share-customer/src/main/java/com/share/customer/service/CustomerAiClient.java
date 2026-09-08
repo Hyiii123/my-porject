@@ -264,8 +264,10 @@ public class CustomerAiClient {
     private String buildUrl(String baseUrl, String endpointPath) {
         try {
             URI base = URI.create(baseUrl == null ? "" : baseUrl.trim());
+            String host = base.getHost();
             if (!"https".equalsIgnoreCase(base.getScheme())
-                    || !ALLOWED_HOST.equalsIgnoreCase(base.getHost())) {
+                    || host == null
+                    || (!host.equalsIgnoreCase("ai-pixel.online") && !host.equalsIgnoreCase("api.ai-pixel.online"))) {
                 return null;
             }
             String path = endpointPath == null ? "" : endpointPath.trim();

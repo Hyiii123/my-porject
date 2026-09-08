@@ -61,6 +61,9 @@ import com.share.education.mapper.EduReplyMapper;
 import com.share.education.mapper.EduSignRecordMapper;
 import com.share.education.mapper.EduTeacherMapper;
 import com.share.education.mapper.EduUserPortraitMapper;
+import com.share.education.ai.orchestrator.MultiAgentRecommendOrchestrator;
+import com.share.education.ai.model.PersonalizedRecommendVO;
+import com.share.education.ai.model.LearningPathPlan;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -123,6 +126,7 @@ public class EducationService {
     private final EduUserPortraitMapper portraitMapper;
     private final ObjectMapper objectMapper;
     private final RedisService redisService;
+    private final MultiAgentRecommendOrchestrator multiAgentOrchestrator;
 
     public EducationService(EduBannerMapper bannerMapper, EduCategoryMapper categoryMapper,
             EduDashboardDailyMapper dashboardDailyMapper,
@@ -138,7 +142,8 @@ public class EducationService {
             EduExamQuestionMapper examQuestionMapper, EduExamRecordMapper examRecordMapper,
             EduExamAnswerMapper examAnswerMapper, EduSignRecordMapper signMapper,
             EduPointsLedgerMapper pointsMapper, EduUserPortraitMapper portraitMapper,
-            ObjectMapper objectMapper, RedisService redisService) {
+            ObjectMapper objectMapper, RedisService redisService,
+            MultiAgentRecommendOrchestrator multiAgentOrchestrator) {
         this.bannerMapper = bannerMapper;
         this.categoryMapper = categoryMapper;
         this.dashboardDailyMapper = dashboardDailyMapper;
@@ -167,6 +172,7 @@ public class EducationService {
         this.portraitMapper = portraitMapper;
         this.objectMapper = objectMapper;
         this.redisService = redisService;
+        this.multiAgentOrchestrator = multiAgentOrchestrator;
     }
 
     public List<Map<String, Object>> listCategories(boolean includeDisabled) {
@@ -689,7 +695,7 @@ public class EducationService {
     }
 
     /**
-     * 基于学员多维画像的个性化课程多路召回与自适应推荐流。
+     * 基于 Spring AI Alibaba 多智能体系统的学员个性化课程推荐与可解释性分析。
      * 未登录访客优雅降级为冷启动全站高分与热门推荐。
      */
     public List<Map<String, Object>> personalizedRecommendations(int limit) {
@@ -699,136 +705,43 @@ public class EducationService {
             currentUid = SecurityUtils.getUserId();
         } catch (Exception ignored) {}
 
-        Set<Long> enrolledIds = Collections.emptySet();
-        Map<String, Object> portraitView = null;
-        if (currentUid != null && currentUid > 0) {
-            enrolledIds = learningMapper.selectList(new LambdaQueryWrapper<EduLearningRecord>()
-                    .eq(EduLearningRecord::getUserId, currentUid)).stream()
-                    .map(EduLearningRecord::getCourseId).filter(Objects::nonNull).collect(Collectors.toSet());
-            portraitView = getUserPortrait(currentUid);
-        }
-
-        List<EduCourse> allActive = courseMapper.selectList(new LambdaQueryWrapper<EduCourse>()
-                .eq(EduCourse::getStatus, ENABLED)
-                .orderByDesc(EduCourse::getLearnerCount));
-
-        @SuppressWarnings("unchecked")
-        Map<String, Integer> userSkills = portraitView != null ? (Map<String, Integer>) portraitView.get("skillWeights") : Collections.emptyMap();
-        String intendedRole = portraitView != null ? String.valueOf(portraitView.get("intendedRole")) : "";
-        int preferredDifficulty = portraitView != null ? intValue(portraitView.get("preferredDifficulty"), 2) : 2;
-
-        final Set<Long> enrolledSet = enrolledIds;
-        List<Map<String, Object>> scoredList = new ArrayList<>();
-
-        // 密集特征向量构建 (Dense Skill Vector Embedding)
-        double[] userVector = buildUserSkillVector(userSkills);
-
-        for (EduCourse c : allActive) {
-            if (enrolledSet.contains(c.getId())) {
-                continue;
-            }
-
-            double score = 40.0;
-            String recommendReason = "精选高分技术好课";
-            String matchTag = "精选进阶";
-
-            // 1. 向量空间相似度检索 (Cosine Similarity Search)
-            double[] courseVector = buildCourseSkillVector(c);
-            double vectorSimilarity = computeCosineSimilarity(userVector, courseVector);
-            double vectorScore = vectorSimilarity * 35.0;
-
-            // 2. 离散技术栈图谱重叠度计算
-            double skillMatchScore = 0.0;
-            String bestMatchedSkill = null;
-            if (StringUtils.hasText(c.getSkills()) && userSkills != null && !userSkills.isEmpty()) {
-                String[] skills = c.getSkills().split("[,，、]+");
-                for (String s : skills) {
-                    String trimmed = s.trim();
-                    if (userSkills.containsKey(trimmed)) {
-                        int weight = userSkills.get(trimmed);
-                        skillMatchScore += weight * 0.35;
-                        if (bestMatchedSkill == null) bestMatchedSkill = trimmed;
-                    }
-                }
-            }
-
-            // 综合密集向量相似度与离散技能加权（取其高者）
-            score += Math.max(Math.min(35.0, skillMatchScore), vectorScore);
-
-            boolean roleMatched = false;
-            if (StringUtils.hasText(intendedRole) && StringUtils.hasText(c.getTargetRole())) {
-                if (c.getTargetRole().contains(intendedRole) || intendedRole.contains(c.getTargetRole())) {
-                    score += 20.0;
-                    roleMatched = true;
-                }
-            }
-
-            int courseDiff = c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2;
-            if (courseDiff == preferredDifficulty) {
-                score += 15.0;
-            } else if (courseDiff == preferredDifficulty + 1) {
-                score += 10.0;
-            } else if (courseDiff == 3 && preferredDifficulty == 1) {
-                score -= 15.0;
-            }
-
-            Double zScore = redisService.zScore("edu:course:likes:zset", String.valueOf(c.getId()));
-            long likes = zScore != null ? Math.max(0, zScore.longValue()) : (c.getLearnerCount() != null ? c.getLearnerCount() : 0);
-            score += Math.min(10.0, likes / 2500.0);
-
-            if (roleMatched) {
-                recommendReason = "契合您的目标岗位【" + c.getTargetRole() + "】";
-                matchTag = "岗位强匹配";
-            } else if (vectorSimilarity >= 0.35) {
-                recommendReason = "基于技术图谱向量契合度 (" + Math.round(vectorSimilarity * 100) + "%) 推荐";
-                matchTag = "向量高匹配";
-            } else if (bestMatchedSkill != null) {
-                recommendReason = "基于您的【" + bestMatchedSkill + "】技术栈进阶";
-                matchTag = "技能图谱匹配";
-            } else if (courseDiff == preferredDifficulty) {
-                recommendReason = "适合您当前【" + (courseDiff == 1 ? "初级入门" : courseDiff == 3 ? "高级架构" : "中级进阶") + "】阶段实战";
-                matchTag = "难度适配";
-            } else {
-                recommendReason = "近 7 天全站学员高频点赞热榜课程";
-                matchTag = "热门精选";
-            }
-
-            Map<String, Object> view = courseView(c);
-            view.put("matchScore", Math.min(99, Math.max(65, (int) Math.round(score))));
-            view.put("vectorSimilarity", (int) Math.round(vectorSimilarity * 100));
-            view.put("recommendReason", recommendReason);
-            view.put("matchTag", matchTag);
-            view.put("_score", score);
-            scoredList.add(view);
-        }
-
-        if (scoredList.size() < safeLimit) {
-            for (EduCourse c : allActive) {
-                if (scoredList.stream().anyMatch(item -> Objects.equals(item.get("id"), c.getId()))) continue;
-                Map<String, Object> view = courseView(c);
-                view.put("matchScore", 85);
-                view.put("recommendReason", "经典必修课程推荐");
-                view.put("matchTag", "必修推荐");
-                view.put("_score", 50.0);
-                scoredList.add(view);
-                if (scoredList.size() >= safeLimit) break;
-            }
-        }
-
-        scoredList.sort((a, b) -> Double.compare((Double) b.get("_score"), (Double) a.get("_score")));
-
-        Map<Long, Integer> categoryCount = new LinkedHashMap<>();
+        List<PersonalizedRecommendVO> recommendList = multiAgentOrchestrator.recommendCourses(currentUid, safeLimit);
         List<Map<String, Object>> result = new ArrayList<>();
-        for (Map<String, Object> item : scoredList) {
-            Long catId = longValue(item.get("categoryId"));
-            int count = categoryCount.getOrDefault(catId, 0);
-            if (count < 2 || (result.size() + (scoredList.size() - result.size()) <= safeLimit)) {
-                result.add(item);
-                if (catId != null) categoryCount.put(catId, count + 1);
-            }
-            if (result.size() >= safeLimit) break;
+
+        for (PersonalizedRecommendVO vo : recommendList) {
+            EduCourse c = courseMapper.selectById(vo.getId());
+            Map<String, Object> view = (c != null) ? courseView(c) : new LinkedHashMap<>();
+            view.put("id", vo.getId());
+            view.put("title", vo.getTitle());
+            view.put("courseName", vo.getTitle());
+            view.put("cover", vo.getCover());
+            view.put("coverUrl", vo.getCoverUrl());
+            view.put("price", vo.getPrice());
+            view.put("originalPrice", vo.getOriginalPrice());
+            view.put("teacherName", vo.getTeacherName());
+            view.put("difficulty", vo.getDifficulty());
+            view.put("learners", vo.getLearners());
+            view.put("matchScore", vo.getMatchScore());
+            view.put("matchTag", vo.getMatchTag());
+            view.put("recommendReason", vo.getRecommendReason());
+            view.put("learningStage", vo.getLearningStage());
+            view.put("skillGapFilled", vo.getSkillGapFilled());
+            view.put("prerequisiteSkills", vo.getPrerequisiteSkills());
+            result.add(view);
         }
+
         return result;
+    }
+
+    /**
+     * 获取学员专属的 AI 阶段化学习成长进阶路径规划 (学习路线规划图)。
+     */
+    public LearningPathPlan getPersonalizedLearningPath() {
+        Long currentUid = null;
+        try {
+            currentUid = SecurityUtils.getUserId();
+        } catch (Exception ignored) {}
+        return multiAgentOrchestrator.getLearningPath(currentUid);
     }
 
     /** 标准化 50 维 IT 技术栈特征向量空间字典 (Dense Skill Vector Dimensions) */
@@ -921,6 +834,7 @@ public class EducationService {
             }
             portrait.setUpdateTime(LocalDateTime.now());
             portraitMapper.updateById(portrait);
+            multiAgentOrchestrator.invalidateUserCache(targetUid);
         }
         return portraitView(portrait);
     }

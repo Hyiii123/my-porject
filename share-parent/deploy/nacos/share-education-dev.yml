@@ -23,3 +23,18 @@ mybatis-plus:
       logic-delete-field: delFlag
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+ai:
+  recommend:
+    enabled: true
+    api-key: ${AI_API_KEY:sk-bbca5271c9ed04fa86449bf5e18e236cdd42830e47a1b32591ffba7aff538ec9}
+    base-url: ${AI_BASE_URL:https://ai-pixel.online/v1}
+    model: ${AI_MODEL:gpt-5.4-mini}
+    temperature: 0.7
+    timeout-ms: 8000
+    cache-ttl-minutes: 15
+    python-service:
+      enabled: true
+      url: ${PYTHON_REC_SERVICE_URL:http://127.0.0.1:5000/api/recommend/predict}
+      timeout-ms: 2500
+

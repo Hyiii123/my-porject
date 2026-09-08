@@ -314,3 +314,11 @@ request({
 	method: 'get',
 	params
 })
+
+// 获取基于多智能体系统与 RAG 知识图谱生成的学员个性化进阶路线规划图
+export const getPersonalizedLearningPath = () =>
+request({
+	url: `${COURSE_API_PREFIX}/courses/recommendations/learning-path`,
+	method: 'get'
+})
+

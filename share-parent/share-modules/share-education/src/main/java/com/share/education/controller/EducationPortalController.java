@@ -100,6 +100,14 @@ public class EducationPortalController extends BaseController {
         return success(educationService.personalizedRecommendations(limit));
     }
 
+    /**
+     * 获取基于多智能体系统与 RAG 知识图谱生成的学员个性化进阶路线规划图。
+     */
+    @GetMapping({"/courses/recommendations/learning-path", "/courses/recommend/learning-path"})
+    public AjaxResult personalizedLearningPath() {
+        return success(educationService.getPersonalizedLearningPath());
+    }
+
     @GetMapping("/user/portrait")
     public AjaxResult userPortrait() {
         return success(educationService.getUserPortrait(null));

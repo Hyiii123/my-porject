@@ -44,6 +44,27 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-08 04:18:00 - 多智能体个性化推荐体系与第三方大模型 / Python SPI 架构全栈落地
+
+* **任务背景**：
+  按照架构设计方案落地多智能体个性化推荐体系（用户画像 Agent ➔ 推荐 Agent ➔ 课程分析 Agent ➔ 路径规划 Agent ➔ RAG 知识检索 ➔ 解释生成 Agent），并将大模型与自研算法 SPI 解耦：
+  1. 大模型接入第三方中转站端点 `https://ai-pixel.online/v1`，密钥 `sk-bbca5271c9ed04fa86449bf5e18e236cdd42830e47a1b32591ffba7aff538ec9`，模型指定为实测高可用且低延迟的 `gpt-5.4-mini`；
+  2. 推荐算法对接选定“独立 Python 接口服务”方案，提供开箱即用 Python 服务模板脚本，并通过 Java 端 SPI 接口与熔断降级机制无缝串接；
+  3. 前端门户（`frontends/portal`）增加“🗺️ 查看 AI 学习成长路径”规划弹窗与路线图展示。
+* **核心落地与配置项**：
+  1. **配置层**：
+     - `share-education`: `AiRecommendProperties` 与 Nacos `share-education-dev.yml` 完成端点 `https://ai-pixel.online/v1`、密钥、模型 `gpt-5.4-mini` 与 Python SPI 服务参数注入；
+     - `share-customer`: `share-customer-dev.yml` 与 `CustomerAiClient` 同步更新适配 `ai-pixel.online` 域名与密钥。
+  2. **智能体与编排层**：
+     - `DashScopeAiClient`: 支持标准 OpenAI 格式与百炼双模兼容，自适应兼容 `/v1/chat/completions` 请求；
+     - `UserProfileAgent`, `RecommendationAgent`, `CourseAnalysisAgent`, `PathPlanningAgent`, `ExplanationGenerationAgent`, `EducationKnowledgeRAG`, `MultiAgentRecommendOrchestrator` 全量就绪；
+     - `IRecommendAlgorithmEngine` 抽象算法 SPI，默认接入 `RemotePythonAlgorithmEngine`（具备毫秒级自动降级至本地混合基线引擎）。
+  3. **前端门户**：
+     - `frontends/portal/src/api/class.js`: 接入 `/courses/recommendations/learning-path` 接口；
+     - `frontends/portal/src/pages/main/index.vue`: 增加学习成长路径模态框与阶段路线展示，本地打包（`npm run build`）100% 通过。
+  4. **编译与质量保证**：
+     - `share-education` 与 `share-customer` 在 JDK 17 下完成全量编译与 `share-education.jar` Spring Boot 打包。
+
 ### 2026-09-07 15:00:00 - 修复全站课程封面图片无法显示与 404 碎图缺陷
 
 * **任务背景**：用户反馈学员端门户首页推荐流中课程卡片（例如《Next.js 14 服务端渲染 (SSR) 全栈实战》）封面图片破损，显示浏览器原生碎图图标。
