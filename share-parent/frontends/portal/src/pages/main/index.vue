@@ -118,12 +118,15 @@
       </div>
     </div>
 
-    <!-- 智能个性化专属推荐 (基于多维用户画像与技术图谱) -->
+    <!-- 智能个性化专属推荐 (基于多智能体协同系统与 IT 知识图谱) -->
     <div class="section container" v-if="personalizedCourses.length">
+      <!-- 多智能体协同推理实时动态看板 (Live Agent Reasoning HUD) -->
+      <AgentReasoningHUD @recalculate="handleRecalculateRecommendations" />
+
       <div class="section-header">
         <div class="header-left">
-          <h3 class="section-title">🎯 为您专属推荐</h3>
-          <span class="section-sub">基于您的学习轨迹、技术偏好与 IT 知识图谱智能多路召回</span>
+          <h3 class="section-title">🎯 为您专属推荐 · 多智能体可解释决策流</h3>
+          <span class="section-sub">画像Agent诊断 · 算法SPI预测 · 课程分析Agent解构 · 大模型推演解释</span>
         </div>
         <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
           <el-button type="success" plain round size="small" @click="openLearningPathModal">
@@ -143,13 +146,28 @@
             <img :src="course.cover || defaultCover" :alt="course.title" loading="lazy" @error="handleImgError" />
             <div class="course-badge match" v-if="course.matchTag">{{ course.matchTag }}</div>
             <div class="match-score-badge" v-if="course.matchScore">{{ course.matchScore }}% 契合</div>
+            <div class="stage-tag-badge" v-if="course.learningStage">{{ course.learningStage.slice(0, 4) }}</div>
           </div>
           <div class="course-info">
             <h4 class="course-title" :title="course.title">{{ course.title }}</h4>
+
+            <!-- AI 推荐理由 (Explainable AI 大模型推演理由) -->
             <div class="recommend-reason-row" v-if="course.recommendReason">
               <span class="reason-icon">💡</span>
               <span class="reason-text">{{ course.recommendReason }}</span>
             </div>
+
+            <!-- 专项弥补短板标签 -->
+            <div class="skill-gap-row" v-if="course.skillGapFilled">
+              <span class="gap-icon">🎯</span>
+              <span class="gap-text">突破: {{ course.skillGapFilled }}</span>
+            </div>
+
+            <!-- 先修技能与实战标注 -->
+            <div class="prereq-row" v-if="course.prerequisiteSkills && course.prerequisiteSkills.length">
+              <span class="prereq-badge">先修: {{ course.prerequisiteSkills.join('、') }}</span>
+            </div>
+
             <div class="course-meta">
               <span class="teacher">{{ course.teacherName }}</span>
               <span class="difficulty-tag" v-if="course.difficulty">
@@ -248,55 +266,8 @@
       </div>
     </div>
 
-    <!-- AI 学习成长路径规划弹窗 -->
-    <el-dialog
-      v-model="pathModalVisible"
-      title="🚀 AI 多智能体个性化学习成长路径规划"
-      width="820px"
-      append-to-body
-      class="learning-path-dialog"
-    >
-      <div v-if="learningPathLoading" class="path-loading" style="text-align: center; padding: 40px 0;">
-        <el-icon class="is-loading" :size="32"><Loading /></el-icon>
-        <p style="margin-top: 12px; color: #64748b; font-size: 14px;">多智能体推荐流水线正在解析您的学情并进行路线拓扑编排...</p>
-      </div>
-      <div v-else-if="learningPathData" class="path-modal-body">
-        <div class="path-banner-summary" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
-          <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px;">🎯 规划目标岗位：<span style="color: #38bdf8;">{{ learningPathData.intendedRole }}</span></div>
-          <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 8px;">{{ learningPathData.overallGoal }} · 共规划 {{ learningPathData.totalCourses }} 门进阶课 · 预计 {{ learningPathData.totalEstimatedHours }} 深度学时</div>
-          <div style="font-size: 12px; color: #94a3b8;" v-if="learningPathData.referenceStandard">📌 行业标准依据：{{ learningPathData.referenceStandard }}</div>
-        </div>
-        <div class="path-stages-container">
-          <div v-for="stage in learningPathData.stages" :key="stage.stageIndex" class="stage-section" style="margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; background: #fafafa;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <div>
-                <span style="display: inline-block; background: #0284c7; color: #fff; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-right: 8px;">Stage {{ stage.stageIndex }}</span>
-                <span style="font-weight: 700; font-size: 15px; color: #1e293b;">{{ stage.stageName }}</span>
-              </div>
-              <span style="font-size: 12px; color: #64748b;">⏱️ 预计 {{ stage.estimatedHours }} 学时</span>
-            </div>
-            <div style="font-size: 13px; color: #475569; margin-bottom: 12px;">{{ stage.stageGoal }}</div>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-              <div
-                v-for="c in stage.courses"
-                :key="c.courseId"
-                style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s;"
-                @click="goCourseDetail(c.courseId)"
-              >
-                <div style="font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📘 {{ c.courseName }}</div>
-                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #0284c7; margin-bottom: 6px;">
-                  <span>{{ c.difficultyAssessment }}</span>
-                  <span style="color: #10b981;">实战占比 {{ c.practicalWeight }}%</span>
-                </div>
-                <div style="font-size: 11px; color: #64748b;" v-if="c.prerequisiteSkills && c.prerequisiteSkills.length">
-                  先修依赖：{{ c.prerequisiteSkills.join('、') }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
+    <!-- AI 职业成长进阶拓扑全景大屏组件 -->
+    <CareerPathDrawer ref="careerPathDrawerRef" />
   </div>
 </template>
 
@@ -307,6 +278,8 @@ import { Reading, ArrowRight, Pointer, Loading } from '@element-plus/icons-vue'
 import { getClassCategorys, getRecommendClassList, classSeach, getMylessons, getCourseLikeRanking, getPersonalizedRecommendations, getPersonalizedLearningPath } from '@/api/class.js'
 import { getBanners } from '@/api/home.js'
 import defaultCover from '@/assets/images/courses/default-cover.svg'
+import AgentReasoningHUD from '@/components/AgentReasoningHUD.vue'
+import CareerPathDrawer from '@/components/CareerPathDrawer.vue'
 
 const router = useRouter()
 
@@ -320,29 +293,28 @@ const newCourses = ref([])
 const allCourses = ref([])
 const recentLearning = ref(null)
 
-const pathModalVisible = ref(false)
-const learningPathLoading = ref(false)
-const learningPathData = ref(null)
+const careerPathDrawerRef = ref(null)
 
-const openLearningPathModal = async () => {
-  pathModalVisible.value = true
-  if (learningPathData.value) return
-  learningPathLoading.value = true
+const openLearningPathModal = () => {
+  careerPathDrawerRef.value?.openDrawer()
+}
+
+const handleRecalculateRecommendations = async (targetRole) => {
   try {
-    const res = await getPersonalizedLearningPath()
-    if (res && res.code === 200 && res.data) {
-      learningPathData.value = res.data
+    const res = await getPersonalizedRecommendations({ limit: 4, targetRole })
+    if (res && res.code === 200) {
+      const pRows = normalizeRows(res)
+      if (pRows.length) {
+        personalizedCourses.value = pRows
+      }
     }
   } catch (e) {
-    console.error('获取学习路径规划失败:', e)
-  } finally {
-    learningPathLoading.value = false
+    console.error('重新计算个性化推荐失败:', e)
   }
 }
 
 const goCourseDetail = (courseId) => {
   if (!courseId) return
-  pathModalVisible.value = false
   router.push(`/details?id=${courseId}`)
 }
 
@@ -839,6 +811,20 @@ onMounted(async () => {
       color: #38BDF8;
       backdrop-filter: blur(4px);
     }
+
+    .stage-tag-badge {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      background: rgba(30, 41, 59, 0.85);
+      color: #F8FAFC;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
   }
 
   .course-info {
@@ -869,7 +855,7 @@ onMounted(async () => {
       border: 1px solid #DBEAFE;
       border-radius: 4px;
       padding: 4px 8px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       font-size: 11px;
       color: #1E40AF;
       line-height: 1.4;
@@ -879,6 +865,46 @@ onMounted(async () => {
         flex-shrink: 0;
       }
       .reason-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .skill-gap-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #D97706;
+      background: #FFFBEB;
+      border: 1px solid #FEF3C7;
+      border-radius: 4px;
+      padding: 2px 6px;
+      margin-bottom: 6px;
+      font-weight: 500;
+
+      .gap-icon {
+        font-size: 11px;
+      }
+      .gap-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .prereq-row {
+      margin-bottom: 8px;
+      .prereq-badge {
+        display: inline-block;
+        font-size: 10px;
+        color: #64748B;
+        background: #F1F5F9;
+        border-radius: 3px;
+        padding: 1px 6px;
+        line-height: 1.4;
+        max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
