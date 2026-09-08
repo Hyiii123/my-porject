@@ -31,14 +31,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 天机学堂旧用户接口适配层。
+ * 智问学伴旧用户接口适配层。
  *
- * <p>天机前端沿用了 /us/users、/us/students 等路径，而若依系统服务的
+ * <p>智问前端沿用了 /us/users、/us/students 等路径，而若依系统服务的
  * 原生路径是 /user。这里仅做协议和字段转换，底层仍复用若依用户、角色服务，
  * 不新增第二套用户表。</p>
  */
 @RestController
-public class LegacyTianjiUserController extends BaseController {
+public class LegacyZhiwenUserController extends BaseController {
 
     @Autowired
     private ISysUserService userService;
@@ -80,7 +80,7 @@ public class LegacyTianjiUserController extends BaseController {
         } else if (path.endsWith("/staffs/page")) {
             query.setUserType("03");
         }
-        // 天机端 1/0 表示启用/禁用，若依字段 0/1 表示正常/停用。
+        // 智问端 1/0 表示启用/禁用，若依字段 0/1 表示正常/停用。
         if ("1".equals(query.getStatus())) {
             query.setStatus("0");
         } else if ("0".equals(query.getStatus())) {
@@ -173,7 +173,7 @@ public class LegacyTianjiUserController extends BaseController {
     public AjaxResult updateStatus(@PathVariable Long userId, @PathVariable String status) {
         SysUser user = new SysUser();
         user.setUserId(userId);
-        // 天机旧接口 1 表示启用、0 表示禁用；若依正好相反。
+        // 智问旧接口 1 表示启用、0 表示禁用；若依正好相反。
         user.setStatus("1".equals(status) ? "0" : "1");
         SysUser existing = userService.selectUserById(userId);
         if (existing != null) user.setUserType(existing.getUserType());
@@ -371,7 +371,7 @@ public class LegacyTianjiUserController extends BaseController {
         user.setSex(text(source, "sex", valueString(source.get("gender"))));
         user.setPassword(text(source, "password", null));
         user.setRemark(text(source, "remark", null));
-        // 天机旧接口使用 1=启用、0=禁用；若依 sys_user 使用 0=正常、1=停用。
+        // 智问旧接口使用 1=启用、0=禁用；若依 sys_user 使用 0=正常、1=停用。
         String legacyStatus = valueString(source.get("status"));
         user.setStatus("1".equals(legacyStatus) ? "0" : "0".equals(legacyStatus) ? "1" : legacyStatus);
         user.setUserType(legacyUserType(text(source, "type", null)));

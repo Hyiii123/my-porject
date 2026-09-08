@@ -1,4 +1,4 @@
--- 天机学堂：文件与媒资数据库（MySQL 8.x）
+-- 智问学伴：文件与媒资数据库（MySQL 8.x）
 -- 文件二进制默认存储在 share-file 本地卷，file_media 只保存可迁移的元数据。
 SET NAMES utf8mb4;
 

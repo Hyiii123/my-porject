@@ -10,8 +10,8 @@
     <div class="section container personalized-section" v-if="personalizedCourses.length">
       <div class="section-header">
         <div class="header-left">
-          <h3 class="section-title">🎯 为您专属推荐 · 多智能体可解释决策流</h3>
-          <span class="section-sub">画像Agent诊断 · 算法SPI预测 · 课程分析Agent解构 · 大模型推演解释</span>
+          <h3 class="section-title">🎯 为您专属推荐</h3>
+          <span class="section-sub">基于您的学情画像与目标规划，由多智能体协同实时规划</span>
         </div>
         <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
           <el-button type="success" plain round size="small" @click="openLearningPathModal">
@@ -29,36 +29,23 @@
         >
           <div class="course-cover">
             <img :src="course.cover || defaultCover" :alt="course.title" loading="lazy" @error="handleImgError" />
-            <div class="course-badge match" v-if="course.matchTag">{{ course.matchTag }}</div>
-            <div class="match-score-badge" v-if="course.matchScore">{{ course.matchScore }}% 契合</div>
-            <div class="stage-tag-badge" v-if="course.learningStage">{{ course.learningStage.slice(0, 4) }}</div>
+            <div class="match-score-badge" v-if="course.matchScore">{{ course.matchScore }}% 契合度</div>
           </div>
           <div class="course-info">
             <h4 class="course-title" :title="course.title">{{ course.title }}</h4>
 
-            <!-- AI 推荐理由 (Explainable AI 大模型推演理由) -->
+            <!-- AI 推荐理由 (Explainable AI 极简导学理由) -->
             <div class="recommend-reason-row" v-if="course.recommendReason">
               <span class="reason-icon">💡</span>
               <span class="reason-text">{{ course.recommendReason }}</span>
             </div>
 
-            <!-- 专项弥补短板标签 -->
-            <div class="skill-gap-row" v-if="course.skillGapFilled">
-              <span class="gap-icon">🎯</span>
-              <span class="gap-text">突破: {{ course.skillGapFilled }}</span>
-            </div>
-
-            <!-- 先修技能与实战标注 -->
-            <div class="prereq-row" v-if="course.prerequisiteSkills && course.prerequisiteSkills.length">
-              <span class="prereq-badge">先修: {{ course.prerequisiteSkills.join('、') }}</span>
-            </div>
-
             <div class="course-meta">
               <span class="teacher">{{ course.teacherName }}</span>
               <span class="difficulty-tag" v-if="course.difficulty">
-                {{ course.difficulty === 1 ? '初级入门' : course.difficulty === 3 ? '高级架构' : '中级进阶' }}
+                {{ course.difficulty === 1 ? '初级' : course.difficulty === 3 ? '高级' : '进阶' }}
               </span>
-              <span class="learners">{{ course.learners }} 人在学</span>
+              <span class="learners">{{ course.learners }}人在学</span>
             </div>
             <div class="course-price">
               <span v-if="course.price > 0" class="price">¥{{ (course.price / 100).toFixed(2) }}</span>
@@ -610,17 +597,17 @@ onMounted(async () => {
 .course-card {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
   box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
 
   &:hover {
-    border-color: #CBD5E1;
-    box-shadow: 0 8px 18px -4px rgba(15, 23, 42, 0.08);
+    border-color: #93C5FD;
+    box-shadow: 0 10px 25px -4px rgba(37, 99, 235, 0.08);
     transform: translateY(-2px);
     .course-title {
       color: #2563EB;
@@ -628,12 +615,12 @@ onMounted(async () => {
   }
 
   &.personalized-card {
-    border-color: #BFDBFE;
-    box-shadow: 0 2px 6px -1px rgba(37, 99, 235, 0.08);
+    border-color: #E2E8F0;
+    box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
 
     &:hover {
-      border-color: #2563EB;
-      box-shadow: 0 10px 20px -3px rgba(37, 99, 235, 0.15);
+      border-color: #60A5FA;
+      box-shadow: 0 12px 24px -4px rgba(37, 99, 235, 0.12);
     }
   }
 
@@ -670,32 +657,19 @@ onMounted(async () => {
       position: absolute;
       top: 10px;
       right: 10px;
-      padding: 2px 8px;
-      border-radius: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
       font-size: 11px;
       font-weight: 700;
-      background: rgba(15, 23, 42, 0.75);
-      color: #38BDF8;
-      backdrop-filter: blur(4px);
-    }
-
-    .stage-tag-badge {
-      position: absolute;
-      bottom: 8px;
-      left: 8px;
-      padding: 2px 7px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 600;
-      background: rgba(30, 41, 59, 0.85);
-      color: #F8FAFC;
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.92);
+      color: #059669;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
   }
 
   .course-info {
-    padding: 14px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -706,7 +680,7 @@ onMounted(async () => {
       color: #0F172A;
       line-height: 1.45;
       height: 40px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -718,13 +692,13 @@ onMounted(async () => {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: #EFF6FF;
-      border: 1px solid #DBEAFE;
-      border-radius: 4px;
-      padding: 4px 8px;
-      margin-bottom: 6px;
+      background: #F0FDF4;
+      border: 1px solid #DCFCE7;
+      border-radius: 6px;
+      padding: 5px 8px;
+      margin-bottom: 12px;
       font-size: 11px;
-      color: #1E40AF;
+      color: #166534;
       line-height: 1.4;
 
       .reason-icon {
@@ -732,46 +706,6 @@ onMounted(async () => {
         flex-shrink: 0;
       }
       .reason-text {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
-
-    .skill-gap-row {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 11px;
-      color: #D97706;
-      background: #FFFBEB;
-      border: 1px solid #FEF3C7;
-      border-radius: 4px;
-      padding: 2px 6px;
-      margin-bottom: 6px;
-      font-weight: 500;
-
-      .gap-icon {
-        font-size: 11px;
-      }
-      .gap-text {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
-
-    .prereq-row {
-      margin-bottom: 8px;
-      .prereq-badge {
-        display: inline-block;
-        font-size: 10px;
-        color: #64748B;
-        background: #F1F5F9;
-        border-radius: 3px;
-        padding: 1px 6px;
-        line-height: 1.4;
-        max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;

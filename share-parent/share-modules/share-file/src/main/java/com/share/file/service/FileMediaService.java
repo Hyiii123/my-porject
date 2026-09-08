@@ -53,7 +53,7 @@ public class FileMediaService {
         return value;
     }
 
-    /** 返回旧天机页面使用的 {total,list} 结构。 */
+    /** 返回旧智问页面使用的 {total,list} 结构。 */
     public Map<String, Object> pageView(Map<String, ?> params) {
         IPage<FileMedia> page = page(params);
         Map<String, Object> result = new LinkedHashMap<>();

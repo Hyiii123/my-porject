@@ -540,7 +540,7 @@ public class TradeService {
         TrPaymentOrder payment = paymentMapper.selectOne(new LambdaQueryWrapper<TrPaymentOrder>().eq(TrPaymentOrder::getOrderId, order.getId()).eq(TrPaymentOrder::getPaymentChannel, channel));
         if (payment == null) { payment = new TrPaymentOrder(); payment.setId(newId()); payment.setPaymentNo("PAY" + System.currentTimeMillis()); payment.setOrderId(order.getId()); payment.setPaymentChannel(channel); payment.setAmount(order.getPayableAmount()); payment.setStatus(0); payment.setExpireTime(order.getExpireTime()); payment.setCreateTime(LocalDateTime.now()); payment.setUpdateTime(LocalDateTime.now()); payment.setVersion(0); paymentMapper.insert(payment); }
         order.setPaymentChannel(channel); order.setUpdateTime(LocalDateTime.now()); orderMapper.updateById(order);
-        Map<String, Object> result = new LinkedHashMap<>(); result.put("paymentNo", payment.getPaymentNo()); result.put("orderId", order.getId()); result.put("amount", cents(order.getPayableAmount())); result.put("payUrl", "demo://tianji-pay/" + payment.getPaymentNo()); result.put("status", payment.getStatus()); result.put("demo", true); return result;
+        Map<String, Object> result = new LinkedHashMap<>(); result.put("paymentNo", payment.getPaymentNo()); result.put("orderId", order.getId()); result.put("amount", cents(order.getPayableAmount())); result.put("payUrl", "demo://zhiwen-pay/" + payment.getPaymentNo()); result.put("status", payment.getStatus()); result.put("demo", true); return result;
     }
 
     /** 本地演示支付回调：不连接真实支付渠道，但完整更新支付单、订单和学习记录。 */

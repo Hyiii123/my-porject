@@ -1,4 +1,4 @@
--- 天机学堂：AI 客服数据库（MySQL 8.x）
+-- 智问学伴：AI 客服数据库（MySQL 8.x）
 -- 数据边界：share-customer
 -- AI 服务仅使用第三方 Pixel API，不配置官方 OpenAI API。
 -- 默认第三方地址：https://api.ai-pixel.online

@@ -48,6 +48,52 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-08 05:25:00 - 全站“天机”/“tianji”全域对齐与品牌重命名“智问”/“zhiwen”完工发布
+
+* **任务背景**：
+  响应用户明确指令：“把所有的天机改为智问”、“英文的tianji也改为zhiwen”，将全站前端、后端微服务、数据资产、配置文件、文档及 UI 静态资源中所有历史遗留的“天机”/“tianji”全面规范化替换为统一项目品牌“智问”/“zhiwen”。
+* **核心落地改造**：
+  1. **前端工程与静态资产全面更名**：
+     - `frontends/portal` 与 `frontends/business-admin` 的 `package.json` 分别更名为 `zhiwen-portal` 与 `zhiwen-business-admin`；
+     - `src/config/proxy.js`、`src/mock/user.json`、`vite.config.js` 统一由 `api.tianji.com`、`admin@tianji.com`、`www.tianji.com` 迁移至 `*.zhiwen.com`；
+     - 全量 SVG 横幅资产（`banner1.svg` ~ `banner5.svg`）文案更新为“智问教育 - 专业IT培训平台”；
+     - `iconfont.json` 描述对齐为“智问学伴管理系统”，`README.md` 更新为“智问学伴前端迁移应用”。
+  2. **后端微服务架构与类名代码全面对齐**：
+     - `RecommendationAgent.java`：推荐讲师署名由“天机教研团队”彻底对齐为“智问教研团队”；
+     - `LegacyTianjiUserController.java` 重构重命名为 `LegacyZhiwenUserController.java`，接口注释及文档全面对齐；
+     - `SysLoginService.java` 短信验证码 Redis 前缀对齐为 `zhiwen:auth:verifycode:`；
+     - `TradeService.java` 演示支付协议对齐为 `demo://zhiwen-pay/`；
+     - `recommend_model_service.py` 算法服务标题对齐为 `Zhiwen Custom Recommendation Algorithm Service`；
+     - `share-education`、`share-trade`、`share-customer` 的 `pom.xml` 及 Application 类注释全部更新为“智问学伴...”。
+  3. **线上数据资产迁移与对齐 (V24 迁移脚本)**：
+     - 新增并在线上执行持久化迁移脚本 `V24__replace_tianji_with_zhiwen.sql`；
+     - `share.sys_user` 库中 5,100 名学员与管理员邮箱统一由 `@tianji.com` 替换为 `@zhiwen.com`；
+     - `tj_education` 库中教师表与课程表中天机文案完成全面清洗对齐。
+  4. **全链路验证与发布交付**：
+     - 本地 JDK 17 与 Node.js 离线打包，17 个 Maven 模块构建 0 报错，两端前端 Vite 构建 0 报错；
+     - 严格执行发布铁律，产物热同步部署至阿里云 ECS 线上服务器对应微服务与 Nginx UI 容器；
+     - 实测 `/cs/courses/recommendations/personalized` 接口与学习路径接口：讲师团队名精准返回“智问教研团队”；
+     - 全量自动化冒烟测试（含写流程）**62/62 项 100% 满分通过**。
+
+### 2026-09-08 05:10:00 - 学员端首页视觉统一与极简清爽浅色风重构落地
+
+* **任务背景**：
+  应用户“用户端首页页面风格不统一，有违和感，设计简约一点，让用户看的清爽舒服”的需求，对学员端首页首屏多智能体导学看板与专属推荐区域进行系统级视觉降噪与全站美学统合。
+* **核心落地改造**：
+  1. **彻底消除暗黑控制台割裂感（Light Tech 美学）**：
+     - 将顶部 `AgentReasoningHUD.vue` 由生硬刺眼的 `#0F172A` 暗黑赛博控制台重构为全站统一的纯白高阶卡片（`#FFFFFF`）与浅灰白底色（`#F8FAFC`）；
+     - 搭配细致柔和的浅灰蓝微光边框（`#E2E8F0`）、`16px` 大圆角与轻量弥散阴影，使智能体协同流水线自然融入全站教育质感。
+  2. **消除术语过载，以学员为中心**：
+     - 去除底层自嗨的工程技术名词（如“DAG拓扑阶段编排、50维空间、SPI预测、推演解释”）；
+     - 转换为学员亲切直观的五步导学流（`01 学情诊断` ➔ `02 智能匹配` ➔ `03 能力拆解` ➔ `04 进阶规划` ➔ `05 专属导学`），底部学情基线改为整齐素雅的浅色药丸胶囊。
+  3. **推荐卡片视觉净化与杂志级呼吸感**：
+     - 彻底清除封面上的 3 重盖章色块（高饱和蓝条、黑底绿字、黑底白字 `阶段一:`），仅保留右上角半透明磨砂质感契合度胶囊（`92% 契合度`）；
+     - 正文移除冗余的重叠补丁色块（`先修技能`、`突破`），改为单行极致精炼浅柔蓝理由条（`💡 推荐理由...`），整排 4 张卡片高度严丝合缝，呼吸感与留白充足。
+  4. **上线发布与严密验证**：
+     - 本地 Vite 打包编译 0 报错；
+     - 严格遵循发布铁律，热替换部署至阿里云 ECS 线上 `tianji-portal-ui` 容器；
+     - 全量自动化冒烟测试（含写流程）**62/62 项 100% 满分通过**。
+
 ### 2026-09-08 05:00:00 - 业务管理端课程状态真实统计与服务端精确分页过滤落地（对齐数据库 320 门全量状态）
 
 * **任务背景**：

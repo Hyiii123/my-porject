@@ -10,7 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>share-education</artifactId>
-    <description>天机学堂教育业务服务</description>
+    <description>智问学伴教育业务服务</description>
 
     <dependencies>
         <dependency>

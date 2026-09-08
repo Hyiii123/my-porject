@@ -7,7 +7,7 @@ package com.share.auth.form;
  */
 public class RegisterBody extends LoginBody
 {
-    /** 天机前端旧注册接口使用的手机号字段。 */
+    /** 智问前端旧注册接口使用的手机号字段。 */
     private String cellPhone;
 
     /** 短信验证码字段，当前本地环境由兼容接口校验。 */

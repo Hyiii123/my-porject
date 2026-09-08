@@ -41,11 +41,11 @@ public class TokenController
             @RequestParam Map<String, String> params)
     {
         LoginBody loginBody = form == null ? new LoginBody() : form;
-        // 兼容天机前端的旧契约：账号登录使用 JSON，短信登录页面使用查询参数。
+        // 兼容智问前端的旧契约：账号登录使用 JSON，短信登录页面使用查询参数。
         String username = firstNonBlank(loginBody.getUsername(), params.get("username"),
                 params.get("userName"), params.get("cellPhone"), params.get("phone"));
         String password = firstNonBlank(loginBody.getPassword(), params.get("password"), params.get("code"));
-        // 用户登录；type=2 是天机前端的本地演示短信登录协议。
+        // 用户登录；type=2 是智问前端的本地演示短信登录协议。
         LoginUser userInfo = "2".equals(params.get("type"))
                 ? sysLoginService.loginByPhoneCode(username, password)
                 : sysLoginService.login(username, password);
@@ -68,7 +68,7 @@ public class TokenController
         return R.ok();
     }
 
-    /** 兼容天机前端使用 POST 退出登录。 */
+    /** 兼容智问前端使用 POST 退出登录。 */
     @PostMapping("accounts/logout")
     public R<?> legacyLogout(HttpServletRequest request)
     {
@@ -88,7 +88,7 @@ public class TokenController
         return R.fail(401, "登录状态已失效");
     }
 
-    /** 兼容天机前端 GET /as/accounts/refresh 调用。 */
+    /** 兼容智问前端 GET /as/accounts/refresh 调用。 */
     @GetMapping({"refresh", "accounts/refresh"})
     public R<?> refreshByGet(HttpServletRequest request)
     {
@@ -119,7 +119,7 @@ public class TokenController
     }
 
     /**
-     * 天机前端旧验证码接口的兼容实现。
+     * 智问前端旧验证码接口的兼容实现。
      *
      * <p>当前本地环境关闭图形验证码，返回一次性演示验证码，正式环境应接入短信/图形验证码服务。</p>
      */

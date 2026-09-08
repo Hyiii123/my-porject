@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
 
-app = FastAPI(title="Tianji Custom Recommendation Algorithm Service")
+app = FastAPI(title="Zhiwen Custom Recommendation Algorithm Service")
 
 class RecommendRequest(BaseModel):
     userId: Optional[int] = None

@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 天机学堂管理端课程、题库和教育统计接口。 */
+/** 智问学伴管理端课程、题库和教育统计接口。 */
 @RestController
 @RequestMapping("/admin")
 public class EducationAdminController extends BaseController {

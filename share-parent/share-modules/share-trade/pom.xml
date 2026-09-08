@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>share-trade</artifactId>
-    <description>天机学堂交易与营销业务服务</description>
+    <description>智问学伴交易与营销业务服务</description>
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>

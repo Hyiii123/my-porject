@@ -1,4 +1,4 @@
--- 天机学堂：教育业务数据库（MySQL 8.x）
+-- 智问学伴：教育业务数据库（MySQL 8.x）
 --
 -- 数据边界：share-education
 -- 说明：本脚本不创建跨服务外键。user_id、course_id 等字段通过服务接口关联，

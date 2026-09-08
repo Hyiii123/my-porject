@@ -405,7 +405,7 @@ public class EducationPortalController extends BaseController {
         return success(educationService.saveNote(note));
     }
 
-    /** 用户端笔记详情，兼容原天机前端的 GET /ls/notes/{id} 调用。 */
+    /** 用户端笔记详情，兼容原智问前端的 GET /ls/notes/{id} 调用。 */
     @RequiresLogin
     @GetMapping("/notes/{id}")
     public AjaxResult note(@PathVariable Long id) {

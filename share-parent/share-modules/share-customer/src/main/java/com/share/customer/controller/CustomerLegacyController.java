@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 天机旧版客服接口兼容层。
+ * 智问旧版客服接口兼容层。
  *
  * <p>旧版 Vue 页面曾使用 /cs/customer-service/*，新页面使用 /customer/*。
  * 两套路径都落到同一个 CustomerService，避免前端迁移时出现功能分叉。</p>

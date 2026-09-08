@@ -1,4 +1,4 @@
--- 文件服务媒资元数据表。生产环境由迁移工具执行；初始化数据由 tianji-file.sql 提供。
+-- 文件服务媒资元数据表。生产环境由迁移工具执行；初始化数据由基础 SQL 提供。
 SET NAMES utf8mb4;
 CREATE DATABASE IF NOT EXISTS `tj_file` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 USE `tj_file`;

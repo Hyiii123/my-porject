@@ -87,7 +87,7 @@ spring:
             - Path=/cs/customer-service/**
           filters:
             - StripPrefix=1
-        # 天机学堂教育领域的旧接口前缀，保持用户端和管理端调用契约。
+        # 智问学伴教育领域的旧接口前缀，保持用户端和管理端调用契约。
         - id: share-education-legacy
           uri: lb://share-education
           predicates:

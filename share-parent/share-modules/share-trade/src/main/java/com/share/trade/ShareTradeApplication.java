@@ -5,7 +5,7 @@ import com.share.common.security.annotation.EnableRyFeignClients;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-/** 天机学堂交易、优惠券和订单服务。 */
+/** 智问学伴交易、优惠券和订单服务。 */
 @EnableCustomConfig
 @EnableRyFeignClients
 @SpringBootApplication

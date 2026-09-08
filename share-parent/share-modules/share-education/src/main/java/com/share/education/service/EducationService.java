@@ -226,7 +226,7 @@ public class EducationService {
     }
 
     /**
-     * 旧天机管理端分类接口使用 categorys 拼写，并且返回树形数组而不是若依分页对象。
+     * 旧智问管理端分类接口使用 categorys 拼写，并且返回树形数组而不是若依分页对象。
      * 这里集中完成字段和层级适配，避免把兼容逻辑散落到 Controller 中。
      */
     public List<Map<String, Object>> legacyCategories(boolean includeDisabled) {
@@ -1134,7 +1134,7 @@ public class EducationService {
 
     /**
      * 新增或更新教师扩展资料。该方法只接受内部调用，字段名同时兼容新 DTO
-     * 和原天机前端的 job/intro/photo 命名。
+     * 和原智问前端的 job/intro/photo 命名。
      */
     @Transactional
     public Map<String, Object> saveTeacherProfile(Map<String, ?> payload) {

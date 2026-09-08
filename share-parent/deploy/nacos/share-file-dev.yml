@@ -36,4 +36,4 @@ minio:
   url: ${TJ_MINIO_URL:http://127.0.0.1:9000}
   access-key: ${TJ_MINIO_ACCESS_KEY:}
   secret-key: ${TJ_MINIO_SECRET_KEY:}
-  bucket-name: ${TJ_MINIO_BUCKET_NAME:tianji}
+  bucket-name: ${TJ_MINIO_BUCKET_NAME:zhiwen}

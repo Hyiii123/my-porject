@@ -27,7 +27,7 @@ import com.share.system.api.model.LoginUser;
 @Component
 public class SysLoginService
 {
-    private static final String PHONE_CODE_PREFIX = "tianji:auth:verifycode:";
+    private static final String PHONE_CODE_PREFIX = "zhiwen:auth:verifycode:";
     private static final String LOCAL_DEMO_CODE = "123456";
     private static final long PHONE_CODE_TTL_SECONDS = 300L;
 
