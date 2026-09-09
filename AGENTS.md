@@ -32,3 +32,7 @@ All application runtime services, databases, Redis, and Nacos run exclusively on
 - Remote CLI operations and verification tests against the server (Workbench CLI, smoke test targeting `http://47.120.67.187:8080`).
 No local port listeners or local service instances are allowed.
 
+## 6. Prohibition of C Drive Usage (本地严禁占用C盘铁律)
+**STRICTLY FORBIDDEN**: Using the C: drive for temporary scripts, downloaded caches, scratch files, or large outputs.
+The C: drive has restricted space. All local operations, temporary scripts, crawl data, and intermediate files MUST strictly use the D: drive project space (e.g. `d:\education system\my-porject\.scratch\`, which is gitignored). Any scratch files on C: drive must be wiped immediately.
+

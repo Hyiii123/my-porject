@@ -27,3 +27,6 @@ logs/
 
 # Compiled class files
 *.class
+
+# Scratch working directory (to prevent C drive usage)
+.scratch/
