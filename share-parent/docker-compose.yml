@@ -376,7 +376,9 @@ services:
     networks:
       - tianji-net
 
+  # 代码生成服务：默认永久停用（释放 520MB+ 内存），非核心业务必需，禁止随站点默认拉起。
   gen:
+    profiles: ["dev-tool"]
     build:
       context: ./share-modules/share-gen
       dockerfile: ../../Dockerfile
@@ -384,7 +386,7 @@ services:
         JAR_FILE: target/share-gen.jar
     image: tianji/share-gen:local
     container_name: tianji-gen
-    restart: unless-stopped
+    restart: "no"
     environment:
       NACOS_SERVER_ADDR: nacos:8848
       TJ_REDIS_HOST: redis
