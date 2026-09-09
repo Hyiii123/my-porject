@@ -36,3 +36,19 @@ No local port listeners or local service instances are allowed.
 **STRICTLY FORBIDDEN**: Using the C: drive for temporary scripts, downloaded caches, scratch files, or large outputs.
 The C: drive has restricted space. All local operations, temporary scripts, crawl data, and intermediate files MUST strictly use the D: drive project space (e.g. `d:\education system\my-porject\.scratch\`, which is gitignored). Any scratch files on C: drive must be wiped immediately.
 
+## 7. Daily Public IP Verification (每日公网 IP 变更检测铁律)
+**BACKGROUND**: The ECS instance uses a dynamic public IP that may change after a server restart.
+**RULE**: Once per calendar day (before the first server-related task), the agent MUST run:
+```
+workbench exec --instance-id i-f8z1loc07p8p5ve8c7jf --command "curl -s http://100.100.100.200/latest/meta-data/eipv4"
+```
+Compare the returned IP against the recorded IP in `AGENT_WORKLOG.md` (Section 二, "ECS 公网 IP" row).
+- **If unchanged**: No action needed. Note the check was done for the day.
+- **If changed**: Immediately update ALL hardcoded IP references across the project:
+  - `AGENTS.md` (Rules 5, this file)
+  - `AGENT_WORKLOG.md` (Section 二 environment table + any references)
+  - `share-parent/docs/AGENT_HANDOFF.md`
+  - Smoke test scripts (e.g. `.scratch/smoke-test.ps1`)
+  - Any other files referencing the old IP (use `grep -r` to find them)
+  Then commit and push the IP update.
+
