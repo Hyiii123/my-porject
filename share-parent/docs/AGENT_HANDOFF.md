@@ -79,8 +79,8 @@ Compose 项目名固定为 `tianji-share`。服务的容器名大多以 `tianji-
 | `education` / `tianji-education` | 9210 | 19210 | 教育领域 |
 | `trade` / `tianji-trade` | 9211 | 19211 | 交易领域 |
 | `gen` / `tianji-gen` | 9202 | 19202 | 代码生成（【已停用】默认 profiles: ["dev-tool"] 禁用，勿拉起以节约 520MB 内存） |
-| `job` / `tianji-job` | 9203 | 19203 | 作业 |
-| `monitor` / `tianji-monitor` | 9100 | 19100 | 监控 |
+| `job` / `tianji-job` | 9203 | 19203 | 作业（【已停用】默认 profiles: ["dev-tool"] 禁用，勿拉起以节约 528MB 内存） |
+| `monitor` / `tianji-monitor` | 9100 | 19100 | 监控（【已停用】默认 profiles: ["dev-tool"] 禁用，勿拉起以节约 322MB 内存） |
 | `ruoyi-ui` | 80 | 18080 | 基础管理前端 |
 | `portal-ui` | 80 | 18081 | 用户端 |
 | `business-admin-ui` | 80 | 18082 | 业务管理端 |

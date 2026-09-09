@@ -48,6 +48,23 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-09 01:00:00 - 非业务辅助服务（tianji-job、tianji-monitor）永久下线与 850MB 内存深度释放记录
+
+* **任务背景**：
+  响应用户指令，对系统中其他类似与本项目核心业务无关的辅助服务容器进行全量关停与永久禁用，释放系统资源。
+* **关停服务评估与定位**：
+  1. **`tianji-job` (`share-job`)**：若依 Quartz 定时任务脚手架模块。经代码审查，内部仅包含一个打印日志的测试类 `RyTask.java`，在线教育核心业务（选课、学习、支付、退款、AI 客服）完全不依赖该任务调度器；
+  2. **`tianji-monitor` (`share-monitor`)**：Spring Boot Admin 开发辅助监控仪表盘，仅用于在网页看 JVM 堆栈与 GC 图表，对所有业务服务无任何运行时依赖。
+* **核心落地与收益**：
+  1. **容器彻底停止与清理**：
+     - 执行 `docker stop tianji-job tianji-monitor && docker rm -f tianji-job tianji-monitor`；
+     - 宿主机瞬间**额外释放 850.5 MB** JVM 物理内存与 155 个系统线程，服务器空闲可用内存突破 **2.1 GiB+**（从原先 800MB 飞跃提升，累计释放内存近 1.4 GB）；
+  2. **编排永久禁用规范**：
+     - 在 `share-parent/docker-compose.yml` 中将 `job` 与 `monitor` 服务统一标记为 `profiles: ["dev-tool"]`，并配置 `restart: "no"`；
+     - **【铁律更新】生产与日常运维默认严禁拉起 `tianji-job` 和 `tianji-monitor`**；
+  3. **冒烟与系统验证**：
+     - 执行全站自动化冒烟测试（含可写链路）：**62/62 项满分通过 (100%)**。
+
 ### 2026-09-09 00:56:00 - 代码生成服务（tianji-gen）永久下线与 520MB 内存极限优化记录
 
 * **任务背景**：

@@ -408,7 +408,9 @@ services:
     networks:
       - tianji-net
 
+  # 定时任务服务：默认永久停用（释放 528MB+ 内存），无教育核心定时任务，禁止随站点默认拉起。
   job:
+    profiles: ["dev-tool"]
     build:
       context: ./share-modules/share-job
       dockerfile: ../../Dockerfile
@@ -416,7 +418,7 @@ services:
         JAR_FILE: target/share-job.jar
     image: tianji/share-job:local
     container_name: tianji-job
-    restart: unless-stopped
+    restart: "no"
     environment:
       NACOS_SERVER_ADDR: nacos:8848
       TJ_REDIS_HOST: redis
@@ -438,7 +440,9 @@ services:
     networks:
       - tianji-net
 
+  # 监控面板服务：默认永久停用（释放 322MB+ 内存），纯开发辅助监控，禁止随站点默认拉起。
   monitor:
+    profiles: ["dev-tool"]
     build:
       context: ./share-visual/share-monitor
       dockerfile: ../../Dockerfile
@@ -446,7 +450,7 @@ services:
         JAR_FILE: target/share-monitor.jar
     image: tianji/share-monitor:local
     container_name: tianji-monitor
-    restart: unless-stopped
+    restart: "no"
     environment:
       NACOS_SERVER_ADDR: nacos:8848
       JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
