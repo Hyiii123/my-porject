@@ -70,6 +70,21 @@ services:
     networks:
       - tianji-net
 
+  # 轻量级 Rust 向量数据库 (Qdrant)，用于知识库语义向量存储与混合检索，内存仅占 ~50MB
+  qdrant:
+    image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/qdrant/qdrant:latest
+    container_name: tianji-qdrant
+    restart: unless-stopped
+    ports:
+      - "${TJ_QDRANT_HTTP_PORT:-16333}:6333"
+      - "${TJ_QDRANT_GRPC_PORT:-16334}:6334"
+    volumes:
+      - tianji_qdrant_data:/qdrant/storage
+    environment:
+      TZ: Asia/Shanghai
+    networks:
+      - tianji-net
+
   nacos:
     image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/nacos/nacos-server:v2.2.0
     container_name: tianji-nacos
@@ -473,6 +488,8 @@ volumes:
     name: tianji_nacos_logs
   tianji_file_uploads:
     name: tianji_file_uploads
+  tianji_qdrant_data:
+    name: tianji_qdrant_data
 
 networks:
   tianji-net:

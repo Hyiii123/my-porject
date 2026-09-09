@@ -70,6 +70,7 @@ Compose 项目名固定为 `tianji-share`。服务的容器名大多以 `tianji-
 | --- | ---: | ---: | --- |
 | `mysql` / `tianji-mysql` | 3306 | 13306 | MySQL 8，承载逻辑库 `share`、`tj_education`、`tj_trade`、`tj_customer`、`tj_file`、`nacos_config` |
 | `redis` / `tianji-redis` | 6379 | 6379 | 登录会话、缓存、限流、客服服务端 Key |
+| `qdrant` / `tianji-qdrant` | 6333 | 16333 | 轻量级 Rust 向量数据库（知识库向量存储与语义检索，内存仅约 44MB） |
 | `nacos` / `tianji-nacos` | 8848 | 8848 | 服务发现与配置；gRPC 映射 9848、9849 |
 | `auth` / `tianji-auth` | 9200 | 19200 | 认证 |
 | `gateway` / `tianji-gateway` | 18080 | 8080 | 所有 API 统一入口 |

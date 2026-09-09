@@ -45,7 +45,7 @@ function Invoke-Api {
         Method    = $Method
         Uri       = "$BaseUrl$Path"
         Headers   = $headers
-        TimeoutSec = 30
+        TimeoutSec = 60
     }
     if ($null -ne $Body) {
         $request.ContentType = 'application/json; charset=utf-8'
