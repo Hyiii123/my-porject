@@ -66,12 +66,12 @@
 
       <el-tab-pane label="AI 配置" name="ai-config">
         <section class="panel config-panel">
-          <div class="panel-title"><h3>第三方 Pixel AI</h3><span>仅使用 api.ai-pixel.online，不配置官方 OpenAI API</span></div>
+          <div class="panel-title"><h3>第三方 Pixel AI</h3><span>使用 ai-pixel.online 中转服务</span></div>
           <el-form :model="aiConfig" label-width="110px" class="config-form">
             <el-row :gutter="20">
-              <el-col :span="12"><el-form-item label="API 地址"><el-input v-model="aiConfig.baseUrl" placeholder="https://api.ai-pixel.online" /></el-form-item></el-col>
-              <el-col :span="12"><el-form-item label="接口路径"><el-input v-model="aiConfig.endpointPath" placeholder="/v1/responses" /></el-form-item></el-col>
-              <el-col :span="12"><el-form-item label="模型"><el-input v-model="aiConfig.model" placeholder="填写第三方服务支持的模型名称" /></el-form-item></el-col>
+              <el-col :span="12"><el-form-item label="API 地址"><el-input v-model="aiConfig.baseUrl" placeholder="https://ai-pixel.online" /></el-form-item></el-col>
+              <el-col :span="12"><el-form-item label="接口路径"><el-input v-model="aiConfig.endpointPath" placeholder="/v1/chat/completions" /></el-form-item></el-col>
+              <el-col :span="12"><el-form-item label="模型"><el-input v-model="aiConfig.model" placeholder="gpt-5.6-luna" /></el-form-item></el-col>
               <el-col :span="12"><el-form-item label="API Key"><el-input v-model="aiConfig.apiKey" type="password" show-password :placeholder="aiConfig.apiKeyConfigured ? '已配置，留空保持不变' : '请输入第三方 API Key'" /></el-form-item></el-col>
               <el-col :span="8"><el-form-item label="启用服务"><el-switch v-model="aiConfig.enabled" :active-value="1" :inactive-value="0" /></el-form-item></el-col>
               <el-col :span="8"><el-form-item label="超时(ms)"><el-input-number v-model="aiConfig.timeoutMs" :min="1000" :max="120000" :step="1000" /></el-form-item></el-col>
@@ -141,7 +141,7 @@ const sessionState = reactive({ list: [], total: 0, page: 1, pageSize: 8, keywor
 const knowledgeDialog = ref(false); const faqDialog = ref(false); const sessionDrawer = ref(false); const selectedSession = ref(null)
 const knowledgeForm = reactive({ id: '', question: '', answer: '', keywords: '', category: '账号与登录', status: 1 })
 const faqForm = reactive({ id: '', question: '', answer: '', category: '客服服务', sort: 1, enabled: 1 })
-const aiConfig = reactive({ baseUrl: 'https://api.ai-pixel.online', endpointPath: '/v1/responses', model: 'gpt-5.5', apiKey: '', enabled: 0, timeoutMs: 30000, maxRetries: 1, systemPrompt: '', apiKeyConfigured: false })
+const aiConfig = reactive({ baseUrl: 'https://ai-pixel.online', endpointPath: '/v1/chat/completions', model: 'gpt-5.6-luna', apiKey: '', enabled: 0, timeoutMs: 30000, maxRetries: 1, systemPrompt: '', apiKeyConfigured: false })
 const aiSaving = ref(false)
 const aiTesting = ref(false)
 

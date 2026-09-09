@@ -66,7 +66,7 @@ public class CustomerAiClient {
         if (config == null || !Integer.valueOf(1).equals(config.getEnabled())) {
             return null;
         }
-        String secret = resolveSecret(requestApiKey);
+        String secret = resolveSecret(config, requestApiKey);
         if (secret == null || secret.isBlank()) {
             return null;
         }
@@ -236,7 +236,7 @@ public class CustomerAiClient {
         return null;
     }
 
-    private String resolveSecret(String requestApiKey) {
+    private String resolveSecret(CustomerAiConfig config, String requestApiKey) {
         String requestSecret = normalizeSecret(requestApiKey);
         if (requestSecret != null) {
             return requestSecret;
@@ -248,7 +248,16 @@ public class CustomerAiClient {
                 return normalizedCached;
             }
         } catch (RuntimeException ex) {
-            log.warn("读取客服 AI Key 缓存失败，将尝试读取服务端环境配置", ex);
+            log.warn("读取客服 AI Key 缓存失败，将尝试从加密配置恢复", ex);
+        }
+        if (config != null && com.share.common.core.utils.StringUtils.hasText(config.getApiKeyCiphertext())) {
+            String decrypted = com.share.common.core.utils.crypto.AesCryptoUtil.decrypt(config.getApiKeyCiphertext());
+            if (com.share.common.core.utils.StringUtils.hasText(decrypted)) {
+                try {
+                    redisService.setCacheObject(SECRET_KEY, decrypted);
+                } catch (Exception ignored) {}
+                return decrypted;
+            }
         }
         return normalizeSecret(properties.getSecret());
     }

@@ -27,9 +27,9 @@ mybatis-plus:
 ai:
   recommend:
     enabled: true
-    api-key: ${AI_API_KEY:sk-bbca5271c9ed04fa86449bf5e18e236cdd42830e47a1b32591ffba7aff538ec9}
+    api-key: ${AI_API_KEY:}
     base-url: ${AI_BASE_URL:https://ai-pixel.online/v1}
-    model: ${AI_MODEL:gpt-5.4-mini}
+    model: ${AI_MODEL:gpt-5.6-luna}
     temperature: 0.7
     timeout-ms: 8000
     cache-ttl-minutes: 15

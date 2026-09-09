@@ -17,11 +17,11 @@ public class AiRecommendProperties {
     /** 是否启用 AI 智能推荐系统 */
     private boolean enabled = true;
 
-    /** 第三方大模型 API Key (如 DashScope、OpenAI 或聚合中转 Key) */
-    private String apiKey = "sk-bbca5271c9ed04fa86449bf5e18e236cdd42830e47a1b32591ffba7aff538ec9";
+    /** 第三方大模型 API Key (从配置中心、环境变量或安全缓存动态加载，严禁明文硬编码) */
+    private String apiKey;
 
-    /** 模型名称 (支持 gpt-5.4-mini, gpt-5.5, qwen-plus 等) */
-    private String model = "gpt-5.4-mini";
+    /** 模型名称 (始终默认采用 gpt-5.6-luna) */
+    private String model = "gpt-5.6-luna";
 
     /** 模型请求基地址 (支持中转站端点与官方兼容端点) */
     private String baseUrl = "https://ai-pixel.online/v1";
@@ -45,12 +45,23 @@ public class AiRecommendProperties {
         if (StringUtils.hasText(apiKey)) {
             return apiKey;
         }
-        String env = System.getenv("DASHSCOPE_API_KEY");
+        String env = System.getenv("AI_API_KEY");
         if (StringUtils.hasText(env)) return env;
-        env = System.getenv("AI_API_KEY");
+        env = System.getenv("DASHSCOPE_API_KEY");
         if (StringUtils.hasText(env)) return env;
         env = System.getenv("OPENAI_API_KEY");
         if (StringUtils.hasText(env)) return env;
+        try {
+            com.share.common.redis.service.RedisService redisService =
+                    com.share.common.core.utils.SpringUtils.getBean(com.share.common.redis.service.RedisService.class);
+            if (redisService != null) {
+                String redisKey = redisService.getCacheObject("customer:ai:secret");
+                if (StringUtils.hasText(redisKey)) {
+                    return redisKey;
+                }
+            }
+        } catch (Exception ignored) {
+        }
         return System.getProperty("ai.recommend.api-key");
     }
 

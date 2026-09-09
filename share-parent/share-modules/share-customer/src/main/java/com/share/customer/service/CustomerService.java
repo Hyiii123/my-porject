@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.share.common.core.exception.ServiceException;
+import com.share.common.core.utils.crypto.AesCryptoUtil;
 import com.share.common.redis.service.RedisService;
 import com.share.common.security.utils.SecurityUtils;
 import com.share.customer.config.CustomerAiProperties;
@@ -231,6 +232,7 @@ public class CustomerService {
         value.setTimeoutMs(base == null ? aiProperties.getTimeoutMs() : base.getTimeoutMs());
         value.setMaxRetries(base == null ? aiProperties.getMaxRetries() : base.getMaxRetries());
         value.setSystemPrompt(base == null ? aiProperties.getSystemPrompt() : base.getSystemPrompt());
+        value.setApiKeyCiphertext(base == null ? null : base.getApiKeyCiphertext());
 
         // 用户明确输入 Key 即表示本次希望启用第三方 AI；不改变后台持久化配置的 enabled 状态。
         if (StringUtils.hasText(requestApiKey)) {
@@ -558,9 +560,11 @@ public class CustomerService {
         config.setSystemPrompt(request.getSystemPrompt());
         config.setUpdateBy(currentUserId());
         config.setUpdateTime(LocalDateTime.now());
-        // Key 不落 MySQL 明文；本地 demo 使用 Redis 保存服务端侧密钥，前端只看到是否已配置。
+        // Key 严禁明文入库；通过 AES 强加密持久化至 api_key_ciphertext，运行时写入 Redis 缓存。
         if (StringUtils.hasText(request.getApiKey())) {
-            redisService.setCacheObject(SECRET_KEY, request.getApiKey().trim());
+            String cleanKey = request.getApiKey().trim();
+            config.setApiKeyCiphertext(AesCryptoUtil.encrypt(cleanKey));
+            redisService.setCacheObject(SECRET_KEY, cleanKey);
         }
         if (config.getCreateTime() == null) {
             config.setCreateTime(LocalDateTime.now());
@@ -679,7 +683,7 @@ public class CustomerService {
             }
         }
         List<CustomerKnowledge> knowledge = knowledgeMapper.selectList(new LambdaQueryWrapper<CustomerKnowledge>()
-                .eq(CustomerKnowledge::getStatus, 1).orderByDesc(CustomerKnowledge::getUpdateTime).last("limit 200"));
+                .eq(CustomerKnowledge::getStatus, 1).orderByDesc(CustomerKnowledge::getUpdateTime).last("limit 2000"));
         for (CustomerKnowledge item : knowledge) {
             int score = matchScore(normalized, item.getQuestion(), item.getKeywords());
             if (score > 0 && (best == null || score > best.score)) {
@@ -757,6 +761,21 @@ public class CustomerService {
         } catch (RuntimeException ignored) {
             // Redis 不可用时仍允许使用本地知识库；环境 Key 作为后备。
         }
+        // 若 Redis 缓存为空，尝试从持久化数据库解密恢复
+        try {
+            CustomerAiConfig config = aiConfigMapper.selectById(CONFIG_ID);
+            if (config != null && StringUtils.hasText(config.getApiKeyCiphertext())) {
+                String decrypted = AesCryptoUtil.decrypt(config.getApiKeyCiphertext());
+                if (StringUtils.hasText(decrypted)) {
+                    try {
+                        redisService.setCacheObject(SECRET_KEY, decrypted);
+                    } catch (Exception ignored) {}
+                    return decrypted;
+                }
+            }
+        } catch (Exception ex) {
+            // 解密异常不阻塞主流程
+        }
         return aiProperties.getSecret();
     }
 
@@ -794,9 +813,11 @@ public class CustomerService {
     private void validatePixelAddress(String baseUrl, String endpointPath) {
         try {
             URI uri = URI.create(baseUrl.trim());
+            String host = uri.getHost();
             if (!"https".equalsIgnoreCase(uri.getScheme())
-                    || !"api.ai-pixel.online".equalsIgnoreCase(uri.getHost())) {
-                throw new ServiceException("AI 地址必须使用 https://api.ai-pixel.online 第三方服务");
+                    || host == null
+                    || (!"ai-pixel.online".equalsIgnoreCase(host) && !"api.ai-pixel.online".equalsIgnoreCase(host))) {
+                throw new ServiceException("AI 地址必须使用 https://ai-pixel.online 第三方服务");
             }
         } catch (IllegalArgumentException ex) {
             throw new ServiceException("AI 地址格式不正确");

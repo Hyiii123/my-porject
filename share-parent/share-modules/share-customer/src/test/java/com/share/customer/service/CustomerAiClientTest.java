@@ -57,7 +57,7 @@ class CustomerAiClientTest {
         server.expect(requestTo("https://api.ai-pixel.online/v1/responses"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header("Authorization", "Bearer pixel-test-key"))
-                .andExpect(jsonPath("$.model").value("gpt-5.5"))
+                .andExpect(jsonPath("$.model").value("gpt-5.6-luna"))
                 .andExpect(jsonPath("$.instructions").isNotEmpty())
                 .andExpect(jsonPath("$.input[0].role").value("user"))
                 .andExpect(jsonPath("$.input[1].role").value("user"))
@@ -72,7 +72,7 @@ class CustomerAiClientTest {
         assertThat(reply).isNotNull();
         assertThat(reply.getContent()).isEqualTo("已收到，我来帮你处理。");
         assertThat(reply.getTokenUsage()).isEqualTo(12);
-        assertThat(reply.getModel()).isEqualTo("gpt-5.5");
+        assertThat(reply.getModel()).isEqualTo("gpt-5.6-luna");
         server.verify();
     }
 
@@ -128,7 +128,7 @@ class CustomerAiClientTest {
         server.expect(requestTo("https://api.ai-pixel.online/v1/responses"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header("Authorization", "Bearer request-only-key"))
-                .andExpect(jsonPath("$.model").value("gpt-5.5"))
+                .andExpect(jsonPath("$.model").value("gpt-5.6-luna"))
                 .andRespond(withSuccess(
                         "{\"output_text\":\"本次请求使用临时 Key。\"}",
                         MediaType.APPLICATION_JSON));
@@ -145,7 +145,7 @@ class CustomerAiClientTest {
         config.setProvider("pixel");
         config.setBaseUrl("https://api.ai-pixel.online");
         config.setEndpointPath(endpointPath);
-        config.setModel("gpt-5.5");
+        config.setModel("gpt-5.6-luna");
         config.setEnabled(1);
         config.setMaxRetries(0);
         config.setSystemPrompt(properties.getSystemPrompt());

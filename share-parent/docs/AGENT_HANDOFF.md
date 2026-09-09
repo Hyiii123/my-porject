@@ -9,7 +9,7 @@
 - 项目已从共享充电宝方向收敛为在线教育平台。`share-modules/share-device` 已从 Git 删除，网关 `/device/**` 路由、设备常量和管理端旧文案也已删除。
 - 当前分支是 `master`，远端是 `origin`：`git@github.com:Hyiii123/my-porject.git`。
 - 本地代码目录：`D:\education system\my-porject\share-parent`。
-- 线上服务器地址：`47.120.32.166`；线上项目目录：`/opt/tianji/share-parent`。
+- 线上服务器地址：`47.120.67.187`；线上项目目录：`/opt/tianji/share-parent`。
 - 线上访问使用已配置的 Workbench/Codex ECS 会话（支持终端和文件 `upload`/`download`）。认证方式和凭据不写入仓库、聊天记录或本文；接手者应复用已有连接配置，不能臆测 SSH 用户名或复制密钥。
 - 这次删减任务遵循的发布顺序是：**先修改服务器源码并验证，再同步到本地，最后提交推送 GitHub**。不要反向把未经验证的 GitHub 代码覆盖服务器；每次同步前先比较差异。
 

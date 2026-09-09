@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <main class="customer-service-page">
     <div class="service-container">
       <section class="service-hero">
@@ -201,7 +201,7 @@
             autocomplete="off"
             placeholder="请输入第三方 AI API Key"
           />
-          <el-input v-model="modelDraft" class="model-input" placeholder="模型名称，例如 gpt-5.5">
+          <el-input v-model="modelDraft" class="model-input" placeholder="模型名称，例如 gpt-5.6-luna">
             <template #prepend>模型</template>
           </el-input>
           <div class="api-security-tip">
@@ -276,7 +276,7 @@ function saveAiSettings() {
   setPixelApiKey(key)
   setPixelModel(modelDraft.value)
   pixelApiKey.value = key
-  pixelModel.value = modelDraft.value.trim() || 'gpt-5.5'
+  pixelModel.value = modelDraft.value.trim() || 'gpt-5.6-luna'
   showAiSettings.value = false
   ElMessage.success('第三方 AI 接口已启用')
 }

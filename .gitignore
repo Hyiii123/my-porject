@@ -1,0 +1,29 @@
+# Sensitive files and keys
+.env
+.env.*
+*.key
+*.secret
+*.pem
+credentials.json
+
+# Build directories
+target/
+**/target/
+dist/
+**/dist/
+node_modules/
+**/node_modules/
+
+# IDE and editors
+.idea/
+*.iml
+.vscode/
+*.swp
+*.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Compiled class files
+*.class

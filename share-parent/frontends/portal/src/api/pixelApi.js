@@ -2,7 +2,7 @@ import request from '@/utils/request.js'
 
 const API_KEY_STORAGE_KEY = 'customer_service_pixel_api_key'
 const MODEL_STORAGE_KEY = 'customer_service_pixel_api_model'
-const DEFAULT_MODEL = 'gpt-5.5'
+const DEFAULT_MODEL = 'gpt-5.6-luna'
 
 function normalizeApiKey(apiKey) {
   return String(apiKey || '')

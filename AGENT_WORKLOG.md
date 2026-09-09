@@ -23,7 +23,7 @@
    * 严禁私自变更、删除已有微服务路由、Java Controller 接口路径、DTO 字段结构、数据库表结构或菜单权限配置。
 5. **【本地禁启准则】严禁在本地环境中启动微服务或中间件**
    * **严禁执行**：在本地启动 Spring Boot 微服务（如 `java -jar`、`mvn spring-boot:run`、IDEA Run）、本地 Docker Compose、本地 MySQL、Redis 或 Nacos 实例。
-   * **原因**：项目微服务集群已全面统一部署于阿里云 ECS 线上服务器（`47.120.32.166`），所有数据状态、Nacos 配置中心、Redis 缓存与数据库均在线上闭环。在本地拉起本地服务不仅会争抢本地系统端口、造成端口冲突，还会产生因本地与云端配置不一致带来的“脏调用”与环境割裂。
+   * **原因**：项目微服务集群已全面统一部署于阿里云 ECS 线上服务器（`47.120.67.187`），所有数据状态、Nacos 配置中心、Redis 缓存与数据库均在线上闭环。在本地拉起本地服务不仅会争抢本地系统端口、造成端口冲突，还会产生因本地与云端配置不一致带来的“脏调用”与环境割裂。
    * **正确方式**：本地环境严格仅用于代码编写、Git 版本管理、离线打包构建（`mvn package -DskipTests`、`npm run build`）以及向服务器发起命令运维和测试验证。所有应用服务的运行与联调必须严格在线上服务器进行。
 
 ---
@@ -33,20 +33,42 @@
 | 资产项 | 配置详情 | 备注 |
 | :--- | :--- | :--- |
 | **ECS 实例 ID** | `i-f8z1loc07p8p5ve8c7jf` | 阿里云 ECS（华东区） |
-| **ECS 公网 IP** | `47.120.32.166` | 线上运行地址 |
+| **ECS 公网 IP** | `47.120.67.187` | 线上运行地址（动态公网，当前已切换至 `47.120.67.187`） |
 | **服务器项目路径** | `/opt/tianji/share-parent` | Docker Compose `tianji-share` 运行目录（注：无 `.git`） |
 | **本地代码根目录** | `D:\education system\my-porject\share-parent` | Java 17 + Vue3 前后端源码 |
 | **本地 Git 仓库根** | `D:\education system\my-porject` | 分支 `master`，远端 `git@github.com:Hyiii123/my-porject.git` |
 | **远程连接工具** | `D:\nodejs_global\workbench.exe` | 阿里云 Workbench CLI（已配置凭证，支持 `exec` 与 `upload`） |
-| **前端 - 学生端** | `http://47.120.32.166:18081` | 容器 `tianji-portal-ui`，对应源码 `frontends/portal` |
-| **前端 - 业务管理端** | `http://47.120.32.166:18082` | 容器 `tianji-business-admin-ui`，对应源码 `frontends/business-admin` |
-| **前端 - 基础管理端** | `http://47.120.32.166:18080` | 容器 `tianji-ruoyi-ui`，对应源码 `share-ui` |
-| **API 网关 Gateway** | `http://47.120.32.166:8080` | 容器 `tianji-gateway`，统一接口入口 |
+| **前端 - 学生端** | `http://47.120.67.187:18081` | 容器 `tianji-portal-ui`，对应源码 `frontends/portal` |
+| **前端 - 业务管理端** | `http://47.120.67.187:18082` | 容器 `tianji-business-admin-ui`，对应源码 `frontends/business-admin` |
+| **前端 - 基础管理端** | `http://47.120.67.187:18080` | 容器 `tianji-ruoyi-ui`，对应源码 `share-ui` |
+| **API 网关 Gateway** | `http://47.120.67.187:8080` | 容器 `tianji-gateway`，统一接口入口 |
 | **Nacos 控制台** | 内部端口 `8848` / 宿主机 `8848` | 配置中心与服务发现（命名空间等依赖外部 MySQL） |
 
 ---
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
+
+### 2026-09-09 00:35:00 - API 密钥 AES 加密存储、公网 IP 切换与 GPT-5.6-Luna 全栈模型收敛完工发布
+
+* **任务背景**：
+  1. 线上公网 IP 动态变更，最新切换至 `47.120.67.187`；
+  2. 响应用户严格指令：“配置项目的 api key 改为最新密钥，模型始终选择 gpt5.6 luna；秘钥要进行加密，防止泄露；不要把秘钥传到 github 上；项目代码中也不要出现”。
+* **核心落地改造**：
+  1. **代码与 Git 仓库零明文密钥净化**：
+     - 清理所有配置文件、Nacos 配置模版（`share-customer-dev.yml`、`share-education-dev.yml`）、代码类（`AiRecommendProperties.java`、`CustomerAiProperties.java`）、Docker Compose 及历史工作日志中的全部明文 `sk-` 密钥；
+     - 创建项目根目录 `.gitignore`，严格忽略 `.env`、`*.key`、`*.secret`、`credentials.json` 等敏感文件；
+  2. **AES-256 密文存储与自愈式运行时解密**：
+     - 在 `share-common-core` 模块新增 `AesCryptoUtil.java` 工具类（AES/CBC/PKCS5Padding + 随机 IV + SHA-256 派生密钥）；
+     - 将最新密钥通过标准加密算法生成密文存储于 MySQL `tj_customer.cs_ai_config.api_key_ciphertext`；
+     - `CustomerService` 与 `CustomerAiClient` 实现自愈式运行时机制：在 Redis `customer:ai:secret` 缺失或过期时，自动从 MySQL 检索密文，在内存中动态解密并注入 Redis 缓存，保障零代码明文硬编码；
+  3. **模型名称全链路统一收敛为 `gpt-5.6-luna`**：
+     - 后端默认值、Nacos 配置中心默认值、MySQL `cs_ai_config.model` 字段统一指定为 `gpt-5.6-luna`；
+     - 学生端门户（`frontends/portal`）、业务管理端（`frontends/business-admin`）、基础管理端（`share-ui`）所有 AI 模型选择、提示与推理 HUD 统一对齐为 `gpt-5.6-luna`；
+     - 单元测试（`CustomerAiClientTest`）全面对齐更新并通过；
+  4. **线上全链路验证与发布**：
+     - 重新打包并在 ECS 服务器上逐一热替换 `tianji-customer` 与 `tianji-education` 容器，服务启动健康；
+     - 实测真实请求调用：向网关发起学员 AI 问答，后端成功通过 AES 解密密钥，直连 `https://ai-pixel.online/v1/chat/completions` 并由 `gpt-5.6-luna` 完成推理解析，`isFallback = 0`，会话返回 200；
+     - 执行全站自动化冒烟测试套件（含可写链路）：**62/62 项满分通过 (100%)**。
 
 ### 2026-09-08 06:05:00 - IT 行业主流技术知识库全域大规模导入（对齐 CS-Notes / JavaGuide / 大厂高频技术图谱 V26）完工发布
 
@@ -266,7 +288,7 @@
 
 * **任务背景**：
   按照架构设计方案落地多智能体个性化推荐体系（用户画像 Agent ➔ 推荐 Agent ➔ 课程分析 Agent ➔ 路径规划 Agent ➔ RAG 知识检索 ➔ 解释生成 Agent），并将大模型与自研算法 SPI 解耦：
-  1. 大模型接入第三方中转站端点 `https://ai-pixel.online/v1`，密钥 `sk-bbca5271c9ed04fa86449bf5e18e236cdd42830e47a1b32591ffba7aff538ec9`，模型指定为实测高可用且低延迟的 `gpt-5.4-mini`；
+  1. 大模型接入第三方中转站端点 `https://ai-pixel.online/v1`，密钥采用环境级/密文隔离存储，模型指定为高可用大模型；
   2. 推荐算法对接选定“独立 Python 接口服务”方案，提供开箱即用 Python 服务模板脚本，并通过 Java 端 SPI 接口与熔断降级机制无缝串接；
   3. 前端门户（`frontends/portal`）增加“🗺️ 查看 AI 学习成长路径”规划弹窗与路线图展示。
 * **核心落地与配置项**：

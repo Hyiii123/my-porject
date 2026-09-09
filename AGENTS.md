@@ -26,9 +26,9 @@ Whenever work is done (new milestones, bug fixes, resolved pitfalls), the agent 
 
 ## 5. Prohibition of Local Service Execution (禁止在本地启动服务铁律)
 **STRICTLY FORBIDDEN**: Starting backend microservices (e.g. `java -jar`, `mvn spring-boot:run`, local IDE service runs) or middleware (MySQL, Redis, Nacos, local Docker Compose) on the local developer machine.
-All application runtime services, databases, Redis, and Nacos run exclusively on the remote cloud server (Alibaba Cloud ECS `47.120.32.166`). Local environment is strictly reserved for:
+All application runtime services, databases, Redis, and Nacos run exclusively on the remote cloud server (Alibaba Cloud ECS `47.120.67.187`). Local environment is strictly reserved for:
 - Code editing, diff review, and version control (`git`).
 - Static offline compilation / packaging (`mvn compile / package`, `npm run build`).
-- Remote CLI operations and verification tests against the server (Workbench CLI, smoke test targeting `http://47.120.32.166:8080`).
+- Remote CLI operations and verification tests against the server (Workbench CLI, smoke test targeting `http://47.120.67.187:8080`).
 No local port listeners or local service instances are allowed.
 

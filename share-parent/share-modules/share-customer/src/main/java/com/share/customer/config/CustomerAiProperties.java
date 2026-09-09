@@ -12,11 +12,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "customer.ai")
 public class CustomerAiProperties {
 
-    private String baseUrl = "https://api.ai-pixel.online";
+    private String baseUrl = "https://ai-pixel.online";
 
-    private String endpointPath = "/v1/responses";
+    private String endpointPath = "/v1/chat/completions";
 
-    private String model = "gpt-5.5";
+    private String model = "gpt-5.6-luna";
 
     /** 服务端环境变量中的 Key；不返回给前端。 */
     private String secret;

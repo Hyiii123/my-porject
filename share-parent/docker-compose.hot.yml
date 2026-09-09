@@ -27,9 +27,9 @@ services:
       TJ_MYSQL_PORT: 3306
       TJ_MYSQL_USERNAME: root
       TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
-      TJ_PIXEL_API_BASE_URL: "${TJ_PIXEL_API_BASE_URL:-https://api.ai-pixel.online}"
-      TJ_PIXEL_API_ENDPOINT: "${TJ_PIXEL_API_ENDPOINT:-/v1/responses}"
-      TJ_PIXEL_API_MODEL: "${TJ_PIXEL_API_MODEL:-gpt-5.5}"
+      TJ_PIXEL_API_BASE_URL: "${TJ_PIXEL_API_BASE_URL:-https://ai-pixel.online}"
+      TJ_PIXEL_API_ENDPOINT: "${TJ_PIXEL_API_ENDPOINT:-/v1/chat/completions}"
+      TJ_PIXEL_API_MODEL: "${TJ_PIXEL_API_MODEL:-gpt-5.6-luna}"
       TJ_AI_SECRET: "${TJ_AI_SECRET:-}"
       SPRING_DEVTOOLS_RESTART_ENABLED: "true"
       SPRING_DEVTOOLS_RESTART_TRIGGER_FILE: reload.trigger
