@@ -51,6 +51,10 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 客服核心业务服务。
@@ -69,6 +73,7 @@ public class CustomerService {
     private static final int MESSAGE_USER = 1;
     private static final int MESSAGE_AI = 2;
     private static final int MESSAGE_SYSTEM = 4;
+    private static final String EMBEDDING_SERVICE_URL = "http://tianji-embedding:8000/search";
 
     private final CustomerKnowledgeMapper knowledgeMapper;
     private final CustomerFaqMapper faqMapper;
@@ -81,12 +86,14 @@ public class CustomerService {
     private final CustomerAiProperties aiProperties;
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
+    private final RestTemplate restTemplate;
 
     public CustomerService(CustomerKnowledgeMapper knowledgeMapper, CustomerFaqMapper faqMapper,
             CustomerSessionMapper sessionMapper, CustomerMessageMapper messageMapper,
             CustomerEvaluationMapper evaluationMapper, CustomerAiConfigMapper aiConfigMapper,
             CustomerAiCallLogMapper aiCallLogMapper, CustomerAiClient aiClient,
-            CustomerAiProperties aiProperties, RedisService redisService, ObjectMapper objectMapper) {
+            CustomerAiProperties aiProperties, RedisService redisService, ObjectMapper objectMapper,
+            RestTemplate restTemplate) {
         this.knowledgeMapper = knowledgeMapper;
         this.faqMapper = faqMapper;
         this.sessionMapper = sessionMapper;
@@ -98,6 +105,7 @@ public class CustomerService {
         this.aiProperties = aiProperties;
         this.redisService = redisService;
         this.objectMapper = objectMapper;
+        this.restTemplate = restTemplate;
     }
 
     @Transactional
@@ -192,7 +200,7 @@ public class CustomerService {
         messageMapper.insert(reply);
 
         session.setStatus(0);
-        session.setLastMessage(answer);
+        session.setLastMessage(formatLastMessagePreview(answer));
         session.setUpdatedAt(LocalDateTime.now());
         session.setUpdateTime(LocalDateTime.now());
         sessionMapper.updateById(session);
@@ -469,7 +477,7 @@ public class CustomerService {
         reply.setCreateTime(LocalDateTime.now());
         messageMapper.insert(reply);
         session.setStatus(0);
-        session.setLastMessage(answer);
+        session.setLastMessage(formatLastMessagePreview(answer));
         session.setUpdatedAt(LocalDateTime.now());
         session.setUpdateTime(LocalDateTime.now());
         sessionMapper.updateById(session);
@@ -672,6 +680,13 @@ public class CustomerService {
     }
 
     private String findLocalAnswer(String input) {
+        // 1. 优先使用 Qdrant 向量语义相似度检索 (FastEmbed / BGE-small-zh)
+        String semanticAnswer = findSemanticAnswer(input);
+        if (StringUtils.hasText(semanticAnswer)) {
+            return semanticAnswer;
+        }
+
+        // 2. 降级走原有的 FAQ 与关键词匹配机制
         String normalized = normalize(input);
         LocalAnswer best = null;
         List<CustomerFaq> faqs = faqMapper.selectList(new LambdaQueryWrapper<CustomerFaq>()
@@ -707,6 +722,58 @@ public class CustomerService {
             return best.answer;
         }
         return "抱歉，我暂时没有在知识库中找到完全匹配的答案。你可以换一种说法描述问题，或留下具体的课程、订单和账号信息，我会继续帮你排查。";
+    }
+
+    /**
+     * 通过 Qdrant 向量搜索引擎与 FastEmbed 进行语义近邻检索。
+     * 当语义相似度余弦得分 >= 0.70 时判定为高置信度语义命中，直接返回答案。
+     */
+    private String findSemanticAnswer(String input) {
+        if (!StringUtils.hasText(input) || input.trim().length() < 2) {
+            return null;
+        }
+        try {
+            String url = EMBEDDING_SERVICE_URL + "?q={q}&limit={limit}";
+            org.springframework.http.ResponseEntity<String> response = restTemplate.getForEntity(
+                    url, String.class, input.trim(), 1);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                JsonNode root = objectMapper.readTree(response.getBody());
+                JsonNode hits = root.path("hits");
+                if (hits.isArray() && hits.size() > 0) {
+                    JsonNode topHit = hits.get(0);
+                    double score = topHit.path("score").asDouble(0.0);
+                    String answer = topHit.path("answer").asText("");
+                    long id = topHit.path("id").asLong(0L);
+                    if (score >= 0.70 && StringUtils.hasText(answer)) {
+                        try {
+                            if (id > 0) {
+                                CustomerKnowledge item = knowledgeMapper.selectById(id);
+                                if (item != null) {
+                                    item.setHitCount((item.getHitCount() == null ? 0 : item.getHitCount()) + 1);
+                                    knowledgeMapper.updateById(item);
+                                }
+                            }
+                        } catch (Exception ignored) {
+                        }
+                        return answer;
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            // 异常或服务网络未就绪时静默跳过，无缝降级到本地关键字与FAQ匹配
+        }
+        return null;
+    }
+
+    private String formatLastMessagePreview(String answer) {
+        if (!StringUtils.hasText(answer)) {
+            return "";
+        }
+        String trimmed = answer.trim();
+        if (trimmed.length() > 500) {
+            return trimmed.substring(0, 497) + "...";
+        }
+        return trimmed;
     }
 
     private int matchScore(String normalizedInput, String question, String keywords) {

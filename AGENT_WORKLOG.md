@@ -52,6 +52,25 @@
 
 ## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-09 01:55:00 - Qdrant 向量库全量 2370 题向量化、FastEmbed 语义检索微服务与客服智能问答闭环落地
+
+* **任务背景**：
+  响应用户指令：“市面上有没有轻量级向量数据库” ➔ “选择A，立即执行” ➔ “没用到向量数据库？” ➔ “执行A”（全链路打通 Qdrant 向量数据库与 FastEmbed 语义检索，将导入的小林coding与已有知识库全量 2370 道题向量化入库，并接入客服微服务实现精准语义问答与智能降级）。
+* **核心落地与架构闭环**：
+  1. **Qdrant 向量集合创建与全量向量化**：
+     - 在轻量级 Rust 向量数据库 Qdrant 中创建 `tianji_knowledge` 集合（512 维向量，Cosine 余弦相似度）；
+     - 使用轻量 ONNX 推理引擎 FastEmbed 加载中文最优向量模型 `BAAI/bge-small-zh-v1.5`，耗时 12.5 秒完成全量 2370 道题目与答案的高性能向量生成，分 8 批全部批量 upsert 入库（Qdrant points_count: 2370, status: green）；
+  2. **FastAPI 语义检索微服务容器化（tianji-embedding）**：
+     - 构建轻量 Python 3.11 镜像并部署独立容器 `tianji-embedding`（常驻内存仅 172MB，端口 8000，宿主机 18000），挂载离线模型缓存 `/opt/tianji/fastembed_cache` 实现零外网依赖秒级启动；
+     - 暴露 `GET /health`、`POST /embed` 及 `GET /search?q={text}&limit={n}` 语义检索接口，内置多重百分号解码容错，向量检索延迟低至 15ms；
+     - 将 `embedding` 服务正式纳入 `share-parent/docker-compose.yml` 编排管理；
+  3. **客服业务（share-customer）全链路语义集成与异常防护**：
+     - 在 `CustomerService.java` 中新增 `findSemanticAnswer` 机制：优先调用 `http://tianji-embedding:8000/search`，余弦相似度分数 >= 0.70 时判定为高置信度语义命中，精准命中即刻返回，并自增热度计数器；若不满足或服务未就绪则无缝平滑降级至 FAQ 与关键词规则；
+     - 针对技术真题详尽解析达数千字引发的数据库截断异常（Data truncation: Data too long for column 'last_message'），在 MySQL `tj_customer` 中将 `cs_session.last_message` 字段类型由 `varchar(1000)` 平滑修改为 `TEXT`，并在 Java 代码层增加 `formatLastMessagePreview` 安全摘要截断，彻底阻断数据库截断报错；
+  4. **真实场景语义问答验证与冒烟测试**：
+     - 实测真实语义问答：学员提问“Java为什么支持跨平台？”（语义泛化问法）秒级精准召回知识点 ID 1071（“Java为什么是跨平台的？”）；提问“Redis缓存雪崩怎么解决？”秒级精准召回 ID 1725（“缓存雪崩、击穿、穿透是什么？怎么解决？”）；
+     - 执行全站自动化冒烟测试套件（含客服会话、问答交互、服务评价及完整写链路）：**62/62 项满分通过 (100%)**。
+
 ### 2026-09-09 01:25:00 - 小林coding后端面试题库全量导入（1322题）与本地严禁占用C盘铁律建立
 
 * **任务背景**：

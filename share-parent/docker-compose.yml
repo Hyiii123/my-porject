@@ -85,6 +85,25 @@ services:
     networks:
       - tianji-net
 
+  # 语义向量嵌入检索服务 (FastAPI + FastEmbed BGE-small-zh)，内存仅占 ~170MB
+  embedding:
+    image: tianji-embedding:latest
+    container_name: tianji-embedding
+    restart: unless-stopped
+    ports:
+      - "${TJ_EMBEDDING_PORT:-18000}:8000"
+    volumes:
+      - /opt/tianji/fastembed_cache:/root/.cache/fastembed:ro
+    environment:
+      TZ: Asia/Shanghai
+      QDRANT_URL: http://qdrant:6333
+      COLLECTION_NAME: tianji_knowledge
+      FASTEMBED_CACHE_PATH: /root/.cache/fastembed
+    depends_on:
+      - qdrant
+    networks:
+      - tianji-net
+
   nacos:
     image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/nacos/nacos-server:v2.2.0
     container_name: tianji-nacos
@@ -294,6 +313,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      embedding:
+        condition: service_started
     networks:
       - tianji-net
 
