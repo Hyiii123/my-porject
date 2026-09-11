@@ -46,7 +46,7 @@ export const getMediaStatistics = () =>
     url: `/ms/medias/statistics`,
     method: "get",
   });
-// 本地文件服务上传
+// 本地文件服务上传（大文件视频上传设置120秒超时）
 export const uploadFile = (file) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -54,6 +54,7 @@ export const uploadFile = (file) => {
     url: `/file/upload`,
     method: "post",
     data: formData,
+    timeout: 120000,
   });
 };
 // 管理端获取预览视频的授权签名

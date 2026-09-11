@@ -150,8 +150,8 @@
       width="640px"
       destroy-on-close
     >
-      <el-form label-width="90px">
-        <el-form-item label="所属课程" required>
+      <el-form :model="uploadForm" label-width="90px">
+        <el-form-item label="所属课程" class="is-required">
           <el-select
             v-model="uploadForm.courseId"
             placeholder="请选择视频所属课程"
@@ -169,7 +169,7 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="对应小节" required>
+        <el-form-item label="对应小节" class="is-required">
           <el-select
             v-model="uploadForm.sectionId"
             placeholder="请选择对应课程小节（第几节）"
@@ -204,7 +204,7 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="视频文件" required>
+        <el-form-item label="视频文件" class="is-required">
           <div class="upload-area">
             <el-upload
               class="upload-dragger"
@@ -250,7 +250,7 @@
       destroy-on-close
     >
       <el-form :model="editForm" label-width="90px">
-        <el-form-item label="视频名称" required>
+        <el-form-item label="视频名称" class="is-required">
           <el-input v-model="editForm.name" placeholder="请输入视频名称" />
         </el-form-item>
         <el-form-item label="视频类型">
