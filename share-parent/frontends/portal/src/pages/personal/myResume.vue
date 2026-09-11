@@ -376,7 +376,11 @@ const loadMyResume = async () => {
 const applyResumeData = (data) => {
   Object.assign(resumeData, data)
   if (data.rawContent) {
-    resumeContent.value = data.rawContent
+    if (data.rawContent.startsWith('%PDF-') || data.rawContent.startsWith('PK\x03\x04')) {
+      resumeContent.value = ''
+    } else {
+      resumeContent.value = data.rawContent
+    }
   }
   if (data.targetJob) {
     targetJob.value = data.targetJob
@@ -405,20 +409,25 @@ const handleFileChange = async (file) => {
     }
     reader.readAsText(rawFile)
   } else {
-    // 调用后端文件文本提取
+    // 调用后端文件文本提取（支持 PDF、Word DOCX）
     const formData = new FormData()
     formData.append('file', rawFile)
     try {
       const res = await uploadResumeFile(formData)
       if (res && res.code === 200 && res.data) {
-        resumeContent.value = res.data.content || ''
+        const text = res.data.content || ''
+        if (text.startsWith('%PDF-') || text.startsWith('PK\x03\x04') || /[\x00-\x08\x0E-\x1F]/.test(text.slice(0, 200))) {
+          ElMessage.error('上传文件包含未解析的二进制字节码，请重新上传标准 PDF/Word 文档或直接粘贴文字')
+          return
+        }
+        resumeContent.value = text
         resumeData.fileName = res.data.fileName || rawFile.name
-        ElMessage.success('简历上传成功并已提取核心文本！')
+        ElMessage.success('简历文档文字提取成功！可核对或补充右侧内容后，点击进行 AI 深度对标')
       } else {
-        ElMessage.warning(res.msg || '简历文件已接收，请在右侧文本框补充核心经历')
+        ElMessage.warning(res ? res.msg : '简历文件已接收，请在右侧文本框补充核心经历')
       }
     } catch (e) {
-      ElMessage.warning('文件提取受限，已记录文件名，请在右侧直接粘贴简历文本')
+      ElMessage.warning((e && e.message) ? e.message : '文件解析受限，请在右侧直接粘贴简历文本')
     }
   }
 }
