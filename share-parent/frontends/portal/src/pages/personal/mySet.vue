@@ -28,6 +28,7 @@
         <el-upload
           class="avatar-uploader"
           :action="actions"
+          accept="image/jpeg,image/png,image/gif,image/bmp"
           :show-file-list="false"
           :on-success="handleAvatarSuccess"
           :before-upload="beforeAvatarUpload"
@@ -135,11 +136,15 @@ const formatPhone = (phone) => {
 
 const beforeAvatarUpload = (file) => {
   const isImage = file.type.startsWith('image/');
-  const isLt5M = file.size / 1024 / 1024 < 5;
-  if (!isImage) {
-    ElMessage.error('上传头像图片只能是 JPG/PNG/WEBP/GIF 格式!');
+  const fileName = file.name ? file.name.toLowerCase() : '';
+  const validExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp'];
+  const hasValidExt = validExts.some(ext => fileName.endsWith(ext));
+
+  if (!isImage || !hasValidExt) {
+    ElMessage.error('上传头像图片只能是 JPG、JPEG、PNG、GIF、BMP 格式!');
     return false;
   }
+  const isLt5M = file.size / 1024 / 1024 < 5;
   if (!isLt5M) {
     ElMessage.error('上传头像图片大小不能超过 5MB!');
     return false;
