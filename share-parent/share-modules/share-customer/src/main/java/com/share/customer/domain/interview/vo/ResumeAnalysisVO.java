@@ -27,4 +27,29 @@ public class ResumeAnalysisVO implements Serializable {
     private List<String> predictedQuestions;
     private String starAdvice;
     private LocalDateTime updateTime;
+
+    /**
+     * 基础分 60 + 五大工程技术维度细分评分明细。
+     */
+    private List<ScoreDimensionItem> scoreDetails;
+
+    @Data
+    public static class ScoreDimensionItem implements Serializable {
+        private static final long serialVersionUID = 1L;
+        private String name;
+        private Integer score;
+        private Integer maxScore;
+        private String rating;
+        private String description;
+
+        public ScoreDimensionItem() {}
+
+        public ScoreDimensionItem(String name, Integer score, Integer maxScore, String rating, String description) {
+            this.name = name;
+            this.score = score;
+            this.maxScore = maxScore;
+            this.rating = rating;
+            this.description = description;
+        }
+    }
 }

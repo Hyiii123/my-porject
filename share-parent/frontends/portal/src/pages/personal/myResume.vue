@@ -164,6 +164,7 @@
               :show-text="false"
               :stroke-width="8"
             />
+            <div class="base-score-tip">基准及格分 60 分 + 五维工程能力实战加成</div>
           </div>
 
           <div class="metric-card tags-metric">
@@ -180,6 +181,35 @@
                 {{ tag }}
               </el-tag>
               <span v-if="!resumeData.techTags || resumeData.techTags.length === 0" class="empty-hint">暂无提取标签</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 五维工程技术能力量化细则面板 -->
+        <div v-if="resumeData.scoreDetails && resumeData.scoreDetails.length > 0" class="breakdown-card">
+          <div class="breakdown-title-bar">
+            <div class="bt-left">
+              <span class="bt-icon">📊</span>
+              <span class="bt-main">大厂招聘委员会·五维工程能力量化细则</span>
+            </div>
+            <span class="bt-badge">起评分：60 分准入门槛 ｜ 满分：100 分</span>
+          </div>
+          <div class="breakdown-grid">
+            <div v-for="item in resumeData.scoreDetails" :key="item.name" class="breakdown-item">
+              <div class="bi-header">
+                <span class="bi-name">{{ item.name }}</span>
+                <span class="bi-score">
+                  <span class="score-val" :class="getDimScoreClass(item.score, item.maxScore)">+{{ item.score }}</span>
+                  <span class="score-max">/ {{ item.maxScore }}分</span>
+                </span>
+              </div>
+              <el-progress
+                :percentage="Math.round((item.score / item.maxScore) * 100)"
+                :stroke-width="5"
+                :show-text="false"
+                :color="getDimProgressColor(item.score, item.maxScore)"
+              />
+              <div class="bi-desc">{{ item.description }}</div>
             </div>
           </div>
         </div>
@@ -281,6 +311,7 @@ const resumeData = reactive({
   resumeGaps: [],
   predictedQuestions: [],
   starAdvice: '',
+  scoreDetails: [],
   updateTime: ''
 })
 
@@ -553,6 +584,20 @@ const getProgressColor = (score) => {
   return '#E6A23C'
 }
 
+const getDimScoreClass = (score, maxScore) => {
+  if (score >= maxScore) return 'score-perfect'
+  if (score >= maxScore * 0.7) return 'score-good'
+  return 'score-normal'
+}
+
+const getDimProgressColor = (score, maxScore) => {
+  const ratio = score / maxScore
+  if (ratio >= 0.9) return '#10B981'
+  if (ratio >= 0.7) return '#2563EB'
+  if (ratio >= 0.5) return '#F59E0B'
+  return '#94A3B8'
+}
+
 const formatTime = (timeStr) => {
   if (!timeStr) return '--'
   return timeStr.replace('T', ' ').substring(0, 16)
@@ -807,7 +852,14 @@ onMounted(() => {
             font-size: 13px;
             font-weight: 600;
             color: #059669;
-            margin: 10px 0 14px;
+            margin: 10px 0 6px;
+          }
+
+          .base-score-tip {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+            font-weight: 500;
           }
         }
 
@@ -825,6 +877,110 @@ onMounted(() => {
             .empty-hint {
               color: #94a3b8;
               font-size: 13px;
+            }
+          }
+        }
+      }
+
+      .breakdown-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 18px 20px;
+        margin-bottom: 24px;
+
+        .breakdown-title-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 14px;
+          flex-wrap: wrap;
+          gap: 8px;
+
+          .bt-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .bt-icon {
+              font-size: 16px;
+            }
+
+            .bt-main {
+              font-size: 15px;
+              font-weight: 700;
+              color: #1e293b;
+            }
+          }
+
+          .bt-badge {
+            font-size: 12px;
+            color: #2563eb;
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+          }
+        }
+
+        .breakdown-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 14px;
+
+          .breakdown-item {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 14px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+            .bi-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 6px;
+
+              .bi-name {
+                font-size: 13px;
+                font-weight: 600;
+                color: #334155;
+              }
+
+              .bi-score {
+                font-size: 12px;
+
+                .score-val {
+                  font-size: 14px;
+                  font-weight: 700;
+
+                  &.score-perfect {
+                    color: #10b981;
+                  }
+                  &.score-good {
+                    color: #2563eb;
+                  }
+                  &.score-normal {
+                    color: #d97706;
+                  }
+                }
+
+                .score-max {
+                  color: #94a3b8;
+                  margin-left: 2px;
+                }
+              }
+            }
+
+            :deep(.el-progress) {
+              margin-bottom: 8px;
+            }
+
+            .bi-desc {
+              font-size: 11px;
+              color: #64748b;
+              line-height: 1.5;
             }
           }
         }

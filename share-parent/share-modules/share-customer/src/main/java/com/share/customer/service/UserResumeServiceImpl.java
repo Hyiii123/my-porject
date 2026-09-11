@@ -180,10 +180,23 @@ public class UserResumeServiceImpl implements IUserResumeService {
         sb.append("1. 严禁杜撰虚构！必须紧密围绕候选人简历中【真实提及的项目经历、技术栈、职责与成果】进行客观技术评价。\n");
         sb.append("2. 在 projectHighlights、resumeGaps 和 predictedQuestions 中，必须明确提及候选人简历中的具体真实项目名称或实际业务场景，严禁套用虚构通用模板！\n");
         sb.append("3. 技能标签 techTags 必须严格从简历中真实出现的技术、框架和工具中提取。\n");
-        sb.append("4. 请严格按以下 JSON 格式输出深度评测报告，不要输出任何额外的包裹代码块或多余文字：\n");
+        sb.append("4. 【严格打分规则（满分100分，基准及格分固定为60分）】：\n");
+        sb.append("   - matchScore = 60分基准及格分 + 五大维度加分（范围 60 ~ 100 分）：\n");
+        sb.append("     ① 核心技术栈广度与深度 (0~10分)\n");
+        sb.append("     ② 项目经历与系统复杂度 (0~10分)\n");
+        sb.append("     ③ STAR法则生产量化成效 (0~10分)\n");
+        sb.append("     ④ 高可用工程规范与容灾防护 (0~5分)\n");
+        sb.append("     ⑤ 目标岗位与名企契合度 (0~5分)\n");
+        sb.append("   - matchLevel 评级严格按总分映射：\n");
+        sb.append("     92~100分：\"阿里P7+/字节2-2 资深技术专家\"\n");
+        sb.append("     85~91分：\"阿里P6+/字节2-1 骨干级研发标杆\"\n");
+        sb.append("     75~84分：\"大厂标准中高级工程师\"\n");
+        sb.append("     65~74分：\"技术扎实准入级开发者\"\n");
+        sb.append("     <65分：\"初阶成长型，亟待丰富项目与产出\"\n");
+        sb.append("5. 请严格按以下 JSON 格式输出深度评测报告，不要输出任何额外的包裹代码块或多余文字：\n");
         sb.append("{\n");
-        sb.append("  \"matchScore\": 88,\n");
-        sb.append("  \"matchLevel\": \"阿里P6+/字节2-1 标杆能力\",\n");
+        sb.append("  \"matchScore\": 86,\n");
+        sb.append("  \"matchLevel\": \"阿里P6+/字节2-1 骨干级研发标杆\",\n");
         sb.append("  \"techTags\": [\"从简历中提取的真实技术1\", \"真实技术2\", \"真实技术3\"],\n");
         sb.append("  \"projectHighlights\": [\n");
         sb.append("    \"结合候选人简历真实项目名与具体架构实现的亮点1\",\n");
@@ -209,15 +222,15 @@ public class UserResumeServiceImpl implements IUserResumeService {
             try {
                 String cleanJson = extractJson(aiResult);
                 JsonNode root = objectMapper.readTree(cleanJson);
-                int score = root.path("matchScore").asInt(85);
-                String level = root.path("matchLevel").asText("大厂P6标准能力");
+                int score = root.path("matchScore").asInt(80);
+                String level = root.path("matchLevel").asText("大厂标准中高级工程师");
                 JsonNode tagsNode = root.path("techTags");
                 JsonNode highlightsNode = root.path("projectHighlights");
                 JsonNode gapsNode = root.path("resumeGaps");
                 JsonNode questionsNode = root.path("predictedQuestions");
                 String starAdvice = root.path("starAdvice").asText("");
 
-                resume.setMatchScore(Math.max(40, Math.min(score, 99)));
+                resume.setMatchScore(Math.max(60, Math.min(score, 100)));
                 resume.setMatchLevel(level);
                 resume.setTechTags(tagsNode.isMissingNode() ? "[]" : tagsNode.toString());
                 resume.setProjectHighlights(highlightsNode.isMissingNode() ? "[]" : highlightsNode.toString());
@@ -425,22 +438,28 @@ public class UserResumeServiceImpl implements IUserResumeService {
         List<String> detectedProjects = extractProjects(text);
         List<String> detectedMetrics = extractMetrics(text);
 
-        // 动态计算打分（基础 82 分，根据技术标签丰富度、项目清晰度与量化指标综合评定）
-        int baseScore = 82;
-        baseScore += Math.min(detectedTags.size(), 6); // 最多 +6
-        if (!detectedProjects.isEmpty()) baseScore += 3;
-        if (!detectedMetrics.isEmpty()) baseScore += 4;
-        int score = Math.max(80, Math.min(baseScore, 96));
+        // 基础分严格设定为 60 分准入门槛，结合五大核心工程维度综合量化
+        int baseScore = 60;
+        int d1 = calcTechStackScore(detectedTags);
+        int d2 = calcProjectScore(detectedProjects, text);
+        int d3 = calcMetricsScore(detectedMetrics, text);
+        int d4 = calcEngineeringScore(text);
+        int d5 = calcFitScore(targetJob, targetCompany, detectedTags, text);
+
+        int score = baseScore + d1 + d2 + d3 + d4 + d5;
+        score = Math.max(60, Math.min(score, 100));
 
         String level;
         if (score >= 92) {
-            level = "阿里P7/字节2-2 资深专家潜力";
-        } else if (score >= 88) {
-            level = "阿里P6+/字节2-1 骨干级候选人";
-        } else if (score >= 84) {
-            level = "一线互联网大厂标准技术能力";
+            level = "阿里P7+/字节2-2 资深技术专家";
+        } else if (score >= 85) {
+            level = "阿里P6+/字节2-1 骨干级研发标杆";
+        } else if (score >= 75) {
+            level = "大厂标准中高级工程师";
+        } else if (score >= 65) {
+            level = "技术扎实准入级开发者";
         } else {
-            level = "扎实工程落地能力";
+            level = "初阶成长型，亟待丰富项目与产出";
         }
 
         // 1. 生成基于候选人真实项目和技能的高光亮点
@@ -622,7 +641,145 @@ public class UserResumeServiceImpl implements IUserResumeService {
         vo.setProjectHighlights(parseJsonList(resume.getProjectHighlights()));
         vo.setResumeGaps(parseJsonList(resume.getResumeGaps()));
         vo.setPredictedQuestions(parseJsonList(resume.getPredictedQuestions()));
+        vo.setScoreDetails(buildScoreDetails(resume));
         return vo;
+    }
+
+    private int calcTechStackScore(List<String> tags) {
+        if (tags == null || tags.isEmpty()) return 2;
+        boolean hasLang = false, hasMw = false, hasDb = false, hasCloud = false, hasArch = false;
+        for (String tag : tags) {
+            String lower = tag.toLowerCase();
+            if (lower.contains("java") || lower.contains("go") || lower.contains("python") || lower.contains("c++") || lower.contains("spring")) hasLang = true;
+            if (lower.contains("redis") || lower.contains("kafka") || lower.contains("rocketmq") || lower.contains("netty") || lower.contains("mq")) hasMw = true;
+            if (lower.contains("mysql") || lower.contains("elasticsearch") || lower.contains("tidb") || lower.contains("clickhouse") || lower.contains("oracle")) hasDb = true;
+            if (lower.contains("docker") || lower.contains("k8s") || lower.contains("kubernetes") || lower.contains("linux") || lower.contains("nginx") || lower.contains("rag") || lower.contains("大模型")) hasCloud = true;
+            if (lower.contains("分布式") || lower.contains("分库分表") || lower.contains("缓存") || lower.contains("调优") || lower.contains("ddd") || lower.contains("锁")) hasArch = true;
+        }
+        int score = 0;
+        if (hasLang) score += 2;
+        if (hasMw) score += 2;
+        if (hasDb) score += 2;
+        if (hasCloud) score += 2;
+        if (hasArch) score += 2;
+        return Math.min(score, 10);
+    }
+
+    private int calcProjectScore(List<String> projects, String text) {
+        int score = 0;
+        if (projects != null && !projects.isEmpty()) {
+            score += 4;
+            if (projects.size() >= 2) {
+                score += 3;
+            }
+        } else {
+            score += 2;
+        }
+        if (StringUtils.hasText(text)) {
+            if (text.contains("高并发") || text.contains("分布式") || text.contains("微服务") || text.contains("千万") || text.contains("亿级") || text.contains("集群") || text.contains("海量")) {
+                score += 3;
+            }
+        }
+        return Math.min(score, 10);
+    }
+
+    private int calcMetricsScore(List<String> metrics, String text) {
+        int score = 0;
+        if (metrics != null && !metrics.isEmpty()) {
+            score += 4;
+        }
+        if (StringUtils.hasText(text)) {
+            if (text.contains("压降") || text.contains("提升") || text.contains("降低") || text.contains("缩短") || text.contains("优化至") || text.contains("提速")) {
+                score += 3;
+            }
+            if (text.contains("故障") || text.contains("可用性") || text.contains("资损") || text.contains("流水") || text.contains("SLA") || text.contains("99.")) {
+                score += 3;
+            }
+        }
+        return Math.min(score, 10);
+    }
+
+    private int calcEngineeringScore(String text) {
+        if (!StringUtils.hasText(text)) return 1;
+        int score = 0;
+        if (text.contains("熔断") || text.contains("降级") || text.contains("限流") || text.contains("Sentinel") || text.contains("容灾") || text.contains("链路追踪") || text.contains("SkyWalking") || text.contains("监控") || text.contains("压测")) {
+            score += 3;
+        } else {
+            score += 1;
+        }
+        if (text.contains("单元测试") || text.contains("Code Review") || text.contains("代码规范") || text.contains("CI/CD") || text.contains("重构") || text.contains("DDD") || text.contains("自动化")) {
+            score += 2;
+        } else {
+            score += 1;
+        }
+        return Math.min(score, 5);
+    }
+
+    private int calcFitScore(String targetJob, String targetCompany, List<String> tags, String text) {
+        int score = 0;
+        if (StringUtils.hasText(text) && StringUtils.hasText(targetJob)) {
+            String cleanJob = targetJob.replaceAll("工程师|开发|专家|架构师", "").trim();
+            if (cleanJob.length() >= 2 && text.toLowerCase().contains(cleanJob.toLowerCase())) {
+                score += 3;
+            } else {
+                score += 2;
+            }
+        } else {
+            score += 2;
+        }
+
+        if (tags != null && tags.size() >= 4) {
+            score += 2;
+        } else {
+            score += 1;
+        }
+        return Math.min(score, 5);
+    }
+
+    private List<ResumeAnalysisVO.ScoreDimensionItem> buildScoreDetails(UserResume resume) {
+        String text = resume.getRawContent() != null ? resume.getRawContent() : "";
+        List<String> tags = parseJsonList(resume.getTechTags());
+        List<String> projects = extractProjects(text);
+        List<String> metrics = extractMetrics(text);
+
+        int d1 = calcTechStackScore(tags);
+        int d2 = calcProjectScore(projects, text);
+        int d3 = calcMetricsScore(metrics, text);
+        int d4 = calcEngineeringScore(text);
+        int d5 = calcFitScore(resume.getTargetJob(), resume.getTargetCompany(), tags, text);
+
+        List<ResumeAnalysisVO.ScoreDimensionItem> list = new ArrayList<>();
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
+                "基准及格门槛",
+                60, 60, "合格",
+                "包含规范合法履历文本，享有大厂技术准入及格起评分"
+        ));
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
+                "核心技术栈广度与深度",
+                d1, 10, d1 >= 8 ? "卓越" : (d1 >= 6 ? "良好" : "基础"),
+                "覆盖主流语言、微服务、中间件、持久化及分布式高级架构机制（已识别 " + tags.size() + " 项技能）"
+        ));
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
+                "项目经历与系统复杂度",
+                d2, 10, d2 >= 8 ? "卓越" : (d2 >= 6 ? "良好" : "基础"),
+                projects.isEmpty() ? "未提取到明确命名的项目模块，建议以独立标题规范项目描述" : "已识别【" + String.join("、", projects) + "】等核心系统，具备分布式高并发业务演进深度"
+        ));
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
+                "STAR量化业务成效",
+                d3, 10, d3 >= 8 ? "卓越" : (d3 >= 6 ? "良好" : "偏弱"),
+                metrics.isEmpty() ? "项目职责缺乏量化指标，建议补充 QPS 吞吐、耗时压降与故障降幅" : "体现清晰量化收益（如：" + String.join("、", metrics.subList(0, Math.min(2, metrics.size()))) + "），架构说服力显著"
+        ));
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
+                "高可用工程与容灾规范",
+                d4, 5, d4 >= 4 ? "优异" : "基础",
+                d4 >= 4 ? "体现限流熔断、监控告警、容灾逃生或单元测试规范" : "建议补充全链路压测、分布式事务回滚及高可用防击穿策略"
+        ));
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
+                "目标岗位与名企契合度",
+                d5, 5, d5 >= 4 ? "高契合" : "良好",
+                "深度对标【" + (StringUtils.hasText(resume.getTargetJob()) ? resume.getTargetJob() : "后端开发") + "】及【" + (StringUtils.hasText(resume.getTargetCompany()) ? resume.getTargetCompany() : "一线互联网大厂") + "】技术要求"
+        ));
+        return list;
     }
 
     private List<String> parseJsonList(String json) {
