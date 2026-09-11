@@ -302,6 +302,7 @@
 | **14** | **Docker 容器更新 JAR 包后重启依然运行旧代码** | 业务微服务容器 `ENTRYPOINT` 是 `exec java $JAVA_OPTS -jar /app/app.jar`（位于 `/app/app.jar` 而非容器根目录 `/app.jar`）。若将新编译包直接复制到 `/app.jar`，容器启动仍旧加载 `/app/` 子目录下的旧版本。 | 替换容器运行时 JAR 时，务必检查容器配置的真实 Entrypoint / Cmd 路径，准确拷贝至目标路径（如 `docker cp new.jar tianji-customer:/app/app.jar`），并重启容器生效。 |
 | **15** | **上传 PDF/Word 简历后返回原始二进制字节码 (%PDF-1.6) 导致编辑区乱码与 AI 虚构** | 后端直接使用 `new BufferedReader(new InputStreamReader(file.getInputStream(), UTF_8))` 读取所有上传文件。遇到 PDF/Word 二进制文件时，会将压缩流和 PDF 描述字节读为乱码字符串，多达数十万字符，造成前端卡死、大模型超时或报错，最终回退为生硬虚构模板。 | 1. 引入 Apache PDFBox (`PDDocument`, `PDFTextStripper`) 解析 PDF 文字层；<br>2. 解析 Word (.docx) 的 `word/document.xml` 提取纯文本与段落结构；<br>3. 增加二进制特征字符探测 (`isRawBinary`)，直接阻断二进制字符串落盘；<br>4. 职涯诊断基于候选人真实项目名称与量化指标深度抽取，确保高光亮点与考题真实准确。 |
 | **16** | **非对口/不相干简历仍能获得技术契合度与虚构考题** | 旧逻辑在未匹配到技术标签时注入了 Java、MySQL 兜底标签，且目标岗位契合度打分存在保底 +2 分的保底逻辑，大模型 Prompt 缺乏反事实审计导致即使非技术简历也会生成高并发题目。 | 1. 彻底移除空标签时的伪造兜底逻辑；<br>2. 建立 8 大技术赛道 31 岗位的严谨对口词匹配，命中为 0 则契合度严格 0 分；<br>3. 大模型 Prompt 明确要求“简历没有的坚决说没有”，后端增加真实度审计，对无对口经历者强制输出事实警告；<br>4. 确立 60 分基准门槛体系，让不相干简历严格锁定 60 分并亮红警示。 |
+| **17** | **学生端个人设置页面保存时报 404 / 500 或无法更新信息** | 前端 `api/user.js` 中的 `updateUserInfo` 请求路径硬编码为 `/students`，遗漏了微服务网关代理前缀 `/us`（即缺少 `${USER_API_PREFIX}`），导致网关直接抛出 404 NOT_FOUND。且组件中错误读取 `res.data.msg` 触发 TypeError 导致弹窗“请求出错！”。 | 1. `updateUserInfo` 修正为 `${USER_API_PREFIX}/students` 对齐网关路由；<br>2. 规范组件内响应解构与错误捕获；<br>3. 在 `onMounted` 钩子中主动拉取最新用户画像补齐 nickname、avatar、gender，添加按钮保存中防重复提交状态。 |
 
 ---
 
