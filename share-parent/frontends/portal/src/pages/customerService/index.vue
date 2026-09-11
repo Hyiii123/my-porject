@@ -7,19 +7,6 @@
           <h1>客服中心</h1>
           <p>遇到课程、订单或账号问题？先问问小智，服务结束后还可以留下评价。</p>
         </div>
-        <div class="hero-actions">
-          <div class="hero-status">
-            <span class="status-dot" :class="{ connected: pixelApiEnabled }" />
-            <div>
-            <strong>{{ aiStatusText }}</strong>
-              <span>{{ aiStatusDescription }}</span>
-            </div>
-          </div>
-          <el-button class="api-settings-button" @click="openPixelApiSettings">
-            <el-icon><Setting /></el-icon>
-            {{ pixelApiEnabled ? '接口设置' : '配置第三方 AI' }}
-          </el-button>
-        </div>
       </section>
 
       <section class="service-layout">
@@ -190,40 +177,15 @@
         </section>
       </section>
 
-      <el-dialog v-model="showAiSettings" title="第三方 AI 接口设置" width="520px">
-        <div class="api-settings-content">
-          <p class="api-settings-description">输入第三方 AI API Key 后，客服会优先使用 Pixel API 回答问题。</p>
-          <el-input
-            v-model="apiKeyDraft"
-            type="password"
-            show-password
-            clearable
-            autocomplete="off"
-            placeholder="请输入第三方 AI API Key"
-          />
-          <el-input v-model="modelDraft" class="model-input" placeholder="模型名称，例如 gpt-5.6-luna">
-            <template #prepend>模型</template>
-          </el-input>
-          <div class="api-security-tip">
-            <el-icon><Lock /></el-icon>
-            <span>Key 保存在当前浏览器本地，仅随本次咨询发送到本站客服服务，不写入数据库；客服服务只允许代理 Pixel 第三方地址。</span>
-          </div>
-        </div>
-        <template #footer>
-          <el-button @click="clearAiSettings">清除 Key</el-button>
-          <el-button @click="showAiSettings = false">取消</el-button>
-          <el-button type="primary" @click="saveAiSettings">保存并启用</el-button>
-        </template>
-      </el-dialog>
     </div>
   </main>
 </template>
 
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { ArrowRight, ChatDotRound, CircleCheck, Clock, Document, Headset, Lock, Promotion, QuestionFilled, Refresh, Service, Setting, User } from '@element-plus/icons-vue'
+import { ArrowRight, ChatDotRound, CircleCheck, Clock, Document, Headset, Promotion, QuestionFilled, Refresh, Service, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { clearPixelApiKey, getPixelApiKey, getPixelModel, setPixelApiKey, setPixelModel } from '@/api/pixelApi'
+import { getPixelApiKey, getPixelModel } from '@/api/pixelApi'
 import { createServiceSession, evaluateService, getServiceFaqs, getServiceSession, sendServiceMessage } from '@/api/customerService'
 
 const SESSION_KEY = 'customer_service_session_id'
@@ -241,14 +203,9 @@ const selectedTags = ref([])
 const evaluationTags = ['回答准确', '响应及时', '表达清晰', '问题未解决']
 const messages = ref([welcomeMessage()])
 const pixelApiKey = ref(getPixelApiKey())
-const apiKeyDraft = ref(pixelApiKey.value)
 const pixelModel = ref(getPixelModel())
-const modelDraft = ref(pixelModel.value)
-const showAiSettings = ref(false)
 
 const pixelApiEnabled = computed(() => Boolean(pixelApiKey.value.trim()))
-const aiStatusText = computed(() => pixelApiEnabled.value ? '第三方 AI 已配置' : 'AI 客服在线')
-const aiStatusDescription = computed(() => pixelApiEnabled.value ? '当前对话将由 Pixel API 回答' : '配置第三方 API Key 后可启用 AI')
 
 const statusText = computed(() => ({
   ai: 'AI客服在线',
@@ -260,34 +217,6 @@ const filteredFaqs = computed(() => {
   if (activeFaqCategory.value === '全部') return faqList.value.slice(0, 8)
   return faqList.value.filter((faq) => faq.category === activeFaqCategory.value).slice(0, 8)
 })
-
-function openPixelApiSettings() {
-  apiKeyDraft.value = pixelApiKey.value
-  modelDraft.value = pixelModel.value
-  showAiSettings.value = true
-}
-
-function saveAiSettings() {
-  const key = apiKeyDraft.value.trim()
-  if (!key) {
-    ElMessage.warning('请输入第三方 AI API Key')
-    return
-  }
-  setPixelApiKey(key)
-  setPixelModel(modelDraft.value)
-  pixelApiKey.value = key
-  pixelModel.value = modelDraft.value.trim() || 'gpt-5.6-luna'
-  showAiSettings.value = false
-  ElMessage.success('第三方 AI 接口已启用')
-}
-
-function clearAiSettings() {
-  clearPixelApiKey()
-  pixelApiKey.value = ''
-  apiKeyDraft.value = ''
-  showAiSettings.value = false
-  ElMessage.info('已清除第三方 API Key，将继续使用客服知识库')
-}
 
 function welcomeMessage() {
   return {
@@ -509,69 +438,12 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-.hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.hero-status {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  color: #303b58;
-  background: #fff;
-  border: 1px solid #edf0f6;
-  border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(45, 58, 93, 0.04);
-}
-
-.hero-status strong,
-.hero-status span {
-  display: block;
-}
-
-.hero-status strong {
-  font-size: 14px;
-}
-
-.hero-status div span {
-  margin-top: 3px;
-  color: #99a1b4;
-  font-size: 12px;
-}
-
-.status-dot,
 .mini-status-dot,
 .online-mark {
   display: inline-block;
   border-radius: 50%;
   background: #67c23a;
   box-shadow: 0 0 0 4px rgba(103, 194, 58, 0.12);
-}
-
-.status-dot {
-  width: 9px;
-  height: 9px;
-}
-
-.status-dot.connected {
-  background: #2563EB;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.12);
-}
-
-.api-settings-button {
-  height: 48px;
-  color: #2563EB;
-  background: #fff;
-  border-color: #DBEAFE;
-}
-
-.api-settings-button:hover {
-  color: #1D4ED8;
-  background: #EFF6FF;
-  border-color: #BFDBFE;
 }
 
 .service-layout {
@@ -1121,36 +993,6 @@ onMounted(async () => {
   font-size: 11px;
 }
 
-.api-settings-content {
-  padding: 4px 2px 10px;
-}
-
-.api-settings-description {
-  margin-bottom: 14px;
-  color: #606a80;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.api-security-tip {
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  margin-top: 12px;
-  padding: 10px 12px;
-  color: #9a835f;
-  font-size: 12px;
-  line-height: 1.6;
-  background: #fff8e9;
-  border: 1px solid #f7e7c3;
-  border-radius: 8px;
-}
-
-.api-security-tip .el-icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: #c99a4b;
-}
 
 @media (max-width: 1220px) {
   .service-container {
@@ -1186,15 +1028,6 @@ onMounted(async () => {
     display: block;
   }
 
-  .hero-status {
-    width: fit-content;
-    margin-top: 18px;
-  }
-
-  .hero-actions {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 
   .service-sidebar {
     display: flex;
