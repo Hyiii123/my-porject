@@ -15,7 +15,7 @@
               <span><el-icon><Clock /></el-icon> {{ course.lessons }}课时</span>
               <span><el-icon><Pointer /></el-icon> {{ likeCount }}人点赞</span>
             </div>
-            <div class="course-desc">{{ course.description }}</div>
+            <div class="course-desc">{{ course.shortDescription || course.description }}</div>
             <div class="course-actions">
               <div class="price-section">
                 <span v-if="course.price > 0" class="price">¥{{ (course.price / 100).toFixed(2) }}</span>
@@ -46,18 +46,19 @@
           <el-tab-pane label="课程介绍" name="intro">
             <div class="intro-content">
               <h3>课程简介</h3>
-              <p>{{ course.description }}</p>
+              <p>{{ course.description || course.shortDescription }}</p>
               <h3>适合人群</h3>
               <ul>
-                <li>有一定编程基础的开发者</li>
-                <li>想要提升技能的工程师</li>
-                <li>对技术有热情的学习者</li>
+                <li v-if="course.prerequisites">{{ course.prerequisites }}</li>
+                <li v-if="course.targetRole">目标岗位：{{ course.targetRole }}</li>
+                <li>具备基础编程语法与计算机常识的学员</li>
+                <li>希望系统进阶、掌握现代工程化技能的开发者</li>
               </ul>
               <h3>学习目标</h3>
               <ul>
-                <li>掌握核心概念和原理</li>
-                <li>能够独立完成项目开发</li>
-                <li>提升解决实际问题的能力</li>
+                <li v-if="course.skills">系统掌握核心技术栈：{{ course.skills }}</li>
+                <li>掌握核心架构概念和工程原理，具备独立完成项目开发的能力</li>
+                <li>深入企业级高可用实战场景，全面提高解决复杂工程问题的能力</li>
               </ul>
             </div>
           </el-tab-pane>
@@ -186,8 +187,14 @@ const handleImgError = (e) => {
   }
 }
 
+// 安全清洗 HTML 标签
+const cleanHtml = (text) => {
+  if (!text) return ''
+  return String(text).replace(/<[^>]+>/g, '').trim()
+}
+
 // 课程数据
-const course = ref({ id: null, title: '课程加载中', cover: defaultCover, price: 0, originalPrice: 0, teacherName: '讲师团队', learners: 0, lessons: 0, description: '' })
+const course = ref({ id: null, title: '课程加载中', cover: defaultCover, price: 0, originalPrice: 0, teacherName: '讲师团队', learners: 0, lessons: 0, description: '', shortDescription: '', skills: '', targetRole: '', prerequisites: '' })
 
 // 教师信息
 const teacher = ref({ name: '讲师团队', avatar: '', title: '', description: '' })
@@ -317,6 +324,8 @@ const loadCourse = async () => {
 
     if (courseResponse.status === 'fulfilled' && courseResponse.value?.code === 200) {
       const value = courseResponse.value.data || {}
+      const rawDesc = value.description || value.shortDescription || ''
+      const rawShortDesc = value.shortDescription || value.description || ''
       course.value = {
         ...value,
         id: value.id || courseId,
@@ -326,7 +335,11 @@ const loadCourse = async () => {
         originalPrice: Number(value.originalPrice ?? value.price ?? 0),
         learners: Number(value.learners ?? value.learnerCount ?? 0),
         lessons: Number(value.lessons ?? value.lessonCount ?? 0),
-        description: value.description || value.shortDescription || ''
+        description: cleanHtml(rawDesc),
+        shortDescription: cleanHtml(rawShortDesc),
+        skills: cleanHtml(value.skills || ''),
+        targetRole: cleanHtml(value.targetRole || ''),
+        prerequisites: cleanHtml(value.prerequisites || '')
       }
       likeCount.value = Number(value.likeCount ?? value.likes ?? 0)
       isLiked.value = Boolean(value.isLiked)

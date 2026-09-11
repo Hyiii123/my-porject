@@ -35,7 +35,7 @@
             <span>课时：{{ course.lessons }}</span>
             <span>学习人数：{{ course.learners }}</span>
           </div>
-          <div class="course-desc">{{ course.description }}</div>
+          <div class="course-desc">{{ course.shortDescription || course.description }}</div>
         </div>
 
         <!-- Tab 切换 -->
@@ -43,9 +43,15 @@
           <el-tab-pane label="课程介绍" name="intro">
             <div class="intro-content">
               <h3>课程简介</h3>
-              <p>{{ course.description }}</p>
-              <h3 v-if="course.shortDescription">课程说明</h3>
-              <p v-if="course.shortDescription">{{ course.shortDescription }}</p>
+              <p>{{ course.description || course.shortDescription }}</p>
+              <div v-if="course.skills" class="intro-section">
+                <h3>核心技术栈</h3>
+                <p>{{ course.skills }}</p>
+              </div>
+              <div v-if="course.prerequisites" class="intro-section">
+                <h3>适合人群</h3>
+                <p>{{ course.prerequisites }}</p>
+              </div>
             </div>
           </el-tab-pane>
 
@@ -139,6 +145,11 @@ import { getClassDetails, getAskList, getReply, postQuestions } from '@/api/clas
 import { getCourseLearning, getLearningClassDetails, getMediasSignature } from '@/api/class.js'
 import { getAllNotes, addNotes } from '@/api/notes.js'
 
+const cleanHtml = (text) => {
+  if (!text) return ''
+  return String(text).replace(/<[^>]+>/g, '').trim()
+}
+
 const route = useRoute()
 const loading = ref(false)
 const course = ref({
@@ -149,7 +160,10 @@ const course = ref({
   learners: 0,
   progress: 0,
   description: '',
-  shortDescription: ''
+  shortDescription: '',
+  skills: '',
+  targetRole: '',
+  prerequisites: ''
 })
 const currentSection = ref({})
 const chapters = reactive([])
@@ -240,6 +254,8 @@ const loadCourse = async () => {
 
     if (courseResponse.status === 'fulfilled' && courseResponse.value?.code === 200) {
       const value = courseResponse.value.data || {}
+      const rawDesc = value.description || value.shortDescription || ''
+      const rawShortDesc = value.shortDescription || value.description || ''
       course.value = {
         ...course.value,
         ...value,
@@ -248,8 +264,11 @@ const loadCourse = async () => {
         teacherName: value.teacherName || '讲师团队',
         lessons: Number(value.lessons ?? value.lessonCount ?? 0),
         learners: Number(value.learners ?? value.learnerCount ?? 0),
-        description: value.description || value.shortDescription || '',
-        shortDescription: value.shortDescription || ''
+        description: cleanHtml(rawDesc),
+        shortDescription: cleanHtml(rawShortDesc),
+        skills: cleanHtml(value.skills || ''),
+        targetRole: cleanHtml(value.targetRole || ''),
+        prerequisites: cleanHtml(value.prerequisites || '')
       }
     }
 

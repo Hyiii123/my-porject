@@ -320,6 +320,16 @@ public class EducationService {
     }
 
     /**
+     * 安全过滤文本中的 HTML 标签，返回纯净可读文本
+     */
+    public static String cleanHtmlTags(String text) {
+        if (text == null || text.isBlank()) {
+            return "";
+        }
+        return text.replaceAll("<[^>]+>", "").trim();
+    }
+
+    /**
      * 旧课程编辑页使用 name、detail、thirdCateId、free 等字段，数据库实体使用规范化字段。
      * 兼容转换放在服务层，保证 Controller 只负责接收请求。
      */
@@ -328,9 +338,9 @@ public class EducationService {
         Map<String, Object> result = courseView(course);
         String categoryName = String.valueOf(result.getOrDefault("categoryName", ""));
         result.put("name", course.getCourseName());
-        result.put("detail", course.getDescription());
-        result.put("introduce", course.getShortDescription());
-        result.put("usePeople", null);
+        result.put("detail", cleanHtmlTags(course.getDescription()));
+        result.put("introduce", cleanHtmlTags(course.getShortDescription()));
+        result.put("usePeople", StringUtils.hasText(course.getPrerequisites()) ? course.getPrerequisites() : "具备基础IT知识与编程兴趣的学员");
         result.put("free", Integer.valueOf(1).equals(course.getIsFree()) ? Boolean.TRUE : Boolean.FALSE);
         result.put("thirdCateId", course.getCategoryId() == null ? List.of() : List.of(course.getCategoryId()));
         result.put("cateNames", categoryName);
@@ -359,9 +369,9 @@ public class EducationService {
         value.setCategoryId(categoryId);
         value.setCoverUrl(defaultText(body == null ? null : body.get("coverUrl"),
                 defaultText(body == null ? null : body.get("cover"), value.getCoverUrl())));
-        value.setShortDescription(defaultText(body == null ? null : body.get("introduce"), value.getShortDescription()));
-        value.setDescription(defaultText(body == null ? null : body.get("detail"),
-                defaultText(body == null ? null : body.get("description"), value.getDescription())));
+        value.setShortDescription(cleanHtmlTags(defaultText(body == null ? null : body.get("introduce"), value.getShortDescription())));
+        value.setDescription(cleanHtmlTags(defaultText(body == null ? null : body.get("detail"),
+                defaultText(body == null ? null : body.get("description"), value.getDescription()))));
         boolean free = bool(body == null ? null : body.get("free")) || bool(body == null ? null : body.get("isFree"));
         BigDecimal price = moneyYuan(body == null ? null : body.get("price"), value.getPrice());
         value.setIsFree(free ? 1 : 0);
@@ -2383,8 +2393,10 @@ public class EducationService {
         result.put("skillsList", skillList);
         result.put("targetRole", item.getTargetRole());
         result.put("prerequisites", item.getPrerequisites());
-        result.put("isFree", item.getIsFree()); result.put("status", item.getStatus()); result.put("description", item.getDescription() == null ? item.getShortDescription() : item.getDescription());
-        result.put("shortDescription", item.getShortDescription()); result.put("createTime", item.getCreateTime());
+        result.put("isFree", item.getIsFree()); result.put("status", item.getStatus());
+        String rawDesc = item.getDescription() == null ? item.getShortDescription() : item.getDescription();
+        result.put("description", cleanHtmlTags(rawDesc));
+        result.put("shortDescription", cleanHtmlTags(item.getShortDescription())); result.put("createTime", item.getCreateTime());
         Double zScore = redisService.zScore("edu:course:likes:zset", String.valueOf(item.getId()));
         long likes = zScore != null ? Math.max(0, zScore.longValue()) : 0L;
         result.put("likeCount", likes);

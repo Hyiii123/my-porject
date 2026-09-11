@@ -30,11 +30,11 @@
     </div>
     <div class="title">
       <span class="itemtitle">课程介绍</span>
-      <span class="item">{{ courseData.introduce }}</span>
+      <span class="item">{{ cleanHtml(courseData.introduce) }}</span>
     </div>
     <div class="title">
       <span class="itemtitle">适学人群</span>
-      <span class="item">{{ courseData.usePeople }}</span>
+      <span class="item">{{ cleanHtml(courseData.usePeople) || '具备基础IT开发经验，希望系统进阶的学员。' }}</span>
     </div>
     <div class="title">授课老师</div>
     <div class="classTeacher">
@@ -91,11 +91,16 @@
       </div>
     </div>
     <div class="title">课程详情</div>
-    <div class="item">{{ courseData.detail }}</div>
+    <div class="item">{{ cleanHtml(courseData.detail || courseData.introduce) }}</div>
   </div>
 </template>
 <script setup>
 import { formatTimeOrdinary } from "@/utils/index";
+
+const cleanHtml = (text) => {
+  if (!text) return ''
+  return String(text).replace(/<[^>]+>/g, '').trim()
+}
 // 讲师信息轮播插件
 import { Swiper, SwiperSlide } from "swiper/vue"
 import { Pagination } from 'swiper'//swiper分页器

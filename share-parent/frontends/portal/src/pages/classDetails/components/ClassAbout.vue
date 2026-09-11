@@ -2,9 +2,9 @@
 <template>
   <div class="classAbout">
     <div class="title">课程简介</div>
-    <div class="marg-bt-20">{{baseDetailsData.introduce}}</div>
+    <div class="marg-bt-20">{{ cleanHtml(baseDetailsData.introduce) }}</div>
     <div class="title">适学人群</div>
-    <div class="marg-bt-20">{{baseDetailsData.usePeople}}</div>
+    <div class="marg-bt-20">{{ cleanHtml(baseDetailsData.usePeople) || '具备基础IT开发经验，希望系统进阶的学员。' }}</div>
     <div class="title">授课老师</div>
     <div class="classTeacher">
       <div class="navigat">
@@ -44,11 +44,16 @@
         </swiper>
     </div>
     <div class="title">课程详情</div>
-    <div class="marg-bt-20">{{baseDetailsData.detail}}</div>
+    <div class="marg-bt-20">{{ cleanHtml(baseDetailsData.detail || baseDetailsData.introduce) }}</div>
   </div>
 </template>
 <script setup>
 import { ref } from 'vue';
+
+const cleanHtml = (text) => {
+  if (!text) return ''
+  return String(text).replace(/<[^>]+>/g, '').trim()
+}
 // 讲师信息轮播插件
 import { Swiper, SwiperSlide } from "swiper/vue";
 import {  Navigation } from "swiper";

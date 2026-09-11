@@ -61,6 +61,35 @@
 
 ### 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-11 19:00:00 - 全平台课程简介 HTML 标签彻底排查与清洗：全库 320 门课程纯文本治理 + 前后端立体过滤与结构化呈现升级
+
+* **核心成果**：
+  1. **全库 320 门课程数据彻底清洗与断言校验**：
+     - 排查发现 `tj_education.edu_course` 中历史批量插入的 300 门 IT 课程（ID 21 至 320）的 `description` 字段被包裹了 `<h3>` 和 `<p>` 标签；
+     - 线上执行 SQL 原地数据清洗，将 300 门富文本课程的 `description` 重置为纯净摘要文本（与 `short_description` 对齐），并将 ID 1~20 的 NULL 简介补齐；
+     - 线上执行聚合查询断言：`total_courses=320, desc_has_html=0, desc_is_null=0`，全库 100% 达成无标签纯净数据。
+  2. **数据库基准与增量迁移落地**：
+     - 新增 `V31__clean_course_descriptions.sql` 增量迁移脚本，记录本次清洗变更；
+     - 同步修正 `V22__add_300_real_world_it_courses.sql` 初始插入脚本中的 300 门课程描述，确保未来从零初始化数据时原生纯净。
+  3. **后端防御性过滤与适学人群增强**：
+     - `EducationService.java` 新增 `cleanHtmlTags(String text)` 静态过滤方法；
+     - 在 `courseView` 统一输出层对 `description` 与 `shortDescription` 做强制过滤保障；
+     - 在 `legacyCourse` 中对 `detail` 和 `introduce` 做强制过滤，并将 `course.getPrerequisites()` 映射至 `usePeople`，补全管理端与前端旧接口的适学人群字段；
+     - 在 `saveLegacyCourse` 保存入口处增加自动清洗过滤，杜绝后续通过管理端录入带标签脏数据。
+  4. **前端防御过滤与智能结构化呈现升级**：
+     - 学生端详情页 `classDetails/index.vue`：
+       - 头部简介与“课程介绍”Tab 增加前端 `cleanHtml` 过滤，消除标签暴露；
+       - 重构“课程介绍”Tab：简介段落清爽展示，不再出现“课程简介”重复双重标题；
+       - “适合人群”与“学习目标”动态读取课程实体的 `prerequisites`、`targetRole` 与 `skills`，呈现专业化岗位与技术栈要求；
+     - 学生端学习页 `learning/index.vue`：
+       - 增加 `cleanHtml` 过滤，移除冗余重复的“课程说明”双重段落，以模块化清晰展示技术栈与适合人群；
+     - 课程组件 `ClassAbout.vue` 与业务管理端 `CourseAbout.vue`：
+       - 全面增加 `cleanHtml` 过滤，确保全平台所有端绝对不展示任何 HTML 原始标签。
+  5. **定向回归测试与生产部署**：
+     - 本地通过 Java 17 离线打包 `share-education.jar` 并同步至云端热更新 `tianji-education` 容器；
+     - 本地执行 `npm run build` 产出 `portal` 与 `business-admin` 静态产物，分别热更新 `tianji-portal-ui` 与 `tianji-business-admin-ui` 容器并重载 Nginx；
+     - 编写并运行定向测试脚本 `.scratch/verify_course_descriptions.py`，针对网关课程接口（ID 109、21、1、320）及前端静态资源进行自动化断言，100% 通过验证。
+
 ### 2026-09-11 15:30:00 - 简历工程能力量化评分机制深度重构：60分及格基准分 + 五维工程能力细则面板与大模型规则双引擎升级
 
 * **核心成果**：
