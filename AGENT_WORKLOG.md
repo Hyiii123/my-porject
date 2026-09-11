@@ -239,6 +239,13 @@
   3. 卡片统一规范为 8px，表单、输入框统一为 6px，彻底移除 100px 跑马道胶囊；
   4. 重塑 16:9 标准比例课程卡片、个人中心与 AI 客服聊天气泡视觉体系。
 
+### 2026-09-11 15:00:00 - 简历文档解析引擎与真实紧扣履历的 AI 职涯深度诊断上线
+
+* **核心成果**：
+  1. **Apache PDFBox 与 DOCX 双解析引擎**：在 `share-customer` 集成 `org.apache.pdfbox:pdfbox:2.0.30`，结合轻量 `ZipInputStream` 结构化解析 Word (.docx) 文档，精准抽取文字层与排版断行，彻底终结以前将 PDF 二进制字节流当作 UTF-8 读取导致 23 万字符 `%PDF-1.6` 乱码爆破编辑区的致命缺陷；
+  2. **端到端二进制防护网**：前端 `myResume.vue` 与后端 `UserResumeServiceImpl` 双向部署魔数与非打印控制字符检测机制，坚决拒绝 `%PDF-` 与 `PK\x03\x04` 二进制注入，从根源保护数据库与大模型上下文；
+  3. **基于真实经历的深度诊断与大厂对标**：彻底废弃以前空洞通用的虚构模板，建立覆盖 70+ 核心技术标签库、候选人真实项目名称抽取器与生产量化指标提取器（QPS/ms/降幅）。大模型 Prompt 强制绑定真实项目，兜底算法亦 100% 提取候选人真实项目与技术，动态生成高光亮点、薄弱项、大厂连环深挖考题与 STAR 重塑建议。
+
 ---
 
 ## 四、核心踩坑历史与避坑手册 (Known Pitfalls & Solutions)
@@ -259,6 +266,7 @@
 | **12** | **新开放免鉴权接口被网关拦截报 401** | Spring Cloud Gateway 默认会对微服务路由实施统一鉴权，仅在 `security.ignore.whites` 中的接口放行。 | 新增面向未登录用户的公开接口（如 `/cs/courses/ranking/**` 点赞榜）时，必须同步在 Nacos 的 `share-gateway-dev.yml` 配置的 `security.ignore.whites` 中声明放行，并通过 Nacos OpenAPI 更新配置。 |
 | **13** | **后端服务构建耗尽服务器突发磁盘 IOPS** | 服务器 ECS 未安装 Maven 且磁盘突发积分宝贵，直接在服务器容器内执行编译会耗尽 IOPS 并造成死机。且 Dockerfile 直接通过 `COPY ${JAR_FILE} app.jar` 运行。 | 在本地利用已配置好的 JDK 17 执行 `mvn clean package -DskipTests` 生成目标 JAR，将更新的 JAR 打包压缩后通过 Workbench CLI 上传，服务器仅需 10 秒轻量 `docker build` 替换容器。 |
 | **14** | **Docker 容器更新 JAR 包后重启依然运行旧代码** | 业务微服务容器 `ENTRYPOINT` 是 `exec java $JAVA_OPTS -jar /app/app.jar`（位于 `/app/app.jar` 而非容器根目录 `/app.jar`）。若将新编译包直接复制到 `/app.jar`，容器启动仍旧加载 `/app/` 子目录下的旧版本。 | 替换容器运行时 JAR 时，务必检查容器配置的真实 Entrypoint / Cmd 路径，准确拷贝至目标路径（如 `docker cp new.jar tianji-customer:/app/app.jar`），并重启容器生效。 |
+| **15** | **上传 PDF/Word 简历后返回原始二进制字节码 (%PDF-1.6) 导致编辑区乱码与 AI 虚构** | 后端直接使用 `new BufferedReader(new InputStreamReader(file.getInputStream(), UTF_8))` 读取所有上传文件。遇到 PDF/Word 二进制文件时，会将压缩流和 PDF 描述字节读为乱码字符串，多达数十万字符，造成前端卡死、大模型超时或报错，最终回退为生硬虚构模板。 | 1. 引入 Apache PDFBox (`PDDocument`, `PDFTextStripper`) 解析 PDF 文字层；<br>2. 解析 Word (.docx) 的 `word/document.xml` 提取纯文本与段落结构；<br>3. 增加二进制特征字符探测 (`isRawBinary`)，直接阻断二进制字符串落盘；<br>4. 职涯诊断基于候选人真实项目名称与量化指标深度抽取，确保高光亮点与考题真实准确。 |
 
 ---
 
