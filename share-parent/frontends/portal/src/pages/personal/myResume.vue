@@ -197,7 +197,10 @@
           <div class="breakdown-grid">
             <div v-for="item in resumeData.scoreDetails" :key="item.name" class="breakdown-item">
               <div class="bi-header">
-                <span class="bi-name">{{ item.name }}</span>
+                <span class="bi-name">
+                  {{ item.name }}
+                  <span v-if="item.rating" class="bi-rating-tag" :class="getRatingTagClass(item.rating)">{{ item.rating }}</span>
+                </span>
                 <span class="bi-score">
                   <span class="score-val" :class="getDimScoreClass(item.score, item.maxScore)">+{{ item.score }}</span>
                   <span class="score-max">/ {{ item.maxScore }}分</span>
@@ -585,17 +588,30 @@ const getProgressColor = (score) => {
 }
 
 const getDimScoreClass = (score, maxScore) => {
+  if (score <= 0) return 'score-zero'
   if (score >= maxScore) return 'score-perfect'
   if (score >= maxScore * 0.7) return 'score-good'
-  return 'score-normal'
+  if (score >= maxScore * 0.4) return 'score-normal'
+  return 'score-low'
 }
 
 const getDimProgressColor = (score, maxScore) => {
+  if (!maxScore || score <= 0) return '#EF4444'
   const ratio = score / maxScore
-  if (ratio >= 0.9) return '#10B981'
-  if (ratio >= 0.7) return '#2563EB'
-  if (ratio >= 0.5) return '#F59E0B'
-  return '#94A3B8'
+  if (ratio >= 0.8) return '#10B981'
+  if (ratio >= 0.6) return '#2563EB'
+  if (ratio >= 0.3) return '#F59E0B'
+  return '#EF4444'
+}
+
+const getRatingTagClass = (rating) => {
+  if (!rating) return ''
+  if (['卓越', '优异', '高契合', '深度对标'].includes(rating)) return 'tag-success'
+  if (['良好', '良好契合'].includes(rating)) return 'tag-primary'
+  if (['合格', '基础', '基本对口'].includes(rating)) return 'tag-warning'
+  if (['偏弱', '初浅', '微弱相关', '偏弱匹配'].includes(rating)) return 'tag-orange'
+  if (['匮乏', '缺失', '严重脱节'].includes(rating)) return 'tag-danger'
+  return 'tag-warning'
 }
 
 const formatTime = (timeStr) => {
@@ -946,6 +962,43 @@ onMounted(() => {
                 font-size: 13px;
                 font-weight: 600;
                 color: #334155;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+
+                .bi-rating-tag {
+                  font-size: 10px;
+                  padding: 1px 6px;
+                  border-radius: 4px;
+                  font-weight: 600;
+                  line-height: 1.4;
+
+                  &.tag-success {
+                    background: #ecfdf5;
+                    color: #059669;
+                    border: 1px solid #a7f3d0;
+                  }
+                  &.tag-primary {
+                    background: #eff6ff;
+                    color: #2563eb;
+                    border: 1px solid #bfdbfe;
+                  }
+                  &.tag-warning {
+                    background: #fefce8;
+                    color: #ca8a04;
+                    border: 1px solid #fef08a;
+                  }
+                  &.tag-orange {
+                    background: #fff7ed;
+                    color: #ea580c;
+                    border: 1px solid #fed7aa;
+                  }
+                  &.tag-danger {
+                    background: #fef2f2;
+                    color: #dc2626;
+                    border: 1px solid #fecaca;
+                  }
+                }
               }
 
               .bi-score {
@@ -963,6 +1016,10 @@ onMounted(() => {
                   }
                   &.score-normal {
                     color: #d97706;
+                  }
+                  &.score-low,
+                  &.score-zero {
+                    color: #dc2626;
                   }
                 }
 

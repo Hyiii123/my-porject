@@ -176,24 +176,27 @@ public class UserResumeServiceImpl implements IUserResumeService {
                 .append("】及目标企业【").append(request.getCompanyTarget()).append("】进行深度技术对标与简历诊断评测。\n\n");
         sb.append("【候选人真实简历内容】：\n");
         sb.append(request.getResumeContent()).append("\n\n");
-        sb.append("【极度重要核心要求】：\n");
-        sb.append("1. 严禁杜撰虚构！必须紧密围绕候选人简历中【真实提及的项目经历、技术栈、职责与成果】进行客观技术评价。\n");
-        sb.append("2. 在 projectHighlights、resumeGaps 和 predictedQuestions 中，必须明确提及候选人简历中的具体真实项目名称或实际业务场景，严禁套用虚构通用模板！\n");
-        sb.append("3. 技能标签 techTags 必须严格从简历中真实出现的技术、框架和工具中提取。\n");
-        sb.append("4. 【严格打分规则（满分100分，基准及格分固定为60分）】：\n");
-        sb.append("   - matchScore = 60分基准及格分 + 五大维度加分（范围 60 ~ 100 分）：\n");
-        sb.append("     ① 核心技术栈广度与深度 (0~10分)\n");
-        sb.append("     ② 项目经历与系统复杂度 (0~10分)\n");
-        sb.append("     ③ STAR法则生产量化成效 (0~10分)\n");
-        sb.append("     ④ 高可用工程规范与容灾防护 (0~5分)\n");
-        sb.append("     ⑤ 目标岗位与名企契合度 (0~5分)\n");
+        sb.append("【极度重要核心要求（求真务实，严禁幻觉与杜撰）】：\n");
+        sb.append("1. 绝不瞎编！简历中没有的项目或技术，必须明确说没有！严禁替候选人凭空发明项目、架构或技能！\n");
+        sb.append("2. 【简历核心高光亮点挖掘 (projectHighlights)】：\n");
+        sb.append("   - 若简历中包含真实且对口的技术项目与成果，紧扣简历原文客观提炼真实亮点；\n");
+        sb.append("   - 若简历中完全没有符合【").append(request.getTargetJob()).append("】的技术项目或亮点，必须直接如实输出：\n");
+        sb.append("     [\"【无对口技术亮点】：简历未检测到与【").append(request.getTargetJob()).append("】相关的对口工程项目或核心技术栈，实战积累严重不足\", \"【工程实战缺失】：履历内容未体现该技术方向所需的系统研发、架构设计或攻坚成果\"]\n");
+        sb.append("     绝对不要给无关经历强行编造“架构良好”、“具备通用能力”等虚假客套话！\n");
+        sb.append("3. 【大厂面试官预测深挖题 (predictedQuestions)】：\n");
+        sb.append("   - 只有当简历中真实写有具体项目名和具体技术时，才紧扣该真实项目和技术出深挖题；\n");
+        sb.append("   - 如果简历中完全没有相关技术项目（如非技术人员或不相干简历），绝不可瞎编不存在的项目或未提及的技术（严禁向没写过Redis的人问Redis）！必须直击其痛点提问其实际背景与真实水平：\n");
+        sb.append("     [\"【经历真实性核查】：简历中未出现与【").append(request.getTargetJob()).append("】对口的技术研发经历，请如实说明你跨界应聘该岗位的动机与真实水平？\", \"【实际动手能力】：针对【").append(request.getTargetJob()).append("】专业领域，你目前是否有可供核验的独立代码工程、开源实践或个人作品？\", \"【大厂门槛与差距】：面对【").append(request.getCompanyTarget()).append("】的技术招聘门槛，你打算如何系统性补齐缺乏真实业务项目的短板？\"]\n");
+        sb.append("4. 【技能标签 techTags】：必须且仅能从简历原文中精确抽取真实提及的技能名词。若完全没有，返回空数组 []，严禁编造！\n");
+        sb.append("5. 【打分与淘汰红线（满分100分，准入门槛基准分固定为60分）】：\n");
+        sb.append("   - 若简历与目标岗位完全不相干，五大实战加分必须全部为 0 分，matchScore 必须严格等于 60 分，matchLevel 为 '初阶成长型，亟待丰富项目与产出'！\n");
         sb.append("   - matchLevel 评级严格按总分映射：\n");
         sb.append("     92~100分：\"阿里P7+/字节2-2 资深技术专家\"\n");
         sb.append("     85~91分：\"阿里P6+/字节2-1 骨干级研发标杆\"\n");
         sb.append("     75~84分：\"大厂标准中高级工程师\"\n");
         sb.append("     65~74分：\"技术扎实准入级开发者\"\n");
         sb.append("     <65分：\"初阶成长型，亟待丰富项目与产出\"\n");
-        sb.append("5. 请严格按以下 JSON 格式输出深度评测报告，不要输出任何额外的包裹代码块或多余文字：\n");
+        sb.append("6. 请严格按以下 JSON 格式输出深度评测报告，不要输出任何额外的包裹代码块或多余文字：\n");
         sb.append("{\n");
         sb.append("  \"matchScore\": 86,\n");
         sb.append("  \"matchLevel\": \"阿里P6+/字节2-1 骨干级研发标杆\",\n");
@@ -238,6 +241,30 @@ public class UserResumeServiceImpl implements IUserResumeService {
                 resume.setPredictedQuestions(questionsNode.isMissingNode() ? "[]" : questionsNode.toString());
                 resume.setStarAdvice(starAdvice);
                 parsed = true;
+
+                // 真实性后置校验审计：如果候选人简历完全没有技术栈且没有工程项目，坚决杜绝大模型客套幻觉
+                List<String> realTags = extractTechTags(request.getResumeContent());
+                List<String> realProjects = extractProjects(request.getResumeContent());
+                if (realTags.isEmpty() && realProjects.isEmpty()) {
+                    resume.setMatchScore(60);
+                    resume.setMatchLevel("初阶成长型，亟待丰富项目与产出");
+                    resume.setTechTags("[]");
+                    resume.setProjectHighlights(objectMapper.writeValueAsString(List.of(
+                            "【无对口技术亮点】：简历未检测到与【" + request.getTargetJob() + "】相关的对口工程项目或核心技术栈，实战积累严重不足",
+                            "【工程实战缺失】：履历内容未体现该技术方向所需的系统研发、架构设计或攻坚成果"
+                    )));
+                    resume.setPredictedQuestions(objectMapper.writeValueAsString(List.of(
+                            "【背景与动机核查】：简历中未出现与【" + request.getTargetJob() + "】对口的技术研发经历，请如实说明你跨界应聘该岗位的动机与真实水平？",
+                            "【实际动手能力】：针对【" + request.getTargetJob() + "】专业领域，你目前是否有可供核验的独立代码工程、开源实践或个人作品？",
+                            "【大厂门槛与差距】：面对【" + request.getCompanyTarget() + "】的技术招聘门槛，你打算如何系统性补齐缺乏真实业务项目的短板？"
+                    )));
+                    resume.setResumeGaps(objectMapper.writeValueAsString(List.of(
+                            "【技术栈脱节】：简历未出现与目标岗位【" + request.getTargetJob() + "】相关的对口编程语言与技术栈，专业储备不足",
+                            "【工程项目缺失】：简历中无明确命名的技术/系统研发项目经历，大厂技术初筛通过率极低",
+                            "【缺乏量化成效】：缺少软件工程相关的量化性能指标或业务研发成果"
+                    )));
+                    resume.setStarAdvice("当前简历内容与技术岗位【" + request.getTargetJob() + "】严重脱节，无法套用现有经历进行技术面 STAR 重塑。强烈建议：首先围绕【" + request.getTargetJob() + "】补充一个对口的完整端到端技术项目，再按 S(业务场景/技术难点) ➔ T(架构攻坚目标) ➔ A(具体技术选型与实现细节) ➔ R(性能压测或实际量化成效) 的规范标准重新撰写履历。");
+                }
             } catch (Exception ex) {
                 log.warn("解析大模型简历分析 JSON 失败，启用智能启发式真实文本萃取: {}", ex.getMessage());
             }
@@ -431,10 +458,6 @@ public class UserResumeServiceImpl implements IUserResumeService {
         String targetCompany = StringUtils.hasText(request.getCompanyTarget()) ? request.getCompanyTarget() : "一线互联网大厂";
 
         List<String> detectedTags = extractTechTags(text);
-        if (detectedTags.isEmpty()) {
-            detectedTags.addAll(List.of("Java", "Spring Boot", "MySQL", "Redis", "高并发架构"));
-        }
-
         List<String> detectedProjects = extractProjects(text);
         List<String> detectedMetrics = extractMetrics(text);
 
@@ -462,68 +485,85 @@ public class UserResumeServiceImpl implements IUserResumeService {
             level = "初阶成长型，亟待丰富项目与产出";
         }
 
-        // 1. 生成基于候选人真实项目和技能的高光亮点
+        // 1. 生成基于候选人真实项目和技能的高光亮点（求真务实，没有就直言没有）
         List<String> highlights = new ArrayList<>();
-        String tagSummary = String.join("、", detectedTags.subList(0, Math.min(4, detectedTags.size())));
-        if (!detectedProjects.isEmpty()) {
+        if (detectedProjects.isEmpty() && detectedTags.isEmpty()) {
+            highlights.add("【无对口技术亮点】：简历未检测到与【" + targetJob + "】相关的对口工程项目或核心技术栈，实战积累严重不足");
+            highlights.add("【工程实战缺失】：履历内容未体现该技术方向所需的系统研发、架构设计或攻坚成果");
+        } else if (!detectedProjects.isEmpty()) {
             String p1 = detectedProjects.get(0);
+            String tagSummary = !detectedTags.isEmpty() ? String.join("、", detectedTags.subList(0, Math.min(4, detectedTags.size()))) : "业务核心";
             highlights.add("深度参与/主导【" + p1 + "】核心模块研发，技术体系涵盖 " + tagSummary + "，具备扎实的工程落地经验");
+            if (!detectedMetrics.isEmpty()) {
+                highlights.add("履历体现清晰的技术产出量化意识（如：" + String.join("、", detectedMetrics.subList(0, Math.min(2, detectedMetrics.size()))) + "），架构攻坚成效显著");
+            } else if (detectedProjects.size() >= 2) {
+                highlights.add("在【" + detectedProjects.get(1) + "】中展现出良好的业务抽象与系统演进能力，具备多系统开发经验");
+            } else {
+                highlights.add("具备【" + p1 + "】完整的业务功能交付记录，建议进一步强化底层架构与技术攻坚深度");
+            }
         } else {
-            highlights.add("掌握 " + tagSummary + " 等主流技术栈，具备规范的模块分层与业务实现能力");
-        }
-
-        if (!detectedMetrics.isEmpty()) {
-            highlights.add("履历体现清晰的技术产出量化意识（如：" + String.join("、", detectedMetrics.subList(0, Math.min(2, detectedMetrics.size()))) + "），架构攻坚成效显著");
-        } else if (detectedTags.contains("Redis") || detectedTags.contains("MySQL") || detectedTags.contains("Kafka")) {
-            highlights.add("具备核心中间件（如数据持久化、多级缓存与高可用消息流）的应用与线上调优意识");
-        } else {
-            highlights.add("项目工程规范良好，具备良好的系统化开发与工程协同经验");
-        }
-
-        if (detectedProjects.size() >= 2) {
-            highlights.add("在【" + detectedProjects.get(1) + "】中展现出良好的业务抽象与系统演进能力，与目标岗位【" + targetJob + "】方向契合");
+            String tagSummary = String.join("、", detectedTags.subList(0, Math.min(4, detectedTags.size())));
+            highlights.add("具备 " + tagSummary + " 等基础技能储备，但简历中未呈现独立完整的端到端实战项目");
+            highlights.add("掌握相关技术基础语法与应用，建议尽快补充对口项目落地沉淀，提升工程说服力");
         }
 
         // 2. 生成基于真实内容的薄弱项与改进点
         List<String> gaps = new ArrayList<>();
+        if (detectedTags.isEmpty()) {
+            gaps.add("【技术栈脱节】：简历未出现与目标岗位【" + targetJob + "】相关的对口编程语言与技术栈，专业储备不足");
+        }
+        if (detectedProjects.isEmpty()) {
+            gaps.add("【工程项目缺失】：简历中无明确命名的技术/系统研发项目经历，大厂技术初筛通过率极低");
+        } else {
+            gaps.add("在【" + detectedProjects.get(0) + "】中针对极端网络抖动、服务雪崩及分布式一致性异常的容灾兜底策略阐述相对精简");
+        }
+
         if (detectedMetrics.isEmpty()) {
-            gaps.add("核心项目职责中缺少量化业务收益（如核心接口QPS吞吐提升比、慢SQL耗时压降比例、故障率降幅）");
+            gaps.add("【缺乏量化成效】：项目职责以日常工作罗列为主，缺少量化业务收益（如核心接口QPS吞吐、SQL耗时压降比、系统SLA可用性）");
         } else {
             gaps.add("对简历中提及的量化指标（" + detectedMetrics.get(0) + "）建议在面试前准备详尽的压测火焰图或监控基准数据，增强面试答辩可信度");
         }
 
-        if (!detectedProjects.isEmpty()) {
-            gaps.add("在【" + detectedProjects.get(0) + "】中针对极端网络抖动、服务雪崩及分布式一致性异常的容灾兜底策略阐述相对精简");
-        } else {
-            gaps.add("建议在简历中以独立大标题明确【项目名称】与【个人职责】，突出主导模块的技术攻坚深度");
-        }
-
-        // 3. 生成基于真实项目和技术的预测深挖考题
+        // 3. 生成基于真实项目和技术的预测深挖考题（绝不凭空捏造候选人没写过的技术）
         List<String> questions = new ArrayList<>();
-        String primaryTag = detectedTags.get(0);
-        if (!detectedProjects.isEmpty()) {
-            questions.add("结合你在【" + detectedProjects.get(0) + "】中使用 " + primaryTag + " 的场景，推演当突发流量超出峰值时，你们的全链路限流熔断与降级保活机制是如何落地的？");
-        } else {
-            questions.add("结合你掌握的 " + primaryTag + "，请详细说明在高并发场景下如何做多级缓存设计与缓存一致性保障？");
-        }
+        if (detectedProjects.isEmpty() && detectedTags.isEmpty()) {
+            questions.add("【经历真实性核查】：简历中未出现与【" + targetJob + "】对口的技术研发项目，请如实说明你跨界应聘该岗位的动机与真实水平？");
+            questions.add("【实际动手能力】：针对【" + targetJob + "】专业领域，你目前是否有可供核验的独立代码工程、开源实践或个人作品？");
+            questions.add("【大厂门槛与差距】：面对【" + targetCompany + "】的技术招聘门槛，你打算如何系统性补齐缺乏真实业务项目的短板？");
+        } else if (!detectedProjects.isEmpty()) {
+            String p1 = detectedProjects.get(0);
+            String primaryTag = !detectedTags.isEmpty() ? detectedTags.get(0) : "核心模块";
+            questions.add("结合你在【" + p1 + "】中使用 " + primaryTag + " 的真实场景，请详细说明其核心架构设计是怎样的？遇到过最棘手的线上故障或性能瓶颈是什么？");
+            if (detectedProjects.size() >= 2) {
+                String p2 = detectedProjects.get(1);
+                questions.add("在【" + p2 + "】的设计与落地过程中，你承担的最核心技术职责是什么？与【" + p1 + "】相比在架构复杂度上有何演进？");
+            } else if (detectedTags.size() >= 2) {
+                String secondaryTag = detectedTags.get(1);
+                questions.add("你在【" + p1 + "】中同时使用了 " + primaryTag + " 与 " + secondaryTag + "，两者的职责边界如何划分？数据一致性或网络调用超时如何保证？");
+            } else {
+                questions.add("针对【" + p1 + "】，如果核心业务流量未来增长 10 倍，你认为系统最先面临瓶颈的单点是什么？你将如何重构？");
+            }
 
-        if (detectedProjects.size() >= 2) {
-            questions.add("针对【" + detectedProjects.get(1) + "】的数据存储架构，单表数据量达千万级时你们是如何权衡分库分表与跨分片分页查询的？");
-        } else if (detectedTags.contains("MySQL") || detectedTags.contains("Redis")) {
-            questions.add("在核心业务链路中，如何通过聚簇索引与覆盖索引优化深分页？遭遇缓存穿透与大Key淘汰时如何保证数据库不被击穿？");
+            if (!detectedMetrics.isEmpty()) {
+                questions.add("你在简历中提到【" + detectedMetrics.get(0) + "】的量化成效，请复盘其测量基准、优化方案及最终验证方法论？");
+            } else {
+                questions.add("简历在【" + p1 + "】中并未列出具体吞吐与响应耗时指标，请如实复盘该系统上线后的真实流量规模与线上稳定性表现？");
+            }
         } else {
-            questions.add("在分布式架构下，跨服务调用若发生网络分区或超时，你如何设计防重幂等与柔性事务最终一致性补偿？");
-        }
-
-        if (!detectedMetrics.isEmpty()) {
-            questions.add("你在简历中提到【" + detectedMetrics.get(0) + "】的优化成效，请复盘从指标监控、抓取瓶颈火焰图到最终技术落地的完整方法论？");
-        } else {
-            questions.add("如果现有系统的并发量与数据体量翻 10 倍，你认为当前架构中最先崩溃的单点是什么？你将如何重构？");
+            String primaryTag = detectedTags.get(0);
+            questions.add("简历提及你掌握 " + primaryTag + "，请结合底层原理详细阐述其核心实现机制？你在哪些实际场景中动手应用过？");
+            questions.add("当前履历中缺少明确的技术项目经历，请说明你在学习或实践 " + primaryTag + " 过程中完成过哪些实验或作品？");
+            questions.add("如果面试官要求现场针对【" + targetJob + "】手撕一段生产级代码，你最有把握实现的业务或算法模块是什么？");
         }
 
         // 4. STAR 法则指导建议
-        String pFocus = !detectedProjects.isEmpty() ? "【" + detectedProjects.get(0) + "】" : "核心项目";
-        String star = "针对目标岗位【" + targetJob + "】与目标企业【" + targetCompany + "】，建议紧扣 STAR 原则重构" + pFocus + "描述：明确 S(面临的业务洪峰/瓶颈痛点) ➔ T(架构攻坚与稳定性目标) ➔ A(采用的具体底层机制与重构方案) ➔ R(以量化数据呈现吞吐量与可用性提升)，大厂招聘委员会非常看重量化结果。";
+        String star;
+        if (detectedProjects.isEmpty() && detectedTags.isEmpty()) {
+            star = "当前简历内容与技术岗位【" + targetJob + "】严重脱节，无法套用现有经历进行技术面 STAR 重塑。强烈建议：首先围绕【" + targetJob + "】核心技术栈动手落地至少一个完整的端到端实战项目，再按 S(业务场景/技术难点) ➔ T(架构攻坚目标) ➔ A(具体技术选型与实现细节) ➔ R(性能压测或实际量化成效) 的规范标准重新撰写履历。";
+        } else {
+            String pFocus = !detectedProjects.isEmpty() ? "【" + detectedProjects.get(0) + "】" : "核心项目";
+            star = "针对目标岗位【" + targetJob + "】与目标企业【" + targetCompany + "】，建议紧扣 STAR 原则重构" + pFocus + "描述：明确 S(面临的业务洪峰/瓶颈痛点) ➔ T(架构攻坚与稳定性目标) ➔ A(采用的具体底层机制与重构方案) ➔ R(以量化数据呈现吞吐量与可用性提升)，大厂招聘委员会非常看重量化结果。";
+        }
 
         resume.setMatchScore(score);
         resume.setMatchLevel(level);
@@ -645,16 +685,51 @@ public class UserResumeServiceImpl implements IUserResumeService {
         return vo;
     }
 
+    private List<String> getJobTrackKeywords(String job) {
+        List<String> kws = new ArrayList<>();
+        if (!StringUtils.hasText(job)) {
+            return List.of("开发", "系统", "软件", "工程");
+        }
+        String lower = job.toLowerCase();
+        if (lower.contains("java")) {
+            kws.addAll(List.of("java", "spring", "jvm", "mybatis", "netty", "tomcat", "maven", "spring boot", "微服务"));
+        } else if (lower.contains("go") || lower.contains("golang")) {
+            kws.addAll(List.of("go", "golang", "gin", "gorm", "协程", "channel", "grpc"));
+        } else if (lower.contains("c++") || lower.contains("cpp")) {
+            kws.addAll(List.of("c++", "cpp", "stl", "linux", "指针", "内存", "makefile", "cmake"));
+        } else if (lower.contains("python")) {
+            kws.addAll(List.of("python", "django", "fastapi", "flask", "numpy", "pandas", "pytorch"));
+        } else if (lower.contains("前端") || lower.contains("web") || lower.contains("vue") || lower.contains("react")) {
+            kws.addAll(List.of("vue", "react", "javascript", "typescript", "js", "ts", "css", "html", "vite", "webpack", "前端", "node"));
+        } else if (lower.contains("ai") || lower.contains("大模型") || lower.contains("llm") || lower.contains("算法") || lower.contains("nlp") || lower.contains("cv") || lower.contains("rag") || lower.contains("agent")) {
+            kws.addAll(List.of("llm", "大模型", "rag", "agent", "nlp", "cv", "算法", "pytorch", "tensorflow", "transformer", "embedding", "向量", "微调", "prompt"));
+        } else if (lower.contains("大数据") || lower.contains("spark") || lower.contains("flink") || lower.contains("hadoop") || lower.contains("数仓")) {
+            kws.addAll(List.of("spark", "flink", "hadoop", "hive", "hbase", "kafka", "数仓", "数据仓库", "clickhouse", "etl", "离线", "实时计算"));
+        } else if (lower.contains("数据库") || lower.contains("dba") || lower.contains("存储")) {
+            kws.addAll(List.of("mysql", "redis", "dba", "sql", "索引", "事务", "tidb", "clickhouse", "elasticsearch", "分库分表", "慢查询", "调优"));
+        } else if (lower.contains("云原生") || lower.contains("sre") || lower.contains("运维") || lower.contains("k8s") || lower.contains("devops")) {
+            kws.addAll(List.of("k8s", "kubernetes", "docker", "devops", "ci/cd", "prometheus", "sre", "linux", "运维", "容器", "监控", "grafana"));
+        } else if (lower.contains("测试") || lower.contains("sdet") || lower.contains("安全")) {
+            kws.addAll(List.of("测试", "自动化", "jmeter", "pytest", "selenium", "压测", "用例", "安全", "渗透", "漏洞", "sdet"));
+        } else {
+            String clean = job.replaceAll("工程师|开发|专家|架构师|高级|资深|初级|助理", "").trim();
+            if (clean.length() >= 2) {
+                kws.add(clean);
+            }
+        }
+        return kws;
+    }
+
     private int calcTechStackScore(List<String> tags) {
-        if (tags == null || tags.isEmpty()) return 2;
+        if (tags == null || tags.isEmpty()) return 0;
         boolean hasLang = false, hasMw = false, hasDb = false, hasCloud = false, hasArch = false;
         for (String tag : tags) {
             String lower = tag.toLowerCase();
-            if (lower.contains("java") || lower.contains("go") || lower.contains("python") || lower.contains("c++") || lower.contains("spring")) hasLang = true;
-            if (lower.contains("redis") || lower.contains("kafka") || lower.contains("rocketmq") || lower.contains("netty") || lower.contains("mq")) hasMw = true;
-            if (lower.contains("mysql") || lower.contains("elasticsearch") || lower.contains("tidb") || lower.contains("clickhouse") || lower.contains("oracle")) hasDb = true;
-            if (lower.contains("docker") || lower.contains("k8s") || lower.contains("kubernetes") || lower.contains("linux") || lower.contains("nginx") || lower.contains("rag") || lower.contains("大模型")) hasCloud = true;
-            if (lower.contains("分布式") || lower.contains("分库分表") || lower.contains("缓存") || lower.contains("调优") || lower.contains("ddd") || lower.contains("锁")) hasArch = true;
+            if (lower.contains("java") || lower.contains("go") || lower.contains("python") || lower.contains("c++") || lower.contains("spring") || lower.contains("vue") || lower.contains("react") || lower.contains("js") || lower.contains("ts")) hasLang = true;
+            if (lower.contains("redis") || lower.contains("kafka") || lower.contains("rocketmq") || lower.contains("netty") || lower.contains("mq") || lower.contains("dubbo")) hasMw = true;
+            if (lower.contains("mysql") || lower.contains("elasticsearch") || lower.contains("tidb") || lower.contains("clickhouse") || lower.contains("oracle") || lower.contains("mongodb")) hasDb = true;
+            if (lower.contains("docker") || lower.contains("k8s") || lower.contains("kubernetes") || lower.contains("linux") || lower.contains("nginx") || lower.contains("rag") || lower.contains("大模型") || lower.contains("ci/cd")) hasCloud = true;
+            if (lower.contains("分布式") || lower.contains("分库分表") || lower.contains("缓存") || lower.contains("调优") || lower.contains("ddd") || lower.contains("锁") || lower.contains("架构")) hasArch = true;
         }
         int score = 0;
         if (hasLang) score += 2;
@@ -662,78 +737,114 @@ public class UserResumeServiceImpl implements IUserResumeService {
         if (hasDb) score += 2;
         if (hasCloud) score += 2;
         if (hasArch) score += 2;
+        if (score == 0 && !tags.isEmpty()) {
+            score = Math.min(tags.size(), 2);
+        }
         return Math.min(score, 10);
     }
 
     private int calcProjectScore(List<String> projects, String text) {
-        int score = 0;
-        if (projects != null && !projects.isEmpty()) {
-            score += 4;
-            if (projects.size() >= 2) {
-                score += 3;
-            }
-        } else {
-            score += 2;
+        if (projects == null || projects.isEmpty()) {
+            return 0;
+        }
+        int score = 3;
+        if (projects.size() >= 2) {
+            score += 3;
         }
         if (StringUtils.hasText(text)) {
             if (text.contains("高并发") || text.contains("分布式") || text.contains("微服务") || text.contains("千万") || text.contains("亿级") || text.contains("集群") || text.contains("海量")) {
-                score += 3;
+                score += 4;
             }
         }
         return Math.min(score, 10);
     }
 
     private int calcMetricsScore(List<String> metrics, String text) {
+        if (!StringUtils.hasText(text)) return 0;
         int score = 0;
         if (metrics != null && !metrics.isEmpty()) {
             score += 4;
+            if (metrics.size() >= 2) {
+                score += 2;
+            }
         }
-        if (StringUtils.hasText(text)) {
-            if (text.contains("压降") || text.contains("提升") || text.contains("降低") || text.contains("缩短") || text.contains("优化至") || text.contains("提速")) {
-                score += 3;
-            }
-            if (text.contains("故障") || text.contains("可用性") || text.contains("资损") || text.contains("流水") || text.contains("SLA") || text.contains("99.")) {
-                score += 3;
-            }
+        if (text.contains("压降") || text.contains("提升") || text.contains("降低") || text.contains("缩短") || text.contains("优化至") || text.contains("提速")) {
+            score += 2;
+        }
+        if (text.contains("故障") || text.contains("可用性") || text.contains("资损") || text.contains("SLA") || text.contains("99.")) {
+            score += 2;
         }
         return Math.min(score, 10);
     }
 
     private int calcEngineeringScore(String text) {
-        if (!StringUtils.hasText(text)) return 1;
+        if (!StringUtils.hasText(text)) return 0;
         int score = 0;
         if (text.contains("熔断") || text.contains("降级") || text.contains("限流") || text.contains("Sentinel") || text.contains("容灾") || text.contains("链路追踪") || text.contains("SkyWalking") || text.contains("监控") || text.contains("压测")) {
             score += 3;
-        } else {
-            score += 1;
         }
         if (text.contains("单元测试") || text.contains("Code Review") || text.contains("代码规范") || text.contains("CI/CD") || text.contains("重构") || text.contains("DDD") || text.contains("自动化")) {
             score += 2;
-        } else {
-            score += 1;
         }
         return Math.min(score, 5);
     }
 
     private int calcFitScore(String targetJob, String targetCompany, List<String> tags, String text) {
-        int score = 0;
-        if (StringUtils.hasText(text) && StringUtils.hasText(targetJob)) {
-            String cleanJob = targetJob.replaceAll("工程师|开发|专家|架构师", "").trim();
-            if (cleanJob.length() >= 2 && text.toLowerCase().contains(cleanJob.toLowerCase())) {
-                score += 3;
-            } else {
-                score += 2;
+        if (!StringUtils.hasText(text)) return 0;
+        String job = StringUtils.hasText(targetJob) ? targetJob : "";
+        String lowerText = text.toLowerCase();
+
+        // 1. 提取目标岗位的核心技术特征词库
+        List<String> trackKeywords = getJobTrackKeywords(job);
+
+        // 2. 统计在简历文本与识别出的技术标签中命中对口关键词的次数
+        int trackHits = 0;
+        for (String kw : trackKeywords) {
+            if (lowerText.contains(kw.toLowerCase())) {
+                trackHits++;
             }
-        } else {
-            score += 2;
+        }
+        if (tags != null) {
+            for (String tag : tags) {
+                for (String kw : trackKeywords) {
+                    if (tag.equalsIgnoreCase(kw)) {
+                        trackHits++;
+                    }
+                }
+            }
         }
 
-        if (tags != null && tags.size() >= 4) {
-            score += 2;
+        // 赛道技术匹配度 (0~3分)
+        int trackScore = 0;
+        if (trackHits >= 4) {
+            trackScore = 3;
+        } else if (trackHits >= 2) {
+            trackScore = 2;
+        } else if (trackHits >= 1) {
+            trackScore = 1;
         } else {
-            score += 1;
+            trackScore = 0; // 零命中，说明完全脱离该技术赛道
         }
-        return Math.min(score, 5);
+
+        // 3. 名企高并发与工程体量契合度 (0~2分)
+        int companyScore = 0;
+        // 若赛道完全不相干（0分），大厂契合度直接为 0
+        if (trackScore > 0) {
+            boolean hasHighScale = text.contains("高并发") || text.contains("海量") || text.contains("千万")
+                    || text.contains("亿级") || text.contains("分布式") || text.contains("QPS")
+                    || text.contains("架构") || text.contains("SLA") || text.contains("99.")
+                    || text.contains("调优") || text.contains("微服务") || text.contains("容灾");
+            boolean hasNormalScale = text.contains("项目") || text.contains("系统") || text.contains("重构")
+                    || text.contains("上线") || text.contains("核心");
+
+            if (hasHighScale && trackScore >= 2) {
+                companyScore = 2;
+            } else if (hasNormalScale || hasHighScale) {
+                companyScore = 1;
+            }
+        }
+
+        return Math.min(trackScore + companyScore, 5);
     }
 
     private List<ResumeAnalysisVO.ScoreDimensionItem> buildScoreDetails(UserResume resume) {
@@ -754,31 +865,105 @@ public class UserResumeServiceImpl implements IUserResumeService {
                 60, 60, "合格",
                 "包含规范合法履历文本，享有大厂技术准入及格起评分"
         ));
-        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
-                "核心技术栈广度与深度",
-                d1, 10, d1 >= 8 ? "卓越" : (d1 >= 6 ? "良好" : "基础"),
-                "覆盖主流语言、微服务、中间件、持久化及分布式高级架构机制（已识别 " + tags.size() + " 项技能）"
-        ));
-        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
-                "项目经历与系统复杂度",
-                d2, 10, d2 >= 8 ? "卓越" : (d2 >= 6 ? "良好" : "基础"),
-                projects.isEmpty() ? "未提取到明确命名的项目模块，建议以独立标题规范项目描述" : "已识别【" + String.join("、", projects) + "】等核心系统，具备分布式高并发业务演进深度"
-        ));
-        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
-                "STAR量化业务成效",
-                d3, 10, d3 >= 8 ? "卓越" : (d3 >= 6 ? "良好" : "偏弱"),
-                metrics.isEmpty() ? "项目职责缺乏量化指标，建议补充 QPS 吞吐、耗时压降与故障降幅" : "体现清晰量化收益（如：" + String.join("、", metrics.subList(0, Math.min(2, metrics.size()))) + "），架构说服力显著"
-        ));
-        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
-                "高可用工程与容灾规范",
-                d4, 5, d4 >= 4 ? "优异" : "基础",
-                d4 >= 4 ? "体现限流熔断、监控告警、容灾逃生或单元测试规范" : "建议补充全链路压测、分布式事务回滚及高可用防击穿策略"
-        ));
-        list.add(new ResumeAnalysisVO.ScoreDimensionItem(
-                "目标岗位与名企契合度",
-                d5, 5, d5 >= 4 ? "高契合" : "良好",
-                "深度对标【" + (StringUtils.hasText(resume.getTargetJob()) ? resume.getTargetJob() : "后端开发") + "】及【" + (StringUtils.hasText(resume.getTargetCompany()) ? resume.getTargetCompany() : "一线互联网大厂") + "】技术要求"
-        ));
+
+        // 维度1：核心技术栈广度与深度
+        String d1Rating;
+        String d1Desc;
+        if (d1 == 0) {
+            d1Rating = "匮乏";
+            d1Desc = "未检测到核心技术栈标签，缺乏专业编程语言与工程组件说明";
+        } else if (d1 <= 3) {
+            d1Rating = "初浅";
+            d1Desc = "仅掌握基础单一技术（已识别 " + tags.size() + " 项技能），缺乏中间件与存储架构体系";
+        } else if (d1 <= 6) {
+            d1Rating = "基础";
+            d1Desc = "掌握常用编程语言与组件（已识别 " + tags.size() + " 项技能），建议进一步拓展微服务与分布式体系";
+        } else if (d1 <= 8) {
+            d1Rating = "良好";
+            d1Desc = "具备较完善的技术栈体系（覆盖语言、数据库与核心中间件等 " + tags.size() + " 项技能）";
+        } else {
+            d1Rating = "卓越";
+            d1Desc = "技术栈全面且具备深度（涵盖核心语言、微服务、中间件、持久化与分布式高级架构等 " + tags.size() + " 项技能）";
+        }
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem("核心技术栈广度与深度", d1, 10, d1Rating, d1Desc));
+
+        // 维度2：项目经历与系统复杂度
+        String d2Rating;
+        String d2Desc;
+        if (d2 == 0) {
+            d2Rating = "匮乏";
+            d2Desc = "未提取到明确命名的软件工程项目经历，建议以规范标题（如【核心项目经历】）陈述";
+        } else if (d2 <= 5) {
+            d2Rating = "基础";
+            d2Desc = "已识别【" + String.join("、", projects) + "】，业务体量与架构深度相对初阶";
+        } else if (d2 <= 8) {
+            d2Rating = "良好";
+            d2Desc = "已识别【" + String.join("、", projects) + "】等核心系统，具备分布式业务演进深度";
+        } else {
+            d2Rating = "卓越";
+            d2Desc = "核心系统架构复杂度突出，具备高并发、分布式微服务或海量业务深厚实战落地沉淀";
+        }
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem("项目经历与系统复杂度", d2, 10, d2Rating, d2Desc));
+
+        // 维度3：STAR量化业务成效
+        String d3Rating;
+        String d3Desc;
+        if (d3 == 0) {
+            d3Rating = "偏弱";
+            d3Desc = "项目职责缺乏量化指标，建议补充 QPS 吞吐、耗时压降与故障降幅等量化成果";
+        } else if (d3 <= 5) {
+            d3Rating = "基础";
+            d3Desc = "体现部分量化描述，建议进一步按照 STAR 原则明确业务成果对比（Before vs After）";
+        } else if (d3 <= 8) {
+            d3Rating = "良好";
+            d3Desc = "体现清晰量化收益（如：" + String.join("、", metrics.subList(0, Math.min(2, metrics.size()))) + "），说服力显著";
+        } else {
+            d3Rating = "卓越";
+            d3Desc = "量化成果详实且突出（如：" + String.join("、", metrics.subList(0, Math.min(2, metrics.size()))) + "），架构攻坚与业务价值说服力极强";
+        }
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem("STAR量化业务成效", d3, 10, d3Rating, d3Desc));
+
+        // 维度4：高可用工程与容灾规范
+        String d4Rating;
+        String d4Desc;
+        if (d4 == 0) {
+            d4Rating = "缺失";
+            d4Desc = "未体现高可用容灾架构或工程规范，建议补充限流熔断、监控报警及自动化测试";
+        } else if (d4 <= 2) {
+            d4Rating = "基础";
+            d4Desc = "体现基础工程规范，建议补充全链路压测、分布式事务回滚及高可用防击穿策略";
+        } else {
+            d4Rating = "优异";
+            d4Desc = "体现限流熔断、监控告警、容灾逃生或单元测试等成熟工程防护防线";
+        }
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem("高可用工程与容灾规范", d4, 5, d4Rating, d4Desc));
+
+        // 维度5：目标岗位与名企契合度
+        String d5Rating;
+        String d5Desc;
+        String targetJobStr = StringUtils.hasText(resume.getTargetJob()) ? resume.getTargetJob() : "后端开发";
+        String targetCompStr = StringUtils.hasText(resume.getTargetCompany()) ? resume.getTargetCompany() : "一线互联网大厂";
+        if (d5 == 0) {
+            d5Rating = "严重脱节";
+            d5Desc = "简历专业领域与【" + targetJobStr + "】严重脱离，未检索到对口技术栈，跨赛道匹配度极低";
+        } else if (d5 == 1) {
+            d5Rating = "微弱相关";
+            d5Desc = "仅具备少量边缘关联技能，缺乏【" + targetJobStr + "】核心专业沉淀";
+        } else if (d5 == 2) {
+            d5Rating = "偏弱匹配";
+            d5Desc = "具备部分基础技术，但与【" + targetJobStr + "】主流技术要求匹配度较低，建议补充垂直对口项目";
+        } else if (d5 == 3) {
+            d5Rating = "基本对口";
+            d5Desc = "基本掌握【" + targetJobStr + "】核心基础，但距【" + targetCompStr + "】名企岗位的技术深度与工程体量仍有差距";
+        } else if (d5 == 4) {
+            d5Rating = "良好契合";
+            d5Desc = "技术栈与经历紧扣【" + targetJobStr + "】，符合【" + targetCompStr + "】主流用人标准";
+        } else {
+            d5Rating = "深度对标";
+            d5Desc = "深度对标【" + targetJobStr + "】及【" + targetCompStr + "】技术要求，技术架构与业务体量高度契合";
+        }
+        list.add(new ResumeAnalysisVO.ScoreDimensionItem("目标岗位与名企契合度", d5, 5, d5Rating, d5Desc));
+
         return list;
     }
 
