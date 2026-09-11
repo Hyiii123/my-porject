@@ -8,9 +8,9 @@
 
 ## 一、最高工作准则与发布铁律 (Core Operating Rules)
 
-1. **【发布闭环准则】先服务器验证 ➔ 后同步本地 ➔ 最后推送 GitHub**
+1. **【发布闭环准则】先服务器定向验证 ➔ 后同步本地 ➔ 最后推送 GitHub**
    * 修改代码必须遵循标准单向流：
-     $$\text{服务器修改/上传源码} \longrightarrow \text{服务器单服务构建} \longrightarrow \text{HTTP 冒烟验证通过} \longrightarrow \text{同步拉回本地} \longrightarrow \text{审查 git diff} \longrightarrow \text{提交推送 GitHub}$$
+     $$\text{服务器修改/上传源码} \longrightarrow \text{服务器单服务构建} \longrightarrow \text{定向测试验证通过（严禁全量跑库）} \longrightarrow \text{同步拉回本地} \longrightarrow \text{审查 git diff} \longrightarrow \text{提交推送 GitHub}$$
    * **严禁反向操作**：绝对不要把未经验证的本地或 GitHub 代码直接覆盖服务器！
 2. **【磁盘保护准则】绝对禁止在服务器上并发构建多个服务**
    * **严禁执行**：`docker compose up -d --build svc1 svc2 svc3`（特别禁止同时构建多个前端）。
@@ -34,6 +34,10 @@
    * **检测方式**：执行 `workbench exec --instance-id i-f8z1loc07p8p5ve8c7jf --command "curl -s http://100.100.100.200/latest/meta-data/eipv4"`，将返回值与本文档「二、关键环境与资产索引」中记录的 **ECS 公网 IP** 进行比对。
    * **若 IP 未变**：无需操作，记录当天已完成检测即可。
    * **若 IP 已变更**：必须立即批量更新项目内所有硬编码旧 IP 的文件（`AGENTS.md`、`AGENT_WORKLOG.md`、`AGENT_HANDOFF.md`、冒烟测试脚本等），并提交推送至 GitHub。
+8. **【代码修改定向测试铁律】严禁在修改局部代码后跑全量测试，严格只测试涉及修改的部分**
+   * **严禁执行**：在日常修改某个微服务接口、前端组件或业务逻辑后，盲目运行全站全量回归测试（如执行包含加购、下单、支付、评价等 62 项全量冒烟）。
+   * **原因**：全量测试会发起大量跨服务读写请求，产生不必要的测试脏数据，占用服务器珍贵的 CPU 和云盘 I/O，并极大拖慢开发验证效率。
+   * **正确方式**：改动了哪个服务、哪个业务接口或哪个前端模块，**严格只针对该改动点进行精准定向验证**（如修改教育服务课程接口就仅针对性验证该课程接口；修改 AI 客服就仅定向测试该问答接口；修改管理端页面就仅针对性验证该管理端页面）。只有在重大跨服务底层重构或全站发布前，才经批准执行全量回归。
 
 ---
 

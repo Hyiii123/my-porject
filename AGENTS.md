@@ -9,7 +9,7 @@ Failure to read and follow these documents before acting is a violation of user 
 
 ## 1. Golden Release Workflow (发布铁律)
 Always follow the unidirectional flow:
-**Modify & test on server first ➔ verify with zero issues (smoke test 35 pass) ➔ sync back to local ➔ review git diff ➔ commit & push to GitHub**.
+**Modify & test on server first ➔ targeted verification of modified parts with zero issues ➔ sync back to local ➔ review git diff ➔ commit & push to GitHub**.
 Never push unverified code or overwrite the server with unverified local/GitHub code.
 
 ## 2. Cloud Disk Protection Rule (云盘保护与禁止并发构建)
@@ -51,4 +51,8 @@ Compare the returned IP against the recorded IP in `AGENT_WORKLOG.md` (Section �
   - Smoke test scripts (e.g. `.scratch/smoke-test.ps1`)
   - Any other files referencing the old IP (use `grep -r` to find them)
   Then commit and push the IP update.
+
+## 8. Targeted Scope Testing Rule (代码修改后仅做定向范围测试铁律)
+**STRICTLY FORBIDDEN**: Running full-suite regression tests (such as executing all 62 smoke test items) after localized code changes. Full-suite testing creates cross-service noise, generates unnecessary mock data, depletes server CPU / disk I/O, and slows down development.
+**RULE**: Whenever code is modified, verification MUST strictly focus ONLY on the specific microservice, API endpoint, logic path, or UI page directly affected by the modification. Targeted verification must pass with zero errors before syncing back to local and committing.
 
