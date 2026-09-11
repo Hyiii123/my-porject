@@ -14,6 +14,7 @@ import com.share.customer.domain.interview.InterviewCodeSubmission;
 import com.share.customer.domain.interview.InterviewReport;
 import com.share.customer.domain.interview.InterviewSession;
 import com.share.customer.domain.interview.InterviewTurn;
+import com.share.customer.domain.interview.UserResume;
 import com.share.customer.domain.interview.dto.StartInterviewRequest;
 import com.share.customer.domain.interview.dto.SubmitAnswerRequest;
 import com.share.customer.domain.interview.dto.SubmitCodeRequest;
@@ -54,6 +55,7 @@ public class InterviewServiceImpl implements IInterviewService {
     private final CustomerAiProperties aiProperties;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final IUserResumeService userResumeService;
 
     public InterviewServiceImpl(
             InterviewSessionMapper sessionMapper,
@@ -65,7 +67,8 @@ public class InterviewServiceImpl implements IInterviewService {
             CustomerAiClient aiClient,
             CustomerAiProperties aiProperties,
             RestTemplate restTemplate,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            IUserResumeService userResumeService) {
         this.sessionMapper = sessionMapper;
         this.turnMapper = turnMapper;
         this.codeMapper = codeMapper;
@@ -76,6 +79,7 @@ public class InterviewServiceImpl implements IInterviewService {
         this.aiProperties = aiProperties;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
+        this.userResumeService = userResumeService;
     }
 
     @Override
@@ -97,12 +101,36 @@ public class InterviewServiceImpl implements IInterviewService {
         session.setDurationSeconds(0);
         session.setCreateTime(now);
         session.setUpdateTime(now);
+
+        // 简历深度联动：若开启简历定制，则读取个人中心简历并注入面试快照
+        if (request.getEnableResumeCustomization() != Boolean.FALSE) {
+            UserResume resume = userResumeService.getResumeEntity(request.getResumeId(), userId);
+            if (resume != null) {
+                session.setResumeId(resume.getId());
+                StringBuilder summary = new StringBuilder();
+                summary.append("候选人目标=").append(resume.getTargetJob());
+                if (resume.getMatchScore() != null && resume.getMatchScore() > 0) {
+                    summary.append("，对标分=").append(resume.getMatchScore()).append("分(").append(resume.getMatchLevel()).append(")");
+                }
+                if (StringUtils.hasText(resume.getTechTags())) {
+                    summary.append("，核心技能=").append(resume.getTechTags());
+                }
+                if (StringUtils.hasText(resume.getProjectHighlights())) {
+                    summary.append("，重点项目=").append(resume.getProjectHighlights());
+                }
+                if (StringUtils.hasText(resume.getResumeGaps())) {
+                    summary.append("，需重点追问的薄弱点=").append(resume.getResumeGaps());
+                }
+                session.setResumeSummary(summary.toString());
+            }
+        }
+
         sessionMapper.insert(session);
 
-        // 生成第 1 轮开篇题目（根据候选人目标岗位自适应技术赛道概念摸底）
+        // 生成第 1 轮开篇题目（若有简历则融合候选人真实项目经历破题出题）
         JobTrack track = detectJobTrack(session.getTargetJob());
         String dimension = resolveFirstDimension(track);
-        String question = generateFirstQuestion(session.getTargetJob(), session.getInterviewerStyle(), dimension, track);
+        String question = generateFirstQuestion(session, session.getTargetJob(), session.getInterviewerStyle(), dimension, track);
 
         InterviewTurn turn1 = new InterviewTurn();
         turn1.setSessionId(session.getId());
@@ -451,13 +479,18 @@ public class InterviewServiceImpl implements IInterviewService {
     }
 
     /**
-     * 生成第 1 题开篇考题（紧扣目标岗位与赛道维度）。
+     * 生成第 1 题开篇考题（紧扣目标岗位与赛道维度，若挂载简历则深度结合真实项目破题）。
      */
-    private String generateFirstQuestion(String targetJob, String interviewerStyle, String dimension, JobTrack track) {
+    private String generateFirstQuestion(InterviewSession session, String targetJob, String interviewerStyle, String dimension, JobTrack track) {
         String stylePersona = getStylePersona(interviewerStyle);
         StringBuilder sb = new StringBuilder();
         sb.append("你现在是").append(stylePersona).append("。候选人面试的目标岗位是【").append(targetJob).append("】。\n");
-        sb.append("请直接给出第 1 道面试题进行『概念摸底』。考查维度：【").append(dimension).append("】。\n");
+        if (StringUtils.hasText(session.getResumeSummary())) {
+            sb.append("【候选人关联的真实简历信息】：\n").append(session.getResumeSummary()).append("\n");
+            sb.append("【出题铁律】：候选人已绑定个人简历，请务必直接结合其简历中声称的核心项目经历、高光业务或技术栈进行破题发问！\n");
+            sb.append("例如：'张同学你好，在你的简历中提到你主导了【XX系统】并使用了【XX技术】，请问当时在面对高并发/海量数据时，你们是如何做技术选型与兜底保障的？'\n");
+        }
+        sb.append("请直接给出第 1 道面试题进行『概念摸底与项目破题』。考查维度：【").append(dimension).append("】。\n");
         sb.append("要求：\n");
         sb.append("1. 严格符合你的面试官风格；\n");
         sb.append("2. 紧扣【").append(targetJob).append("】的核心技术栈，不要偏离岗位领域；\n");
@@ -465,16 +498,21 @@ public class InterviewServiceImpl implements IInterviewService {
         sb.append("4. 字数在 150 字以内。");
         String prompt = sb.toString();
 
-        String fallback = switch (track) {
-            case SYSTEMS_HIGH_PERF -> "你好，请先简单介绍自己，并深入阐述一下协程调度器（如 Go GMP 或 C++20 协程）的工作机制？在何种极端场景下会发生调度器饥饿，如何规避？";
-            case FRONTEND_MOBILE -> "你好，请先简要自我介绍。从浏览器主线程事件循环（Event Loop）出发，请详细拆解宏任务、微任务与浏览器渲染帧（rAF / 重绘回流）的精确调度顺序是什么？";
-            case AI_LLM -> "你好，请先简单介绍自己。在 Transformer 架构中，为什么 Multi-Head Attention 需要进行缩放点积（Scaling by sqrt(d_k)）？与传统单头注意力相比其深层数学意义是什么？";
-            case BIG_DATA -> "你好，请先介绍一下自己的大数据项目经验。在 Flink 批流一体计算中，StateBackend 状态后端（如 RocksDB）在处理数十亿条状态数据时，CheckPoint 的对齐与增量快照机制是如何保障 Exactly-Once 语义的？";
-            case DATABASE_STORAGE -> "你好，请简单做个自我介绍。请深入剖析 MySQL InnoDB 引擎中，聚簇索引与二级索引的 B+Tree 存储结构差异。为什么 B+Tree 相比 B-Tree 更适合作为磁盘存储引擎的索引结构？";
-            case CLOUD_NATIVE_SRE -> "你好，请先自我介绍。在 Kubernetes 集群中，从客户端执行 kubectl apply 到 Pod 最终在 Worker 节点上被拉起并对外提供服务，请剖析 APIServer、Controller Manager、Scheduler 和 Kubelet 之间的全链路通信与状态同步机制。";
-            case QA_SECURITY -> "你好，请做个简要介绍。在面对千万级峰值流量的核心交易系统时，你会如何设计全链路压测方案？在生产环境进行压测时，如何做到数据隔离、影子库路由以及对真实用户零影响？";
-            default -> "你好，请先简单介绍一下你自己，并深入阐述 Java 中 ConcurrentHashMap 在 JDK 1.7 与 1.8 中的核心底层差异是什么？为什么 1.8 放弃了分段锁 Segment 而采用 CAS + synchronized？";
-        };
+        String fallback;
+        if (StringUtils.hasText(session.getResumeSummary())) {
+            fallback = "你好！在你的简历中，我注意到你主导和参与了相关核心业务系统的架构演进与落地。请你结合简历中最有代表性的一个核心项目，详细阐述其业务全链路架构，以及面对极端高并发或故障时，你是如何做技术方案权衡与线上排障的？";
+        } else {
+            fallback = switch (track) {
+                case SYSTEMS_HIGH_PERF -> "你好，请先简单介绍自己，并深入阐述一下协程调度器（如 Go GMP 或 C++20 协程）的工作机制？在何种极端场景下会发生调度器饥饿，如何规避？";
+                case FRONTEND_MOBILE -> "你好，请先简要自我介绍。从浏览器主线程事件循环（Event Loop）出发，请详细拆解宏任务、微任务与浏览器渲染帧（rAF / 重绘回流）的精确调度顺序是什么？";
+                case AI_LLM -> "你好，请先简单介绍自己。在 Transformer 架构中，为什么 Multi-Head Attention 需要进行缩放点积（Scaling by sqrt(d_k)）？与传统单头注意力相比其深层数学意义是什么？";
+                case BIG_DATA -> "你好，请先介绍一下自己的大数据项目经验。在 Flink 批流一体计算中，StateBackend 状态后端（如 RocksDB）在处理数十亿条状态数据时，CheckPoint 的对齐与增量快照机制是如何保障 Exactly-Once 语义的？";
+                case DATABASE_STORAGE -> "你好，请简单做个自我介绍。请深入剖析 MySQL InnoDB 引擎中，聚簇索引与二级索引的 B+Tree 存储结构差异。为什么 B+Tree 相比 B-Tree 更适合作为磁盘存储引擎的索引结构？";
+                case CLOUD_NATIVE_SRE -> "你好，请先自我介绍。在 Kubernetes 集群中，从客户端执行 kubectl apply 到 Pod 最终在 Worker 节点上被拉起并对外提供服务，请剖析 APIServer、Controller Manager、Scheduler 和 Kubelet 之间的全链路通信与状态同步机制。";
+                case QA_SECURITY -> "你好，请做个简要介绍。在面对千万级峰值流量的核心交易系统时，你会如何设计全链路压测方案？在生产环境进行压测时，如何做到数据隔离、影子库路由以及对真实用户零影响？";
+                default -> "你好，请先简单介绍一下你自己，并深入阐述 Java 中 ConcurrentHashMap 在 JDK 1.7 与 1.8 中的核心底层差异是什么？为什么 1.8 放弃了分段锁 Segment 而采用 CAS + synchronized？";
+            };
+        }
 
         String aiResult = callAi(prompt, fallback);
         return cleanAiText(aiResult);
@@ -649,6 +687,10 @@ public class InterviewServiceImpl implements IInterviewService {
         sb.append("【目标岗位】：").append(session.getTargetJob()).append("\n");
         sb.append("【目标企业】：").append(session.getCompanyTarget()).append("\n");
         sb.append("【综合均分】：").append(avgScore).append("\n");
+        if (StringUtils.hasText(session.getResumeSummary())) {
+            sb.append("【候选人关联的真实简历背景与声称项目】：\n").append(session.getResumeSummary()).append("\n");
+            sb.append("【关键要求】：请特别对比候选人简历中的项目声称与本次模拟面试现场答题的表现，在 overallSummary 与 criticalWeaknesses 中输出简历真实度与深度对齐评价！\n");
+        }
         sb.append("【全部问答实录】：\n").append(transcript).append("\n\n");
         sb.append("请严格按以下 JSON 格式输出最终评审报告：\n");
         sb.append("{\n");

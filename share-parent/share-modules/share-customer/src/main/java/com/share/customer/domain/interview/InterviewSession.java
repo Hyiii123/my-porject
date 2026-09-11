@@ -36,6 +36,9 @@ public class InterviewSession implements Serializable {
     private Integer totalTurns;
     private Integer score;
     private Integer durationSeconds;
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long resumeId;
+    private String resumeSummary;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 

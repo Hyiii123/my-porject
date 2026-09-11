@@ -17,4 +17,8 @@ public class StartInterviewRequest implements Serializable {
     private String interviewerStyle = "p7_architect"; // p7_architect / bytedance_tech / gentle_hr / standard
 
     private Integer totalTurns = 6;
+
+    private Long resumeId;
+
+    private Boolean enableResumeCustomization = true;
 }

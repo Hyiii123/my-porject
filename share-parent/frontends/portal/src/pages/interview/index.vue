@@ -44,6 +44,36 @@
         </template>
 
         <el-form :model="form" label-position="top" class="interview-form">
+          <!-- 个人中心简历深度联动状态栏 -->
+          <div class="resume-link-status" :class="{ 'linked': hasLinkedResume }">
+            <div class="status-left">
+              <div class="status-title">
+                <span class="icon">{{ hasLinkedResume ? '✅' : '📄' }}</span>
+                <span class="txt">{{ hasLinkedResume ? '已挂载个人中心简历：' : '尚未关联个人简历' }}</span>
+                <b class="resume-name" v-if="hasLinkedResume">
+                  {{ linkedResume.fileName || '我的求职简历' }}
+                </b>
+                <el-tag v-if="hasLinkedResume && linkedResume.matchScore" type="success" size="small" round>
+                  对标匹配度 {{ linkedResume.matchScore }} 分
+                </el-tag>
+              </div>
+              <div class="status-desc">
+                {{ hasLinkedResume ? '🎯 AI 面试官将精准结合简历中的实际项目与技术栈进行连环深挖' : '💡 前往个人中心导入简历，可解锁基于真实项目与核心技能的个性化深度追问' }}
+              </div>
+            </div>
+            <div class="status-right">
+              <el-switch
+                v-if="hasLinkedResume"
+                v-model="form.enableResumeCustomization"
+                active-text="启用简历出题"
+                inline-prompt
+              />
+              <el-button link type="primary" size="small" @click="goToMyResume">
+                {{ hasLinkedResume ? '管理简历 ➔' : '前往导入简历 ➔' }}
+              </el-button>
+            </div>
+          </div>
+
           <el-form-item label="目标岗位">
             <el-select
               v-model="form.targetJob"
@@ -167,16 +197,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { startInterview, getMyInterviews } from '@/api/interview.js'
+import { startInterview, getMyInterviews, getMyResume } from '@/api/interview.js'
 
 const router = useRouter()
+const route = useRoute()
 
 const starting = ref(false)
 const loadingHistory = ref(false)
 const historyList = ref([])
+const linkedResume = ref(null)
+const hasLinkedResume = computed(() => Boolean(linkedResume.value && linkedResume.value.id))
 
 const jobGroups = [
   {
@@ -256,7 +289,8 @@ const form = reactive({
   targetJob: 'Java 高级开发工程师',
   companyTarget: '阿里巴巴',
   interviewerStyle: 'p7_architect',
-  totalTurns: 6
+  totalTurns: 6,
+  enableResumeCustomization: true
 })
 
 const styleOptions = [
@@ -301,6 +335,21 @@ const formatTime = (timeStr) => {
   return timeStr.replace('T', ' ').substring(0, 16)
 }
 
+const fetchLinkedResume = async () => {
+  try {
+    const res = await getMyResume()
+    if (res && res.code === 200 && res.data && res.data.id) {
+      linkedResume.value = res.data
+    }
+  } catch (err) {
+    console.warn('获取个人简历关联失败', err)
+  }
+}
+
+const goToMyResume = () => {
+  router.push('/personal/main/myResume')
+}
+
 const handleStartInterview = async () => {
   try {
     starting.value = true
@@ -308,10 +357,16 @@ const handleStartInterview = async () => {
       targetJob: form.targetJob,
       companyTarget: form.companyTarget,
       interviewerStyle: form.interviewerStyle,
-      totalTurns: form.totalTurns
+      totalTurns: form.totalTurns,
+      resumeId: hasLinkedResume.value && form.enableResumeCustomization ? linkedResume.value.id : null,
+      enableResumeCustomization: form.enableResumeCustomization
     })
     if (res && res.data && res.data.id) {
-      ElMessage.success('面试考场已生成，AI 面试官已就绪！')
+      ElMessage.success(
+        hasLinkedResume.value && form.enableResumeCustomization
+          ? '考场已生成！AI 面试官已锁定您的简历，将深度结合实际项目出题！'
+          : '面试考场已生成，AI 面试官已就绪！'
+      )
       router.push({ name: 'interviewRoom', params: { id: res.data.id } })
     } else {
       ElMessage.error(res.msg || '开启面试失败，请重试')
@@ -346,6 +401,11 @@ const handleOpenSession = (item) => {
 }
 
 onMounted(() => {
+  if (route.query.fromResume === '1') {
+    if (route.query.job) form.targetJob = route.query.job
+    if (route.query.company) form.companyTarget = route.query.company
+  }
+  fetchLinkedResume()
   loadMyHistory()
 })
 </script>
@@ -442,6 +502,54 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: #2d3748;
+}
+
+.resume-link-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  gap: 12px;
+}
+
+.resume-link-status.linked {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.resume-link-status .status-left {
+  flex: 1;
+}
+
+.resume-link-status .status-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.resume-link-status .resume-name {
+  color: #0f766e;
+}
+
+.resume-link-status .status-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.resume-link-status .status-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .w-100 {

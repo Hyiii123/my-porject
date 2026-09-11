@@ -21,3 +21,25 @@ export const getMyInterviews = (params) =>
 
 export const terminateInterview = (sessionId) =>
   request({ url: `/customer/interview/terminate/${sessionId}`, method: 'post' })
+
+// 个人中心简历与 AI 深度诊断 API
+export const getMyResume = () =>
+  request({ url: '/customer/interview/resume/my', method: 'get' })
+
+export const saveResume = (data) =>
+  request({ url: '/customer/interview/resume/save', method: 'post', data })
+
+export const analyzeResume = (data) =>
+  request({ url: '/customer/interview/resume/analyze', method: 'post', data, timeout: 60000 })
+
+export const uploadResumeFile = (formData) =>
+  request({
+    url: '/customer/interview/resume/upload',
+    method: 'post',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000
+  })
+
+export const clearResume = () =>
+  request({ url: '/customer/interview/resume/clear', method: 'delete' })

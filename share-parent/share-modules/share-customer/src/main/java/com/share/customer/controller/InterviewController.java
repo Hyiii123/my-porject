@@ -9,12 +9,20 @@ import com.share.customer.domain.interview.InterviewCodeSubmission;
 import com.share.customer.domain.interview.InterviewReport;
 import com.share.customer.domain.interview.InterviewSession;
 import com.share.customer.domain.interview.InterviewTurn;
+import com.share.customer.domain.interview.dto.ResumeAnalysisRequest;
+import com.share.customer.domain.interview.dto.ResumeSaveRequest;
 import com.share.customer.domain.interview.dto.StartInterviewRequest;
 import com.share.customer.domain.interview.dto.SubmitAnswerRequest;
 import com.share.customer.domain.interview.dto.SubmitCodeRequest;
+import com.share.customer.domain.interview.vo.ResumeAnalysisVO;
 import com.share.customer.service.IInterviewService;
+import com.share.customer.service.IUserResumeService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 全真沉浸式 AI 模拟面试与职涯评测控制器。
@@ -24,9 +32,11 @@ import org.springframework.web.bind.annotation.*;
 public class InterviewController extends BaseController {
 
     private final IInterviewService interviewService;
+    private final IUserResumeService resumeService;
 
-    public InterviewController(IInterviewService interviewService) {
+    public InterviewController(IInterviewService interviewService, IUserResumeService resumeService) {
         this.interviewService = interviewService;
+        this.resumeService = resumeService;
     }
 
     /**
@@ -98,6 +108,59 @@ public class InterviewController extends BaseController {
     @PostMapping("/terminate/{sessionId}")
     public AjaxResult terminate(@PathVariable Long sessionId) {
         interviewService.terminateSession(sessionId);
+        return success();
+    }
+
+    /**
+     * 获取当前登录用户的个人简历与最新 AI 诊断报告。
+     */
+    @RequiresLogin
+    @GetMapping("/resume/my")
+    public AjaxResult getMyResume() {
+        ResumeAnalysisVO vo = resumeService.getMyResume();
+        return success(vo);
+    }
+
+    /**
+     * 保存/更新个人简历文本内容。
+     */
+    @RequiresLogin
+    @PostMapping("/resume/save")
+    public AjaxResult saveResume(@Valid @RequestBody ResumeSaveRequest request) {
+        ResumeAnalysisVO vo = resumeService.saveResume(request);
+        return success(vo);
+    }
+
+    /**
+     * 触发 AI 简历深度对标与诊断分析。
+     */
+    @RequiresLogin
+    @PostMapping("/resume/analyze")
+    public AjaxResult analyzeResume(@Valid @RequestBody ResumeAnalysisRequest request) {
+        ResumeAnalysisVO vo = resumeService.analyzeResume(request);
+        return success(vo);
+    }
+
+    /**
+     * 上传简历附件提取文本。
+     */
+    @RequiresLogin
+    @PostMapping("/resume/upload")
+    public AjaxResult uploadResume(@RequestParam("file") MultipartFile file) {
+        String content = resumeService.extractResumeText(file);
+        Map<String, String> data = new HashMap<>();
+        data.put("fileName", file.getOriginalFilename());
+        data.put("content", content);
+        return success(data);
+    }
+
+    /**
+     * 清空个人中心简历。
+     */
+    @RequiresLogin
+    @DeleteMapping("/resume/clear")
+    public AjaxResult clearResume() {
+        resumeService.clearResume();
         return success();
     }
 

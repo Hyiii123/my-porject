@@ -61,6 +61,26 @@
 
 ### 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-11 14:35:00 - 个人中心「我的简历与 AI 深度诊断」研发上线、31岗位大厂对标与 AI 模拟面试全真数据联通闭环
+
+* **核心成果**：
+  1. **数据模型设计与简历持久化体系建立**：
+     - 在 `tj_customer` 库创建 `cs_user_resume` 用户简历表，涵盖简历原始内容、对标岗位、目标公司、匹配分数、职级评级、技术栈标签、项目亮点、薄弱项风险点、预测必考题与 STAR 重构建议；
+     - 扩展 `cs_interview_session` 表新增 `resume_id` 与 `resume_summary` 快照字段，实现每场模拟面试与特定简历版本的一对一溯源。
+  2. **后端简历解析、AI 深度对标与智能诊断双引擎**：
+     - `UserResumeServiceImpl` 支持纯文本直接录入、txt/md 客户端直读、以及服务端附件文本解析；
+     - 深度对标 31 个精选技术岗位与大厂标准，结合大模型提示词工程与健壮的启发式规则降级分析，一键输出六维全真评估（技能匹配度、职级梯队、亮点提炼、薄弱风险、大厂面试官预测题、STAR 优化示范）。
+  3. **简历与全真 AI 模拟面试系统全链路深度互联**：
+     - 面试大厅（`/interview`）启动前自动嗅探当前用户已建档简历并呈现联动卡片，支持候选人自由切换“根据此简历定制考题”；
+     - 面试开启时将简历核心画像深度注入上下文，第 1 轮破冰题直接锁定候选人真实业务项目与技术栈进行开题；后续多轮追问自适应结合简历声称的技术亮点与薄弱点进行剥洋葱连环攻防；终局报告中综合评判答题表现与简历声称的契合度。
+  4. **学生端个人中心 UI 页面研发与多端联动**：
+     - 个人中心左侧导航栏无缝挂载「📄 我的简历与 AI 深度诊断」（`/personal/main/myResume`）；
+     - 提供大厂标准范例一键填入、多格式上传、31 岗位分赛道级联选择、动态评分徽章、技术栈标签展示、大厂预测考题高亮与 STAR 法则重塑建议展示；
+     - 页面底部提供一键直通 AI 模拟面试专属通道，参数自动化透传至考场大厅。
+  5. **云端生产热部署与端到端闭环验证**：
+     - 定向打包并安全更新 `tianji-customer` 与 `tianji-portal-ui` 容器，排查并规范容器内 `/app/app.jar` 运行路径；
+     - 通过 Gateway 接口定向验证简历存取、AI 对标、第一轮自适应个性化出题及 MySQL 落库，100% 验证通过。
+
 ### 2026-09-11 13:50:00 - 全真沉浸式 AI 模拟面试与职涯评测超级子系统 (Zhiwen AI Interview Pro) 研发上线与全链路闭环验证
 
 * **核心成果**：
@@ -238,6 +258,7 @@
 | **11** | **前端静态课程图片 404 导致裂图** | 数据库/Mock 封面路径与前端静态资源文件名不一致（如 `performance.svg` vs `web.svg`、`golang.svg` vs `go.svg`），且组件未挂载 `@error` 容灾事件与默认封面回退。 | 1. 补齐所有别名图片文件；<br>2. 新增深色学术科技风 16:9 标准默认课程封面 `default-cover.svg`；<br>3. 所有渲染课程封面的 Vue 组件统一挂载 `@error="handleImgError"` 与 `defaultCover` 容灾回退。 |
 | **12** | **新开放免鉴权接口被网关拦截报 401** | Spring Cloud Gateway 默认会对微服务路由实施统一鉴权，仅在 `security.ignore.whites` 中的接口放行。 | 新增面向未登录用户的公开接口（如 `/cs/courses/ranking/**` 点赞榜）时，必须同步在 Nacos 的 `share-gateway-dev.yml` 配置的 `security.ignore.whites` 中声明放行，并通过 Nacos OpenAPI 更新配置。 |
 | **13** | **后端服务构建耗尽服务器突发磁盘 IOPS** | 服务器 ECS 未安装 Maven 且磁盘突发积分宝贵，直接在服务器容器内执行编译会耗尽 IOPS 并造成死机。且 Dockerfile 直接通过 `COPY ${JAR_FILE} app.jar` 运行。 | 在本地利用已配置好的 JDK 17 执行 `mvn clean package -DskipTests` 生成目标 JAR，将更新的 JAR 打包压缩后通过 Workbench CLI 上传，服务器仅需 10 秒轻量 `docker build` 替换容器。 |
+| **14** | **Docker 容器更新 JAR 包后重启依然运行旧代码** | 业务微服务容器 `ENTRYPOINT` 是 `exec java $JAVA_OPTS -jar /app/app.jar`（位于 `/app/app.jar` 而非容器根目录 `/app.jar`）。若将新编译包直接复制到 `/app.jar`，容器启动仍旧加载 `/app/` 子目录下的旧版本。 | 替换容器运行时 JAR 时，务必检查容器配置的真实 Entrypoint / Cmd 路径，准确拷贝至目标路径（如 `docker cp new.jar tianji-customer:/app/app.jar`），并重启容器生效。 |
 
 ---
 

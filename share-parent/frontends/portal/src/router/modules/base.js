@@ -206,6 +206,12 @@ export default [
             meta: { title: '我的收藏', active:'myCollect', hidden: true, icon: '&#xe613;'},
           },
           {
+            path: 'myResume',
+            name: 'myResume',
+            component: () => import('@/pages/personal/myResume.vue'),
+            meta: { title: '我的简历', active: 'myResume', icon: '&#xe614;' },
+          },
+          {
             path: 'mySet',
             name: 'mySet',
             component: () => import('@/pages/personal/mySet.vue'),
