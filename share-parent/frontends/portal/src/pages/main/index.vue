@@ -220,17 +220,7 @@
       </div>
     </div>
 
-    <!-- 平台数据指标统计 -->
-    <div class="stats-section">
-      <div class="container">
-        <div class="stats-grid">
-          <div v-for="stat in stats" :key="stat.label" class="stat-item">
-            <div class="stat-number">{{ stat.value }}</div>
-            <div class="stat-label">{{ stat.label }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
+
 
     <!-- AI 职业成长进阶拓扑全景大屏组件 -->
     <CareerPathDrawer ref="careerPathDrawerRef" />
@@ -317,12 +307,7 @@ const normalizeRows = (response) => {
   return rows.map(normalizeCourse)
 }
 
-const stats = computed(() => [
-  { value: allCourses.value.reduce((sum, course) => sum + course.learners, 0).toLocaleString(), label: '累计学习人次' },
-  { value: allCourses.value.length || '10+', label: '精品专业课程' },
-  { value: new Set(allCourses.value.map(course => course.teacherName)).size || '12+', label: '资深行业名师' },
-  { value: '99.2%', label: '学员好评率' }
-])
+
 
 const calcProgress = (item) => {
   if (!item) return 0
@@ -977,35 +962,7 @@ onMounted(async () => {
   }
 }
 
-/* 数据统计区 */
-.stats-section {
-  background: #0F172A;
-  padding: 48px 0;
-  margin-top: 48px;
-  border-radius: 8px;
-}
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 32px;
-  text-align: center;
-}
-
-.stat-item {
-  .stat-number {
-    font-size: 32px;
-    font-weight: 700;
-    color: #FFFFFF;
-    margin-bottom: 6px;
-    letter-spacing: -0.5px;
-  }
-
-  .stat-label {
-    font-size: 13px;
-    color: #94A3B8;
-  }
-}
 
 /* 响应式适配 */
 @media (max-width: 1024px) {
@@ -1045,9 +1002,6 @@ onMounted(async () => {
   .new-course-grid {
     grid-template-columns: 1fr;
   }
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
+
 }
 </style>
