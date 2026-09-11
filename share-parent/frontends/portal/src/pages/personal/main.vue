@@ -7,11 +7,11 @@
       <el-card class="user-card" shadow="hover">
         <div class="user-info">
           <div class="user-avatar">
-            <img :src="userInfo.avatar || defaultAvatar" alt="" />
+            <img :src="formatAvatarUrl(userInfo.avatar || userInfo.icon) || defaultAvatar" @error="handleAvatarError" alt="用户头像" />
           </div>
           <div class="user-detail">
-            <h2>{{ userInfo.nickname }}</h2>
-            <p>ID: {{ userInfo.id }} | 手机: {{ userInfo.phone }}</p>
+            <h2>{{ userInfo.nickname || userInfo.name || userInfo.nickName || '用户' }}</h2>
+            <p>ID: {{ userInfo.id || userInfo.userId || '-' }} | 手机: {{ userInfo.phone || userInfo.phonenumber || '未绑定' }}</p>
           </div>
         </div>
       </el-card>
@@ -241,6 +241,19 @@ const handleImgError = (e, item) => {
     e.target.src = defaultCover
   }
 }
+
+const formatAvatarUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+  const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+  return base ? `${base}${url}` : url;
+};
+
+const handleAvatarError = (e) => {
+  if (e?.target && e.target.src !== defaultAvatar) {
+    e.target.src = defaultAvatar;
+  }
+};
 
 const loading = ref(false)
 const userInfo = ref({})

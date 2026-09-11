@@ -70,8 +70,10 @@
           <div v-if="isLoggedIn" class="user-section">
             <el-dropdown trigger="click" @command="handleCommand">
               <div class="user-trigger">
-                <el-avatar :size="34" :src="userInfo.avatar || '/src/assets/images/users/default-avatar.svg'" />
-                <span class="username">{{ userInfo.nickname }}</span>
+                <el-avatar :size="34" :src="formatAvatarUrl(userInfo.avatar || userInfo.icon) || defaultAvatar" @error="() => true">
+                  <img :src="defaultAvatar" alt="默认头像" />
+                </el-avatar>
+                <span class="username">{{ userInfo.nickname || userInfo.name || userInfo.nickName || '用户' }}</span>
                 <el-icon class="arrow-icon"><ArrowDown /></el-icon>
               </div>
               <template #dropdown>
@@ -124,6 +126,9 @@ import {
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 
+import { getUserInfo } from "@/api/user.js";
+import defaultAvatar from "@/assets/images/users/default-avatar.svg";
+
 const router = useRouter();
 const route = useRoute();
 
@@ -131,8 +136,15 @@ const route = useRoute();
 const isLoggedIn = ref(false);
 const userInfo = ref({
   nickname: '用户',
-  avatar: '/src/assets/images/users/default-avatar.svg'
+  avatar: defaultAvatar
 });
+
+const formatAvatarUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+  const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+  return base ? `${base}${url}` : url;
+};
 
 // 购物车数量
 const cartCount = ref(2);
@@ -141,7 +153,7 @@ const cartCount = ref(2);
 const input = ref('');
 
 // 检查登录状态
-const checkLoginStatus = () => {
+const checkLoginStatus = async () => {
   const token = sessionStorage.getItem('token');
   isLoggedIn.value = !!token;
 
@@ -154,6 +166,15 @@ const checkLoginStatus = () => {
         console.error('Failed to parse user info:', e);
       }
     }
+    try {
+      const res = await getUserInfo();
+      if (res && res.code === 200 && res.data) {
+        userInfo.value = res.data;
+        sessionStorage.setItem('userInfo', JSON.stringify(res.data));
+      }
+    } catch (e) {
+      // 降级使用本地缓存
+    }
   }
 };
 
@@ -164,6 +185,7 @@ watch(() => route.path, () => {
 
 onMounted(() => {
   checkLoginStatus();
+  window.addEventListener('user-profile-updated', checkLoginStatus);
 });
 
 // 搜索事件

@@ -62,6 +62,10 @@ spring:
             - Path=/file/**
           filters:
             - StripPrefix=1
+        - id: share-profile
+          uri: lb://share-file
+          predicates:
+            - Path=/profile/**
         - id: share-media
           uri: lb://share-file
           predicates:
@@ -125,6 +129,8 @@ security:
       - /as/users/register
       - /as/code/verifycode
       - /as/accounts/logout
+      - /file/**
+      - /profile/**
       - /cs/categorys/**
       - /cs/courses/page
       - /cs/courses/statistics

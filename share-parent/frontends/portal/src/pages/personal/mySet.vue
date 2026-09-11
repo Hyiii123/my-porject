@@ -33,8 +33,19 @@
           :before-upload="beforeAvatarUpload"
           :headers="uploadHeaders"
           >
-          <img v-if="imageUrl" :src="formatAvatarUrl(imageUrl)" class="avatar" alt="用户头像">
-          <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+          <img
+            v-if="imageUrl"
+            :src="formatAvatarUrl(imageUrl)"
+            @error="handleAvatarError"
+            class="avatar"
+            alt="用户头像"
+          >
+          <img
+            v-else
+            :src="defaultAvatar"
+            class="avatar avatar-default"
+            alt="默认头像"
+          >
           <div class="uploadBut"><span>上传头像</span></div>
         </el-upload>
       </div>
@@ -61,6 +72,7 @@ import { ref, reactive, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import { updateUserInfo, getUserInfo } from "@/api/user.js";
 import { useUserStore } from "@/store";
+import defaultAvatar from "@/assets/icon_touxiang.png";
 
 // 组件导入
 import CardsTitle from "./components/CardsTitle.vue";
@@ -100,6 +112,11 @@ const user = reactive({
 const imageUrl = ref(user.icon);
 const submitting = ref(false);
 
+const handleAvatarError = () => {
+  // 当网络图片路径失效或404时，自动回滚至默认头像占位
+  imageUrl.value = '';
+};
+
 const formatAvatarUrl = (url) => {
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) return url;
@@ -132,8 +149,14 @@ const beforeAvatarUpload = (file) => {
 
 function handleAvatarSuccess(res, file) {
   if (res.code === 200) {
-    imageUrl.value = res.data?.url || (file.raw ? URL.createObjectURL(file.raw) : '');
-    user.icon = res.data?.url || res.data?.path || imageUrl.value;
+    const uploadedUrl = res.data?.url || res.data?.path || '';
+    user.icon = uploadedUrl;
+    // 优先通过本地对象URL实时渲染，保证用户上传瞬间立刻看到新头像
+    if (file && file.raw) {
+      imageUrl.value = URL.createObjectURL(file.raw);
+    } else {
+      imageUrl.value = uploadedUrl;
+    }
     ElMessage.success('头像上传成功，请点击“更新信息”保存');
   } else {
     ElMessage.error(res.msg || res.message || '图片上传出错，请联系管理员');
@@ -171,6 +194,8 @@ const updateUserInfoHandle = async () => {
         user.icon = data.data.avatar || data.data.icon || user.icon;
         user.gender = data.data.gender ?? (data.data.sex !== undefined ? parseInt(data.data.sex) : user.gender);
         imageUrl.value = user.icon;
+        // 通知顶栏 Header 即时刷新用户信息
+        window.dispatchEvent(new Event('user-profile-updated'));
       }
     } else {
       ElMessage.error(res.msg || res.message || '更新个人信息失败');
