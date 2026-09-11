@@ -156,7 +156,7 @@
             v-model="currentAnswer"
             type="textarea"
             :rows="4"
-            placeholder="在此输入您的回答...（例如：首先从底层数据结构谈起，其次结合锁升级机制，最后联系高并发生产排障经验...）"
+            placeholder="在此输入您的回答...（建议按结构化阐述：首先从核心概念与底层原理谈起，其次剖析运行机制与关键设计权衡，最后联系生产实战与排障经验...）"
             resize="none"
             :disabled="submittingAnswer || isCompleted"
           />
@@ -185,9 +185,11 @@
           <div class="header-tools">
             <el-select v-model="codeLanguage" size="small" class="lang-select">
               <el-option label="Java (JDK 17)" value="java" />
-              <el-option label="Python 3" value="python" />
               <el-option label="Go 1.21" value="go" />
               <el-option label="C++ 20" value="cpp" />
+              <el-option label="Python 3" value="python" />
+              <el-option label="TypeScript / JS" value="javascript" />
+              <el-option label="Rust 1.75" value="rust" />
             </el-select>
             <el-button size="small" @click="handleResetCode">重置模板</el-button>
           </div>
@@ -443,7 +445,20 @@ const handleSubmitCode = async () => {
 }
 
 const handleResetCode = () => {
-  userCode.value = `// 请在此实现核心算法逻辑\nclass Solution {\n    public void solve() {\n        \n    }\n}`
+  const lang = codeLanguage.value
+  if (lang === 'go') {
+    userCode.value = `package main\n\nimport "fmt"\n\n// 请在此实现核心高并发或算法逻辑\nfunc solve() {\n    \n}`
+  } else if (lang === 'cpp') {
+    userCode.value = `#include <iostream>\n#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    void solve() {\n        \n    }\n};`
+  } else if (lang === 'python') {
+    userCode.value = `# 请在此实现核心算法逻辑\nclass Solution:\n    def solve(self):\n        pass`
+  } else if (lang === 'javascript') {
+    userCode.value = `// 请在此实现核心算法或前端工程逻辑\nfunction solve() {\n    \n}`
+  } else if (lang === 'rust') {
+    userCode.value = `// 请在此实现核心系统算法\npub fn solve() {\n    \n}`
+  } else {
+    userCode.value = `// 请在此实现核心算法逻辑\nclass Solution {\n    public void solve() {\n        \n    }\n}`
+  }
 }
 
 const handleFinishInterview = () => {

@@ -99,9 +99,10 @@ public class InterviewServiceImpl implements IInterviewService {
         session.setUpdateTime(now);
         sessionMapper.insert(session);
 
-        // 生成第 1 轮开篇题目（技术基础 / 概念摸底）
-        String dimension = "Java核心与并发基础";
-        String question = generateFirstQuestion(session.getTargetJob(), session.getInterviewerStyle());
+        // 生成第 1 轮开篇题目（根据候选人目标岗位自适应技术赛道概念摸底）
+        JobTrack track = detectJobTrack(session.getTargetJob());
+        String dimension = resolveFirstDimension(track);
+        String question = generateFirstQuestion(session.getTargetJob(), session.getInterviewerStyle(), dimension, track);
 
         InterviewTurn turn1 = new InterviewTurn();
         turn1.setSessionId(session.getId());
@@ -336,11 +337,12 @@ public class InterviewServiceImpl implements IInterviewService {
         } else {
             // 切换到下一个核心维度
             nextDepth = 1;
-            nextDimension = resolveNextDimension(nextTurnNum, session.getTotalTurns());
+            JobTrack track = detectJobTrack(session.getTargetJob());
+            nextDimension = resolveNextDimension(track, nextTurnNum, session.getTotalTurns());
             if ("算法设计与工程手撕".equals(nextDimension)) {
-                nextQuestion = "【代码实战题】：请在右侧代码沙箱中实现一个『高并发限流器（支持滑动窗口计数或令牌桶算法）』，需保证多线程安全并分析时空复杂度。";
+                nextQuestion = resolveCodingProblem(track);
             } else {
-                nextQuestion = generateDimensionOpeningQuestion(session, nextDimension);
+                nextQuestion = generateDimensionOpeningQuestion(session, nextDimension, track);
             }
         }
 
@@ -358,35 +360,123 @@ public class InterviewServiceImpl implements IInterviewService {
         sessionMapper.updateById(session);
     }
 
-    private String resolveNextDimension(int turnNum, int totalTurns) {
+    private String resolveFirstDimension(JobTrack track) {
+        return switch (track) {
+            case SYSTEMS_HIGH_PERF -> "系统底层编程与并发调度机制";
+            case FRONTEND_MOBILE -> "Web前端核心与浏览器渲染管线";
+            case AI_LLM -> "大模型架构底层与Transformer机制";
+            case BIG_DATA -> "分布式计算引擎与流批一体架构";
+            case DATABASE_STORAGE -> "数据库存储引擎与事务ACID底层";
+            case CLOUD_NATIVE_SRE -> "Linux内核虚拟化与容器网络底层";
+            case QA_SECURITY -> "全链路质量保障与自动化测试框架";
+            default -> "Java核心机制与并发模型";
+        };
+    }
+
+    private String resolveCodingProblem(JobTrack track) {
+        return switch (track) {
+            case SYSTEMS_HIGH_PERF -> "【代码实战题】：请在右侧代码沙箱中实现一个『高并发无锁环形队列 (Lock-Free Ring Buffer) 或基于原子操作的协程池』，需保证并发安全并分析时空复杂度。";
+            case FRONTEND_MOBILE -> "【代码实战题】：请在右侧代码沙箱中手写实现一个『深度优先的虚拟 DOM Diff 算法核心逻辑』或『支持并发限制的 Promise 并发调度器』，并分析其时间与空间复杂度。";
+            case AI_LLM -> "【代码实战题】：请在右侧代码沙箱中使用 Python 实现一个『自注意力机制 Self-Attention 或滑动窗口 KV-Cache 内存管理核心逻辑』，并推导其计算时空复杂度。";
+            case BIG_DATA -> "【代码实战题】：请在右侧代码沙箱中实现一个『Top-K 热度统计（流式滑动窗口与最小堆结合）』或『海量数据布隆过滤器核心哈希映射』，并分析内存占用与复杂度。";
+            case DATABASE_STORAGE -> "【代码实战题】：请在右侧代码沙箱中实现一个『LRU / LFU 缓存淘汰算法核心数据结构』或『跳表 SkipList 插入与查找逻辑』，需保证时间复杂度达到 O(1) 或 O(logN)。";
+            case CLOUD_NATIVE_SRE -> "【代码实战题】：请在右侧代码沙箱中编写一段核心逻辑：实现一个『生产级熔断器状态机 (Closed/Open/Half-Open)』，支持滑动失败率窗口统计与自愈探活探测。";
+            case QA_SECURITY -> "【代码实战题】：请在右侧代码沙箱中实现一个『支持动态 QPS 阶梯爬坡的压测速率控制器 (Rate Limiter)』，需保证微秒级调度精度与线程安全性。";
+            default -> "【代码实战题】：请在右侧代码沙箱中实现一个『高并发限流器（支持滑动窗口计数或令牌桶算法）』，需保证多线程安全并分析时空复杂度。";
+        };
+    }
+
+    private String resolveNextDimension(JobTrack track, int turnNum, int totalTurns) {
         if (turnNum == totalTurns) {
             return "算法设计与工程手撕";
         }
-        return switch (turnNum) {
-            case 2 -> "JVM底层原理与GC性能调优";
-            case 3 -> "MySQL存储引擎与慢SQL极限调优";
-            case 4 -> "Redis高并发缓存与分布式锁实战";
-            case 5 -> "微服务分布式架构与服务雪崩排障";
-            case 6 -> "算法设计与工程手撕";
-            default -> "架构设计与技术领导力";
+        return switch (track) {
+            case SYSTEMS_HIGH_PERF -> switch (turnNum) {
+                case 2 -> "内存管理与垃圾回收/RAII深度剖析";
+                case 3 -> "高性能网络I/O多路复用与RPC架构";
+                case 4 -> "分布式共识协议(Raft)与高可用存储";
+                case 5 -> "生产环境内核性能调优与极限排障";
+                default -> "基础架构设计与高可用领导力";
+            };
+            case FRONTEND_MOBILE -> switch (turnNum) {
+                case 2 -> "现代框架核心原理与响应式/虚拟DOM机制";
+                case 3 -> "Web性能极致调优与大型工程化构建";
+                case 4 -> "复杂跨端通信与网络离线持久化机制";
+                case 5 -> "微前端架构设计与企业级前端安全防御";
+                default -> "前端技术架构与设计规范演进";
+            };
+            case AI_LLM -> switch (turnNum) {
+                case 2 -> "SFT指令微调、LoRA与对齐技术(RLHF/DPO)";
+                case 3 -> "RAG检索增强系统架构与向量重排调优";
+                case 4 -> "Agent智能体多步规划与长上下文推理";
+                case 5 -> "高并发模型推理服务化与分布式训练加速";
+                default -> "AI工程架构设计与技术前沿洞察";
+            };
+            case BIG_DATA -> switch (turnNum) {
+                case 2 -> "Flink状态一致性管理与Exactly-Once语义";
+                case 3 -> "湖仓一体架构设计与存储格式(Iceberg/Hudi)";
+                case 4 -> "千万级海量数据倾斜与作业极致调优";
+                case 5 -> "分布式消息流转与实时数仓分层建设";
+                default -> "大数据平台架构与技术领导力";
+            };
+            case DATABASE_STORAGE -> switch (turnNum) {
+                case 2 -> "InnoDB并发控制、MVCC与锁机制深入";
+                case 3 -> "千万级慢SQL排查与索引优化执行计划";
+                case 4 -> "分布式事务一致性与分库分表实战";
+                case 5 -> "高可用集群架构(MHA/Orchestrator)与容灾";
+                default -> "存储中间件架构与数据可靠性设计";
+            };
+            case CLOUD_NATIVE_SRE -> switch (turnNum) {
+                case 2 -> "Kubernetes编排调度与控制器模型深入";
+                case 3 -> "Service Mesh服务网格与无侵入流量治理";
+                case 4 -> "全链路可观测性(Tracing/Metrics)与混沌工程";
+                case 5 -> "生产级容量规划与多活容灾止血机制";
+                default -> "云原生平台架构与稳定性领导力";
+            };
+            case QA_SECURITY -> switch (turnNum) {
+                case 2 -> "全链路高并发压测架构设计与瓶颈定位";
+                case 3 -> "OWASP Top 10 安全漏洞攻防与渗透实战";
+                case 4 -> "生产环境流量录制回放与契约测试体系";
+                case 5 -> "零信任安全架构与系统高可用故障注入演练";
+                default -> "质量与安全工程体系领导力";
+            };
+            default -> switch (turnNum) {
+                case 2 -> "JVM底层原理与GC性能调优";
+                case 3 -> "MySQL存储引擎与慢SQL极限调优";
+                case 4 -> "Redis高并发缓存与分布式锁实战";
+                case 5 -> "微服务分布式架构与服务雪崩排障";
+                default -> "架构设计与技术领导力";
+            };
         };
     }
 
     /**
-     * 生成第 1 题开篇考题。
+     * 生成第 1 题开篇考题（紧扣目标岗位与赛道维度）。
      */
-    private String generateFirstQuestion(String targetJob, String interviewerStyle) {
+    private String generateFirstQuestion(String targetJob, String interviewerStyle, String dimension, JobTrack track) {
         String stylePersona = getStylePersona(interviewerStyle);
-        String prompt = String.format(
-                "你现在是%s。候选人面试的目标岗位是【%s】。\n" +
-                "请直接给出第 1 道面试题进行『概念摸底』。考查范围：Java 核心并发/集合机制。\n" +
-                "要求：\n" +
-                "1. 严格符合你的面试官风格；\n" +
-                "2. 语言沉浸、专业犀利，不要废话，直接说出提问正文；\n" +
-                "3. 字数在 120 字以内。",
-                stylePersona, targetJob);
+        StringBuilder sb = new StringBuilder();
+        sb.append("你现在是").append(stylePersona).append("。候选人面试的目标岗位是【").append(targetJob).append("】。\n");
+        sb.append("请直接给出第 1 道面试题进行『概念摸底』。考查维度：【").append(dimension).append("】。\n");
+        sb.append("要求：\n");
+        sb.append("1. 严格符合你的面试官风格；\n");
+        sb.append("2. 紧扣【").append(targetJob).append("】的核心技术栈，不要偏离岗位领域；\n");
+        sb.append("3. 语言沉浸、专业犀利，严禁废话客套，直接说出提问正文；\n");
+        sb.append("4. 字数在 150 字以内。");
+        String prompt = sb.toString();
 
-        String aiResult = callAi(prompt, "你好，请先简单介绍一下你自己，并深入阐述 Java 中 ConcurrentHashMap 在 JDK 1.7 与 1.8 中的核心底层差异是什么？为什么 1.8 放弃了分段锁 Segment 而采用 CAS + synchronized？");
+        String fallback = switch (track) {
+            case SYSTEMS_HIGH_PERF -> "你好，请先简单介绍自己，并深入阐述一下协程调度器（如 Go GMP 或 C++20 协程）的工作机制？在何种极端场景下会发生调度器饥饿，如何规避？";
+            case FRONTEND_MOBILE -> "你好，请先简要自我介绍。从浏览器主线程事件循环（Event Loop）出发，请详细拆解宏任务、微任务与浏览器渲染帧（rAF / 重绘回流）的精确调度顺序是什么？";
+            case AI_LLM -> "你好，请先简单介绍自己。在 Transformer 架构中，为什么 Multi-Head Attention 需要进行缩放点积（Scaling by sqrt(d_k)）？与传统单头注意力相比其深层数学意义是什么？";
+            case BIG_DATA -> "你好，请先介绍一下自己的大数据项目经验。在 Flink 批流一体计算中，StateBackend 状态后端（如 RocksDB）在处理数十亿条状态数据时，CheckPoint 的对齐与增量快照机制是如何保障 Exactly-Once 语义的？";
+            case DATABASE_STORAGE -> "你好，请简单做个自我介绍。请深入剖析 MySQL InnoDB 引擎中，聚簇索引与二级索引的 B+Tree 存储结构差异。为什么 B+Tree 相比 B-Tree 更适合作为磁盘存储引擎的索引结构？";
+            case CLOUD_NATIVE_SRE -> "你好，请先自我介绍。在 Kubernetes 集群中，从客户端执行 kubectl apply 到 Pod 最终在 Worker 节点上被拉起并对外提供服务，请剖析 APIServer、Controller Manager、Scheduler 和 Kubelet 之间的全链路通信与状态同步机制。";
+            case QA_SECURITY -> "你好，请做个简要介绍。在面对千万级峰值流量的核心交易系统时，你会如何设计全链路压测方案？在生产环境进行压测时，如何做到数据隔离、影子库路由以及对真实用户零影响？";
+            default -> "你好，请先简单介绍一下你自己，并深入阐述 Java 中 ConcurrentHashMap 在 JDK 1.7 与 1.8 中的核心底层差异是什么？为什么 1.8 放弃了分段锁 Segment 而采用 CAS + synchronized？";
+        };
+
+        String aiResult = callAi(prompt, fallback);
         return cleanAiText(aiResult);
     }
 
@@ -404,13 +494,13 @@ public class InterviewServiceImpl implements IInterviewService {
         sb.append("现在进行【深度级别 ").append(targetDepth).append("：").append(depthName).append("】的紧扣追问。\n");
         sb.append("要求：\n");
         sb.append("1. 敏锐抓住候选人刚才回答中的某一个技术关键词或薄弱漏洞进行连环追问；\n");
-        sb.append(targetDepth == 3 ? "必须结合大促秒杀、CPU 100%、线程死锁、内存泄露 OOM 或雪崩超时等真实生产事故场景。\n" : "直击 JDK/框架底层数据结构、内存模型或源码流转状态。\n");
+        sb.append(targetDepth == 3 ? "必须结合大促秒杀、CPU 100%、线程死锁、内存泄露 OOM 或雪崩超时等真实生产事故场景。\n" : "直击框架与语言底层数据结构、内存模型或源码流转状态。\n");
         sb.append("2. 语言沉浸专业、语气真实，严禁礼貌客套，直接输出追问问题，150字以内。");
         String prompt = sb.toString();
 
         String fallback = targetDepth == 2
-                ? "顺着你刚才提到的底层机制，请详细说明一下其在并发冲突激烈时，锁状态是如何升级流转的？底层 CAS 操作若一直自旋会导致什么问题？"
-                : "在生产环境 10 万 QPS 的大促峰值下，如果该机制发生线程阻塞导致 CPU 飙升至 100%，你会使用哪些线上排障命令定位？架构上如何设计降级与防护？";
+                ? "顺着你刚才提到的底层机制，请详细说明一下其在并发冲突激烈时，内部状态是如何流转变化的？若高并发自旋一直失败会导致什么系统级开销？"
+                : "在生产环境 10 万 QPS 的大促峰值下，如果该机制发生异常阻塞导致系统负载飙升，你会使用哪些线上排障命令与工具定位？架构上如何设计降级与兜底？";
 
         String aiResult = callAi(prompt, fallback);
         return cleanAiText(aiResult);
@@ -419,17 +509,28 @@ public class InterviewServiceImpl implements IInterviewService {
     /**
      * 生成新维度的开篇题。
      */
-    private String generateDimensionOpeningQuestion(InterviewSession session, String dimension) {
+    private String generateDimensionOpeningQuestion(InterviewSession session, String dimension, JobTrack track) {
         String stylePersona = getStylePersona(session.getInterviewerStyle());
-        String prompt = "你现在是" + stylePersona + "。当前进行到新的考查维度：【" + dimension + "】。\n" +
-                "请直接抛出该维度的第一道面试大题，考查候选人对该领域的扎实掌握与核心见解。\n" +
-                "直接输出提问内容，150字以内。";
+        StringBuilder sb = new StringBuilder();
+        sb.append("你现在是").append(stylePersona).append("。当前候选人面试岗位【").append(session.getTargetJob())
+                .append("】，进行到新的考查维度：【").append(dimension).append("】。\n");
+        sb.append("请直接抛出该维度的第一道面试大题，考查候选人对该领域的扎实掌握与核心技术选型见解。\n");
+        sb.append("要求紧扣该岗位实际工作场景，直接输出提问内容，150字以内。");
+        String prompt = sb.toString();
 
         String fallback = switch (dimension) {
             case "JVM底层原理与GC性能调优" -> "请深入阐述 JVM G1 垃圾收集器的分区回收机制（Region）与 ZGC 的核心区别？在你的实战经验中，什么场景下会触发 Full GC，如何调优？";
             case "MySQL存储引擎与慢SQL极限调优" -> "MySQL InnoDB 中 B+Tree 索引与聚簇索引的组织结构是怎样的？如果一条包含多表关联且数据量过千万的 SQL 执行缓慢，你的全链路排查调优步骤是什么？";
             case "Redis高并发缓存与分布式锁实战" -> "请详述基于 Redis 实现高可用分布式锁时，如何解决死锁、超时未释放与 Redlock 红锁的一致性争论？缓存击穿与雪崩的兜底方案是什么？";
-            default -> "在微服务分布式架构中，针对跨服务调用的一致性保障，你会选择 Seata、TCC 还是最大努力通知事务方案？请结合具体的支付交易场景说明。";
+            case "内存管理与垃圾回收/RAII深度剖析" -> "请深入剖析语言底层的内存分配与回收策略。例如 Go 的逃逸分析与三色标记 GC，或 C++/Rust 的 RAII 与所有权系统，在超高吞吐时如何避免内存碎片和停顿？";
+            case "高性能网络I/O多路复用与RPC架构" -> "在设计支撑百万并发的长连接服务时，Epoll 的水平触发(LT)与边缘触发(ET)有何性能差异？RPC 框架中如何实现心跳保活、连接池化与优雅关机？";
+            case "现代框架核心原理与响应式/虚拟DOM机制" -> "请深度剖析 Vue3 Proxy 响应式系统与 React Fiber 调度架构的核心区别。在面对海量 DOM 频繁更新时，两者的批处理与性能优化机制是如何体现的？";
+            case "Web性能极致调优与大型工程化构建" -> "从工程化全链路角度，如何优化大型 SPA 应用的首屏加载（LCP）与运行时交互响应（INP）？谈谈你在代码分包（Chunking）、Tree-shaking 和资源预加载上的实战配置。";
+            case "SFT指令微调、LoRA与对齐技术(RLHF/DPO)" -> "在大模型微调实战中，全量微调与 LoRA / QLoRA 在显存消耗和梯度更新上有何本质差异？RLHF 与 DPO 在训练稳定性、对齐效果与数据标注成本上有何权衡？";
+            case "RAG检索增强系统架构与向量重排调优" -> "工业级 RAG 系统中，单纯依靠密集向量余弦相似度检索容易出现语义丢失与虚假相关。如何结合 BM25 混合检索、Reciprocal Rank Fusion 与 Cross-Encoder 重排模型提升检索质量？";
+            case "Flink状态一致性管理与Exactly-Once语义" -> "Flink 是如何利用 Chandy-Lamport 算法的变种（Checkpoint Barrier）实现分布式快照的？与下游外部存储（如 Kafka、MySQL）对接时，两阶段提交（2PC）是如何配合保障端到端 Exactly-Once 的？";
+            case "全链路高并发压测架构设计与瓶颈定位" -> "在主导全链路压测时，如何设计流量打标与影子数据库路由规则？压测过程中如果发现吞吐量瓶颈停留在数据库连接池，你的分层排查链路与调优手段是什么？";
+            default -> "在分布式与高并发架构演进中，面对高可用容灾与服务雪崩挑战，你通常如何设计降级熔断、限流与单元化多活方案？请结合具体的业务场景说明。";
         };
 
         String aiResult = callAi(prompt, fallback);
@@ -591,11 +692,52 @@ public class InterviewServiceImpl implements IInterviewService {
                 Math.min(avgScore + 5, 95), Math.max(avgScore - 5, 60), Math.min(avgScore + 2, 92),
                 Math.max(avgScore - 8, 60), Math.min(avgScore + 4, 90), 82));
         report.setOverallSummary(String.format("候选人在【%s】岗位的考察中表现出扎实的技术底色，综合得分 %d 分。具备独立负责核心业务模块与中大型架构攻坚能力。", session.getTargetJob(), avgScore));
-        report.setCoreStrengths("1. Java 核心与并发底层掌握熟练；\n2. 具备良好的工程代码编写习惯；\n3. 能够快速领会面试官的连环追问意图。");
-        report.setCriticalWeaknesses("1. 分布式系统网络分区与脑裂场景下的容灾演练较少；\n2. 线上监控指标定位工具（如 Arthas/Prometheus）的实战深度需加强。");
-        report.setSpeechRefactoring("【原答复】：我之前做过一些高并发优化，加了 Redis 缓存，速度变快了很多。\n" +
-                "【STAR重塑】：在XX电商大促项目中，峰值 QPS 达到 2.4 万（S/T），为避免数据库连接池耗尽，我主导设计了多级缓存与布隆过滤器（A），最终系统平均 RT 从 120ms 压降至 15ms，核心链路可用性达 99.99%（R）。");
-        report.setRecommendedCourses("[\"《亿级流量架构核心技术与高并发实战》\", \"《深入理解 Java 虚拟机与线上 OOM 排障》\", \"《MySQL 实战 45 讲与调优指南》\"]");
+
+        JobTrack track = detectJobTrack(session.getTargetJob());
+        String strengths = switch (track) {
+            case SYSTEMS_HIGH_PERF -> "1. 系统底层与高并发机制理解深刻；\n2. 具备良好的无锁与低延迟设计意识；\n3. 答题逻辑严密，具备硬核攻坚特质。";
+            case FRONTEND_MOBILE -> "1. Web 前端核心渲染管线与事件循环掌握扎实；\n2. 具备现代框架底层机制与工程化抽象思维；\n3. 重视用户极致体验与性能边界防护。";
+            case AI_LLM -> "1. Transformer 底层注意力机制与数学原理掌握熟练；\n2. 对大模型微调、RAG 检索增强与 Agent 规划有落地实战；\n3. 思维敏锐，紧跟前沿算法进展。";
+            case BIG_DATA -> "1. 批流一体计算引擎与状态机机制理解透彻；\n2. 具备海量数据倾斜与千万级作业调优经验；\n3. 数据湖仓一体架构视野广阔。";
+            case DATABASE_STORAGE -> "1. 存储引擎底层 B+Tree/LSM-Tree 与事务 MVCC 机制透彻；\n2. 千万级慢 SQL 与高可用容灾实战经验丰富；\n3. 严谨稳健，具备优秀的数据安全性保障意识。";
+            case CLOUD_NATIVE_SRE -> "1. K8s 控制器编排机制与 Linux 容器底层网络深刻；\n2. 具备优秀的全链路可观测性与生产容灾快速止血经验；\n3. 具有极高的线上稳定性风险敬畏心。";
+            case QA_SECURITY -> "1. 全链路高并发压测设计与容量规划体系完备；\n2. 敏锐的边界攻防、漏洞排查与自动化建设能力；\n3. 质量门禁与混沌演练把控全面。";
+            default -> "1. Java 核心与并发底层掌握熟练；\n2. 具备良好的工程代码编写习惯；\n3. 能够快速领会面试官的连环追问意图。";
+        };
+        report.setCoreStrengths(strengths);
+
+        String weaknesses = switch (track) {
+            case SYSTEMS_HIGH_PERF -> "1. 极端高负载下内核网络丢包与系统调用上下文切换的调优经验需补充；\n2. 分布式共识脑裂处理细节可进一步强化。";
+            case FRONTEND_MOBILE -> "1. 大型单页应用深度内存泄漏（如未解绑监听与闭包）排查需加强；\n2. 跨端离线持久化与数据同步冲突消解实战略显简略。";
+            case AI_LLM -> "1. 面对超长上下文推理与 KV-Cache 显存受限时的量化压缩实操经验稍显欠缺；\n2. 多智能体协作死锁检测机制需进一步打磨。";
+            case BIG_DATA -> "1. 极端网络抖动引发反压时的全链路水线排查经验需加强；\n2. 湖仓一体元数据一致性保障机制需要补充实操。";
+            default -> "1. 分布式系统网络分区与脑裂场景下的容灾演练较少；\n2. 线上监控指标定位工具（如 Arthas/Prometheus）的实战深度需加强。";
+        };
+        report.setCriticalWeaknesses(weaknesses);
+
+        String speechRefactoring = switch (track) {
+            case SYSTEMS_HIGH_PERF -> "【原答复】：我们服务之前高并发时延迟很高，我改用协程池和连接复用就好了。\n" +
+                    "【STAR重塑】：在百万级长连接网关项目中，突发流量导致系统出现调度饥饿与内存暴涨（S/T）。我通过重构协程生命周期管理，引入无锁 ring-buffer 与零拷贝 epoll 多路复用（A），使单机支撑并发提升 4 倍，P99 延迟稳定在 3ms 以内（R）。";
+            case FRONTEND_MOBILE -> "【原答复】：首屏加载太慢，我做了懒加载和打包拆分，速度变快了。\n" +
+                    "【STAR重塑】：在电商核心大促导购页中，首屏 LCP 超过 3.8s 严重影响转化率（S/T）。我通过设计骨架屏预渲染、Vite 模块联邦拆包以及静态资源 Brotli 压缩与 CDN 边缘缓存（A），将 LCP 压降至 1.1s，白屏率降低 72%（R）。";
+            case AI_LLM -> "【原答复】：大模型问答经常答非所问，我加了向量数据库检索和提示词。\n" +
+                    "【STAR重塑】：在企业智能知识库项目中，模型在专业领域的问答幻觉率高达 35%（S/T）。我主导搭建了 Hybrid Search (Qdrant 密集向量 + BM25 稀疏检索) 与 BGE-Reranker 重排流水线，并结合 Dynamic Few-Shot 提示工程（A），将问答准确率提升至 94.2%，召回延迟控制在 200ms 以内（R）。";
+            default -> "【原答复】：我之前做过一些高并发优化，加了 Redis 缓存，速度变快了很多。\n" +
+                    "【STAR重塑】：在XX电商大促项目中，峰值 QPS 达到 2.4 万（S/T），为避免数据库连接池耗尽，我主导设计了多级缓存与布隆过滤器（A），最终系统平均 RT 从 120ms 压降至 15ms，核心链路可用性达 99.99%（R）。";
+        };
+        report.setSpeechRefactoring(speechRefactoring);
+
+        String courses = switch (track) {
+            case SYSTEMS_HIGH_PERF -> "[\"《Go语言高并发架构实战与GMP深度解析》\", \"《C++20核心系统编程与高性能网络通信》\", \"《Linux内核网络与eBPF排障指南》\"]";
+            case FRONTEND_MOBILE -> "[\"《前端架构设计与大型工程化体系构建》\", \"《Vue3/React源码深度剖析与性能极致调优》\", \"《Web全栈与微前端实战》\"]";
+            case AI_LLM -> "[\"《大语言模型架构精要与Transformer微调实战》\", \"《工业级RAG检索增强与Agent智能体开发》\", \"《vLLM推理加速与大模型分布式训练》\"]";
+            case BIG_DATA -> "[\"《Flink实时流计算与海量数据倾斜调优》\", \"《数据湖仓一体(Iceberg/Hudi)架构实践》\", \"《深入理解Kafka核心原理与高吞吐调优》\"]";
+            case DATABASE_STORAGE -> "[\"《MySQL DBA实战与千万级慢SQL排查》\", \"《分布式存储架构与Raft共识算法深度剖析》\", \"《Redis企业级高可用与分布式锁深度演练》\"]";
+            case CLOUD_NATIVE_SRE -> "[\"《Kubernetes云原生平台架构实战》\", \"《生产级微服务全链路可观测性与SRE稳定性保障》\", \"《DevOps CI/CD自动化交付体系建设》\"]";
+            case QA_SECURITY -> "[\"《全链路压测与大促高可用容量规划》\", \"《Web应用安全攻防与企业级零信任架构》\", \"《自动化测试平台与测试开发实战》\"]";
+            default -> "[\"《亿级流量架构核心技术与高并发实战》\", \"《深入理解 Java 虚拟机与线上 OOM 排障》\", \"《MySQL 实战 45 讲与调优指南》\"]";
+        };
+        report.setRecommendedCourses(courses);
         return report;
     }
 
@@ -722,6 +864,46 @@ public class InterviewServiceImpl implements IInterviewService {
     private String currentUserName() {
         String name = SecurityUtils.getUsername();
         return StringUtils.hasText(name) ? name : "学员";
+    }
+
+    public enum JobTrack {
+        BACKEND_JAVA,
+        SYSTEMS_HIGH_PERF,
+        FRONTEND_MOBILE,
+        AI_LLM,
+        BIG_DATA,
+        DATABASE_STORAGE,
+        CLOUD_NATIVE_SRE,
+        QA_SECURITY
+    }
+
+    private JobTrack detectJobTrack(String job) {
+        if (!StringUtils.hasText(job)) {
+            return JobTrack.BACKEND_JAVA;
+        }
+        String s = job.toLowerCase();
+        if (s.contains("go") || s.contains("c++") || s.contains("rust") || s.contains("python") || s.contains("底层系统")) {
+            return JobTrack.SYSTEMS_HIGH_PERF;
+        }
+        if (s.contains("前端") || s.contains("vue") || s.contains("react") || s.contains("全栈") || s.contains("ios") || s.contains("android")) {
+            return JobTrack.FRONTEND_MOBILE;
+        }
+        if (s.contains("大模型") || s.contains("llm") || s.contains("rag") || s.contains("agent") || s.contains("nlp") || s.contains("算法") || s.contains("视觉") || s.contains("cv") || s.contains("推荐系统")) {
+            return JobTrack.AI_LLM;
+        }
+        if (s.contains("大数据") || s.contains("spark") || s.contains("hadoop") || s.contains("flink") || s.contains("数据仓库") || s.contains("湖仓一体")) {
+            return JobTrack.BIG_DATA;
+        }
+        if (s.contains("mysql") || s.contains("dba") || s.contains("数据库") || s.contains("分布式存储") || s.contains("消息中间件") || s.contains("rocketmq")) {
+            return JobTrack.DATABASE_STORAGE;
+        }
+        if (s.contains("kubernetes") || s.contains("k8s") || s.contains("云原生") || s.contains("devops") || s.contains("sre") || s.contains("稳定性")) {
+            return JobTrack.CLOUD_NATIVE_SRE;
+        }
+        if (s.contains("测试") || s.contains("sdet") || s.contains("压测") || s.contains("安全") || s.contains("渗透")) {
+            return JobTrack.QA_SECURITY;
+        }
+        return JobTrack.BACKEND_JAVA;
     }
 
     private record SemanticHit(long id, String answer, double score) {}

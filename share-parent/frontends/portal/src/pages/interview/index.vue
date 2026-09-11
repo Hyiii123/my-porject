@@ -45,11 +45,24 @@
 
         <el-form :model="form" label-position="top" class="interview-form">
           <el-form-item label="目标岗位">
-            <el-select v-model="form.targetJob" placeholder="请选择目标岗位" class="w-100">
-              <el-option label="Java 高级开发工程师" value="Java 高级开发工程师" />
-              <el-option label="后端架构师 (分布式/高并发)" value="后端架构师 (分布式/高并发)" />
-              <el-option label="云原生与微服务专家" value="云原生与微服务专家" />
-              <el-option label="全栈与 AI 工程落地专家" value="全栈与 AI 工程落地专家" />
+            <el-select
+              v-model="form.targetJob"
+              placeholder="请选择或搜索目标岗位（涵盖8大赛道31个细分岗位）"
+              class="w-100"
+              filterable
+            >
+              <el-option-group
+                v-for="group in jobGroups"
+                :key="group.label"
+                :label="group.label"
+              >
+                <el-option
+                  v-for="item in group.options"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-option-group>
             </el-select>
           </el-form-item>
 
@@ -164,6 +177,80 @@ const router = useRouter()
 const starting = ref(false)
 const loadingHistory = ref(false)
 const historyList = ref([])
+
+const jobGroups = [
+  {
+    label: '一、后端开发与微服务架构',
+    options: [
+      { label: 'Java 高级开发工程师', value: 'Java 高级开发工程师' },
+      { label: '后端架构师 (分布式/高并发)', value: '后端架构师 (分布式/高并发)' },
+      { label: '微服务系统架构师', value: '微服务系统架构师' },
+      { label: 'DDD 领域驱动设计专家', value: 'DDD 领域驱动设计专家' }
+    ]
+  },
+  {
+    label: '二、跨语言系统与高性能研发',
+    options: [
+      { label: 'Go 高并发/分布式开发工程师', value: 'Go 高并发/分布式开发工程师' },
+      { label: 'C++ 底层系统与基础架构研发', value: 'C++ 底层系统与基础架构研发' },
+      { label: 'Rust 高性能系统研发工程师', value: 'Rust 高性能系统研发工程师' },
+      { label: 'Python 高级服务端开发工程师', value: 'Python 高级服务端开发工程师' }
+    ]
+  },
+  {
+    label: '三、Web 前端与跨端移动',
+    options: [
+      { label: 'Web 前端高级开发工程师', value: 'Web 前端高级开发工程师' },
+      { label: 'Vue3 / React 核心架构专家', value: 'Vue3 / React 核心架构专家' },
+      { label: '全栈开发工程师 (Full-Stack)', value: '全栈开发工程师 (Full-Stack)' },
+      { label: 'iOS 高级客户端研发工程师', value: 'iOS 高级客户端研发工程师' },
+      { label: 'Android 高级架构工程师', value: 'Android 高级架构工程师' }
+    ]
+  },
+  {
+    label: '四、AI 与大模型算法',
+    options: [
+      { label: '大语言模型 (LLM) 算法工程师', value: '大语言模型 (LLM) 算法工程师' },
+      { label: 'RAG 与 Agent 智能体研发专家', value: 'RAG 与 Agent 智能体研发专家' },
+      { label: 'NLP 自然语言处理算法专家', value: 'NLP 自然语言处理算法专家' },
+      { label: '推荐系统与搜索排序算法专家', value: '推荐系统与搜索排序算法专家' },
+      { label: '计算机视觉 (CV) 算法专家', value: '计算机视觉 (CV) 算法专家' }
+    ]
+  },
+  {
+    label: '五、大数据与流批计算',
+    options: [
+      { label: '大数据开发工程师 (Spark/Hadoop)', value: '大数据开发工程师 (Spark/Hadoop)' },
+      { label: '实时计算工程师 (Flink/Kafka)', value: '实时计算工程师 (Flink/Kafka)' },
+      { label: '数据仓库与湖仓一体架构师', value: '数据仓库与湖仓一体架构师' },
+      { label: '大数据基础平台运维专家', value: '大数据基础平台运维专家' }
+    ]
+  },
+  {
+    label: '六、数据库与存储中间件',
+    options: [
+      { label: 'MySQL DBA / 数据库内核开发', value: 'MySQL DBA / 数据库内核开发' },
+      { label: '分布式存储研发工程师', value: '分布式存储研发工程师' },
+      { label: '消息中间件专家 (RocketMQ/Kafka)', value: '消息中间件专家 (RocketMQ/Kafka)' }
+    ]
+  },
+  {
+    label: '七、云原生与运维 SRE',
+    options: [
+      { label: 'Kubernetes 云原生平台专家', value: 'Kubernetes 云原生平台专家' },
+      { label: 'DevOps 与 CI/CD 平台专家', value: 'DevOps 与 CI/CD 平台专家' },
+      { label: 'SRE 线上稳定性保障工程师', value: 'SRE 线上稳定性保障工程师' }
+    ]
+  },
+  {
+    label: '八、质量测试与网络安全',
+    options: [
+      { label: '自动化测试开发专家 (SDET)', value: '自动化测试开发专家 (SDET)' },
+      { label: '性能压测与高可用调优专家', value: '性能压测与高可用调优专家' },
+      { label: '网络安全与攻防渗透工程师', value: '网络安全与攻防渗透工程师' }
+    ]
+  }
+]
 
 const form = reactive({
   targetJob: 'Java 高级开发工程师',

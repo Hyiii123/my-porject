@@ -85,6 +85,11 @@
   6. **前端三页联动与生产部署验证**：
      - 研发上线 `/interview/index` (模拟面试大厅)、`/interview/room/:id` (沉浸式考场 HUD 与双栏工作台)、`/interview/report/:id` (多维诊断大屏)；
      - 完成服务器生产容器重启与 Nginx 静态分发，定向范围接口与全链路真机验证 100% 通过。
+  7. **31+ 大厂热门岗位矩阵（8大技术赛道）与动态自适应考查引擎升级**：
+     - **8 大赛道 31 个精选企业级岗位**：涵盖后端与微服务架构、跨语言系统与高性能（Go/C++/Rust/Python）、Web前端与移动端、AI与大模型算法（LLM/RAG/Agent/NLP/CV/推荐）、大数据与流批计算（Flink/Spark/湖仓一体）、数据库与存储中间件、云原生与SRE、测试开发与网络安全；
+     - **前端交互升级**：采用 `<el-option-group>` 赛道分组与 `filterable` 即时搜索，代码沙箱扩展支持 Java、Go、C++、Python、TypeScript/JS 与 Rust 6 大手撕语言与专属模板；
+     - **后端自适应引擎架构**：实现 `detectJobTrack`、`resolveFirstDimension`、`resolveNextDimension` 与专属手撕题 `resolveCodingProblem` 调度，根据候选人选择岗位自适应决定各轮维度、出题 Prompt 与终局 STAR 职涯重塑建议，告别 JVM 题目硬编码；
+     - **云端发布与定向范围验证**：轻量打包同步部署并热更新 `tianji-portal-ui` 与 `tianji-customer`，4 大跨赛道典型岗位真实连调 100% 满分通过。
 
 ### 2026-09-10 22:20:00 - 知识库规模化扩充至 10,000 条（JavaGuide 与牛客网双源清洗入库）、全局零重复排重与 Qdrant 512 维全量向量化落地
 
