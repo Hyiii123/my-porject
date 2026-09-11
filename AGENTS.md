@@ -21,8 +21,9 @@ Alibaba Cloud ECS ESSD Entry disks have limited base IOPS (1800-3000). Concurren
 **STRICTLY FORBIDDEN**: `docker compose down -v`. Never delete MySQL, Redis, or Nacos volumes.
 Only rebuild/restart the target service container modified.
 
-## 4. Worklog Maintenance
-Whenever work is done (new milestones, bug fixes, resolved pitfalls), the agent MUST update [`AGENT_WORKLOG.md`](file:///D:/education%20system/my-porject/AGENT_WORKLOG.md) to record the changes.
+## 4. Worklog Maintenance (工作日志与里程碑维护准则)
+Whenever substantial work is completed (new features, architectural upgrades, major bug fixes, resolved pitfalls), the agent MUST update [`AGENT_WORKLOG.md`](file:///D:/education%20system/my-porject/AGENT_WORKLOG.md).
+**STRICTLY FORBIDDEN**: Recording routine operations (e.g. simply starting/stopping services, checking container status, running basic tests) into "重大里程碑 (Milestones)". Milestones are strictly reserved for real engineering deliverables, architectural evolution, dataset migrations, and technical breakthroughs.
 
 ## 5. Prohibition of Local Service Execution (禁止在本地启动服务铁律)
 **STRICTLY FORBIDDEN**: Starting backend microservices (e.g. `java -jar`, `mvn spring-boot:run`, local IDE service runs) or middleware (MySQL, Redis, Nacos, local Docker Compose) on the local developer machine.
