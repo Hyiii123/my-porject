@@ -17,6 +17,33 @@ export default [
     ],
   },
   {
+    path: '/interview',
+    name: 'interview',
+    component: Layout,
+    redirect: '/interview/index',
+    meta: { title: 'AI 模拟面试' },
+    children: [
+      {
+        path: 'index',
+        name: 'interviewIndex',
+        component: () => import('@/pages/interview/index.vue'),
+        meta: { title: 'AI 模拟面试大厅' },
+      },
+      {
+        path: 'room/:id',
+        name: 'interviewRoom',
+        component: () => import('@/pages/interview/room.vue'),
+        meta: { title: '全真模拟面试间' },
+      },
+      {
+        path: 'report/:id',
+        name: 'interviewReport',
+        component: () => import('@/pages/interview/report.vue'),
+        meta: { title: '多维能力诊断报告' },
+      },
+    ],
+  },
+  {
     path: '/my-class',
     name: 'myClass',
     component: Layout,

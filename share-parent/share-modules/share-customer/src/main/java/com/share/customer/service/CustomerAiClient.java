@@ -110,6 +110,76 @@ public class CustomerAiClient {
         return null;
     }
 
+    /**
+     * 执行原始单次 Prompt 对话（用于模拟面试出题、追问、代码审计与报告生成）。
+     */
+    public String askRaw(CustomerAiConfig config, String systemPrompt, String userMessage) {
+        if (config == null || !Integer.valueOf(1).equals(config.getEnabled())) {
+            return null;
+        }
+        String secret = resolveSecret(config, null);
+        if (secret == null || secret.isBlank()) {
+            return null;
+        }
+        String url = buildUrl(config.getBaseUrl(), config.getEndpointPath());
+        if (url == null) {
+            log.warn("Pixel AI 地址校验未通过: {}", config.getBaseUrl());
+            return null;
+        }
+
+        Map<String, Object> requestBody = new LinkedHashMap<>();
+        requestBody.put("model", config.getModel() != null ? config.getModel() : "gpt-5.6-luna");
+        List<Map<String, String>> messages = new ArrayList<>();
+        if (systemPrompt != null && !systemPrompt.isBlank()) {
+            Map<String, String> sys = new LinkedHashMap<>();
+            sys.put("role", "system");
+            sys.put("content", systemPrompt);
+            messages.add(sys);
+        }
+        Map<String, String> user = new LinkedHashMap<>();
+        user.put("role", "user");
+        user.put("content", userMessage);
+        messages.add(user);
+
+        String endpoint = config.getEndpointPath() == null ? "" : config.getEndpointPath().toLowerCase();
+        if (endpoint.contains("chat/completions")) {
+            requestBody.put("messages", messages);
+        } else {
+            requestBody.put("input", messages);
+            requestBody.put("instructions", systemPrompt);
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.setBearerAuth(secret);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        int retryCount = Math.min(Math.max(config.getMaxRetries() == null ? 0 : config.getMaxRetries(), 0), 2);
+        for (int attempt = 0; attempt <= retryCount; attempt++) {
+            try {
+                ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                    AiReply reply = parseReply(response.getBody(), config.getModel());
+                    if (reply != null && reply.getContent() != null && !reply.getContent().isBlank()) {
+                        return reply.getContent().trim();
+                    }
+                }
+            } catch (Exception ex) {
+                log.warn("调用 Pixel AI askRaw 异常 (尝试 {}): {}", attempt + 1, ex.getMessage());
+            }
+            if (attempt < retryCount) {
+                try {
+                    Thread.sleep(200L * (attempt + 1));
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
     private Map<String, Object> buildRequest(CustomerAiConfig config, List<CustomerMessage> history,
             String userMessage) {
         String endpoint = config.getEndpointPath() == null ? "" : config.getEndpointPath().toLowerCase();

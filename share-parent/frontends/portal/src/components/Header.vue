@@ -57,6 +57,12 @@
             <span class="nav-text">智能客服</span>
           </div>
 
+          <!-- AI 模拟面试 -->
+          <div class="nav-item interview-nav" @click="router.push({ name: 'interviewIndex' })">
+            <el-icon :size="20"><Trophy /></el-icon>
+            <span class="nav-text">AI 模拟面试</span>
+          </div>
+
           <!-- 分割线 -->
           <div class="divider"></div>
 
@@ -113,7 +119,7 @@
 import { ref, onMounted, watch } from "vue";
 import {
   Search, ShoppingCart, Reading, User, Edit, Star,
-  Collection, SwitchButton, ArrowDown, Service
+  Collection, SwitchButton, ArrowDown, Service, Trophy
 } from "@element-plus/icons-vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
