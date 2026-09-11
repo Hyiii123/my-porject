@@ -31,6 +31,7 @@
           accept="image/jpeg,image/png,image/gif,image/bmp"
           :show-file-list="false"
           :on-success="handleAvatarSuccess"
+          :on-error="handleAvatarUploadError"
           :before-upload="beforeAvatarUpload"
           :headers="uploadHeaders"
           >
@@ -47,7 +48,9 @@
             class="avatar avatar-default"
             alt="默认头像"
           >
-          <div class="uploadBut"><span>上传头像</span></div>
+          <div class="uploadBut" :class="{ disabled: uploading }">
+            <span>{{ uploading ? '上传中...' : '上传头像' }}</span>
+          </div>
         </el-upload>
       </div>
     </div>
@@ -112,6 +115,7 @@ const user = reactive({
 // 图片上传状态
 const imageUrl = ref(user.icon);
 const submitting = ref(false);
+const uploading = ref(false);
 
 const handleAvatarError = () => {
   // 当网络图片路径失效或404时，自动回滚至默认头像占位
@@ -144,15 +148,17 @@ const beforeAvatarUpload = (file) => {
     ElMessage.error('上传头像图片只能是 JPG、JPEG、PNG、GIF、BMP 格式!');
     return false;
   }
-  const isLt5M = file.size / 1024 / 1024 < 5;
-  if (!isLt5M) {
-    ElMessage.error('上传头像图片大小不能超过 5MB!');
+  const isLt10M = file.size / 1024 / 1024 < 10;
+  if (!isLt10M) {
+    ElMessage.error('上传头像图片大小不能超过 10MB!');
     return false;
   }
+  uploading.value = true;
   return true;
 };
 
 function handleAvatarSuccess(res, file) {
+  uploading.value = false;
   if (res.code === 200) {
     const uploadedUrl = res.data?.url || res.data?.path || '';
     user.icon = uploadedUrl;
@@ -166,6 +172,17 @@ function handleAvatarSuccess(res, file) {
   } else {
     ElMessage.error(res.msg || res.message || '图片上传出错，请联系管理员');
   }
+}
+
+function handleAvatarUploadError(err) {
+  uploading.value = false;
+  let msg = '头像上传失败，请检查网络或图片格式/大小';
+  try {
+    if (typeof err === 'string') msg = err;
+    else if (err?.message) msg = err.message;
+    if (err?.status === 413) msg = '上传图片体积超出限制，请选择 10MB 以内的图片';
+  } catch(e) {}
+  ElMessage.error(msg);
 }
 
 // 更改密码 手机号提示
