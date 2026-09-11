@@ -190,3 +190,24 @@ request({
   method: "get",
   params
 });
+// 获取精简课程列表（用于下拉选择绑定）
+export const getSimpleCourses = () =>
+  request({
+    url: `/cs/courses/simpleInfo/list`,
+    method: "get",
+  });
+// 媒资绑定到具体课程小节
+export const bindCourseMedia = (data) =>
+  request({
+    url: `/cs/courses/media/bind`,
+    method: "post",
+    data,
+  });
+// 解绑小节媒资
+export const unbindCourseMedia = (data) =>
+  request({
+    url: `/cs/courses/media/unbind`,
+    method: "post",
+    data,
+  });
+

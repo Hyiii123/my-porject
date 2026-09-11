@@ -35,12 +35,15 @@ public class FileMediaService {
         String keyword = text(params, "keyword", text(params, "name", null));
         String type = text(params, "type", text(params, "mediaType", null));
         String status = text(params, "status", null);
+        Long courseId = longValue(params.get("courseId"));
+        if (courseId == null) courseId = longValue(params.get("course_id"));
         Page<FileMedia> page = new Page<>(safePage(pageNo), safeSize(pageSize));
         LambdaQueryWrapper<FileMedia> wrapper = new LambdaQueryWrapper<FileMedia>()
                 .and(StringUtils.hasText(keyword), item -> item.like(FileMedia::getMediaName, keyword)
                         .or().like(FileMedia::getFileName, keyword))
                 .eq(StringUtils.hasText(type), FileMedia::getMediaType, type)
                 .eq(StringUtils.hasText(status), FileMedia::getStatus, status)
+                .eq(courseId != null, FileMedia::getCourseId, courseId)
                 .orderByDesc(FileMedia::getCreateTime).orderByDesc(FileMedia::getId);
         return mediaMapper.selectPage(page, wrapper);
     }
@@ -96,6 +99,21 @@ public class FileMediaService {
         if (!StringUtils.hasText(value.getStatus())) value.setStatus(DEFAULT_STATUS);
         String description = firstText(source, "description");
         if (description != null) value.setDescription(description.trim());
+        Long courseId = longValue(source.get("courseId"));
+        if (courseId == null) courseId = longValue(source.get("course_id"));
+        if (courseId != null) value.setCourseId(courseId);
+        String courseName = firstText(source, "courseName", "course_name");
+        if (courseName != null) value.setCourseName(courseName.trim());
+        Long sectionId = longValue(source.get("sectionId"));
+        if (sectionId == null) sectionId = longValue(source.get("section_id"));
+        if (sectionId == null) sectionId = longValue(source.get("cataId"));
+        if (sectionId != null) value.setSectionId(sectionId);
+        String sectionName = firstText(source, "sectionName", "section_name", "catalogTitle", "cataTitle");
+        if (sectionName != null) value.setSectionName(sectionName.trim());
+        if (value.getSectionId() != null || value.getCourseId() != null) {
+            value.setStatus("used");
+            value.setMediaType("course");
+        }
         Long userId = currentUserId();
         value.setUpdateBy(userId);
         value.setUpdateTime(now);
@@ -156,6 +174,10 @@ public class FileMediaService {
         result.put("mediaType", item.getMediaType());
         result.put("status", item.getStatus());
         result.put("description", item.getDescription());
+        result.put("courseId", item.getCourseId());
+        result.put("courseName", item.getCourseName());
+        result.put("sectionId", item.getSectionId());
+        result.put("sectionName", item.getSectionName());
         result.put("uploadTime", item.getCreateTime());
         result.put("createTime", item.getCreateTime());
         result.put("updateTime", item.getUpdateTime());

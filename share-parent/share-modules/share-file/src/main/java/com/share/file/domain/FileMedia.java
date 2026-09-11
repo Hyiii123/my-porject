@@ -33,6 +33,10 @@ public class FileMedia implements Serializable {
     private String mediaType;
     private String status;
     private String description;
+    private Long courseId;
+    private String courseName;
+    private Long sectionId;
+    private String sectionName;
     private Long createBy;
     private LocalDateTime createTime;
     private Long updateBy;

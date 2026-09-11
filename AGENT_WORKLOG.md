@@ -61,6 +61,34 @@
 
 ### 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-11 20:00:00 - 媒资管理与课程小节双向深度绑定升级：数据库表级一致性对齐 + 级联选择器联动 + 云端热更新上线
+
+* **核心成果**：
+  1. **跨库数据表深度对齐与基准数据治理**：
+     - 排查并确定媒资表 `tj_file.file_media` 与课程大纲表 `tj_education.edu_course_catalog` 的物理拓扑；
+     - 在 `tj_file.file_media` 表新增 `course_id`（课程ID）、`course_name`（课程名称）、`section_id`（小节ID）、`section_name`（小节名称）四项业务字段并创建复合索引 `idx_file_media_course_section`；
+     - 沉淀增量 SQL 脚本 `sql/migrations/V32__file_media_course_binding.sql`，同步更新初始化全量基准 `sql/zhiwen-file.sql`；
+     - 线上执行数据回填与断言验证，将历史 12 条存量视频与课程大纲小节完成 100% 互相对齐（`status='used'`）。
+  2. **跨微服务接口协同与原子级联动保障**：
+     - 文件微服务 (`share-file`)：
+       - 实体 `FileMedia.java` 拓展字段映射；
+       - `FileMediaService.java` 重构保存（`save`）、分页列表（`page`/`pageView`）与详情输出（`view`），支持接收课程与小节信息、按 `courseId` 精准过滤及自动设置 `used` 状态；
+     - 教育微服务 (`share-education`)：
+       - `EducationService.java` 新增 `bindCatalogMedia` 与 `unbindCatalogMedia` 核心业务逻辑，更新 `media_id`、`media_name` 与 `duration_seconds`；
+       - `EducationPortalController.java` 暴露 `POST /courses/media/bind` 与 `POST /courses/media/unbind` 接口；
+     - 针对双微服务进行 Java 17 独立本地编译，热更新云端 `tianji-file` 与 `tianji-education` 容器。
+  3. **业务管理端 (`business-admin`) UI 与交互全流程重构**：
+     - `curriculum.js` 扩展 `getSimpleCourses`（320门课程列表）、`bindCourseMedia` 与 `unbindCourseMedia` API 调用；
+     - 媒资列表 (`media/index.vue`)：
+       - 搜索栏新增「所属课程」下拉筛选框（支持 320 门课程模糊搜索与快速过滤）；
+       - 数据表格新增「关联课程」与「对应小节」列，展示专属彩色徽章标签；
+       - 上传视频弹窗：重构为课程视频关联弹窗，加入「所属课程」选择器与「对应小节（第几节）」级联选择器（按章节分组展示，动态标注小节是否已绑定视频或可绑定），并在上传保存成功后自动触发大纲小节绑定；
+       - 编辑弹窗：支持查看与动态改绑所属课程和小节，改绑时自动触发原小节解绑与新小节绑定；
+       - 删除视频：若已绑定小节，删除前自动完成关联小节解绑，确保双向数据绝对一致。
+  4. **全链路自动化断言与定向验证**：
+     - 本地执行 `npm run build` 产出静态产物，打包同步至云端 `tianji-business-admin-ui` 容器并重载 Nginx；
+     - 执行 `.scratch/verify_media_course_binding.py` 对登录、课程列表获取、大纲解析、媒资上传保存、大纲小节双向绑定、`courseId` 精准过滤、解绑与删除清理全流程进行自动化断言，验证通过率 100%。
+
 ### 2026-09-11 19:00:00 - 全平台课程简介 HTML 标签彻底排查与清洗：全库 320 门课程纯文本治理 + 前后端立体过滤与结构化呈现升级
 
 * **核心成果**：

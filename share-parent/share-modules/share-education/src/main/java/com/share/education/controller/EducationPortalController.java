@@ -15,6 +15,7 @@ import com.share.education.service.EducationService;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -166,6 +167,27 @@ public class EducationPortalController extends BaseController {
     @RequiresPermissions("education:catalog:edit")
     public AjaxResult saveMedia(@PathVariable Long id, @RequestBody(required = false) Object body) {
         return success(educationService.saveLegacyMedia(id, body));
+    }
+
+    @PostMapping("/courses/media/bind")
+    @RequiresPermissions("education:catalog:edit")
+    public AjaxResult bindMedia(@RequestBody Map<String, Object> body) {
+        Long courseId = educationServiceLong(body, "courseId", "id");
+        Long sectionId = educationServiceLong(body, "sectionId", "cataId", "catalogId");
+        Long mediaId = educationServiceLong(body, "mediaId");
+        String mediaName = educationServiceText(body, "mediaName", "videoName");
+        Integer duration = educationServiceInt(body, "durationSeconds", "duration", "mediaDuration");
+        return success(educationService.bindCatalogMedia(courseId, sectionId, mediaId, mediaName, duration));
+    }
+
+    @PostMapping("/courses/media/unbind")
+    @RequiresPermissions("education:catalog:edit")
+    public AjaxResult unbindMedia(@RequestBody Map<String, Object> body) {
+        Long courseId = educationServiceLong(body, "courseId", "id");
+        Long sectionId = educationServiceLong(body, "sectionId", "cataId", "catalogId");
+        Long mediaId = educationServiceLong(body, "mediaId");
+        educationService.unbindCatalogMedia(courseId, sectionId, mediaId);
+        return success();
     }
 
     @GetMapping("/courses/subjects/get/{id}")
@@ -526,9 +548,37 @@ public class EducationPortalController extends BaseController {
         return success(List.of(Map.of("id", 0, "name", "2026 学习赛季", "value", 0)));
     }
 
-    private Long educationServiceLong(Map<String, Object> body, String key) {
-        if (body == null || body.get(key) == null) return null;
-        try { return Long.valueOf(String.valueOf(body.get(key))); } catch (NumberFormatException ignored) { return null; }
+    private Long educationServiceLong(Map<String, Object> body, String... keys) {
+        if (body == null) return null;
+        for (String key : keys) {
+            Object value = body.get(key);
+            if (value != null && StringUtils.hasText(String.valueOf(value))) {
+                try { return Long.valueOf(String.valueOf(value)); } catch (NumberFormatException ignored) { }
+            }
+        }
+        return null;
+    }
+
+    private String educationServiceText(Map<String, Object> body, String... keys) {
+        if (body == null) return null;
+        for (String key : keys) {
+            Object value = body.get(key);
+            if (value != null && StringUtils.hasText(String.valueOf(value))) {
+                return String.valueOf(value).trim();
+            }
+        }
+        return null;
+    }
+
+    private Integer educationServiceInt(Map<String, Object> body, String... keys) {
+        if (body == null) return null;
+        for (String key : keys) {
+            Object value = body.get(key);
+            if (value != null && StringUtils.hasText(String.valueOf(value))) {
+                try { return Integer.valueOf(String.valueOf(value)); } catch (NumberFormatException ignored) { }
+            }
+        }
+        return null;
     }
 
     private boolean educationServiceBoolean(Map<String, Object> body, String key) {

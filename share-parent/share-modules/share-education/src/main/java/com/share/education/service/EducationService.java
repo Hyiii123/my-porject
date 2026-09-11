@@ -495,6 +495,51 @@ public class EducationService {
     }
 
     @Transactional
+    public Map<String, Object> bindCatalogMedia(Long courseId, Long sectionId, Long mediaId,
+            String mediaName, Integer durationSeconds) {
+        requireCourse(courseId);
+        if (sectionId == null) {
+            throw new ServiceException("小节编号不能为空");
+        }
+        EduCourseCatalog catalog = catalogMapper.selectById(sectionId);
+        if (catalog == null || !Objects.equals(catalog.getCourseId(), courseId)) {
+            throw new ServiceException("未找到指定课程的小节目录");
+        }
+        catalog.setMediaId(mediaId);
+        if (StringUtils.hasText(mediaName)) {
+            catalog.setMediaName(mediaName.trim());
+        }
+        if (durationSeconds != null && durationSeconds >= 0) {
+            catalog.setDurationSeconds(durationSeconds);
+        }
+        catalog.setUpdateTime(LocalDateTime.now());
+        catalogMapper.updateById(catalog);
+        return legacyCatalogView(catalog);
+    }
+
+    @Transactional
+    public void unbindCatalogMedia(Long courseId, Long sectionId, Long mediaId) {
+        if (sectionId != null) {
+            EduCourseCatalog catalog = catalogMapper.selectById(sectionId);
+            if (catalog != null && (courseId == null || Objects.equals(catalog.getCourseId(), courseId))) {
+                catalog.setMediaId(null);
+                catalog.setMediaName(null);
+                catalog.setUpdateTime(LocalDateTime.now());
+                catalogMapper.updateById(catalog);
+            }
+        } else if (mediaId != null) {
+            List<EduCourseCatalog> rows = catalogMapper.selectList(new LambdaQueryWrapper<EduCourseCatalog>()
+                    .eq(EduCourseCatalog::getMediaId, mediaId));
+            for (EduCourseCatalog row : rows) {
+                row.setMediaId(null);
+                row.setMediaName(null);
+                row.setUpdateTime(LocalDateTime.now());
+                catalogMapper.updateById(row);
+            }
+        }
+    }
+
+    @Transactional
     public List<Map<String, Object>> saveLegacyTeachers(Long courseId, Map<String, ?> payload) {
         requireCourse(courseId);
         courseTeacherMapper.delete(new LambdaQueryWrapper<EduCourseTeacher>()

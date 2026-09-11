@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS `file_media` (
   `media_type` varchar(32) NOT NULL DEFAULT 'other' COMMENT 'course/promo/other',
   `status` varchar(32) NOT NULL DEFAULT 'unused' COMMENT 'used/unused/processing',
   `description` varchar(1000) DEFAULT NULL,
+  `course_id` bigint DEFAULT NULL COMMENT '关联课程ID',
+  `course_name` varchar(255) DEFAULT NULL COMMENT '关联课程名称',
+  `section_id` bigint DEFAULT NULL COMMENT '关联小节ID (对应 edu_course_catalog.id)',
+  `section_name` varchar(255) DEFAULT NULL COMMENT '关联小节名称 (第几节)',
   `create_by` bigint DEFAULT NULL,
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_by` bigint DEFAULT NULL,
@@ -30,6 +34,7 @@ CREATE TABLE IF NOT EXISTS `file_media` (
   UNIQUE KEY `uk_file_media_file_id` (`file_id`),
   KEY `idx_file_media_type_status` (`media_type`, `status`, `create_time`),
   KEY `idx_file_media_name` (`media_name`),
+  KEY `idx_file_media_course_section` (`course_id`, `section_id`),
   KEY `idx_file_media_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='媒资元数据';
 
