@@ -2,8 +2,9 @@
 
 ## 0. MANDATORY PRE-FLIGHT CHECK (每次工作前必读)
 Before performing any coding, file modification, server command, build, or debugging task, the agent **MUST ALWAYS read**:
-1. [`AGENT_WORKLOG.md`](file:///D:/education%20system/my-porject/AGENT_WORKLOG.md) (Worklog, key milestones, difficulties, known pitfalls, checklists)
-2. [`share-parent/docs/AGENT_HANDOFF.md`](file:///D:/education%20system/my-porject/share-parent/docs/AGENT_HANDOFF.md) (Project architecture, module map, ports, route boundaries)
+1. [`AGENT_WORKLOG.md`](file:///D:/education%20system/my-porject/AGENT_WORKLOG.md) (Worklog, environment indices, known pitfalls, checklists)
+2. [`AGENT_MILESTONES.md`](file:///D:/education%20system/my-porject/AGENT_MILESTONES.md) (Architecture evolution, completed milestones, key deliverables)
+3. [`share-parent/docs/AGENT_HANDOFF.md`](file:///D:/education%20system/my-porject/share-parent/docs/AGENT_HANDOFF.md) (Project architecture, module map, ports, route boundaries)
 
 Failure to read and follow these documents before acting is a violation of user rules.
 
@@ -21,9 +22,10 @@ Alibaba Cloud ECS ESSD Entry disks have limited base IOPS (1800-3000). Concurren
 **STRICTLY FORBIDDEN**: `docker compose down -v`. Never delete MySQL, Redis, or Nacos volumes.
 Only rebuild/restart the target service container modified.
 
-## 4. Worklog Maintenance (工作日志与里程碑维护准则)
-Whenever substantial work is completed (new features, architectural upgrades, major bug fixes, resolved pitfalls), the agent MUST update [`AGENT_WORKLOG.md`](file:///D:/education%20system/my-porject/AGENT_WORKLOG.md).
-**STRICTLY FORBIDDEN**: Recording routine operations (e.g. simply starting/stopping services, checking container status, running basic tests) into "重大里程碑 (Milestones)". Milestones are strictly reserved for real engineering deliverables, architectural evolution, dataset migrations, and technical breakthroughs.
+## 4. Worklog & Milestone Maintenance (工作日志与里程碑维护准则)
+- **日常避坑与运维记录**：Whenever major pitfalls are resolved, environment indices change, or SOP workflows are updated, update [`AGENT_WORKLOG.md`](file:///D:/education%20system/my-porject/AGENT_WORKLOG.md).
+- **重大里程碑专属记录**：Whenever substantial engineering deliverables, architectural evolution, dataset migrations, or technical breakthroughs are completed, the agent MUST record them **EXCLUSIVELY in [`AGENT_MILESTONES.md`](file:///D:/education%20system/my-porject/AGENT_MILESTONES.md)**. `AGENT_WORKLOG.md` is strictly forbidden from recording milestones going forward.
+- **STRICTLY FORBIDDEN**: Recording routine operations (e.g. simply starting/stopping services, checking container status, running basic tests) into "重大里程碑 (Milestones)". Milestones are strictly reserved for real engineering deliverables, architectural evolution, dataset migrations, and technical breakthroughs.
 
 ## 5. Prohibition of Local Service Execution (禁止在本地启动服务铁律)
 **STRICTLY FORBIDDEN**: Starting backend microservices (e.g. `java -jar`, `mvn spring-boot:run`, local IDE service runs) or middleware (MySQL, Redis, Nacos, local Docker Compose) on the local developer machine.

@@ -42,29 +42,14 @@
 
 ---
 
-## 三、重大里程碑与工作演进记录 (Milestones & Evolution)
+## 三、重大里程碑记录指引 (Milestones Decoupled Notice)
 
-### 2026-09-07 03:15:00 - 云盘限流教训固化与全站发布闭环
-* **关键成果**：
-  1. 深度复盘并发构建引发的云盘 IOPS 耗尽瓶颈，在本文档及 `docs/AGENT_HANDOFF.md` 固化了“禁止并发构建”的操作铁律；
-  2. 修复 `myClass/index.vue` 的 `<style scoped lang="scss">` 警告；
-  3. 服务器三端前端容器稳定运行，网关 `/actuator/health` 正常，`smoke-test.ps1` 35 项全链路测试通过；
-  4. 提交哈希对齐推送至 GitHub：`a449827d`。
-
-### 2026-09-07 02:30:00 - 全站按钮统一设计与门户顶栏专项修复
-* **关键成果**：
-  1. 解决用户反馈的“登录与注册按钮样式不一致”：
-     - 门户顶栏登录与注册按钮统一采用 `<el-button type="primary" class="header-btn">`，32px 高度、16px 内边距、13px 字号、500 字重、6px 圆角、实心蓝底（`#2563EB`）与纯白文字（`#FFFFFF`）；
-     - 注册按钮自动携带 `md=register` 唤起注册弹窗；
-     - 登录与注册弹窗表单按钮统一采用 `login-btn`，高度 40px、圆角 6px。
-  2. Element Plus 变量层覆盖：`.el-button--primary` 强制白字；移除管理端所有历史遗留的 `20px` 胶囊圆角。
-
-### 2026-09-07 01:00:00 - 在线教育全站前端视觉现代重构
-* **关键成果**：
-  1. 依据 `frontend-design` 规范全面去除廉价模板感，废弃 `#667eea`/`#764ba2` 紫蓝发光渐变与漂浮圆球装饰；
-  2. 确立 **Deep Slate（#0F172A）** + **Academic Blue（#2563EB）** 高阶学术科技色调；
-  3. 卡片统一规范为 8px，表单、输入框、下拉框统一为 6px，彻底移除 100px 跑马道胶囊；
-  4. 重塑课程卡片（16:9 标准比例）、个人中心、AI 客服聊天气泡等主要视图。
+> ⚠️ **重要规范变更通知**：
+> 为保证工作日志与运维手册的聚焦性与轻量化，自 2026-09-12 起，**重大里程碑记录已彻底剥离至项目根目录专属文件**。
+> 本工作日志今后**不再记录任何里程碑内容**。所有真实工程交付物、重大业务功能上线、底层架构演进与技术突破，**一律且唯一记录在项目根目录：**
+> 👉 **[`AGENT_MILESTONES.md`](file:///D:/education%20system/my-porject/AGENT_MILESTONES.md)**
+>
+> 核心踩坑与资产索引请查阅项目根目录主文档：[`AGENT_WORKLOG.md`](file:///D:/education%20system/my-porject/AGENT_WORKLOG.md)。
 
 ---
 
