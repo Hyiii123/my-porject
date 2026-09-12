@@ -1,18 +1,4 @@
-server:
-  servlet:
-    context-path: /
-
-spring:
-  cloud:
-    nacos:
-      discovery:
-        heart-beat-interval: 5000
-        heart-beat-timeout: 15000
-        ip-delete-timeout: 30000
-
-auth:
-  enabled: true
-
+# 认证服务本地配置兜底
 qq:
   mail:
     host: ${QQ_MAIL_HOST:smtp.qq.com}

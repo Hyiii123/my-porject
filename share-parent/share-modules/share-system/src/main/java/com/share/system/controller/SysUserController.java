@@ -174,6 +174,10 @@ public class SysUserController extends BaseController
         {
             return R.fail("保存用户'" + username + "'失败，注册账号已存在");
         }
+        else if (StringUtils.isNotEmpty(sysUser.getEmail()) && !userService.checkEmailUnique(sysUser))
+        {
+            return R.fail("保存用户'" + username + "'失败，注册邮箱已存在");
+        }
         return R.ok(userService.registerUser(sysUser));
     }
 

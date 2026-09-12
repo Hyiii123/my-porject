@@ -28,9 +28,16 @@ public class RegisterBody extends LoginBody
         return code;
     }
 
-    public void setCode(String code)
+    /** 邮箱字段，支持QQ邮箱注册。 */
+    private String email;
+
+    public String getEmail()
     {
-        this.code = code;
+        return email;
     }
 
+    public void setEmail(String email)
+    {
+        this.email = email;
+    }
 }

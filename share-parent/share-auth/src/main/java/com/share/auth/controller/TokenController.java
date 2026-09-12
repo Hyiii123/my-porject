@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,10 +14,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.share.auth.form.LoginBody;
 import com.share.auth.form.RegisterBody;
+import com.share.auth.service.QQMailService;
 import com.share.auth.service.SysLoginService;
 import com.share.common.core.domain.R;
 import com.share.common.core.utils.JwtUtils;
 import com.share.common.core.utils.StringUtils;
+import com.share.common.redis.service.RedisService;
 import com.share.common.security.auth.AuthUtil;
 import com.share.common.security.service.TokenService;
 import com.share.common.security.utils.SecurityUtils;
@@ -30,11 +33,20 @@ import com.share.system.api.model.LoginUser;
 @RestController
 public class TokenController
 {
+    private static final String EMAIL_CODE_PREFIX = "zhiwen:auth:emailcode:";
+    private static final long EMAIL_CODE_TTL_SECONDS = 300L;
+
     @Autowired
     private TokenService tokenService;
 
     @Autowired
     private SysLoginService sysLoginService;
+
+    @Autowired
+    private QQMailService qqMailService;
+
+    @Autowired
+    private RedisService redisService;
 
     @PostMapping({"login", "accounts/login", "accounts/admin/login"})
     public R<?> login(@RequestBody(required = false) LoginBody form,
@@ -107,27 +119,94 @@ public class TokenController
 
     @PostMapping({"register", "users/register"})
     public R<?> register(@RequestBody(required = false) RegisterBody registerBody,
-            @RequestParam Map<String, String> params)
+            @RequestParam(required = false) Map<String, String> params)
     {
         RegisterBody body = registerBody == null ? new RegisterBody() : registerBody;
-        String username = firstNonBlank(body.getUsername(), body.getCellPhone(), params.get("username"),
-                params.get("userName"), params.get("phone"), params.get("cellPhone"));
-        String password = firstNonBlank(body.getPassword(), params.get("password"));
-        // 用户注册
+        Map<String, String> p = params == null ? Map.of() : params;
+        String email = firstNonBlank(body.getEmail(), p.get("email"), p.get("qqEmail"));
+        String code = firstNonBlank(body.getCode(), p.get("code"));
+        String password = firstNonBlank(body.getPassword(), p.get("password"));
+
+        // QQ 邮箱注册分支
+        if (email != null && !email.isBlank())
+        {
+            String normalizedEmail = email.trim().toLowerCase();
+            if (code == null || code.isBlank())
+            {
+                return R.fail("请输入邮箱验证码");
+            }
+            String cachedCode = redisService.getCacheObject(EMAIL_CODE_PREFIX + normalizedEmail);
+            if (cachedCode == null || !cachedCode.equals(code.trim()))
+            {
+                return R.fail("邮箱验证码错误或已失效");
+            }
+            // 校验通过后销毁验证码，防止重放
+            redisService.deleteObject(EMAIL_CODE_PREFIX + normalizedEmail);
+
+            // 用户注册
+            sysLoginService.registerWithEmail(normalizedEmail, password);
+            return R.ok();
+        }
+
+        // 普通 / 手机号注册分支
+        String username = firstNonBlank(body.getUsername(), body.getCellPhone(), p.get("username"),
+                p.get("userName"), p.get("phone"), p.get("cellPhone"));
         sysLoginService.register(username, password);
         return R.ok();
     }
 
     /**
-     * 智问前端旧验证码接口的兼容实现。
-     *
-     * <p>当前本地环境关闭图形验证码，返回一次性演示验证码，正式环境应接入短信/图形验证码服务。</p>
+     * 验证码接口：支持 QQ 邮箱验证码发送与手机号验证码兼容。
      */
     @PostMapping("code/verifycode")
-    public R<?> verifyCode(@RequestParam Map<String, String> params)
+    public R<?> verifyCode(@RequestParam(required = false) Map<String, String> params,
+            @RequestBody(required = false) Map<String, String> body)
     {
-        String phone = firstNonBlank(params.get("cellPhone"), params.get("phone"),
-                params.get("phonenumber"), params.get("mobile"));
+        Map<String, String> merged = new LinkedHashMap<>();
+        if (body != null) merged.putAll(body);
+        if (params != null) merged.putAll(params);
+
+        String email = firstNonBlank(merged.get("email"), merged.get("qqEmail"), merged.get("mail"));
+        if (email != null && !email.isBlank())
+        {
+            String normalizedEmail = email.trim();
+            if (!normalizedEmail.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"))
+            {
+                return R.fail("请输入格式正确的邮箱地址");
+            }
+            if (!normalizedEmail.toLowerCase().endsWith("@qq.com") && !normalizedEmail.toLowerCase().endsWith("@foxmail.com"))
+            {
+                return R.fail("当前仅支持 QQ 邮箱注册，请输入 @qq.com 邮箱");
+            }
+
+            // 生成强随机 6 位数字验证码
+            int randomNum = new java.security.SecureRandom().nextInt(900000) + 100000;
+            String code = String.valueOf(randomNum);
+
+            // 写入 Redis，有效期 5 分钟
+            redisService.setCacheObject(EMAIL_CODE_PREFIX + normalizedEmail.toLowerCase(), code,
+                    EMAIL_CODE_TTL_SECONDS, TimeUnit.SECONDS);
+
+            // 调用 QQ 邮箱 SMTP 服务发送邮件
+            boolean sent = qqMailService.sendVerificationCode(normalizedEmail, code);
+
+            Map<String, String> result = new LinkedHashMap<>();
+            result.put("uuid", UUID.randomUUID().toString());
+            result.put("email", normalizedEmail);
+            if (sent)
+            {
+                result.put("message", "验证码已成功发送至您的 QQ 邮箱，请查收");
+            }
+            else
+            {
+                result.put("code", code);
+                result.put("message", "验证码已生成（调试直显: " + code + "）。配置 QQ 邮箱授权码即可真实投递");
+            }
+            return R.ok(result);
+        }
+
+        String phone = firstNonBlank(merged.get("cellPhone"), merged.get("phone"),
+                merged.get("phonenumber"), merged.get("mobile"));
         String code = phone == null ? "123456" : sysLoginService.issuePhoneCode(phone);
         Map<String, String> result = new LinkedHashMap<>();
         result.put("uuid", UUID.randomUUID().toString());

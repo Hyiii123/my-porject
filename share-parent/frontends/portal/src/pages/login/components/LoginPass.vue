@@ -9,7 +9,7 @@
       class="demo-dynamic"
     >
       <el-form-item prop="username" label="">
-        <el-input v-model="fromData.username" placeholder="请输入用户名或手机号" />
+        <el-input v-model="fromData.username" placeholder="请输入用户名或QQ邮箱" />
       </el-form-item>
       <el-form-item prop="password" label="">
         <el-input type="password" :show-password="true" v-model="fromData.password" placeholder="请输入密码" />
@@ -58,7 +58,7 @@ const fromData = reactive({
 // 验证规则
 const rules = reactive({
   username: [
-    { required: true, message: "请输入正确的用户名或手机号", trigger: "blur" },
+    { required: true, message: "请输入正确的用户名或QQ邮箱", trigger: "blur" },
   ],
   password: [
     { required: true, message: "请输入正确的密码", trigger: "blur"},

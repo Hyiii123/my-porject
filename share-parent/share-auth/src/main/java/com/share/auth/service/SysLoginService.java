@@ -191,7 +191,7 @@ public class SysLoginService
         if (username.length() < UserConstants.USERNAME_MIN_LENGTH
                 || username.length() > UserConstants.USERNAME_MAX_LENGTH)
         {
-            throw new ServiceException("账户长度必须在2到20个字符之间");
+            throw new ServiceException("账户长度必须在2到" + UserConstants.USERNAME_MAX_LENGTH + "个字符之间");
         }
         if (password.length() < UserConstants.PASSWORD_MIN_LENGTH
                 || password.length() > UserConstants.PASSWORD_MAX_LENGTH)
@@ -202,7 +202,17 @@ public class SysLoginService
         // 注册用户信息
         SysUser sysUser = new SysUser();
         sysUser.setUserName(username);
-        sysUser.setNickName(username);
+        if (username.contains("@"))
+        {
+            String prefix = username.substring(0, username.indexOf('@'));
+            sysUser.setNickName("QQ用户_" + prefix);
+            sysUser.setEmail(username);
+            sysUser.setUserType("01"); // 学员
+        }
+        else
+        {
+            sysUser.setNickName(username);
+        }
         sysUser.setPassword(SecurityUtils.encryptPassword(password));
         R<?> registerResult = remoteUserService.registerUserInfo(sysUser, SecurityConstants.INNER);
 
@@ -211,5 +221,13 @@ public class SysLoginService
             throw new ServiceException(registerResult.getMsg());
         }
         recordLogService.recordLogininfor(username, Constants.REGISTER, "注册成功");
+    }
+
+    /**
+     * QQ 邮箱注册
+     */
+    public void registerWithEmail(String email, String password)
+    {
+        register(email, password);
     }
 }

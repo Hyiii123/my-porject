@@ -61,6 +61,26 @@
 
 ### 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-12 06:30:00 - 用户端注册全面升级为 QQ 邮箱注册：集成 Spring Mail SMTP SSL (465) 真实直发、账号与邮箱统一双向认证及全链路闭环部署上线
+
+* **核心成果**：
+  1. **前端注册与登录全面切换至 QQ 邮箱**：
+     - 用户端注册组件 (`Register.vue`)：由旧版手机号短信注册全面重构为 QQ 邮箱专属注册表单，支持 `@qq.com` 格式实时校验、6 位数字验证码获取、60s 发送倒计时与防重锁；
+     - 用户端密码登录组件 (`LoginPass.vue`)：占位提示与规则升级为「请输入用户名或QQ邮箱」，支持用户直接使用注册邮箱作为账号登录；
+     - 本地 Vite 构建零报错生成纯净生产 `dist` 产物，彻底排空 `tianji-portal-ui` 历史残包完成部署并热重载 Nginx。
+  2. **后端引入原生 JavaMailSender + SSL 465 真实直发 QQ 邮箱**：
+     - `share-auth` 引入 `spring-boot-starter-mail` 依赖，开发专属 `QQMailService` 服务；
+     - 采用原生 Jakarta Mail 规范，直连腾讯官方 `smtp.qq.com:465`（强制开启 SSL/TLS），配置认证授权码并内置优雅精致的 HTML 验证码邮件模板与别名容错重试机制；
+     - 验证码生成采用 `SecureRandom` 强随机数，存入 Redis（Key 前缀 `zhiwen:auth:emailcode:{email}`，TTL 300秒），校验通过后原子销毁，严格防止重放。
+  3. **账号与邮箱双向打通与若依底层兼容**：
+     - `UserConstants.USERNAME_MAX_LENGTH` 从 20 扩展至 50，完美支持长邮箱作为 `user_name` 登录；
+     - `SysUserMapper.xml`：重构 `selectUserByUserName`、`checkUserNameUnique`、`checkEmailUnique`，支持 `user_name = #{userName} OR email = #{userName}` 统一匹配，并添加 `limit 1` 防止大表扫描；
+     - 注册流程自动补齐 `user_type: "01"`（学员）与默认昵称（`QQ用户_{prefix}`）。
+  4. **云端生产部署与真实全链路定向验收通过**：
+     - Nacos 动态配置更新 `share-auth-dev.yml`（配置 `qq.mail.*` 连接参数与授权凭证）；
+     - 串行无缝更新 `share-auth.jar` 与 `share-system.jar` 容器运行时，Tomcat 及 Sentinel 均 100% 正常就绪；
+     - 定向接口验收：实测调用 `/as/code/verifycode?email=a2416363666@qq.com`，腾讯 SMTP 服务器即时响应并投递验证码邮件；调用 `/as/users/register` 完成用户 `a2416363666@qq.com` 注册落库（User ID 6001）；调用 `/as/accounts/login` 凭 QQ 邮箱与密码成功取得 JWT 鉴权令牌。
+
 ### 2026-09-12 06:15:00 - 全平台前端模型信息脱敏与安全治理：彻底清除模型型号（GPT-5.6-Luna）与第三方代理接口暴露，三端重构构建与云端容器无死角净化上线
 
 * **核心成果**：
