@@ -122,8 +122,10 @@ const loadCart = async () => {
     if (response?.code !== 200) throw new Error(response?.msg || '购物车加载失败')
     const rows = Array.isArray(response.data) ? response.data : (response.data?.list || [])
     cartList.value = rows.map(normalizeCart)
+    window.dispatchEvent(new CustomEvent('cart-updated', { detail: cartList.value.length }))
   } catch (error) {
     cartList.value = []
+    window.dispatchEvent(new CustomEvent('cart-updated', { detail: 0 }))
     ElMessage.error(error?.message || '购物车加载失败，请先登录')
   }
 }
@@ -165,6 +167,7 @@ const handleRemove = (item) => {
     if (response?.code !== 200) throw new Error(response?.msg || '删除失败')
     const index = cartList.value.findIndex(c => c.id === item.id)
     if (index !== -1) cartList.value.splice(index, 1)
+    window.dispatchEvent(new CustomEvent('cart-updated', { detail: cartList.value.length }))
     ElMessage.success('已从购物车移除')
   }).catch(error => {
     if (error !== 'cancel' && error !== 'close') ElMessage.error(error?.message || '购物车删除失败')
@@ -184,6 +187,7 @@ const handleRemoveSelected = () => {
     const response = await delCarts(selected.map(item => item.id))
     if (response?.code !== 200) throw new Error(response?.msg || '删除失败')
     cartList.value = cartList.value.filter(item => !item.checked)
+    window.dispatchEvent(new CustomEvent('cart-updated', { detail: cartList.value.length }))
     ElMessage.success('已移除选中课程')
   }).catch(error => {
     if (error !== 'cancel' && error !== 'close') ElMessage.error(error?.message || '购物车删除失败')

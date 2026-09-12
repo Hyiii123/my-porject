@@ -271,6 +271,7 @@ const handleAddCart = async () => {
     const response = await putCarts({ courseId: course.value.id })
     if (response?.code !== 200) throw new Error(response?.msg || '加入购物车失败')
     ElMessage.success('已加入购物车')
+    window.dispatchEvent(new CustomEvent('cart-updated'))
   } catch (error) {
     ElMessage.error(error?.message || '加入购物车失败，请先登录')
   }

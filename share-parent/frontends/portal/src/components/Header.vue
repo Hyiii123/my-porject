@@ -118,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import {
   Search, ShoppingCart, Reading, User, Edit, Star,
   Collection, SwitchButton, ArrowDown, Service, Trophy
@@ -127,6 +127,7 @@ import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 
 import { getUserInfo } from "@/api/user.js";
+import { getCarts } from "@/api/order.js";
 import defaultAvatar from "@/assets/images/users/default-avatar.svg";
 
 const router = useRouter();
@@ -146,8 +147,27 @@ const formatAvatarUrl = (url) => {
   return base ? `${base}${url}` : url;
 };
 
-// 购物车数量
-const cartCount = ref(2);
+// 购物车数量（动态拉取真实购物车数据，未登录或为空时显示为0并自动隐藏红点）
+const cartCount = ref(0);
+
+const updateCartCount = async () => {
+  const token = sessionStorage.getItem('token');
+  if (!token) {
+    cartCount.value = 0;
+    return;
+  }
+  try {
+    const res = await getCarts();
+    if (res && res.code === 200) {
+      const rows = Array.isArray(res.data) ? res.data : (res.data?.list || []);
+      cartCount.value = rows.length;
+    } else {
+      cartCount.value = 0;
+    }
+  } catch (e) {
+    cartCount.value = 0;
+  }
+};
 
 // 搜索相关
 const input = ref('');
@@ -158,6 +178,7 @@ const checkLoginStatus = async () => {
   isLoggedIn.value = !!token;
 
   if (isLoggedIn.value) {
+    updateCartCount();
     const savedUserInfo = sessionStorage.getItem('userInfo');
     if (savedUserInfo) {
       try {
@@ -175,6 +196,8 @@ const checkLoginStatus = async () => {
     } catch (e) {
       // 降级使用本地缓存
     }
+  } else {
+    cartCount.value = 0;
   }
 };
 
@@ -183,9 +206,24 @@ watch(() => route.path, () => {
   checkLoginStatus();
 });
 
+const handleCartUpdated = (e) => {
+  if (e?.detail != null && typeof e.detail === 'number') {
+    cartCount.value = e.detail;
+  } else {
+    updateCartCount();
+  }
+};
+
 onMounted(() => {
   checkLoginStatus();
+  updateCartCount();
   window.addEventListener('user-profile-updated', checkLoginStatus);
+  window.addEventListener('cart-updated', handleCartUpdated);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('user-profile-updated', checkLoginStatus);
+  window.removeEventListener('cart-updated', handleCartUpdated);
 });
 
 // 搜索事件
@@ -226,6 +264,7 @@ const handleLogout = () => {
   sessionStorage.removeItem('token');
   sessionStorage.removeItem('userInfo');
   isLoggedIn.value = false;
+  cartCount.value = 0;
   ElMessage.success('已退出登录');
   window.location.href = '/#/login';
   window.location.reload();
