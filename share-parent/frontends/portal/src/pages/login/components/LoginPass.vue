@@ -89,7 +89,9 @@ const submitForm = async (formEl) => {
           await store.setUserInfo(userResponse.data)
         }
         ElMessage.success('登录成功！')
-        router.push(route.query.redirect || '/main/index')
+        const target = route.query.redirect ? `/#${route.query.redirect}` : '/#/main/index'
+        window.location.href = target
+        window.location.reload()
       } catch (error) {
         ElMessage.error(error.message || '登录失败，请检查账号和密码')
       } finally {

@@ -240,6 +240,72 @@ const router = useRouter()
 
 const HOME_CACHE_KEY = 'tianji_portal_home_cache_v2'
 
+const DEFAULT_PREHEAT_CATEGORIES = [
+  { id: '1', name: '前端开发', iconText: '前端', count: 48 },
+  { id: '2', name: '后端开发', iconText: '后端', count: 72 },
+  { id: '3', name: '移动开发', iconText: '移动', count: 28 },
+  { id: '4', name: '数据库', iconText: '数据', count: 36 },
+  { id: '5', name: '云计算与DevOps', iconText: '云计', count: 32 },
+  { id: '6', name: '人工智能', iconText: '人工', count: 42 },
+  { id: '7', name: '数据科学', iconText: '数据', count: 26 },
+  { id: '8', name: '网络安全', iconText: '网络', count: 20 },
+]
+
+const DEFAULT_PREHEAT_COURSES = [
+  {
+    id: '1',
+    title: 'Vue3 从入门到精通',
+    cover: '/src/assets/images/courses/vue3.svg',
+    teacherName: '张老师',
+    price: 19900,
+    originalPrice: 39900,
+    learners: 12580,
+    matchScore: 98,
+    matchTag: '🔥 目标岗位强契合',
+    recommendReason: '全面掌握Vue3核心语法、组合式API与状态管理',
+    difficulty: 1
+  },
+  {
+    id: '4',
+    title: 'Java SpringBoot 实战',
+    cover: '/src/assets/images/courses/springboot.svg',
+    teacherName: '王老师',
+    price: 29900,
+    originalPrice: 59900,
+    learners: 15680,
+    matchScore: 95,
+    matchTag: '📌 先修必修基石',
+    recommendReason: '从零开始学习SpringBoot，掌握微服务架构设计',
+    difficulty: 2
+  },
+  {
+    id: '10',
+    title: '机器学习入门',
+    cover: '/src/assets/images/courses/ml.svg',
+    teacherName: '黄老师',
+    price: 34900,
+    originalPrice: 69900,
+    learners: 14560,
+    matchScore: 92,
+    matchTag: '💡 关键技能补齐',
+    recommendReason: 'Python机器学习、Scikit-learn、TensorFlow实战',
+    difficulty: 1
+  },
+  {
+    id: '8',
+    title: 'MySQL 数据库优化',
+    cover: '/src/assets/images/courses/mysql.svg',
+    teacherName: '刘老师',
+    price: 16900,
+    originalPrice: 33900,
+    learners: 11230,
+    matchScore: 90,
+    matchTag: '🚀 架构突破攻坚',
+    recommendReason: '索引优化、查询优化、分库分表、主从复制',
+    difficulty: 3
+  }
+]
+
 const readHomeCache = () => {
   try {
     const raw = localStorage.getItem(HOME_CACHE_KEY)
@@ -250,12 +316,12 @@ const readHomeCache = () => {
 
 const initialHomeData = readHomeCache()
 
-const categories = ref(initialHomeData?.categories || [])
-const recommendCourses = ref(initialHomeData?.recommendCourses || [])
-const personalizedCourses = ref(initialHomeData?.personalizedCourses || [])
-const hotCourses = ref(initialHomeData?.hotCourses || [])
-const rankingCourses = ref(initialHomeData?.rankingCourses || [])
-const newCourses = ref(initialHomeData?.newCourses || [])
+const categories = ref(initialHomeData?.categories?.length ? initialHomeData.categories : DEFAULT_PREHEAT_CATEGORIES)
+const recommendCourses = ref(initialHomeData?.recommendCourses?.length ? initialHomeData.recommendCourses : DEFAULT_PREHEAT_COURSES)
+const personalizedCourses = ref(initialHomeData?.personalizedCourses?.length ? initialHomeData.personalizedCourses : DEFAULT_PREHEAT_COURSES)
+const hotCourses = ref(initialHomeData?.hotCourses?.length ? initialHomeData.hotCourses : DEFAULT_PREHEAT_COURSES)
+const rankingCourses = ref(initialHomeData?.rankingCourses?.length ? initialHomeData.rankingCourses : DEFAULT_PREHEAT_COURSES)
+const newCourses = ref(initialHomeData?.newCourses?.length ? initialHomeData.newCourses : DEFAULT_PREHEAT_COURSES)
 const recentLearning = ref(initialHomeData?.recentLearning || null)
 
 let saveTimer = null

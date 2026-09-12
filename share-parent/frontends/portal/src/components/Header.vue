@@ -227,7 +227,8 @@ const handleLogout = () => {
   sessionStorage.removeItem('userInfo');
   isLoggedIn.value = false;
   ElMessage.success('已退出登录');
-  router.push('/login');
+  window.location.href = '/#/login';
+  window.location.reload();
 };
 </script>
 

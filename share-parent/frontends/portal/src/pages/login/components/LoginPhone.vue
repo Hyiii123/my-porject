@@ -116,7 +116,8 @@ const submitForm = async (formEl) => {
       await store.setUserInfo(userResponse.data)
     }
     ElMessage.success('登录成功！')
-    router.push('/main/index')
+    window.location.href = '/#/main/index'
+    window.location.reload()
   } catch (error) {
     ElMessage.error(error.message || '手机号登录失败')
   } finally {
