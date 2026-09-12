@@ -19,18 +19,18 @@
           密码登录
         </span>
         <span
-          :class="['tab-item', { active: act === 'phone' }]"
-          @click="changeLoginType('phone')"
+          :class="['tab-item', { active: act === 'phone' || act === 'email' }]"
+          @click="changeLoginType('email')"
         >
-          短信登录
+          邮箱验证码登录
         </span>
       </div>
 
       <!-- 用户名密码登录 -->
       <LoginPass v-if="act === 'pass'" @goHandle="goHandle"></LoginPass>
 
-      <!-- 手机号登录 -->
-      <LoginPhone v-if="act === 'phone'" @goHandle="goHandle"></LoginPhone>
+      <!-- 邮箱验证码登录 -->
+      <LoginPhone v-if="act === 'phone' || act === 'email'" @goHandle="goHandle"></LoginPhone>
 
       <!-- 注册 -->
       <Register v-if="act === 'register'" @goHandle="goHandle"></Register>

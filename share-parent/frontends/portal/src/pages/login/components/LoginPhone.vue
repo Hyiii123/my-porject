@@ -1,4 +1,4 @@
-<!-- 登录页面 - 手机号 -->
+<!-- 登录页面 - QQ邮箱验证码登录 -->
 <template>
   <div class="loginPhone">
     <el-form
@@ -8,12 +8,12 @@
       label-width="0px"
       class="demo-dynamic"
     >
-      <el-form-item prop="cellPhone" label="">
-        <el-input v-model="fromData.cellPhone" placeholder="请输入手机号" />
+      <el-form-item prop="email" label="">
+        <el-input v-model="fromData.email" placeholder="请输入QQ邮箱（如 123456@qq.com）" clearable />
       </el-form-item>
-      <el-form-item prop="password" label="">
+      <el-form-item prop="code" label="">
         <div class="code-row">
-          <el-input v-model="fromData.password" placeholder="请输入验证码（本地演示为 123456）" />
+          <el-input v-model="fromData.code" placeholder="请输入6位邮箱验证码" maxlength="6" clearable />
           <el-button class="code-button" :disabled="codeLoading || codeCountdown > 0" :loading="codeLoading" @click="sendCode">
             {{ codeCountdown > 0 ? `${codeCountdown}s 后重发` : '获取验证码' }}
           </el-button>
@@ -24,114 +24,141 @@
             <div>
                 <el-checkbox v-model="fromData.rememberMe" label="7天免登录" size="large" />
             </div>
-            <div>找回密码</div>
+            <div class="forgot-pass" @click="emit('goHandle', 'pass')">密码登录</div>
         </div>
       </el-form-item>
       <el-form-item class="marg-bt-15">
         <el-button type="primary" class="login-btn" :loading="loading" @click="submitForm(formRef)">登 录</el-button>
       </el-form-item>
     </el-form>
-    <div class="font-bt text-center"  @click="goRegister">
-        去注册
+    <div class="font-bt text-center" @click="goRegister">
+        没有账号？去注册
     </div>
   </div>
 </template>
 <script setup>
 import { onBeforeUnmount, reactive, ref } from "vue";
-import { useRouter } from 'vue-router'
+import { useRouter } from 'vue-router';
 import { ElMessage } from "element-plus";
-import { phoneLogins, getUserInfo, verifycode } from '@/api/user'
-import { useUserStore } from '@/store'
+import { emailLogin, getUserInfo, verifycode } from '@/api/user';
+import { useUserStore } from '@/store';
 
-const emit = defineEmits(['goHandle'])
-const router = useRouter()
-const store = useUserStore()
-const loading = ref(false)
-const codeLoading = ref(false)
-const codeCountdown = ref(0)
-let countdownTimer
+const emit = defineEmits(['goHandle']);
+const router = useRouter();
+const store = useUserStore();
+const loading = ref(false);
+const codeLoading = ref(false);
+const codeCountdown = ref(0);
+let countdownTimer;
+
 // 登录数据初始化
 const formRef = ref();
 const fromData = reactive({
-  // 使用初始化 SQL 中存在的演示学员手机号，配合本地演示验证码 123456 可直接验证短信登录链路。
-  cellPhone: "13800138001",
-  password: "123456",
-  type: 2
+  email: "",
+  code: "",
+  rememberMe: false
 });
-// 效验规则
+
+// 校验规则
 const rules = reactive({
-  cellPhone: [
-    { required: true, message: "请输入正确的手机号", trigger: "blur" },
+  email: [
+    { required: true, message: "请输入QQ邮箱", trigger: "blur" },
+    {
+      validator: (rule, value, callback) => {
+        if (!value) {
+          callback(new Error("请输入QQ邮箱"));
+        } else if (!/^[a-zA-Z0-9_-]+@qq\.com$/i.test(value.trim()) && !/^[a-zA-Z0-9_-]+@foxmail\.com$/i.test(value.trim())) {
+          callback(new Error("请输入正确的QQ邮箱（如 123456@qq.com）"));
+        } else {
+          callback();
+        }
+      },
+      trigger: ["blur", "change"]
+    }
   ],
-  password: [
-    { required: true, message: "请输入正确的用验证码", trigger: "blur"},
-  ],
+  code: [
+    { required: true, message: "请输入邮箱验证码", trigger: "blur" },
+    { min: 6, max: 6, message: "请输入6位数字验证码", trigger: "blur" }
+  ]
 });
+
+// 获取验证码
 const sendCode = async () => {
-  if (codeLoading.value || codeCountdown.value > 0) return
-  const phone = fromData.cellPhone.trim()
-  if (!/^1\d{10}$/.test(phone)) {
-    ElMessage.warning('请输入正确的手机号')
-    return
+  if (codeLoading.value || codeCountdown.value > 0) return;
+  const email = (fromData.email || '').trim();
+  if (!email) {
+    ElMessage.warning('请先输入QQ邮箱');
+    return;
   }
-  codeLoading.value = true
+  if (!/^[a-zA-Z0-9_-]+@qq\.com$/i.test(email) && !/^[a-zA-Z0-9_-]+@foxmail\.com$/i.test(email)) {
+    ElMessage.warning('请输入正确的QQ邮箱（如 123456@qq.com）');
+    return;
+  }
+
+  codeLoading.value = true;
   try {
-    const response = await verifycode({ cellPhone: phone })
-    if (response.code !== 200) throw new Error(response.msg || response.message || '验证码发送失败')
-    const demoCode = response.data?.code || '123456'
-    ElMessage.success(`验证码已发送，本地演示验证码：${demoCode}`)
-    codeCountdown.value = 60
+    const response = await verifycode({ email: email });
+    if (response.code !== 200) {
+      throw new Error(response.msg || response.message || '验证码发送失败');
+    }
+    ElMessage.success(response.data?.message || '验证码已发送至您的QQ邮箱，请查收');
+    codeCountdown.value = 60;
     countdownTimer = window.setInterval(() => {
-      codeCountdown.value -= 1
+      codeCountdown.value -= 1;
       if (codeCountdown.value <= 0) {
-        window.clearInterval(countdownTimer)
-        countdownTimer = undefined
+        window.clearInterval(countdownTimer);
+        countdownTimer = undefined;
       }
-    }, 1000)
+    }, 1000);
   } catch (error) {
-    ElMessage.error(error.message || '验证码发送失败')
+    ElMessage.error(error.message || '验证码发送失败，请稍后重试');
   } finally {
-    codeLoading.value = false
+    codeLoading.value = false;
   }
-}
+};
+
 // 数据提交
 const submitForm = async (formEl) => {
-  if (!formEl || loading.value) return
-  const valid = await formEl.validate().catch(() => false)
-  if (!valid) return
-  loading.value = true
+  if (!formEl || loading.value) return;
+  const valid = await formEl.validate().catch(() => false);
+  if (!valid) return;
+
+  loading.value = true;
   try {
-    const response = await phoneLogins({
-      cellPhone: fromData.cellPhone.trim(),
-      password: fromData.password,
-      rememberMe: fromData.rememberMe,
-    })
+    const response = await emailLogin({
+      email: fromData.email.trim(),
+      code: fromData.code.trim()
+    });
     if (response.code !== 200 || !response.data) {
-      throw new Error(response.msg || response.message || '手机号登录失败')
+      throw new Error(response.msg || response.message || '登录失败');
     }
-    const token = response.data?.access_token || response.data?.token || response.data
-    await store.setToken(token)
-    const userResponse = await getUserInfo()
+    const token = response.data?.access_token || response.data?.token || response.data;
+    await store.setToken(token);
+    sessionStorage.setItem('token', token);
+
+    const userResponse = await getUserInfo();
     if (userResponse.code === 200 && userResponse.data) {
-      await store.setUserInfo(userResponse.data)
+      await store.setUserInfo(userResponse.data);
+      sessionStorage.setItem('userInfo', JSON.stringify(userResponse.data));
     }
-    ElMessage.success('登录成功！')
-    window.location.href = '/#/main/index'
-    window.location.reload()
+    ElMessage.success('登录成功！');
+    window.location.href = '/#/main/index';
+    window.location.reload();
   } catch (error) {
-    ElMessage.error(error.message || '手机号登录失败')
+    ElMessage.error(error.message || '登录失败，请检查验证码');
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 };
 
 // 去注册
 const goRegister = () => {
-  emit('goHandle', 'register')
-}
+  emit('goHandle', 'register');
+};
+
 onBeforeUnmount(() => {
-  if (countdownTimer) window.clearInterval(countdownTimer)
-})
+  if (countdownTimer) window.clearInterval(countdownTimer);
+});
 </script>
 <style lang="scss" scoped>
 .loginPhone {

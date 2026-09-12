@@ -3,8 +3,29 @@ const USER_API_PREFIX = "/us"
 const AUTH_API_PREFIX = "/as"
 const PHONE_LOGIN_TYPE = 2;
 const PW_LOGIN_TYPE = 1;
-// 手机号验证码登录
+// 邮箱验证码登录
+export const emailLogin = (data) => {
+	return request({
+		url: `${AUTH_API_PREFIX}/accounts/login`,
+		method: "post",
+		data: {
+			username: data.email,
+			email: data.email,
+			password: data.code,
+			code: data.code,
+			type: "email"
+		},
+		withCredentials: true
+	});
+}
+// 手机号/邮箱验证码登录兼容
 export const phoneLogins = (params) => {
+	if (params.email || (params.cellPhone && params.cellPhone.includes('@'))) {
+		return emailLogin({
+			email: params.email || params.cellPhone,
+			code: params.code || params.password
+		});
+	}
 	params.type = PHONE_LOGIN_TYPE;
 	return request({
 		url: `${AUTH_API_PREFIX}/accounts/login`,

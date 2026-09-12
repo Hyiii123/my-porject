@@ -53,14 +53,28 @@ public class TokenController
             @RequestParam Map<String, String> params)
     {
         LoginBody loginBody = form == null ? new LoginBody() : form;
-        // 兼容智问前端的旧契约：账号登录使用 JSON，短信登录页面使用查询参数。
+        // 兼容智问前端契约：账号登录使用 JSON，短信/邮箱登录使用 JSON 或查询参数。
         String username = firstNonBlank(loginBody.getUsername(), params.get("username"),
-                params.get("userName"), params.get("cellPhone"), params.get("phone"));
-        String password = firstNonBlank(loginBody.getPassword(), params.get("password"), params.get("code"));
-        // 用户登录；type=2 是智问前端的本地演示短信登录协议。
-        LoginUser userInfo = "2".equals(params.get("type"))
-                ? sysLoginService.loginByPhoneCode(username, password)
-                : sysLoginService.login(username, password);
+                params.get("userName"), loginBody.getEmail(), params.get("email"),
+                params.get("qqEmail"), params.get("cellPhone"), params.get("phone"));
+        String password = firstNonBlank(loginBody.getPassword(), params.get("password"),
+                loginBody.getCode(), params.get("code"));
+        String loginType = firstNonBlank(loginBody.getType(), params.get("type"));
+
+        // 用户登录：区分 密码登录、邮箱验证码登录、手机号登录
+        LoginUser userInfo;
+        if ("email".equalsIgnoreCase(loginType) || (username != null && username.contains("@") && "2".equals(loginType)))
+        {
+            userInfo = sysLoginService.loginByEmailCode(username, password);
+        }
+        else if ("2".equals(loginType))
+        {
+            userInfo = sysLoginService.loginByPhoneCode(username, password);
+        }
+        else
+        {
+            userInfo = sysLoginService.login(username, password);
+        }
         // 获取登录token
         return R.ok(tokenService.createToken(userInfo));
     }
@@ -176,7 +190,7 @@ public class TokenController
             }
             if (!normalizedEmail.toLowerCase().endsWith("@qq.com") && !normalizedEmail.toLowerCase().endsWith("@foxmail.com"))
             {
-                return R.fail("当前仅支持 QQ 邮箱注册，请输入 @qq.com 邮箱");
+                return R.fail("当前支持 QQ 邮箱登录与注册，请输入 @qq.com 邮箱");
             }
 
             // 生成强随机 6 位数字验证码

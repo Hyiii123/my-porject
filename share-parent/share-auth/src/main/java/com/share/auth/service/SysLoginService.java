@@ -28,6 +28,7 @@ import com.share.system.api.model.LoginUser;
 public class SysLoginService
 {
     private static final String PHONE_CODE_PREFIX = "zhiwen:auth:verifycode:";
+    private static final String EMAIL_CODE_PREFIX = "zhiwen:auth:emailcode:";
     private static final String LOCAL_DEMO_CODE = "123456";
     private static final long PHONE_CODE_TTL_SECONDS = 300L;
 
@@ -229,5 +230,75 @@ public class SysLoginService
     public void registerWithEmail(String email, String password)
     {
         register(email, password);
+    }
+
+    /**
+     * 邮箱验证码登录。
+     *
+     * <p>校验 Redis 中的邮箱验证码；若用户已存在则直接登录；
+     * 若用户不存在，自动为该 QQ 邮箱创建学员账号并完成登录。</p>
+     */
+    public LoginUser loginByEmailCode(String email, String code)
+    {
+        if (StringUtils.isAnyBlank(email, code))
+        {
+            recordLogService.recordLogininfor(email, Constants.LOGIN_FAIL, "邮箱/验证码必须填写");
+            throw new ServiceException("邮箱/验证码必须填写");
+        }
+        String normalizedEmail = email.trim().toLowerCase();
+        if (!normalizedEmail.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"))
+        {
+            throw new ServiceException("请输入格式正确的邮箱地址");
+        }
+        String cachedCode = redisService.getCacheObject(EMAIL_CODE_PREFIX + normalizedEmail);
+        if (cachedCode == null || !cachedCode.equals(code.trim()))
+        {
+            recordLogService.recordLogininfor(normalizedEmail, Constants.LOGIN_FAIL, "邮箱验证码错误或已过期");
+            throw new ServiceException("邮箱验证码错误或已过期");
+        }
+        // 校验通过后销毁验证码，防止重放
+        redisService.deleteObject(EMAIL_CODE_PREFIX + normalizedEmail);
+
+        // 查询用户（selectUserByUserName 已支持匹配 user_name 与 email）
+        R<LoginUser> userResult = remoteUserService.getUserInfo(normalizedEmail, SecurityConstants.INNER);
+        if (StringUtils.isNull(userResult) || StringUtils.isNull(userResult.getData()))
+        {
+            // 用户尚未注册，自动为该 QQ 邮箱注册新学员账号
+            try
+            {
+                String initialPwd = "Qq" + (new java.security.SecureRandom().nextInt(900000) + 100000) + "!";
+                registerWithEmail(normalizedEmail, initialPwd);
+                userResult = remoteUserService.getUserInfo(normalizedEmail, SecurityConstants.INNER);
+            }
+            catch (Exception e)
+            {
+                // 若自动注册出现偶发异常，继续向下校验
+            }
+        }
+
+        if (StringUtils.isNull(userResult) || StringUtils.isNull(userResult.getData()))
+        {
+            recordLogService.recordLogininfor(normalizedEmail, Constants.LOGIN_FAIL, "该邮箱对应的用户不存在");
+            throw new ServiceException("该邮箱对应的用户不存在");
+        }
+        if (R.FAIL == userResult.getCode())
+        {
+            throw new ServiceException(userResult.getMsg());
+        }
+
+        LoginUser userInfo = userResult.getData();
+        SysUser user = userInfo.getSysUser();
+        if (UserStatus.DELETED.getCode().equals(user.getDelFlag()))
+        {
+            recordLogService.recordLogininfor(normalizedEmail, Constants.LOGIN_FAIL, "账号已删除");
+            throw new ServiceException("对不起，您的账号已被删除");
+        }
+        if (UserStatus.DISABLE.getCode().equals(user.getStatus()))
+        {
+            recordLogService.recordLogininfor(normalizedEmail, Constants.LOGIN_FAIL, "用户已停用");
+            throw new ServiceException("对不起，您的账号已停用");
+        }
+        recordLogService.recordLogininfor(normalizedEmail, Constants.LOGIN_SUCCESS, "邮箱验证码登录成功");
+        return userInfo;
     }
 }

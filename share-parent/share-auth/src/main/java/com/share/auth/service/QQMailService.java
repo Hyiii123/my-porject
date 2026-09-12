@@ -76,7 +76,7 @@ public class QQMailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(mailSender, "智问学伴教育平台");
             helper.setTo(toEmail.trim());
-            helper.setSubject("【智问学伴】账号注册验证码");
+            helper.setSubject("【智问学伴】安全身份验证码");
 
             String htmlContent = buildEmailTemplate(code);
             helper.setText(htmlContent, true);
@@ -113,7 +113,7 @@ public class QQMailService {
                     MimeMessageHelper helper = new MimeMessageHelper(retryMsg, true, "UTF-8");
                     helper.setFrom(mailSender, "智问学伴教育平台");
                     helper.setTo(toEmail.trim());
-                    helper.setSubject("【智问学伴】账号注册验证码");
+                    helper.setSubject("【智问学伴】安全身份验证码");
                     helper.setText(buildEmailTemplate(code), true);
 
                     retrySender.send(retryMsg);
@@ -133,7 +133,7 @@ public class QQMailService {
             <html>
             <head>
               <meta charset="UTF-8">
-              <title>智问学伴 注册验证码</title>
+              <title>智问学伴 安全验证码</title>
             </head>
             <body style="margin: 0; padding: 30px; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
               <div style="max-width: 540px; margin: 0 auto; background: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; padding: 36px 32px; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);">
@@ -146,7 +146,7 @@ public class QQMailService {
                 </div>
                 <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 20px 0;" />
                 <p style="font-size: 15px; color: #334155; line-height: 1.6;">尊敬的学员，您好：</p>
-                <p style="font-size: 14px; color: #475569; line-height: 1.6;">您正在申请注册智问学伴账号，本次操作的邮箱验证码为：</p>
+                <p style="font-size: 14px; color: #475569; line-height: 1.6;">您正在申请智问学伴账号登录或注册，本次操作的邮箱验证码为：</p>
                 <div style="margin: 28px 0; text-align: center;">
                   <div style="display: inline-block; padding: 14px 36px; background-color: #EFF6FF; border: 1px dashed #2563EB; border-radius: 8px; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #2563EB;">
                     %s

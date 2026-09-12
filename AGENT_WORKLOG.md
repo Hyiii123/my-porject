@@ -61,6 +61,24 @@
 
 ### 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-12 06:55:00 - 用户端登录模块短信登录全面改造为 QQ 邮箱验证码登录：前后端直连腾讯 SMTP、免密自动注册与防重放全链路闭环
+
+* **核心成果**：
+  1. **前端用户端登录重构升级**：
+     - 登录页面 (`pages/login/index.vue`)：登录 Tab 标签由原先的「短信登录」修改为「邮箱验证码登录」，支持 `act === 'email' || act === 'phone'` 状态自适应；
+     - 邮箱登录子组件 (`components/LoginPhone.vue`)：彻底移除旧版手机号校验与输入，替换为 QQ 邮箱输入框（支持 `@qq.com`、`@vip.qq.com`、`@foxmail.com` 正则验证）与 6 位验证码输入框，集成 60s 发送倒计时与防抖防重复触发机制；
+     - 接口封装与兼容 (`api/user.js`)：新增 `emailLogin` 接口（透传 `type: "email"`），并对旧版 `phoneLogins` 增加邮箱透明兼容路由。
+  2. **后端 `share-auth` 鉴权中心全新邮箱验证码登录流**：
+     - 请求体 `LoginBody.java`：扩充 `email`、`code`、`type` 字段；
+     - `QQMailService.java`：邮件标题通用化为 `【智问学伴】安全身份验证码`，正文模板升级为通用于登录和注册场景；
+     - `SysLoginService.java`：实现 `loginByEmailCode(email, code)`，校验 Redis 中 `zhiwen:auth:emailcode:{email}` 并在校验成功后立即原子删除验证码（防重放攻击）；
+     - **新用户自动免密注册闭环**：若检测到该邮箱尚未注册，系统自动调用远程用户服务完成学员账号（`user_type: "01"`，默认昵称 `QQ用户_{prefix}`）的无感创建与初始化，并直接签发 JWT 访问令牌，打造极佳用户体验；
+     - `TokenController.java`：重构 `/accounts/login` 路由分发逻辑，对 `type === "email"` 或包含 `@` 符号的登录请求精准派发至邮箱验证码登录处理器。
+  3. **云端生产部署与实测全闭环**：
+     - 本地 JDK 17 打包最新 `share-auth.jar` 并同步部署替换云端 `tianji-auth` 容器，Tomcat 9200 启动成功；
+     - 本地 Vite 构建零报错纯净生产包，替换 `tianji-portal-ui` 容器静态资源并热重载 Nginx；
+     - 定向接口实测：发送验证码成功收到邮件并落库 Redis，使用验证码成功登录取得 `access_token`，且复用同一验证码即时被安全拒绝，网关携带 Token 请求 `/us/users/me` 100% 成功返回完整学员画像。
+
 ### 2026-09-12 06:45:00 - 用户端导航栏购物车角标假数据彻底修复：剔除静态硬编码、对接真实购物车接口与全站响应式事件同步
 
 * **核心成果**：
@@ -433,6 +451,7 @@
 | **17** | **学生端个人设置页面保存时报 404 / 500 或无法更新信息** | 前端 `api/user.js` 中的 `updateUserInfo` 请求路径硬编码为 `/students`，遗漏了微服务网关代理前缀 `/us`（即缺少 `${USER_API_PREFIX}`），导致网关直接抛出 404 NOT_FOUND。且组件中错误读取 `res.data.msg` 触发 TypeError 导致弹窗“请求出错！”。 | 1. `updateUserInfo` 修正为 `${USER_API_PREFIX}/students` 对齐网关路由；<br>2. 规范组件内响应解构与错误捕获；<br>3. 在 `onMounted` 钩子中主动拉取最新用户画像补齐 nickname、avatar、gender，添加按钮保存中防重复提交状态。 |
 | **18** | **静态媒资/头像资源浏览器直接加载时报 401 鉴权拦截或图片破损** | 1. 用户头像、讲师头像等静态资源被浏览器 `<img>` 或 `<el-avatar>` 标签直连渲染时无法携带 JWT 请求头，网关拦截报 401 返回 JSON，导致图片裂开破损；<br>2. Nginx 反代缺少 `profile` 路由匹配，且网关缺少 direct `/profile/**` 路由；<br>3. 前端 Header 与个人中心存在硬编码未编译路径 `/src/assets/images/users/default-avatar.svg`（生产环境 404）以及缺乏 `@error` 兜底容错。 | 1. 在 Nacos `share-gateway-dev.yml` 的 `security.ignore.whites` 中增加 `/file/**` 与 `/profile/**` 白名单，并新增 `share-profile` 网关路由；<br>2. Nginx 正则反向代理增加 `profile` 匹配；<br>3. 前端 Header、个人设置、个人主页统一引入 Vite 静态资源导入（`import defaultAvatar`），配合 `formatAvatarUrl` 与 `@error` 异常回退机制，确保任何网络或路径异常均平滑降级为默认头像占位；<br>4. 头像上传采用 `URL.createObjectURL` 极速本地预览，保存成功后通过自定义事件 `user-profile-updated` 实时同步顶栏 Header 头像与昵称。 |
 | **19** | **用户端上传高清大图头像时毫无反应或失败（Nginx 默认 1M 413 拦截）** | 1. Nginx 默认 `client_max_body_size` 仅 1MB。用户上传手机或数码相机拍摄的高清原图（如实测中的 4.77MB / 5,004,253 字节）时，Nginx 在代理入口直接切断连接并报 `413 Request Entity Too Large`；<br>2. 前端 `<el-upload>` 未挂载 `:on-error` 错误处理钩子，Element Plus 静默吞没了 413 异常，导致前端界面毫无反馈和弹窗，用户误以为“毫无反应”。 | 1. 在前端 `nginx.conf` 的 `server` 块中显式声明 `client_max_body_size 50m;`，对齐 Spring Boot 20MB 上限；<br>2. `<el-upload>` 增加 `:on-error="handleAvatarUploadError"`，捕获 413 及各类网络错误并友好提示；<br>3. 增加 `uploading` 上传中防重与加载状态，放宽头像前端大小限制至 10MB。 |
+| **20** | **短信登录改版为邮箱验证码登录时旧有接口协议与鉴权模式不兼容** | 1. 用户端原短信登录走 `/accounts/login` 传 `cellPhone` 与 `code`，直接修改可能导致旧版接口报 500 或用户名格式校验拒绝；<br>2. 新用户直接使用邮箱验证码登录若未提前注册，传统模式会直接报用户不存在导致登录失败；<br>3. 邮箱验证码未设置防重放机制可能被复用。 | 1. 在 `LoginBody` 拓展 `email`、`code`、`type`，并做向后兼容；<br>2. 鉴权服务 `SysLoginService` 中新增 `loginByEmailCode`，校验 Redis 验证码后原子销毁（防重放）；<br>3. 自动检测用户是否存在，未注册用户自动为其创建学员账号（`user_type: "01"`）并直接发牌（JWT），达成免密极速登录体验；<br>4. 前端 `LoginPhone.vue` 转型为专用 QQ 邮箱验证码登录组件，内置 60s 倒计时与严格邮箱正则校验。 |
 
 ---
 
