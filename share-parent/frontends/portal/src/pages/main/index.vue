@@ -28,7 +28,7 @@
           @click="$router.push(`/details?id=${course.id}`)"
         >
           <div class="course-cover">
-            <img :src="course.cover || defaultCover" :alt="course.title" loading="lazy" @error="handleImgError" />
+            <img :src="course.cover || defaultCover" :alt="course.title" fetchpriority="high" @error="handleImgError" />
             <div class="match-score-badge" v-if="course.matchScore">{{ course.matchScore }}% 契合度</div>
           </div>
           <div class="course-info">
@@ -131,7 +131,7 @@
           @click="$router.push(`/details?id=${course.id}`)"
         >
           <div class="course-cover">
-            <img :src="course.cover || defaultCover" :alt="course.title" loading="lazy" @error="handleImgError" />
+            <img :src="course.cover || defaultCover" :alt="course.title" fetchpriority="high" @error="handleImgError" />
             <div class="course-badge free" v-if="course.price === 0">免费学习</div>
           </div>
           <div class="course-info">
@@ -238,14 +238,44 @@ import CareerPathDrawer from '@/components/CareerPathDrawer.vue'
 
 const router = useRouter()
 
-const categories = ref([])
-const recommendCourses = ref([])
-const personalizedCourses = ref([])
-const hotCourses = ref([])
-const rankingCourses = ref([])
-const newCourses = ref([])
-const allCourses = ref([])
-const recentLearning = ref(null)
+const HOME_CACHE_KEY = 'tianji_portal_home_cache_v2'
+
+const readHomeCache = () => {
+  try {
+    const raw = localStorage.getItem(HOME_CACHE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch (e) {}
+  return null
+}
+
+const initialHomeData = readHomeCache()
+
+const categories = ref(initialHomeData?.categories || [])
+const recommendCourses = ref(initialHomeData?.recommendCourses || [])
+const personalizedCourses = ref(initialHomeData?.personalizedCourses || [])
+const hotCourses = ref(initialHomeData?.hotCourses || [])
+const rankingCourses = ref(initialHomeData?.rankingCourses || [])
+const newCourses = ref(initialHomeData?.newCourses || [])
+const recentLearning = ref(initialHomeData?.recentLearning || null)
+
+let saveTimer = null
+const persistCache = () => {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(HOME_CACHE_KEY, JSON.stringify({
+        categories: categories.value,
+        recommendCourses: recommendCourses.value,
+        personalizedCourses: personalizedCourses.value,
+        hotCourses: hotCourses.value,
+        rankingCourses: rankingCourses.value,
+        newCourses: newCourses.value,
+        recentLearning: recentLearning.value,
+        timestamp: Date.now()
+      }))
+    } catch (e) {}
+  }, 300)
+}
 
 const careerPathDrawerRef = ref(null)
 
@@ -325,70 +355,97 @@ const goLearning = (item) => {
   }
 }
 
-onMounted(async () => {
-  const [categoryResponse, courseResponse, recommendResponse, hotResponse, newResponse, rankingResponse, personalizedResponse] = await Promise.allSettled([
-    getClassCategorys({ includeDisabled: false }),
-    classSeach({ pageNo: 1, pageSize: 200 }),
-    getRecommendClassList('home'),
-    getRecommendClassList('hot'),
-    getRecommendClassList('new'),
-    getCourseLikeRanking({ limit: 10 }),
-    getPersonalizedRecommendations({ limit: 4 })
-  ])
-
-  if (categoryResponse.status === 'fulfilled' && categoryResponse.value?.code === 200) {
-    const data = categoryResponse.value.data
-    const rows = Array.isArray(data) ? data : (data?.list || [])
-    categories.value = rows.filter(item => Number(item.status ?? 1) === 1).map((item) => ({
-      ...item,
-      name: item.name || item.categoryName,
-      iconText: (item.name || item.categoryName || '课').slice(0, 2),
-      count: Number(item.courseCount ?? 0)
-    }))
-  }
-
-  if (courseResponse.status === 'fulfilled' && courseResponse.value?.code === 200) allCourses.value = normalizeRows(courseResponse.value)
-  if (recommendResponse.status === 'fulfilled' && recommendResponse.value?.code === 200) recommendCourses.value = normalizeRows(recommendResponse.value)
-  if (hotResponse.status === 'fulfilled' && hotResponse.value?.code === 200) hotCourses.value = normalizeRows(hotResponse.value)
-  if (rankingResponse.status === 'fulfilled' && rankingResponse.value?.code === 200) rankingCourses.value = normalizeRows(rankingResponse.value)
-  if (newResponse.status === 'fulfilled' && newResponse.value?.code === 200) newCourses.value = normalizeRows(newResponse.value)
-  if (personalizedResponse.status === 'fulfilled' && personalizedResponse.value?.code === 200) {
-    const pRows = normalizeRows(personalizedResponse.value)
-    if (pRows.length) {
-      personalizedCourses.value = pRows
+onMounted(() => {
+  // 1. 课程分类与统计 (轻量快速，~20ms)
+  getClassCategorys({ includeDisabled: false }).then(res => {
+    if (res?.code === 200) {
+      const data = res.data
+      const rows = Array.isArray(data) ? data : (data?.list || [])
+      categories.value = rows.filter(item => Number(item.status ?? 1) === 1).map((item) => ({
+        ...item,
+        name: item.name || item.categoryName,
+        iconText: (item.name || item.categoryName || '课').slice(0, 2),
+        count: Number(item.courseCount ?? 0)
+      }))
+      persistCache()
     }
-  }
+  }).catch(e => console.warn('分类加载异常:', e))
 
-  // 兜底：若未返回个性化推荐（如新用户或未登录），从重磅推荐平滑兜底
-  if (!personalizedCourses.value.length && recommendCourses.value.length) {
-    personalizedCourses.value = recommendCourses.value.slice(0, 4).map((c, idx) => ({
-      ...c,
-      matchTag: idx === 0 ? '综合推荐' : '热门匹配',
-      matchScore: 95 - idx * 5,
-      recommendReason: '根据全站高频热度与实战技能匹配推荐',
-      difficulty: c.difficulty || 2
-    }))
-  }
+  // 2. 首页核心重磅推荐 (优先保证主屏，~15ms)
+  getRecommendClassList('home').then(res => {
+    if (res?.code === 200) {
+      const rows = normalizeRows(res)
+      if (rows.length) {
+        recommendCourses.value = rows
+        // 若当前未缓存个性化推荐，立即秒级平滑兜底呈现
+        if (!personalizedCourses.value.length) {
+          personalizedCourses.value = rows.slice(0, 4).map((c, idx) => ({
+            ...c,
+            matchTag: idx === 0 ? '综合推荐' : '热门匹配',
+            matchScore: 95 - idx * 5,
+            recommendReason: '根据全站高频热度与实战技能匹配推荐',
+            difficulty: c.difficulty || 2
+          }))
+        }
+        persistCache()
+      }
+    }
+  }).catch(e => console.warn('推荐好课加载异常:', e))
 
-  if (allCourses.value.length) {
-    categories.value = categories.value.map(category => ({
-      ...category,
-      count: allCourses.value.filter(course => String(course.categoryId) === String(category.id)).length
-    }))
-  }
+  // 3. 热门好课榜 (~15ms)
+  getRecommendClassList('hot').then(res => {
+    if (res?.code === 200) {
+      const rows = normalizeRows(res)
+      if (rows.length) {
+        hotCourses.value = rows
+        persistCache()
+      }
+    }
+  }).catch(e => console.warn('热门好课加载异常:', e))
 
-  // 若用户已登录，获取最近学习记录
+  // 4. 最新上线好课 (~15ms)
+  getRecommendClassList('new').then(res => {
+    if (res?.code === 200) {
+      const rows = normalizeRows(res)
+      if (rows.length) {
+        newCourses.value = rows
+        persistCache()
+      }
+    }
+  }).catch(e => console.warn('最新课程加载异常:', e))
+
+  // 5. 课程高频点赞榜 (Redis ZSet, ~10ms)
+  getCourseLikeRanking({ limit: 10 }).then(res => {
+    if (res?.code === 200) {
+      const rows = normalizeRows(res)
+      if (rows.length) {
+        rankingCourses.value = rows
+        persistCache()
+      }
+    }
+  }).catch(e => console.warn('点赞排行榜加载异常:', e))
+
+  // 6. 个性化多智能体推荐 (独立异步解耦，静默刷新)
+  getPersonalizedRecommendations({ limit: 4 }).then(res => {
+    if (res?.code === 200) {
+      const pRows = normalizeRows(res)
+      if (pRows.length) {
+        personalizedCourses.value = pRows
+        persistCache()
+      }
+    }
+  }).catch(e => console.warn('个性化推荐加载异常:', e))
+
+  // 7. 用户最近学习历史 (登录专享)
   const token = sessionStorage.getItem('token')
   if (token) {
-    try {
-      const lessonRes = await getMylessons()
+    getMylessons().then(lessonRes => {
       const lessons = lessonRes?.data?.list || lessonRes?.data?.rows || (Array.isArray(lessonRes?.data) ? lessonRes.data : [])
       if (lessons.length > 0) {
         recentLearning.value = lessons[0]
+        persistCache()
       }
-    } catch (e) {
-      // 忽略未登录或未参加课程的静默错误
-    }
+    }).catch(() => {})
   }
 })
 </script>
