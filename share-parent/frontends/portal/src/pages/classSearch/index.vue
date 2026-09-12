@@ -13,7 +13,7 @@
             clearable
           >
             <template #append>
-              <el-button type="primary" @click="handleSearch">搜索</el-button>
+              <el-button class="search-btn" type="primary" @click="handleSearch">搜索</el-button>
             </template>
           </el-input>
         </div>
@@ -307,6 +307,69 @@ onMounted(loadCategories)
 .search-box {
   max-width: 600px;
   margin: 0 auto;
+}
+
+.search-box :deep(.el-input) {
+  --el-input-height: 44px;
+}
+
+.search-box :deep(.el-input__wrapper) {
+  border-radius: 8px 0 0 8px !important;
+  border: 1px solid #E2E8F0 !important;
+  border-right: none !important;
+  box-shadow: none !important;
+  padding: 0 16px;
+  background-color: #FFFFFF;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: #CBD5E1 !important;
+  }
+
+  &.is-focus {
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+    z-index: 1;
+  }
+}
+
+.search-box :deep(.el-input-group__append) {
+  background-color: #2563EB !important;
+  border: 1px solid #2563EB !important;
+  border-left: none !important;
+  border-radius: 0 8px 8px 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.search-box :deep(.el-input-group__append .el-button) {
+  margin: 0 !important;
+  height: 100% !important;
+  min-height: 42px;
+  border: none !important;
+  border-radius: 0 !important;
+  background-color: #2563EB !important;
+  color: #FFFFFF !important;
+  padding: 0 24px !important;
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #1D4ED8 !important;
+  }
+
+  &:active {
+    background-color: #1E40AF !important;
+  }
 }
 
 .search-stats {
