@@ -134,10 +134,11 @@ request({
 // 课程表管理接口
 
 // 查询我的课程表
-export const getMylessons = () =>
+export const getMylessons = (params) =>
 request({
 	url: `${LEARNING_API_PREFIX}/lessons/page`,
 	method: 'get',
+	params
 })	
 // 查询我正在学习的课程
 export const getMyLearning = () =>

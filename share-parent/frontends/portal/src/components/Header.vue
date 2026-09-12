@@ -263,6 +263,14 @@ const handleCommand = (command) => {
 const handleLogout = () => {
   sessionStorage.removeItem('token');
   sessionStorage.removeItem('userInfo');
+  try {
+    const raw = localStorage.getItem('tianji_portal_home_cache_v2');
+    if (raw) {
+      const cache = JSON.parse(raw);
+      delete cache.recentLearning;
+      localStorage.setItem('tianji_portal_home_cache_v2', JSON.stringify(cache));
+    }
+  } catch (e) {}
   isLoggedIn.value = false;
   cartCount.value = 0;
   ElMessage.success('已退出登录');

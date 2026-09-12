@@ -57,8 +57,8 @@
       </div>
     </div>
 
-    <!-- 继续学习快捷横幅 (登录用户专享) -->
-    <div v-if="recentLearning" class="container continue-learning-wrapper">
+    <!-- 继续学习快捷横幅 (仅当登录且存在真实有效学习记录时展示) -->
+    <div v-if="recentLearning && (recentLearning.courseName || recentLearning.title)" class="container continue-learning-wrapper">
       <div class="continue-card">
         <div class="card-left">
           <div class="icon-box">
@@ -66,9 +66,9 @@
           </div>
           <div class="learning-info">
             <div class="learning-label">您上次正在学习</div>
-            <h4 class="learning-title">{{ recentLearning.courseName || recentLearning.name }}</h4>
+            <h4 class="learning-title">{{ recentLearning.courseName || recentLearning.title }}</h4>
             <div class="learning-sub">
-              已学习 {{ recentLearning.learnedSections || 0 }} / {{ recentLearning.sections || recentLearning.totalSections || 10 }} 节
+              已学习 {{ recentLearning.completedLessons ?? recentLearning.learnedSections ?? 0 }} / {{ recentLearning.totalLessons ?? recentLearning.sections ?? recentLearning.totalSections ?? 10 }} 节
             </div>
           </div>
         </div>
@@ -228,7 +228,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Reading, ArrowRight, Pointer, Loading } from '@element-plus/icons-vue'
 import { getClassCategorys, getRecommendClassList, classSeach, getMylessons, getCourseLikeRanking, getPersonalizedRecommendations, getPersonalizedLearningPath } from '@/api/class.js'
@@ -309,7 +309,15 @@ const DEFAULT_PREHEAT_COURSES = [
 const readHomeCache = () => {
   try {
     const raw = localStorage.getItem(HOME_CACHE_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const data = JSON.parse(raw)
+      // 彻底清理历史缓存在公共本地存储中的旧 recentLearning，杜绝跨用户污染
+      if (data && data.recentLearning) {
+        delete data.recentLearning
+        localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(data))
+      }
+      return data
+    }
   } catch (e) {}
   return null
 }
@@ -322,7 +330,8 @@ const personalizedCourses = ref(initialHomeData?.personalizedCourses?.length ? i
 const hotCourses = ref(initialHomeData?.hotCourses?.length ? initialHomeData.hotCourses : DEFAULT_PREHEAT_COURSES)
 const rankingCourses = ref(initialHomeData?.rankingCourses?.length ? initialHomeData.rankingCourses : DEFAULT_PREHEAT_COURSES)
 const newCourses = ref(initialHomeData?.newCourses?.length ? initialHomeData.newCourses : DEFAULT_PREHEAT_COURSES)
-const recentLearning = ref(initialHomeData?.recentLearning || null)
+// 用户学习记录属于私有登录态数据，严禁从公共缓存读取，初始严格置为 null
+const recentLearning = ref(null)
 
 let saveTimer = null
 const persistCache = () => {
@@ -336,7 +345,6 @@ const persistCache = () => {
         hotCourses: hotCourses.value,
         rankingCourses: rankingCourses.value,
         newCourses: newCourses.value,
-        recentLearning: recentLearning.value,
         timestamp: Date.now()
       }))
     } catch (e) {}
@@ -407,17 +415,19 @@ const normalizeRows = (response) => {
 
 const calcProgress = (item) => {
   if (!item) return 0
-  const learned = Number(item.learnedSections || 0)
-  const total = Number(item.sections || item.totalSections || 10)
-  if (total === 0) return 0
-  return Math.min(100, Math.round((learned / total) * 100))
+  if (item.progress != null || item.progressPercent != null) {
+    return Math.min(100, Math.max(0, Math.round(Number(item.progress ?? item.progressPercent ?? 0))))
+  }
+  const learned = Number(item.completedLessons ?? item.learnedSections ?? 0)
+  const total = Number(item.totalLessons ?? item.sections ?? item.totalSections ?? 0)
+  if (total <= 0) return 0
+  return Math.min(100, Math.max(0, Math.round((learned / total) * 100)))
 }
 
 const goLearning = (item) => {
-  if (item && item.courseId) {
-    router.push({ path: '/learning/index', query: { id: item.courseId } })
-  } else if (item && item.id) {
-    router.push({ path: '/details', query: { id: item.id } })
+  const cId = item?.courseId || item?.id
+  if (cId) {
+    router.push({ path: '/learning/index', query: { courseId: cId, id: cId } })
   }
 }
 
@@ -502,17 +512,47 @@ onMounted(() => {
     }
   }).catch(e => console.warn('个性化推荐加载异常:', e))
 
-  // 7. 用户最近学习历史 (登录专享)
-  const token = sessionStorage.getItem('token')
-  if (token) {
-    getMylessons().then(lessonRes => {
-      const lessons = lessonRes?.data?.list || lessonRes?.data?.rows || (Array.isArray(lessonRes?.data) ? lessonRes.data : [])
-      if (lessons.length > 0) {
-        recentLearning.value = lessons[0]
-        persistCache()
+  // 7. 用户最近学习历史 (登录专享，严格基于真实接口数据)
+  const loadRecentLearning = () => {
+    const token = sessionStorage.getItem('token')
+    if (!token) {
+      recentLearning.value = null
+      return
+    }
+    getMylessons({ pageNo: 1, pageSize: 5 }).then(lessonRes => {
+      if (lessonRes?.code !== 200) {
+        recentLearning.value = null
+        return
       }
-    }).catch(() => {})
+      const data = lessonRes.data
+      const lessons = Array.isArray(data) ? data : (data?.list || data?.rows || [])
+      if (lessons && lessons.length > 0) {
+        const first = lessons[0]
+        recentLearning.value = {
+          ...first,
+          courseId: first.courseId || first.id,
+          courseName: first.courseName || first.title || '未命名课程',
+          completedLessons: Number(first.completedLessons ?? first.learnedSections ?? 0),
+          totalLessons: Number(first.totalLessons ?? first.sections ?? first.totalSections ?? 10),
+          progress: Math.min(100, Math.max(0, Math.round(Number(first.progress ?? first.progressPercent ?? 0))))
+        }
+      } else {
+        // 新用户或无真实学习记录，严格置空，绝不展示虚假数据
+        recentLearning.value = null
+      }
+    }).catch(() => {
+      recentLearning.value = null
+    })
   }
+
+  loadRecentLearning()
+  window.addEventListener('user-profile-updated', loadRecentLearning)
+  window.addEventListener('cart-updated', loadRecentLearning)
+
+  onUnmounted(() => {
+    window.removeEventListener('user-profile-updated', loadRecentLearning)
+    window.removeEventListener('cart-updated', loadRecentLearning)
+  })
 })
 </script>
 

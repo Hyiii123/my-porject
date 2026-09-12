@@ -61,6 +61,20 @@
 
 ### 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-12 07:05:00 - 用户端首页继续学习横幅治理：彻底剔除公共缓存污染、对接真实微服务课表、无记录严格置空与健壮性容错
+
+* **核心成果**：
+  1. **定位并根除假数据与跨用户缓存污染**：排查发现首页 SWR 缓存机制此前将属于私密用户态的 `recentLearning` 一并写入了 `localStorage` 的公共缓存键 `tianji_portal_home_cache_v2` 中。当新用户登录或换账号时，首屏直接读取了上一位用户的本地学习残留（如课程「数据可视化」），且 `getMylessons()` 接口在面对新用户返回空数组时遗漏了 `else` 清空逻辑，导致虚假数据永远无法被重置；
+  2. **公共/私有缓存边界解耦与自动净化**：
+     - `recentLearning` 彻底从公共 `HOME_CACHE_KEY` 中剥离，状态初始严格为 `null`；
+     - 增加主动缓存净化守卫：在 `readHomeCache` 与登出 `handleLogout` 时，主动探测并抹除 `localStorage` 中可能遗留的历史 `recentLearning` 脏字段；
+  3. **基于微服务真实学习记录精准渲染与动态响应**：
+     - `loadRecentLearning` 严格对接真实课表接口 `getMylessons({ pageNo: 1, pageSize: 5 })`；
+     - 有学习记录时：精准映射后端 `completedLessons`、`totalLessons` 与 `progressPercent`，修复原本进度计算错误回退为 `0/10 节 0%` 的缺陷；
+     - 无学习记录或新用户时：严格置空 `recentLearning.value = null`，首页快捷卡片完全隐匿，杜绝一切虚假提示；
+     - 挂载 `user-profile-updated` 与 `cart-updated` 全局事件监听并在组件卸载时及时解绑，实现跨组件状态平滑同步；
+  4. **云端纯净构建与即时生效**：本地完成无报错编译，同步静态包至 `tianji-portal-ui` 容器并热重载 Nginx，新用户首页恢复清爽干净状态。
+
 ### 2026-09-12 06:55:00 - 用户端登录模块短信登录全面改造为 QQ 邮箱验证码登录：前后端直连腾讯 SMTP、免密自动注册与防重放全链路闭环
 
 * **核心成果**：
@@ -452,6 +466,7 @@
 | **18** | **静态媒资/头像资源浏览器直接加载时报 401 鉴权拦截或图片破损** | 1. 用户头像、讲师头像等静态资源被浏览器 `<img>` 或 `<el-avatar>` 标签直连渲染时无法携带 JWT 请求头，网关拦截报 401 返回 JSON，导致图片裂开破损；<br>2. Nginx 反代缺少 `profile` 路由匹配，且网关缺少 direct `/profile/**` 路由；<br>3. 前端 Header 与个人中心存在硬编码未编译路径 `/src/assets/images/users/default-avatar.svg`（生产环境 404）以及缺乏 `@error` 兜底容错。 | 1. 在 Nacos `share-gateway-dev.yml` 的 `security.ignore.whites` 中增加 `/file/**` 与 `/profile/**` 白名单，并新增 `share-profile` 网关路由；<br>2. Nginx 正则反向代理增加 `profile` 匹配；<br>3. 前端 Header、个人设置、个人主页统一引入 Vite 静态资源导入（`import defaultAvatar`），配合 `formatAvatarUrl` 与 `@error` 异常回退机制，确保任何网络或路径异常均平滑降级为默认头像占位；<br>4. 头像上传采用 `URL.createObjectURL` 极速本地预览，保存成功后通过自定义事件 `user-profile-updated` 实时同步顶栏 Header 头像与昵称。 |
 | **19** | **用户端上传高清大图头像时毫无反应或失败（Nginx 默认 1M 413 拦截）** | 1. Nginx 默认 `client_max_body_size` 仅 1MB。用户上传手机或数码相机拍摄的高清原图（如实测中的 4.77MB / 5,004,253 字节）时，Nginx 在代理入口直接切断连接并报 `413 Request Entity Too Large`；<br>2. 前端 `<el-upload>` 未挂载 `:on-error` 错误处理钩子，Element Plus 静默吞没了 413 异常，导致前端界面毫无反馈和弹窗，用户误以为“毫无反应”。 | 1. 在前端 `nginx.conf` 的 `server` 块中显式声明 `client_max_body_size 50m;`，对齐 Spring Boot 20MB 上限；<br>2. `<el-upload>` 增加 `:on-error="handleAvatarUploadError"`，捕获 413 及各类网络错误并友好提示；<br>3. 增加 `uploading` 上传中防重与加载状态，放宽头像前端大小限制至 10MB。 |
 | **20** | **短信登录改版为邮箱验证码登录时旧有接口协议与鉴权模式不兼容** | 1. 用户端原短信登录走 `/accounts/login` 传 `cellPhone` 与 `code`，直接修改可能导致旧版接口报 500 或用户名格式校验拒绝；<br>2. 新用户直接使用邮箱验证码登录若未提前注册，传统模式会直接报用户不存在导致登录失败；<br>3. 邮箱验证码未设置防重放机制可能被复用。 | 1. 在 `LoginBody` 拓展 `email`、`code`、`type`，并做向后兼容；<br>2. 鉴权服务 `SysLoginService` 中新增 `loginByEmailCode`，校验 Redis 验证码后原子销毁（防重放）；<br>3. 自动检测用户是否存在，未注册用户自动为其创建学员账号（`user_type: "01"`）并直接发牌（JWT），达成免密极速登录体验；<br>4. 前端 `LoginPhone.vue` 转型为专用 QQ 邮箱验证码登录组件，内置 60s 倒计时与严格邮箱正则校验。 |
+| **21** | **用户端首页继续学习横幅对新用户错误显示「上次学习数据可视化」虚假记录** | 1. 首页 SWR 缓存机制将属于用户私密态的 `recentLearning` 与全站公开课程分类缓存混存于 `localStorage` 的 `HOME_CACHE_KEY`，导致换账号或新用户继承老用户的脏缓存；<br>2. `getMylessons()` 在返回空列表（新用户）时缺少 `else` 重置分支，导致界面永久保留脏缓存；<br>3. 模板字段与后端实体字段不一致（`learnedSections` vs `completedLessons`、`sections` vs `totalLessons`），导致进度计算错误回退为 0/10 节。 | 1. `recentLearning` 彻底从公开 `HOME_CACHE_KEY` 解耦，初始化与无记录时严格为 `null`，并在读取缓存时主动清理历史存量键；<br>2. `loadRecentLearning` 严格判断 `lessons.length > 0`，无记录时强制重置为 `null`；<br>3. 兼容后端真实返回字段（`completedLessons`、`totalLessons`、`progressPercent`），确保真实学员进度精准无误。 |
 
 ---
 
