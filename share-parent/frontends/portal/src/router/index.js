@@ -22,6 +22,10 @@ const defaultRouterList = [
     redirect: '/main/index',
     component: () => import('@/pages/layouts/index.vue'),
   },
+];
+
+// 404 兜底路由必须置于所有路由配置的最末尾，防止提前拦截正常业务子路由
+const notFoundRouter = [
   {
     path: '/:w+',
     name: '404Page',
@@ -29,7 +33,7 @@ const defaultRouterList = [
   },
 ];
 
-export const allRoutes = [...defaultRouterList, ...asyncRouterList];
+export const allRoutes = [...defaultRouterList, ...asyncRouterList, ...notFoundRouter];
 
 export const getActive = (maxLevel = 2) => {
   const route = useRoute();

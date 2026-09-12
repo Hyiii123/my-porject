@@ -45,7 +45,7 @@ export default [
   },
   {
     path: '/my-class',
-    name: 'myClass',
+    name: 'myClassSchedule',
     component: Layout,
     redirect: '/my-class/index',
     meta: { title: '我的课表', icon: 'reading' },
@@ -67,7 +67,7 @@ export default [
     children: [
       {
         path: 'index',
-        name: 'ask',
+        name: 'askIndex',
         component: () => import('@/pages/ask/index.vue'),
         meta: { title: '发布问题' },
       }

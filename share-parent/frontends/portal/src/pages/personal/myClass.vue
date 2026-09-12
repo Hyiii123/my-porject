@@ -1,14 +1,14 @@
 <!-- 个人中心 - 我的课程 -->
 <template>
-  <div class="myClassWrapper">
-    <div class="">
+  <div class="myClassWrapper" v-loading="loading">
+    <div v-if="hasData">
       <!-- 最近学习 -->
       <div class="personalCards" v-if="learningData != null && typeof(learningData) != 'string'">
         <CardsTitle class="marg-bt-20" title="最近学习"/>
         <ClassCards :data="learningData" type="1"/>
       </div>
       <!-- 学习计划 -->
-      <div class="personalCards" v-if="planData && typeof(planData) != 'string'">
+      <div class="personalCards" v-if="planData && planData.length > 0 && typeof(planData) != 'string'">
         <CardsTitle title="学习计划">
           <div class="ft-wt-400"><span
               class="marg-rt-20">本周计划：<em>{{ weekFinishedAmount || 0 }}</em> / {{ weekPlanAmount || 0 }}</span> <span>积分奖励：<em>{{ totalPoints || 0 }}</em></span>
@@ -21,12 +21,19 @@
         <div class="personalCards">
           <CardsTitle class="marg-bt-20" title="全部课程"/>
           <div class=""><span></span></div>
-          <div class="item marg-bt-20" v-for="item in myClassData">
+          <div class="item marg-bt-20" v-for="item in myClassData" :key="item.id || item.courseId">
             <ClassCards :data="item" @planHandle="planHandle" type="2"/>
           </div>
         </div>
         <div v-if="count > 10" class="fx-ct ft-18 ft-wt-600">查看全部</div>
       </div>
+    </div>
+
+    <!-- 空状态 -->
+    <div class="empty-state" v-else-if="!loading">
+      <el-empty description="您暂未加入任何课程，快去挑选心仪的课程开启学习吧！">
+        <el-button type="primary" @click="$router.push('/search/index')">去选课</el-button>
+      </el-empty>
     </div>
     <el-dialog
         v-model="dialogVisible"
@@ -66,35 +73,45 @@ import PlanTable from './components/PlanTable.vue'
 
 const route = useRoute()
 const store = dataCacheStore()
+const loading = ref(false)
+
+const hasData = computed(() => {
+  return (learningData.value != null && typeof learningData.value !== 'string') ||
+         (planData.value && planData.value.length > 0) ||
+         (myClassData.value && myClassData.value.length > 0)
+})
 
 // mounted生命周期
 onMounted(async () => {
-  // 获取最近学习数据
-  getLearningData()
-  // 查询我的课表
-  getMylessonsData()
-  // 获取我的学习计划
-  getPlanData()
-});
+  loading.value = true
+  try {
+    await Promise.allSettled([
+      getLearningData(),
+      getMylessonsData(),
+      getPlanData()
+    ])
+  } finally {
+    loading.value = false
+  }
+})
 
 /** 方法定义 **/
 
 // 获取最近学习计划数据
 const learningData = ref(null)
 const getLearningData = async () => {
-  await getMyLearning()
-      .then((res) => {
-        if (res.code == 200 && res.data != null) {
-          learningData.value = res.data
-          store.setMyLearnClassInfo(res.data)
-        }
-      })
-      .catch(() => {
-        ElMessage({
-          message: "最近学习数据请求出错！",
-          type: 'error'
-        });
-      });
+  try {
+    const res = await getMyLearning()
+    if (res && res.code == 200 && res.data != null) {
+      learningData.value = res.data
+      store.setMyLearnClassInfo(res.data)
+    } else {
+      learningData.value = null
+    }
+  } catch (err) {
+    console.warn('获取最近学习数据:', err)
+    learningData.value = null
+  }
 }
 
 // 获取我的学习计划
@@ -110,22 +127,21 @@ const planParams = {
 
 // 获取计划数据
 const getPlanData = async () => {
-  await getMyPlan(planParams)
-      .then((res) => {
-        if (res.code == 200 && res.data != null) {
-          planData.value = res.data.list
-          planTotal.value = res.data.total
-          weekFinishedAmount.value = res.data.weekFinished
-          totalPoints.value = res.data.weekPoints
-          weekPlanAmount.value = res.data.weekTotalPlan
-        }
-      })
-      .catch(() => {
-        ElMessage({
-          message: "最近学习数据请求出错！",
-          type: 'error'
-        });
-      });
+  try {
+    const res = await getMyPlan(planParams)
+    if (res && res.code == 200 && res.data != null) {
+      planData.value = res.data.list || []
+      planTotal.value = res.data.total || 0
+      weekFinishedAmount.value = res.data.weekFinished || 0
+      totalPoints.value = res.data.weekPoints || 0
+      weekPlanAmount.value = res.data.weekTotalPlan || 0
+    } else {
+      planData.value = []
+    }
+  } catch (err) {
+    console.warn('获取学习计划数据:', err)
+    planData.value = []
+  }
 }
 const days = ref(0)
 const number = ref(1)
@@ -187,18 +203,16 @@ const createPlan = async () => {
 }
 // 删除课程表 - 我的课程下的课程删除
 const delMyClassData = async (id) => {
-  await delMyClass(id)
-      .then((res) => {
-        if (res.code == 200) {
-          getMylessonsData()
-        }
-      })
-      .catch(() => {
-        ElMessage({
-          message: "最近学习数据请求出错！",
-          type: 'error'
-        });
-      });
+  try {
+    const res = await delMyClass(id)
+    if (res && res.code == 200) {
+      ElMessage.success('课程已成功移除')
+      await getMylessonsData()
+    }
+  } catch (err) {
+    console.error('删除课程失败:', err)
+    ElMessage.error('删除课程失败，请稍后重试')
+  }
 }
 
 // 我的课程
@@ -211,19 +225,18 @@ const params = {
 
 // 查询我的课
 const getMylessonsData = async () => {
-  await getMylessons(params)
-      .then((res) => {
-        if (res.code == 200 && res.data != null) {
-          myClassData.value = res.data.list
-          count.value = Number(res.data.total)
-        }
-      })
-      .catch(() => {
-        ElMessage({
-          message: "最近学习数据请求出错！",
-          type: 'error'
-        });
-      });
+  try {
+    const res = await getMylessons(params)
+    if (res && res.code == 200 && res.data != null) {
+      myClassData.value = res.data.list || []
+      count.value = Number(res.data.total || 0)
+    } else {
+      myClassData.value = []
+    }
+  } catch (err) {
+    console.warn('查询课程列表:', err)
+    myClassData.value = []
+  }
 }
 
 </script>

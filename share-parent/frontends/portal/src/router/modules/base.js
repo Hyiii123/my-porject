@@ -31,7 +31,7 @@ export default [
     children: [
       {
         path: 'index',
-        name: 'search',
+        name: 'searchIndex',
         component: () => import('@/pages/classSearch/index.vue'),
         meta: { title: '课程搜索' },
       }
@@ -46,7 +46,7 @@ export default [
     children: [
       {
         path: 'index',
-        name: 'askDetails',
+        name: 'askDetailsIndex',
         component: () => import('@/pages/ask/askDetails.vue'),
         meta: { title: '问题回复详情' },
       }
@@ -61,7 +61,7 @@ export default [
     children: [
       {
         path: 'index',
-        name: 'details',
+        name: 'detailsIndex',
         component: () => import('@/pages/classDetails/index.vue'),
         meta: { title: '问题详情' },
       }
@@ -75,7 +75,7 @@ export default [
     children: [
       {
         path: 'index',
-        name: 'learning',
+        name: 'learningIndex',
         component: () => import('@/pages/learning/index.vue'),
         meta: { title: '学习' },
       }
