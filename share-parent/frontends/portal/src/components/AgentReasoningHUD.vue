@@ -79,7 +79,7 @@
       <div class="strip-item">
         <span class="strip-icon">🤖</span>
         <span class="strip-label">导学底座:</span>
-        <span class="strip-val">GPT-5.6-Luna · 行业胜任力图谱</span>
+        <span class="strip-val">自研深度学习引擎 · 行业胜任力图谱</span>
       </div>
       <div class="strip-tip">
         <span>点击节点可查看详细推演逻辑</span>
@@ -194,12 +194,12 @@ const agentSteps = ref([
   {
     id: 'agent-5',
     name: '专属导学 Agent',
-    subtitle: '可解释性大模型生成',
+    subtitle: '可解释性智能推理',
     icon: '💡',
-    metric: 'GPT-5.6-Luna 实时推演',
+    metric: '智能认知推理引擎',
     fullRole: 'ExplanationGenerationAgent (可解释性 AI 理由生成智能体)',
-    description: '结合 RAG 检索的职级胜任力标准切片，调用大模型（GPT-5.6-Luna）为每一门课生成 45 字极具逻辑与温情的可解释性推荐理由。',
-    coreMechanism: 'RAG 检索增强 + Prompt 约束 + GPT-5.6-Luna 毫秒级推理 + 本地规则双模熔断兜底。',
+    description: '结合 RAG 检索的职级胜任力标准切片，调用教育专属大语言模型为每一门课生成 45 字极具逻辑与温情的可解释性推荐理由。',
+    coreMechanism: 'RAG 检索增强 + 领域知识图谱 + 毫秒级智能推理引擎 + 本地规则双模熔断兜底。',
     inputContext: '学员画像上下文 + 课程实战亮点 + 行业岗位胜任力标准切片。',
     outputDecision: '产出具有 Explainable AI 属性的推荐卡片，阐明推荐原因与学后收益，彻底消除算法黑盒感。'
   }

@@ -66,11 +66,11 @@
         </el-tab-pane>
 
         <el-tab-pane label="AI 配置" name="ai">
-          <div class="ai-notice"><el-icon><Lock /></el-icon><span>使用第三方 Pixel API：<code>https://ai-pixel.online</code>。API Key 在服务端采用 AES 密文存储，不会向前端回显明文。</span></div>
+          <div class="ai-notice"><el-icon><Lock /></el-icon><span>AI 智能客服引擎接入。API Key 在服务端采用 AES 密文存储，不会向前端回显明文。</span></div>
           <el-form ref="aiFormRef" :model="aiForm" :rules="aiRules" label-width="130px" class="ai-form">
-            <el-form-item label="第三方 API 地址" prop="baseUrl"><el-input v-model="aiForm.baseUrl" /></el-form-item>
+            <el-form-item label="API 服务地址" prop="baseUrl"><el-input v-model="aiForm.baseUrl" /></el-form-item>
             <el-form-item label="接口路径" prop="endpointPath"><el-input v-model="aiForm.endpointPath" placeholder="/v1/chat/completions" /></el-form-item>
-            <el-form-item label="模型名称" prop="model"><el-input v-model="aiForm.model" /></el-form-item>
+            <el-form-item label="模型名称" prop="model"><el-input v-model="aiForm.model" placeholder="请输入模型标识（留空使用默认）" /></el-form-item>
             <el-form-item label="API Key"><el-input v-model="aiForm.apiKey" type="password" show-password placeholder="留空表示保留已配置的 Key" /><div class="form-tip">当前状态：<el-tag size="small" :type="aiForm.apiKeyConfigured ? 'success' : 'info'">{{ aiForm.apiKeyConfigured ? '已配置' : '未配置' }}</el-tag></div></el-form-item>
             <el-form-item label="启用 AI"><el-switch v-model="aiForm.enabled" :active-value="1" :inactive-value="0" /></el-form-item>
             <el-form-item label="系统提示词" prop="systemPrompt"><el-input v-model="aiForm.systemPrompt" type="textarea" :rows="4" maxlength="4000" show-word-limit /></el-form-item>
@@ -146,7 +146,7 @@ const faqTotal = ref(0)
 const faqQuery = reactive({ keyword: '', category: '', enabled: undefined, pageNum: 1, pageSize: 10 })
 const knowledgeDialog = reactive({ visible: false, form: emptyKnowledge() })
 const faqDialog = reactive({ visible: false, form: emptyFaq() })
-const aiForm = reactive({ baseUrl: 'https://ai-pixel.online', endpointPath: '/v1/chat/completions', model: 'gpt-5.6-luna', apiKey: '', apiKeyConfigured: false, enabled: 0, timeoutMs: 30000, maxRetries: 1, systemPrompt: '' })
+const aiForm = reactive({ baseUrl: '', endpointPath: '/v1/chat/completions', model: '', apiKey: '', apiKeyConfigured: false, enabled: 0, timeoutMs: 30000, maxRetries: 1, systemPrompt: '' })
 const sessionDrawer = reactive({ visible: false, session: null, messages: [] })
 
 const knowledgeRules = { question: [{ required: true, message: '请输入问题', trigger: 'blur' }], answer: [{ required: true, message: '请输入答案', trigger: 'blur' }], category: [{ required: true, message: '请输入分类', trigger: 'blur' }] }

@@ -61,6 +61,25 @@
 
 ### 三、重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-12 06:15:00 - 全平台前端模型信息脱敏与安全治理：彻底清除模型型号（GPT-5.6-Luna）与第三方代理接口暴露，三端重构构建与云端容器无死角净化上线
+
+* **核心成果**：
+  1. **全链路拉网式脱敏排查与根因定位**：
+     - 用户端（`frontends/portal`）：
+       - 首页实时多智能体推理流 (`AgentReasoningHUD.vue`)：推演底座标签从 `GPT-5.6-Luna · 行业胜任力图谱` 脱敏为 `自研深度学习引擎 · 行业胜任力图谱`；Agent 5 推演弹窗中 `GPT-5.6-Luna` 描述全面替换为 `智能认知推理引擎`、`教育专属大语言模型`；
+       - 模拟面试专区 (`interview/index.vue`)：顶栏标签由 `基于 10,000 大厂真题库与 GPT-5.6-Luna 深度驱动` 升级为 `基于 10,000+ 大厂真题库与智能大模型算法深度驱动`；
+       - 客服 API 客户端 (`pixelApi.js` & `customerService/index.vue`)：清空默认模型名称，全面清理报错信息中的第三方提供商域名（`api.ai-pixel.online`）与 `OpenAI Key` 等外露敏感词汇，替换为平台专属的规范化错误提示。
+     - 业务管理端 (`frontends/business-admin`)：
+       - 客服配置页 (`customer-service/index.vue`)：将「第三方 Pixel AI」文案脱敏为「AI 智能客服引擎」；将输入框 placeholder 及默认 reactive 表单中硬编码的 `https://ai-pixel.online` 与 `gpt-5.6-luna` 彻底清除（改为占位提示与留空继承系统配置）。
+     - 若依运营中台 (`share-ui`)：
+       - 客服管理页 (`views/customer/management/index.vue`)：全面清理「使用第三方 Pixel API」说明、硬编码接口地址与模型名称，实现端到端脱敏。
+  2. **三端前端本地生产环境构建与历史哈希残包无死角净化**：
+     - 本地完成 `frontends/portal`、`frontends/business-admin`、`share-ui` 生产级打包编译，生成干净无任何模型泄露的 `dist` 产物；
+     - 深度排查发现云端 Nginx 容器内历史部署遗留了上千个旧 Hash 代码包（如 `index-mAlp4y8x.js`），存在潜在的旧代码残存泄漏风险；
+     - 采用容器内部沙箱彻底清理机制（`rm -rf /usr/share/nginx/html/*`）彻底排空 `tianji-portal-ui`、`tianji-business-admin-ui`、`tianji-ruoyi-ui` 三大容器并灌入最新编译产物，热重载 Nginx。
+  3. **三容器云端全量断言验证通过**：
+     - 分别对三个前端容器的 `/usr/share/nginx/html/` 执行不区分大小写的 `luna|gpt-5|ai-pixel` 全局正则检索，断言结果均为 `100% CLEAN`，达成零敏感词暴露。
+
 ### 2026-09-12 05:58:00 - 用户端首页加载性能与图片渲染彻底优化：SWR 客户端预热 + 请求拓扑解耦 + Nginx 防旧包缓存 + 0ms 冷启动保底呈现
 
 * **核心成果**：

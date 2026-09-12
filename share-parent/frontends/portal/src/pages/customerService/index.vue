@@ -326,7 +326,7 @@ async function sendMessage() {
     const replyAlreadyIncluded = reply && sessionMessages.some((message) => String(message.id) === String(reply.id))
     if (reply && !replyAlreadyIncluded) {
       const content = reply.isFallback && pixelApiEnabled.value
-        ? `第三方 AI 暂时不可用，已切换知识库回答：\n${reply.content}`
+        ? `智能服务繁忙，已为您切换知识库回答：\n${reply.content}`
         : reply.content
       addLocalMessage(reply.type, content, reply.senderName)
     }
@@ -334,9 +334,9 @@ async function sendMessage() {
     const rawError = String(error.message || '')
     const isInvalidApiKey = /invalid api key|incorrect api key|无效.*key|401|403/i.test(rawError)
     const errorMessage = isInvalidApiKey
-      ? '第三方 API Key 无效，请在 api.ai-pixel.online 创建并复制该平台的 API Key，不能使用官方 OpenAI Key。'
+      ? '智能客服服务凭证无效或已过期，请在管理端配置正确的接入凭证。'
       : pixelApiEnabled.value
-        ? `第三方 AI 接口调用失败：${rawError || '请点击“接口设置”检查 API Key、模型和网络连接。'}`
+        ? `智能客服接口响应异常：${rawError || '请检查网络连接或稍后重试。'}`
         : '抱歉，客服服务暂时不可用，请稍后再试。'
     addLocalMessage('ai', errorMessage)
   } finally {

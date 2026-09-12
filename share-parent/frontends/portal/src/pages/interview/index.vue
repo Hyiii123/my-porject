@@ -5,7 +5,7 @@
       <div class="banner-content">
         <div class="banner-tag">
           <el-tag effect="dark" type="danger" round>Zhiwen AI Interview Pro</el-tag>
-          <span class="tag-sub">基于 10,000 大厂真题库与 GPT-5.6-Luna 深度驱动</span>
+          <span class="tag-sub">基于 10,000+ 大厂真题库与智能大模型算法深度驱动</span>
         </div>
         <h1 class="banner-title">全真沉浸式 AI 模拟面试与职涯评测</h1>
         <p class="banner-desc">
