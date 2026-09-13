@@ -70,7 +70,8 @@ Write-Host "[2/2] 正在远程执行指令: [$Action]..." -ForegroundColor Gray
 Write-Host ""
 
 $remoteCmd = "/opt/tianji/share-parent/scripts/manage-project.sh $Action"
-& workbench exec --instance-id $InstanceId --command "$remoteCmd"
+# 启动流程含分层等待+健康检查+Nacos注册轮询，需要约2~4分钟，设置5分钟超时
+& workbench exec --instance-id $InstanceId --timeout 300 --command "$remoteCmd"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERROR] 远程执行遇到错误，退出码: $LASTEXITCODE" -ForegroundColor Red
