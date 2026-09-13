@@ -30,3 +30,9 @@ logs/
 
 # Scratch working directory (to prevent C drive usage)
 .scratch/
+
+# Python cache & bytecode
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

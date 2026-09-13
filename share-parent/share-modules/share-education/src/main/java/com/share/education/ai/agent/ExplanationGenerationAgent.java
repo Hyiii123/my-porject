@@ -57,7 +57,7 @@ public class ExplanationGenerationAgent {
                     : "核心技术栈专项提升";
 
                 int matchScore = (int) Math.round(ac.getMatchScore() != null ? ac.getMatchScore() : 92.0);
-                String matchTag = buildMatchTag(stage, matchScore);
+                String matchTag = StringUtils.hasText(ac.getMatchTag()) ? ac.getMatchTag() : buildMatchTag(stage, matchScore);
 
                 result.add(PersonalizedRecommendVO.builder()
                     .id(ac.getCourseId())
@@ -75,6 +75,7 @@ public class ExplanationGenerationAgent {
                     .learningStage(stage.getStageName())
                     .skillGapFilled(skillGapFilled)
                     .prerequisiteSkills(ac.getPrerequisiteSkills())
+                    .evidencePaths(ac.getEvidencePaths() != null ? ac.getEvidencePaths() : Collections.emptyList())
                     .build());
 
                 if (result.size() >= limit) {
@@ -96,15 +97,20 @@ public class ExplanationGenerationAgent {
         // 若百炼大模型客户端处于就绪可用状态，则尝试让大模型润色微调个性化推荐理由
         if (aiClient.isAvailable()) {
             try {
-                String systemPrompt = "你是一名资深 IT 职业教育规划专家。请针对学员目标岗位、当前技能画像和推荐课程，"
-                    + "用一句温暖、专业、富有逻辑性的话（45字以内）阐述【为什么推荐这门课程以及学完对职业发展的帮助】。直接输出一句话，不带格式。";
+                String systemPrompt = "你是一名资深 IT 职业教育规划专家。请针对学员目标岗位、当前技能画像、知识图谱推导先修链路和推荐课程，"
+                    + "用一句温暖、专业、富有严密逻辑性的话（45字以内）阐述【为什么推荐这门课程以及学完对前沿技术突破的帮助】。直接输出一句话，不带格式。";
+                
+                String pathEvidence = (ac.getEvidencePaths() != null && !ac.getEvidencePaths().isEmpty())
+                    ? "；知识图谱推导先修链路：" + String.join("，", ac.getEvidencePaths()) : "";
+
                 String userPrompt = String.format(
-                    "学员目标岗位：%s；已有技能：%s；当前阶段：%s；推荐课程：《%s》；核心知识点：%s；行业背景参考：%s",
+                    "学员目标岗位：%s；已有技能：%s；当前阶段：%s；推荐课程：《%s》；核心知识点：%s%s；行业背景参考：%s",
                     profile.getIntendedRole(),
                     String.join(",", profile.getTopSkills()),
                     stage.getStageName(),
                     ac.getCourseName(),
                     String.join(",", ac.getCoreKnowledgePoints()),
+                    pathEvidence,
                     benchmarkEvidence
                 );
 
@@ -126,6 +132,12 @@ public class ExplanationGenerationAgent {
         String role = StringUtils.hasText(profile.getIntendedRole()) ? profile.getIntendedRole() : "技术工程师";
         List<String> topSkills = profile.getTopSkills();
         String mainSkill = (!topSkills.isEmpty()) ? topSkills.get(0) : "现有技术";
+
+        // 优先采纳 DRAG-KP4SR 算法推演出的显式先修知识路径作为解释锚点
+        if (ac.getEvidencePaths() != null && !ac.getEvidencePaths().isEmpty()) {
+            String firstPath = ac.getEvidencePaths().get(0);
+            return String.format("前沿知识攻坚：基于先修拓扑链路（%s），助力平滑跃升攻克 %s 核心难点。", firstPath, courseName);
+        }
 
         if (stage.getStageIndex() == 1) {
             return String.format("筑基必备：稳固 %s 核心语法与工程规范，为进阶 %s 构筑不可或缺的底层基石。", mainSkill, role);

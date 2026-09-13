@@ -574,3 +574,26 @@
      - 本地编译生成 `share-trade.jar` 与 `portal` 生产包，安全热更新云端 `tianji-trade` 与 `tianji-portal-ui`；
      - 编写并执行 `.scratch/test_trade_flow.py`，完整覆盖通过网关 `/ts` 与 `/prs` 鉴权、领券、下单、支付、重复支付严格阻断拦截、退款申请、管理端驳回、订单回显可重新申请、二次申诉申请、管理端同意退款、优惠券恢复以及已退款订单防支付拦截等全部 11 步关键流程，100% 满分通过。
 
+### 2026-09-13 08:30:00 - DRAG-KP4SR 知识图谱推荐算法微服务容器化与 Spring AI 多智能体体系全栈无缝衔接落地 (方案 A 语义桥接适配器模式)
+
+* **核心成果**：
+  1. **DRAG-KP4SR 核心推荐算法模型解耦与轻量容器化微服务落地**：
+     - 将原工程（`D:\推荐算法小论文\03_实验代码`）中的 265,305 条真实实体先修有向拓扑边（Prerequisite Graph）、51 门计算机核心课程元数据及 42,354 条学员真实学习序列，解耦并提炼为轻量高性能 Python 微服务（常驻内存仅 ~90MB，零重型 PyTorch 依赖，纯基于 Python 标准库与 NumPy 向量运算）；
+     - 设计并落地 `DragModelHolder` 单例服务底座，实现知识图谱 BFS 前沿探测拓展（Frontier Expansion）、基于时间衰减因子的动态知识状态追踪（Knowledge State Tracking）、BM25 文本语义与岗位关键词多路混合加权打分；
+     - 构建原生轻量 HTTP 推理服务 `server.py`，暴露健康探针 `/api/recommend/health`、预测接口 `/api/recommend/predict` 与知识图谱探针 `/api/recommend/concept-graph`；
+     - 编写精简生产级 `Dockerfile`，于阿里云 ECS 云服务器成功构建镜像并在 `tianji-net` 网络中启动容器 `tianji-recommend`（端口 5000，宿主机映射 15000），冷启动初始化耗时 3.41s，缓存预热后单次推理耗时降至 4ms~30ms。
+  2. **跨系统实体语义桥接适配器（CourseMappingAdapter）构建**：
+     - 构建领域锚点与关键词映射矩阵，实现天机业务库现存 320 门工业级课程实体（IDs 1~320）与 MOOCCubeX 51 门学术大纲课程实体的精准双向投影；
+     - 在候选召回的同时抽取显式先修知识推导路径链（`evidencePaths`，例如 `K_一元运算符_计算机科学与技术 --PREREQUISITE--> K_E1线路_计算机科学与技术`），彻底打通学术论文算法与工业业务系统的数据实体割裂。
+  3. **Java Spring AI Alibaba 五大智能体全链路协同升级**：
+     - `UserProfileAgent`：严格按学习时间与记录 ID 升序提取学员真实学习时序历史（`chronologicalCourseIds`），支持将真实学习时序传入 Python 算法服务；
+     - `RecommendationAgent` & `RemotePythonAlgorithmEngine`：全面升级调用协议，将画像时序、技能标签与目标岗位传入 `http://tianji-recommend:5000/api/recommend/predict`，成功在 300ms 内召回 24 门知识拓扑增强候选课，并智能赋予 `知识前沿突破`、`先修核心进阶`、`图谱综合推荐` 专属标签；
+     - `CourseAnalysisAgent`：丰富课程详情实体，将先修路径证据无损注入分析产物 `AnalyzedCourseVO`；
+     - `PathPlanningAgent`：根据先修知识依赖重构拓扑排序算法，彻底根治阶段间先修倒置问题；
+     - `ExplanationGenerationAgent`：在 Prompt 与规则降级中深度融合知识图谱推导链路证据，生成精准指向知识前沿与先修关系的专业导学推荐理由（“前沿知识攻坚：基于先修拓扑链路（K_xxx --PREREQUISITE--> K_yyy），助力平滑跃升攻克 xxx 核心难点”）；
+     - `DashScopeAiClient`：引入 5 分钟原子熔断器机制（Circuit Breaker），彻底杜绝因第三方大模型网络抖动或超时导致系统阻塞挂起的隐患，毫秒级快速降级至高质量图谱可解释性规则。
+  4. **配置中心与网关全链路生产部署与定向回归验证通过**：
+     - Nacos 配置中心动态热更新 `share-education-dev.yml`：将 `python-service.url` 切换至容器内网域名 `http://tianji-recommend:5000/api/recommend/predict`，设置超时时间为 5000ms；
+     - 本地 JDK 17 打包生成最新 `share-education.jar` 并热更新云端 `tianji-education` 容器；
+     - 依据规则 8 严格执行定向范围测试：实测冷启动访客请求（134ms 响应）、认证学员 User 201（AI开发工程师，837ms 端到端全智能体执行完毕并精准召回 PySpark 与分布式机器学习流水线课程）、网关 `/cs/courses/recommendations/personalized?limit=6`（326ms）与学习路径规划大屏接口（199ms）；
+     - 执行容灾逃生测试：人为关停 `tianji-recommend` 容器并清空缓存，Java 智能体集群 100% 毫秒级无感降级至本地混合特征引擎，返回 HTTP 200，随后无缝恢复容器，达成零宕机高可用保障。

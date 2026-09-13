@@ -73,11 +73,28 @@ public class UserProfileAgent {
         );
 
         Set<Long> enrolledCourseIds = new HashSet<>();
+        List<Long> chronologicalCourseIds = new ArrayList<>();
+        Map<Long, Double> courseProgressMap = new LinkedHashMap<>();
         double totalHours = 0.0;
         if (learningRecords != null) {
-            for (EduLearningRecord r : learningRecords) {
-                if (r.getCourseId() != null) enrolledCourseIds.add(r.getCourseId());
-                if (r.getLearnDurationSeconds() != null) totalHours += r.getLearnDurationSeconds() / 3600.0;
+            // 按最后学习时间与记录ID升序，构建严格学习历史时序
+            List<EduLearningRecord> sortedRecords = new ArrayList<>(learningRecords);
+            sortedRecords.sort(Comparator.comparing(EduLearningRecord::getLastLearnTime, Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(EduLearningRecord::getId, Comparator.nullsFirst(Comparator.naturalOrder())));
+
+            for (EduLearningRecord r : sortedRecords) {
+                if (r.getCourseId() != null) {
+                    enrolledCourseIds.add(r.getCourseId());
+                    if (!chronologicalCourseIds.contains(r.getCourseId())) {
+                        chronologicalCourseIds.add(r.getCourseId());
+                    }
+                    if (r.getProgressPercent() != null) {
+                        courseProgressMap.put(r.getCourseId(), r.getProgressPercent().doubleValue());
+                    }
+                }
+                if (r.getLearnDurationSeconds() != null) {
+                    totalHours += r.getLearnDurationSeconds() / 3600.0;
+                }
             }
         }
 
@@ -146,6 +163,8 @@ public class UserProfileAgent {
             .enrolledCourseIds(enrolledCourseIds)
             .completedHours(Math.round(totalHours * 10.0) / 10.0)
             .cognitiveLevel(cognitiveLevel)
+            .chronologicalCourseIds(chronologicalCourseIds)
+            .courseProgressMap(courseProgressMap)
             .build();
     }
 

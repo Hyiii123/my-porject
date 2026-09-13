@@ -44,4 +44,8 @@ public class PersonalizedRecommendVO {
     /** 先修依赖技能 */
     @Builder.Default
     private List<String> prerequisiteSkills = Collections.emptyList();
+
+    /** 知识图谱先修推导链路 (供前端展示前沿进阶脉络) */
+    @Builder.Default
+    private List<String> evidencePaths = Collections.emptyList();
 }

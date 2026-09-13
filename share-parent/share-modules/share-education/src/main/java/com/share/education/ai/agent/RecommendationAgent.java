@@ -116,6 +116,9 @@ public class RecommendationAgent {
                 .learnerCount(c.getLearnerCount() != null ? c.getLearnerCount() : 0)
                 .algorithmScore(ac.getScore())
                 .recallChannel(algorithmEngine.getEngineName())
+                .matchTag(ac.getMatchTag())
+                .evidencePaths(ac.getEvidencePaths())
+                .featureMap(ac.getFeatureMap())
                 .build());
 
             if (result.size() >= targetCount) {

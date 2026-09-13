@@ -26,4 +26,8 @@ public class AlgorithmCandidateDTO {
 
     /** 算法提取的特征映射或注意力权重 (用于后续 Agent 解释与路径分析) */
     private Map<String, Object> featureMap;
+
+    /** 知识图谱先修推导路径 (由 DRAG-KP4SR 算法检索产出) */
+    @Builder.Default
+    private java.util.List<String> evidencePaths = java.util.Collections.emptyList();
 }

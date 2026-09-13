@@ -42,4 +42,11 @@ public class AnalyzedCourseVO {
 
     /** 难度适配评估 ("平滑承接", "适度跨越", "高阶突破") */
     private String difficultyAssessment;
+
+    /** 智能契合标签 */
+    private String matchTag;
+
+    /** 知识图谱先修推导路径 (由 DRAG-KP4SR 算法检索产出) */
+    @Builder.Default
+    private List<String> evidencePaths = Collections.emptyList();
 }

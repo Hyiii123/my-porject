@@ -113,6 +113,8 @@ public class CourseAnalysisAgent {
                 .practicalWeight(practicalWeight)
                 .syllabusSummary(syllabusSummary.length() > 0 ? syllabusSummary.toString() : "系统化进阶核心大纲")
                 .difficultyAssessment(difficultyAssessment)
+                .matchTag(c.getMatchTag())
+                .evidencePaths(c.getEvidencePaths() != null ? c.getEvidencePaths() : Collections.emptyList())
                 .build());
         }
 

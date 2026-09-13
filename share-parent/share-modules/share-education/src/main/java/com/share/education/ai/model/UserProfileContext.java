@@ -55,4 +55,12 @@ public class UserProfileContext {
 
     /** 学员认知能力等级评估 (小白入门 / 初级进阶 / 骨干冲刺 / 架构瓶颈) */
     private String cognitiveLevel;
+
+    /** 按时序严格排序的历史已学课程 ID 列表 (供序列与知识图谱推荐算法建模) */
+    @Builder.Default
+    private List<Long> chronologicalCourseIds = Collections.emptyList();
+
+    /** 课程完成度与进度映射 (courseId -> progressPercent) */
+    @Builder.Default
+    private Map<Long, Double> courseProgressMap = Collections.emptyMap();
 }

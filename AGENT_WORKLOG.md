@@ -55,6 +55,7 @@
 | **前端 - 业务管理端** | `http://47.120.67.187:18082` | 容器 `tianji-business-admin-ui`，对应源码 `frontends/business-admin` |
 | **前端 - 基础管理端** | `http://47.120.67.187:18080` | 容器 `tianji-ruoyi-ui`，对应源码 `share-ui` |
 | **API 网关 Gateway** | `http://47.120.67.187:8080` | 容器 `tianji-gateway`，统一接口入口 |
+| **推荐算法微服务** | `http://47.120.67.187:15000` | 容器 `tianji-recommend`，内部端口 `5000`，`DRAG-KP4SR` 语义桥接引擎 |
 | **Nacos 控制台** | 内部端口 `8848` / 宿主机 `8848` | 配置中心与服务发现（命名空间等依赖外部 MySQL） |
 
 ---
@@ -96,6 +97,8 @@
 | **20** | **短信登录改版为邮箱验证码登录时旧有接口协议与鉴权模式不兼容** | 1. 用户端原短信登录走 `/accounts/login` 传 `cellPhone` 与 `code`，直接修改可能导致旧版接口报 500 或用户名格式校验拒绝；<br>2. 新用户直接使用邮箱验证码登录若未提前注册，传统模式会直接报用户不存在导致登录失败；<br>3. 邮箱验证码未设置防重放机制可能被复用。 | 1. 在 `LoginBody` 拓展 `email`、`code`、`type`，并做向后兼容；<br>2. 鉴权服务 `SysLoginService` 中新增 `loginByEmailCode`，校验 Redis 验证码后原子销毁（防重放）；<br>3. 自动检测用户是否存在，未注册用户自动为其创建学员账号（`user_type: "01"`）并直接发牌（JWT），达成免密极速登录体验；<br>4. 前端 `LoginPhone.vue` 转型为专用 QQ 邮箱验证码登录组件，内置 60s 倒计时与严格邮箱正则校验。 |
 | **21** | **用户端首页继续学习横幅对新用户错误显示「上次学习数据可视化」虚假记录** | 1. 首页 SWR 缓存机制将属于用户私密态的 `recentLearning` 与全站公开课程分类缓存混存于 `localStorage` 的 `HOME_CACHE_KEY`，导致换账号或新用户继承老用户的脏缓存；<br>2. `getMylessons()` 在返回空列表（新用户）时缺少 `else` 重置分支，导致界面永久保留脏缓存；<br>3. 模板字段与后端实体字段不一致（`learnedSections` vs `completedLessons`、`sections` vs `totalLessons`），导致进度计算错误回退为 0/10 节。 | 1. `recentLearning` 彻底从公开 `HOME_CACHE_KEY` 解耦，初始化与无记录时严格为 `null`，并在读取缓存时主动清理历史存量键；<br>2. `loadRecentLearning` 严格判断 `lessons.length > 0`，无记录时强制重置为 `null`；<br>3. 兼容后端真实返回字段（`completedLessons`、`totalLessons`、`progressPercent`），确保真实学员进度精准无误。 |
 | **22** | **个人中心点击「我的课程」跳转 404 页面** | Vue Router 4 中存在路由名称冲突：`components.js` 的独立顶层课表路由 `/my-class` 也声明了 `name: 'myClass'`，后注册的顶层路由覆盖并注销了 `base.js` 中个人中心子路由 `/personal/main/myClass` 的 matcher。同时 `/:w+` 404 兜底路由原本写在 `defaultRouterList` 头部，导致匹配失效直接被转派至 `/result/404`。 | 1. 将 `components.js` 顶层课表路由重命名为 `name: 'myClassSchedule'`，彻底消除路由名冲突；<br>2. 规范修正 `base.js` 与 `components.js` 内部父子路由同名隐患（`searchIndex`, `detailsIndex`, `learningIndex` 等）；<br>3. 将 `notFoundRouter` (`/:w+`) 规范移至全部路由列表的最末尾（`[...defaultRouterList, ...asyncRouterList, ...notFoundRouter]`）；<br>4. `myClass.vue` 增加加载骨架、空状态提示与接口容灾，彻底杜绝无课程时的异常弹窗与白屏。 |
+| **23** | **容器间 HTTP 调用报 Connection Refused 或解析失败** | 同一 Docker 网络内，容器之间通信必须使用 Docker 服务名/容器名（如 `http://tianji-recommend:5000`），若误写为 `127.0.0.1:5000` 则请求打向容器自身，导致连接被拒。 | 在 Nacos 动态配置及微服务调用地址中，容器互联严格配置为 Docker 服务名域名（如 `http://tianji-recommend:5000/api/recommend/predict`），严禁在容器内使用 `127.0.0.1` 指向同宿主机其他容器。 |
+| **24** | **第三方大模型接口网络抖动或不可达导致智能体推荐接口长久挂起阻塞** | 智能体在调用 DashScope/OpenAI 兼容接口时若遇到代理不可达或长耗时，多次重试叠加后单个推荐请求可被阻塞长达 2 分钟以上，耗尽 Servlet 线程池。 | 在 `DashScopeAiClient` 等 AI 客户端中引入原子熔断器（Circuit Breaker）机制，当连续超时或网络中断时立即熔断并保持熔断窗口（如 5 分钟），请求瞬间无感回退至确定性知识图谱规则生成逻辑（耗时 < 1ms），保障系统高吞吐与高可用。 |
 
 ---
 

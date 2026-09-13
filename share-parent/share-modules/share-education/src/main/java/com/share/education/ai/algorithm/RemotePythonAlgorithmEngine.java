@@ -48,44 +48,55 @@ public class RemotePythonAlgorithmEngine implements IRecommendAlgorithmEngine {
         this.objectMapper = objectMapper;
 
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        int timeout = properties.getPythonService() != null ? properties.getPythonService().getTimeoutMs() : 2500;
-        factory.setConnectTimeout(Math.min(timeout, 1500));
-        factory.setReadTimeout(timeout);
+        int timeout = properties.getPythonService() != null ? properties.getPythonService().getTimeoutMs() : 5000;
+        factory.setConnectTimeout(Math.min(timeout, 3000));
+        factory.setReadTimeout(Math.max(timeout, 5000));
         this.restTemplate = new RestTemplate(factory);
     }
 
     @Override
     public List<AlgorithmCandidateDTO> recallCandidates(Long userId, UserProfileContext profile, int topK) {
-        AiRecommendProperties.PythonServiceProperties pyProps = properties.getPythonService();
+        AiRecommendProperties.PythonServiceProperties pyProps = properties != null ? properties.getPythonService() : null;
+        String serviceUrl = pyProps != null ? pyProps.getUrl() : "http://tianji-recommend:5000/api/recommend/predict";
+        boolean serviceEnabled = pyProps == null || pyProps.isEnabled();
+
+        log.info("[AlgorithmEngine] recallCandidates: userId={}, enabled={}, targetUrl={}", userId, serviceEnabled, serviceUrl);
 
         // 1. 检查是否开启远程 Python 服务
-        if (pyProps != null && pyProps.isEnabled() && StringUtils.hasText(pyProps.getUrl())) {
+        if (serviceEnabled && StringUtils.hasText(serviceUrl)) {
             try {
                 Map<String, Object> requestPayload = new LinkedHashMap<>();
-                requestPayload.put("userId", userId);
+                requestPayload.put("userId", userId != null ? userId : 0L);
+                requestPayload.put("historyCourseIds", (profile != null && profile.getChronologicalCourseIds() != null)
+                    ? profile.getChronologicalCourseIds() : Collections.emptyList());
                 requestPayload.put("intendedRole", profile != null ? profile.getIntendedRole() : "");
                 requestPayload.put("preferredDifficulty", profile != null ? profile.getPreferredDifficulty() : 2);
-                requestPayload.put("topSkills", profile != null ? profile.getTopSkills() : Collections.emptyList());
-                requestPayload.put("skillWeights", profile != null ? profile.getSkillWeights() : Collections.emptyMap());
-                requestPayload.put("skillGaps", profile != null ? profile.getSkillGaps() : Collections.emptyList());
-                requestPayload.put("enrolledCourseIds", profile != null ? profile.getEnrolledCourseIds() : Collections.emptySet());
+                requestPayload.put("topSkills", (profile != null && profile.getTopSkills() != null)
+                    ? profile.getTopSkills() : Collections.emptyList());
+                requestPayload.put("skillWeights", (profile != null && profile.getSkillWeights() != null)
+                    ? profile.getSkillWeights() : Collections.emptyMap());
+                requestPayload.put("skillGaps", (profile != null && profile.getSkillGaps() != null)
+                    ? profile.getSkillGaps() : Collections.emptyList());
+                requestPayload.put("enrolledCourseIds", (profile != null && profile.getEnrolledCourseIds() != null)
+                    ? profile.getEnrolledCourseIds() : Collections.emptySet());
                 requestPayload.put("topK", topK);
+                requestPayload.put("useFrontier", true);
 
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestPayload, headers);
 
-                ResponseEntity<String> response = restTemplate.postForEntity(pyProps.getUrl(), entity, String.class);
+                ResponseEntity<String> response = restTemplate.postForEntity(serviceUrl, entity, String.class);
                 if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                     List<AlgorithmCandidateDTO> parsed = parsePythonResponse(response.getBody());
                     if (parsed != null && !parsed.isEmpty()) {
-                        log.info("成功从独立 Python 推荐模型服务召回 {} 门候选课程", parsed.size());
+                        log.info("成功从独立 Python 推荐模型服务召回 {} 门候选课程 (DRAG-KP4SR 知识增强)", parsed.size());
                         return parsed;
                     }
                 }
             } catch (Exception ex) {
-                log.debug("Python 推荐模型服务暂未在线 ({})，自动使用本地混合基线引擎兜底: {}",
-                    pyProps.getUrl(), ex.getMessage());
+                log.warn("Python 推荐模型服务调用异常 ({})，自动使用本地混合基线引擎兜底: {}",
+                    serviceUrl, ex.getMessage());
             }
         }
 
@@ -95,7 +106,7 @@ public class RemotePythonAlgorithmEngine implements IRecommendAlgorithmEngine {
 
     @Override
     public String getEngineName() {
-        return "RemotePythonModelEngine(with-Hybrid-Fallback)";
+        return "RemotePythonModelEngine(DRAG-KP4SR-Hybrid-Fallback)";
     }
 
     private List<AlgorithmCandidateDTO> parsePythonResponse(String json) {
@@ -110,8 +121,12 @@ public class RemotePythonAlgorithmEngine implements IRecommendAlgorithmEngine {
                     String matchTag = item.has("matchTag") ? item.get("matchTag").asText() : "自研模型精准召回";
 
                     Map<String, Object> featureMap = new HashMap<>();
+                    List<String> evidencePaths = new ArrayList<>();
                     if (item.has("features")) {
                         featureMap = objectMapper.convertValue(item.get("features"), new TypeReference<Map<String, Object>>() {});
+                        if (item.get("features").has("evidencePaths")) {
+                            evidencePaths = objectMapper.convertValue(item.get("features").get("evidencePaths"), new TypeReference<List<String>>() {});
+                        }
                     }
 
                     if (courseId != null && courseId > 0) {
@@ -119,6 +134,7 @@ public class RemotePythonAlgorithmEngine implements IRecommendAlgorithmEngine {
                             .courseId(courseId)
                             .score(score)
                             .matchTag(matchTag)
+                            .evidencePaths(evidencePaths)
                             .featureMap(featureMap)
                             .build());
                     }

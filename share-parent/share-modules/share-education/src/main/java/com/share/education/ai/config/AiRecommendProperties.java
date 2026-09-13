@@ -84,11 +84,11 @@ public class AiRecommendProperties {
         /** 是否启用远程 Python 推荐模型服务 */
         private boolean enabled = true;
 
-        /** Python 模型服务预测接口 URL */
-        private String url = "http://127.0.0.1:5000/api/recommend/predict";
+        /** Python 模型服务预测接口 URL (容器互联默认为 http://tianji-recommend:5000/api/recommend/predict) */
+        private String url = "http://tianji-recommend:5000/api/recommend/predict";
 
         /** 调用超时时间 (毫秒) */
-        private int timeoutMs = 2500;
+        private int timeoutMs = 5000;
 
         public String getUrl() {
             String env = System.getenv("PYTHON_REC_SERVICE_URL");

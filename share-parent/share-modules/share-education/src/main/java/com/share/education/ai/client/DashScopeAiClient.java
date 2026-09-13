@@ -32,20 +32,26 @@ public class DashScopeAiClient {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
+    private static final long CIRCUIT_BREAKER_DURATION_MS = 300_000L;
+    private final java.util.concurrent.atomic.AtomicLong circuitBreakerOpenUntil = new java.util.concurrent.atomic.AtomicLong(0L);
+
     public DashScopeAiClient(AiRecommendProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
         this.objectMapper = objectMapper;
 
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Math.min(properties.getTimeoutMs(), 3000));
-        factory.setReadTimeout(properties.getTimeoutMs());
+        factory.setConnectTimeout(2000);
+        factory.setReadTimeout(3000);
         this.restTemplate = new RestTemplate(factory);
     }
 
     /**
-     * 校验大模型是否处于可用状态
+     * 校验大模型是否处于可用状态（增加熔断器保护）
      */
     public boolean isAvailable() {
+        if (System.currentTimeMillis() < circuitBreakerOpenUntil.get()) {
+            return false;
+        }
         return properties.isEnabled() && StringUtils.hasText(properties.getApiKey());
     }
 
@@ -91,7 +97,7 @@ public class DashScopeAiClient {
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-        int retries = Math.max(0, Math.min(properties.getMaxRetries(), 2));
+        int retries = Math.max(0, Math.min(properties.getMaxRetries(), 1));
         for (int attempt = 0; attempt <= retries; attempt++) {
             try {
                 ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
@@ -106,7 +112,10 @@ public class DashScopeAiClient {
                     }
                 }
             } catch (Exception ex) {
-                log.warn("调用百炼 DashScope 大模型第 {} 次尝试失败: {}", attempt + 1, ex.getMessage());
+                long resumeTime = System.currentTimeMillis() + CIRCUIT_BREAKER_DURATION_MS;
+                circuitBreakerOpenUntil.set(resumeTime);
+                log.warn("调用百炼大模型网络超时/异常，已触发5分钟熔断快速降级至知识图谱规则生成: {}", ex.getMessage());
+                break;
             }
         }
 

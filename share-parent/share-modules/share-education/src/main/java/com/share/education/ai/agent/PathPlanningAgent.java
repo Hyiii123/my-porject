@@ -38,28 +38,42 @@ public class PathPlanningAgent {
                 .build();
         }
 
-        // 1. 按课程难度与先修关系进行拓扑时序分组
-        List<AnalyzedCourseVO> stage1Courses = new ArrayList<>(); // 初级筑基 (难度 1)
+        // 1. 基于知识图谱先修依赖 (DRAG-KP4SR 证据链) 与难度的拓扑保序排序
+        List<AnalyzedCourseVO> sortedCourses = new ArrayList<>(courses);
+        sortedCourses.sort((c1, c2) -> {
+            // (1) 检查 c1 是否为 c2 的显式先修
+            boolean c1IsPrereqOfC2 = isPrerequisite(c1, c2);
+            boolean c2IsPrereqOfC1 = isPrerequisite(c2, c1);
+            if (c1IsPrereqOfC2 && !c2IsPrereqOfC1) return -1;
+            if (c2IsPrereqOfC1 && !c1IsPrereqOfC2) return 1;
+
+            // (2) 难度等级升序 (基础筑基 -> 架构突破)
+            int diff1 = c1.getDifficultyLevel() != null ? c1.getDifficultyLevel() : 2;
+            int diff2 = c2.getDifficultyLevel() != null ? c2.getDifficultyLevel() : 2;
+            if (diff1 != diff2) return Integer.compare(diff1, diff2);
+
+            // (3) 同难度下算法匹配得分降序
+            double s1 = c1.getMatchScore() != null ? c1.getMatchScore() : 85.0;
+            double s2 = c2.getMatchScore() != null ? c2.getMatchScore() : 85.0;
+            return Double.compare(s2, s1);
+        });
+
+        // 2. 将拓扑有序的课程平滑切分至 4 个进阶里程碑阶段
+        List<AnalyzedCourseVO> stage1Courses = new ArrayList<>(); // 初级筑基 (难度 1 或先修基石)
         List<AnalyzedCourseVO> stage2Courses = new ArrayList<>(); // 核心进阶 (难度 2)
         List<AnalyzedCourseVO> stage3Courses = new ArrayList<>(); // 架构实战 (难度 3)
         List<AnalyzedCourseVO> stage4Courses = new ArrayList<>(); // 综合攻坚与突破
 
-        for (AnalyzedCourseVO c : courses) {
+        for (AnalyzedCourseVO c : sortedCourses) {
             int diff = c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2;
-            if (diff == 1) {
+            if (diff == 1 && stage1Courses.size() < 3) {
                 stage1Courses.add(c);
-            } else if (diff == 2) {
-                if (stage2Courses.size() < 2) {
-                    stage2Courses.add(c);
-                } else {
-                    stage3Courses.add(c);
-                }
+            } else if (diff <= 2 && stage2Courses.size() < 3) {
+                stage2Courses.add(c);
+            } else if (stage3Courses.size() < 3) {
+                stage3Courses.add(c);
             } else {
-                if (stage3Courses.size() < 2) {
-                    stage3Courses.add(c);
-                } else {
-                    stage4Courses.add(c);
-                }
+                stage4Courses.add(c);
             }
         }
 
@@ -117,5 +131,34 @@ public class PathPlanningAgent {
             .stages(stages)
             .referenceStandard("国家 IT 软件工程师能力标准及大厂 P6/P7 技术模型")
             .build();
+    }
+
+    private boolean isPrerequisite(AnalyzedCourseVO c1, AnalyzedCourseVO c2) {
+        if (c1 == null || c2 == null || c1.getCourseId().equals(c2.getCourseId())) {
+            return false;
+        }
+        String c1Name = c1.getCourseName() != null ? c1.getCourseName().toLowerCase() : "";
+        List<String> prereqs = c2.getPrerequisiteSkills();
+        if (prereqs != null) {
+            for (String req : prereqs) {
+                if (StringUtils.hasText(req) && (c1Name.contains(req.toLowerCase()) || req.toLowerCase().contains(c1Name))) {
+                    return true;
+                }
+            }
+        }
+        // 检查 DRAG-KP4SR 知识图谱先修推导证据链
+        if (c2.getEvidencePaths() != null) {
+            for (String path : c2.getEvidencePaths()) {
+                String[] parts = path.split("--PREREQUISITE-->|->");
+                if (parts.length >= 2) {
+                    String source = parts[0].trim().toLowerCase();
+                    if (StringUtils.hasText(source) && (c1Name.contains(source) || (c1.getCoreKnowledgePoints() != null 
+                        && c1.getCoreKnowledgePoints().stream().anyMatch(kp -> kp.toLowerCase().contains(source))))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

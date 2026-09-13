@@ -104,6 +104,19 @@ services:
     networks:
       - tianji-net
 
+  # 推荐算法知识图谱微服务 (DRAG-KP4SR 语义桥接引擎)，内存仅占 ~90MB
+  recommend:
+    image: tianji-recommend:latest
+    container_name: tianji-recommend
+    restart: unless-stopped
+    ports:
+      - "${TJ_RECOMMEND_PORT:-15000}:5000"
+    environment:
+      TZ: Asia/Shanghai
+      PORT: 5000
+    networks:
+      - tianji-net
+
   nacos:
     image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/nacos/nacos-server:v2.2.0
     container_name: tianji-nacos

@@ -27,4 +27,11 @@ public class CandidateCourseDTO {
     private Integer learnerCount;
     private Double algorithmScore;
     private String recallChannel; // 召回渠道: "ALGORITHM_INFERENCE", "GRAPH_SIMILARITY", "CAREER_GOAL", "HOT_DISCOVERY"
+    private String matchTag;      // 智能契合标签 (如 "知识前沿突破", "先修核心进阶")
+
+    @Builder.Default
+    private java.util.List<String> evidencePaths = java.util.Collections.emptyList();
+
+    @Builder.Default
+    private java.util.Map<String, Object> featureMap = java.util.Collections.emptyMap();
 }
