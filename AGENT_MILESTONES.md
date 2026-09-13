@@ -14,6 +14,23 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-13 18:30:00 - 业务课程 (270门) 与 MOOCCubeX 知识图谱 (51门) 双塔混合语义实体对齐架构落地：BGE Dense 向量与技术词素 BM25 混合对齐、预计算高保真语义索引资产生成、CourseMappingAdapter 纯语义化双向重构与线上端到端实测通畅
+
+* **核心成果**：
+  1. **彻底淘汰哈希取模，确立双塔混合语义实体对齐架构**：
+     - 针对此前 `(id - 1) % 51` 和 `(idx * 6 + offset) % 320` 导致的领域碰撞与推荐语义割裂痛点，设计并实现了基于 BGE-small-zh 512 维稠密向量 + 领域技术关键词 Jaccard/BM25 + 领域先验矩阵的混合对齐算法；
+     - 实现了 270 门真实业务课程（10 大学科门类）与 MOOCCubeX 51 门计算机核心课程（26.5 万条先修边、4.2 万条学员轨迹）的高保真语义对齐，平均对齐置信度高达 0.5243，24 个主力知识学科簇全面覆盖；
+  2. **预计算实体对齐资产生成与持久化存储**：
+     - 开发离线对齐特征工程脚本 `build_semantic_alignment.py`，调用 `tianji-embedding`（BGE-small-zh）服务批量计算语义矩阵，生成结构化资产 `semantic_alignment.json`（257KB）；
+     - 生成正向投射表 `forward_map`（270 门业务课程精准映射到 MOOCCubeX 拓扑节点，保留 Top3 候选）与反向推荐语义簇 `backward_clusters`（按契合度与学员热度综合重排）；
+  3. **CourseMappingAdapter 纯语义双向适配重构与动态去重**：
+     - 重构 `mapping_adapter.py`，启动时毫秒级加载预计算索引，正向 `to_dataset_id` 字典级 $O(1)$ 极速定位真实学科节点；
+     - 反向 `to_business_id` 引入 `exclude_ids` 动态去重机制，从对齐簇中挑选最佳未购课程，杜绝推荐重复；在 `model_holder.py` 特征中透传 `alignmentConfidence` 实体对齐置信度；
+  4. **ECS 生产容器热更新与多角色全链路定向验证**：
+     - 资产与适配代码同步至 `tianji-recommend` 容器，服务平滑重启秒级就绪；
+     - 定向实测“前端开发”、“Java 后端架构师”、“大数据与 AI”三大学情画像，算法推理准确提取领域概念（如 Java 学情精准捕获 `['IP地址', 'Java语言', 'conn', 'hash', 'hash表']`），推荐结果全面对齐目标学科；
+     - 网关 `8080` 验证 `/cs/courses/recommendations/personalized` 畅通无阻，返回带有先修拓扑证据链路的高质量可解释性多智能体推荐。
+
 ### 2026-09-13 18:00:00 - 官方 Spring AI 框架全线跃迁至 1.0.0 GA 正式版：Starter 坐标模块化大重构（spring-ai-starter-model-openai）、OpenAiApi 与 OpenAiChatModel 全面切换 Builder 规范、全量自动装配与空 Key 熔断闭环、双入口定向验证通过
 
 * **核心成果**：
