@@ -14,6 +14,29 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-13 15:00:00 - 交易结算与订单履约全生命周期重构：优惠券核销与退款/取消自动原路返还状态机、超时订单自动过期关闭、全链路订单履约进度节点与退款状态打通、视频连播自动化升级
+
+* **核心成果**：
+  1. **优惠券核销与防重用状态机闭环**：
+     - 排查并根治 `TradeService.placeOrder` 中 `MktUserCoupon` 状态从未更新导致已领取的优惠券可以无限次重复下单使用的严重资产损失漏洞；
+     - 重构 `prePlaceOrder`：优先智能查询当前登录用户在 `mkt_user_coupon` 中已领且未使用的有效优惠券，透传 `userCouponId`，杜绝未领券直接调用或跨人冒用；
+     - 重构 `placeOrder`：匹配用户优惠券主键 ID 或优惠券 ID，下单时原子更新 `mkt_user_coupon.status = 1`（已使用）、`used_at = now()`、`used_order_id = order.getId()`；对于使用公共优惠券下单的用户自动补全核销追溯记录；
+     - 扩展 `placeOrder` 支持 `courseIds` 数组入参及单 `courseId` 双模式兼容。
+  2. **订单取消与超时自动关单原路返还优惠券机制**：
+     - 重构 `cancelOrder` 与 `deleteOrder`：当未支付订单被主动取消或删除时，自动触发 `restoreOrderCoupon`，将对应关联的 `mkt_user_coupon` 原路恢复为 `status = 0`、`used_at = null`、`used_order_id = null`，保障学员资产权益；
+     - 新增订单超时关闭与状态机自愈：在查看订单详情或列表时自动比对 `expireTime`，若未支付且已超时则自动触发流转为已关闭（`orderStatus = 4`）并自动释放并退回优惠券。
+  3. **订单详情全链路履约时间轴节点与退款状态打通**：
+     - 根治 `TradeService.orderView` 中 `progressNodes` 硬编码空列表导致前端订单详情页进度时间轴白屏/空圆点缺陷；
+     - 动态生成「提交订单」、「完成支付」、「订单关闭」、「申请退款/退款成功/退款驳回」等真实生命周期事件节点，透传真实时间戳与节点 ID；
+     - 关联 `TrRefundApply` 真实审批状态计算并透传各课程细项的 `refundStatus`（1: 待审核, 4: 已驳回, 5: 退款成功）与 `canRefund` 可退款布尔标识；
+     - 丰富 `refundView` 退款详情，补齐 `orderTime` 与 `paySuccessTime`。
+  4. **前端订单详情与课程播放链路体验升级**：
+     - `myOrderDetails.vue`：修复时间分割 `:key="it.name"`（字符串无 name 属性）及 null 安全防护；修正申请退款提交后的反馈提示为更准确的「退款申请已提交，请耐心等待审核」；
+     - `learning/index.vue`：优化视频播放完毕事件 `handleVideoEnded`，学习完当前小节后在恭喜提示的同时自动检测章节播放列表，若存在下一小节则倒计时 2.5 秒自动无缝切播至下一课时，大幅提升学员沉浸式学习体验。
+  5. **生产热更新与真实鉴权自动化验证**：
+     - 本地完成 `share-trade.jar` 与 `portal-ui` 离线打包，安全同步至云端 `tianji-trade` 与 `tianji-portal-ui` 容器并重载生效；
+     - 通过 Python 真实请求鉴权测试：`prePlaceOrder` 正确返回用户专属可用优惠券（200 OK）；下单使用优惠券后 `mkt_user_coupon` 立即置为已核销不可再次预选；取消订单后优惠券状态原子原路退回（200 OK）；订单详情获取完整时间轴事件节点与退款状态透传（200 OK）。
+
 ### 2026-09-13 14:00:00 - 社区问答与互动讨论全生命周期架构重构：多级嵌套回复隔离、跨库真实用户身份穿透、点赞底层模型兼容与游客免登录友好浏览升级
 
 * **核心成果**：

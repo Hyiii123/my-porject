@@ -369,10 +369,23 @@ const handleVideoPause = () => {
 
 const handleVideoEnded = () => {
   reportProgress(true)
-  ElMessage.success({
-    message: `恭喜完成【${currentSection.value.title}】的学习！`,
-    duration: 3000
-  })
+  const allSections = chapters.flatMap(c => c.sections || [])
+  const currentIndex = allSections.findIndex(s => s.id === currentSection.value.id)
+  if (currentIndex !== -1 && currentIndex < allSections.length - 1) {
+    const nextSec = allSections[currentIndex + 1]
+    ElMessage.success({
+      message: `恭喜完成【${currentSection.value.title}】！即将自动播放下一节：${nextSec.title}`,
+      duration: 3000
+    })
+    setTimeout(() => {
+      handleSelectSection(nextSec)
+    }, 2500)
+  } else {
+    ElMessage.success({
+      message: `恭喜学完本课程全部小节！`,
+      duration: 4000
+    })
+  }
 }
 
 // 当视频元数据就绪后，尝试恢复上次学习进度

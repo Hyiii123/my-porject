@@ -10,7 +10,7 @@
           <div class="pintTit">{{ item.name }}</div>
           <div class="circular"></div>
           <div class="time">
-            <p v-for="it in item.time.split(' ')" :key="it.name">{{ it }}</p>
+            <p v-for="(it, itIdx) in (item.time ? item.time.split(' ') : [])" :key="itIdx">{{ it }}</p>
           </div>
         </div>
       </div>
@@ -200,7 +200,7 @@ const refundApplyReq = () => {
         if (res.code === 200) {
           refundDialog.value = false;
           ElMessage({
-            message: "退款成功",
+            message: "退款申请已提交，请耐心等待审核",
             type: 'success'
           });
           router.push('/personal/main/myOrder')
