@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import json
+import logging
+from pathlib import Path
 import re
-from typing import Any, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Set
+
+logger = logging.getLogger("mapping_adapter")
 
 # Key domain anchoring table: maps technology keywords to MOOCCubeX course IDs
 DOMAIN_ANCHORS = {
@@ -66,40 +71,94 @@ DOMAIN_ANCHORS = {
 class CourseMappingAdapter:
     """Bidirectional adapter between Business Course IDs and MOOCCubeX Dataset IDs."""
 
-    def __init__(self, dataset_courses: Sequence[str]):
+    def __init__(self, dataset_courses: Sequence[str], alignment_path: Optional[Path] = None):
         self.dataset_courses = list(dataset_courses)
         self.num_courses = max(1, len(self.dataset_courses))
         self.course_to_idx = {cid: idx for idx, cid in enumerate(self.dataset_courses)}
 
+        if alignment_path is None:
+            base_dir = Path(__file__).resolve().parent.parent
+            alignment_path = base_dir / "data" / "semantic_alignment.json"
+
+        self.forward_map: Dict[str, Any] = {}
+        self.backward_clusters: Dict[str, List[Dict[str, Any]]] = {}
+
+        if alignment_path.exists():
+            try:
+                with open(alignment_path, "r", encoding="utf-8") as f:
+                    align_data = json.load(f)
+                self.forward_map = align_data.get("forward_map", {})
+                self.backward_clusters = align_data.get("backward_clusters", {})
+                logger.info(
+                    "成功加载双塔混合语义对齐资产: %d 门正向对齐映射, %d 个反向语义簇",
+                    len(self.forward_map),
+                    len(self.backward_clusters),
+                )
+            except Exception as ex:
+                logger.warning("加载语义对齐文件失败 (%s)，回退至关键词与哈希映射: %s", alignment_path, ex)
+        else:
+            logger.warning("未找到语义对齐文件: %s，回退至基础映射", alignment_path)
+
     def to_dataset_id(self, raw_id: Any, keywords: str = "") -> str:
-        """Convert a database course ID or keywords to a MOOCCubeX dataset ID."""
+        """基于双塔混合语义对齐表，将业务课程 ID 映射为 MOOCCubeX 数据集 ID"""
+        # 1. 优先查真实语义对齐索引
+        if raw_id is not None:
+            s = str(raw_id).strip()
+            if s in self.forward_map:
+                mapped_id = self.forward_map[s].get("dataset_id")
+                if mapped_id and mapped_id in self.course_to_idx:
+                    return mapped_id
+
+            # 已是数据集原生 C_ 编号
+            if s.startswith("C_") and s in self.course_to_idx:
+                return s
+
+        # 2. 关键词领域锚定匹配
         if keywords:
             kw_clean = keywords.lower().replace(",", " ").replace("，", " ").split()
             for kw in kw_clean:
                 if kw in DOMAIN_ANCHORS and DOMAIN_ANCHORS[kw] in self.course_to_idx:
                     return DOMAIN_ANCHORS[kw]
 
+        # 3. 兜底保护
         if raw_id is None:
             return self.dataset_courses[0]
 
-        s = str(raw_id).strip()
-        if s.startswith("C_") and s in self.course_to_idx:
-            return s
-
         try:
-            val = int(s)
+            val = int(str(raw_id).strip())
             idx = abs(val - 1) % self.num_courses
             return self.dataset_courses[idx]
         except (ValueError, TypeError):
-            h = abs(sum(ord(c) for c in s)) % self.num_courses
+            h = abs(sum(ord(c) for c in str(raw_id))) % self.num_courses
             return self.dataset_courses[h]
 
-    def to_business_id(self, dataset_id: str, candidate_offset: int = 0) -> int:
-        """Convert a MOOCCubeX dataset ID to a valid database course ID (1..320)."""
+    def to_business_id(
+        self,
+        dataset_id: str,
+        candidate_offset: int = 0,
+        exclude_ids: Optional[Set[int]] = None,
+    ) -> int:
+        """从语义对齐反向簇中，挑选该学科方向下最契合且未被排除的业务课程 ID"""
+        if exclude_ids is None:
+            exclude_ids = set()
+
+        cluster = self.backward_clusters.get(dataset_id, [])
+        if cluster:
+            available = [c for c in cluster if int(c["business_id"]) not in exclude_ids]
+            if available:
+                idx = candidate_offset % len(available)
+                return int(available[idx]["business_id"])
+            # 若全部已被排除，循环选择该簇内最佳课程
+            idx = candidate_offset % len(cluster)
+            return int(cluster[idx]["business_id"])
+
+        # 极罕见情况：该数据集节点无关联业务课程，平滑散列至 1..270
         idx = self.course_to_idx.get(dataset_id, 0)
-        # Spread across 1..320 range
-        bus_id = ((idx * 6 + candidate_offset) % 320) + 1
-        return bus_id
+        return ((idx * 6 + candidate_offset) % 270) + 1
+
+    def get_alignment_info(self, business_id: Any) -> Optional[Dict[str, Any]]:
+        """获取指定业务课程的语义对齐元数据"""
+        return self.forward_map.get(str(business_id))
 
     @staticmethod
     def clean_concept_name(raw_concept: str) -> str:

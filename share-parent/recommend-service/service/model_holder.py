@@ -115,10 +115,13 @@ class DragModelHolder:
         seen_bus_ids = set()
 
         for offset, evidence in enumerate(raw_candidates):
-            bus_id = self.adapter.to_business_id(evidence.doc_id, candidate_offset=offset)
-            if bus_id in seen_bus_ids:
-                bus_id = (bus_id % 320) + 1
+            bus_id = self.adapter.to_business_id(
+                evidence.doc_id, candidate_offset=offset, exclude_ids=seen_bus_ids
+            )
             seen_bus_ids.add(bus_id)
+
+            align_info = self.adapter.get_alignment_info(bus_id)
+            align_confidence = align_info.get("score", 0.85) if align_info else 0.85
 
             # Score normalized to 82.0 ~ 98.5
             norm_score = round(82.0 + float(evidence.score) * 16.5, 1)
@@ -134,6 +137,7 @@ class DragModelHolder:
                 "masteredConcepts": top_mastered[:5],
                 "frontierConcepts": top_frontier[:5],
                 "evidencePaths": evidence_paths_text[:3],
+                "alignmentConfidence": align_confidence,
             }
 
             results.append({
