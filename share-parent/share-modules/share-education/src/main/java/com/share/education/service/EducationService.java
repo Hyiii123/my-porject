@@ -128,6 +128,9 @@ public class EducationService {
     private final RedisService redisService;
     private final MultiAgentRecommendOrchestrator multiAgentOrchestrator;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     public EducationService(EduBannerMapper bannerMapper, EduCategoryMapper categoryMapper,
             EduDashboardDailyMapper dashboardDailyMapper,
             EduCatalogQuestionMapper catalogQuestionMapper,
@@ -1734,7 +1737,7 @@ public class EducationService {
         LambdaQueryWrapper<EduQuestion> wrapper = new LambdaQueryWrapper<EduQuestion>()
                 .eq(EduQuestion::getHidden, 0).eq(EduQuestion::getStatus, ENABLED)
                 .eq(courseId != null && courseId > 0, EduQuestion::getCourseId, courseId)
-                .eq(sectionId != null && sectionId > 0, EduQuestion::getId, sectionId)
+                .eq(sectionId != null && sectionId > 0, EduQuestion::getCategory, String.valueOf(sectionId))
                 .eq(onlyMine, EduQuestion::getUserId, currentUserId())
                 .and(StringUtils.hasText(keyword), item -> item.like(EduQuestion::getTitle, keyword)
                         .or().like(EduQuestion::getContent, keyword))
@@ -1773,7 +1776,19 @@ public class EducationService {
     @Transactional
     public Object saveQuestionPayload(Map<String, ?> payload) {
         if (!isQuestionBankPayload(payload)) {
-            EduQuestion value = objectMapper.convertValue(payload, EduQuestion.class);
+            EduQuestion value = new EduQuestion();
+            Long id = longValue(payload.get("id"));
+            value.setId(id);
+            value.setCourseId(longValue(payload.get("courseId")));
+            value.setTitle((String) payload.get("title"));
+            String content = defaultText(payload.get("content"), defaultText(payload.get("description"), null));
+            value.setContent(content);
+            Object sectionObj = payload.get("sectionId");
+            if (sectionObj != null && StringUtils.hasText(String.valueOf(sectionObj))) {
+                value.setCategory(String.valueOf(sectionObj));
+            } else if (payload.containsKey("category")) {
+                value.setCategory((String) payload.get("category"));
+            }
             return saveQuestion(value);
         }
         Long id = longValue(payload.get("id"));
@@ -1910,9 +1925,13 @@ public class EducationService {
         Page<EduReply> page = new Page<>(safePage(pageNo), safeSize(pageSize));
         LambdaQueryWrapper<EduReply> wrapper = new LambdaQueryWrapper<EduReply>()
                 .eq(EduReply::getHidden, 0).eq(EduReply::getStatus, ENABLED)
-                .eq(questionId != null, EduReply::getQuestionId, questionId)
-                .eq(answerId != null && answerId > 0, EduReply::getParentId, answerId)
-                .orderByAsc(EduReply::getCreateTime);
+                .eq(questionId != null, EduReply::getQuestionId, questionId);
+        if (answerId != null && answerId > 0) {
+            wrapper.eq(EduReply::getParentId, answerId);
+        } else {
+            wrapper.and(w -> w.eq(EduReply::getParentId, 0).or().isNull(EduReply::getParentId));
+        }
+        wrapper.orderByAsc(EduReply::getCreateTime);
         replyMapper.selectPage(page, wrapper);
         return pageView(page.getTotal(), page.getRecords().stream().map(this::replyView).toList());
     }
@@ -1932,6 +1951,17 @@ public class EducationService {
         value.setUpdateTime(now);
         value.setDelFlag(0);
         value.setVersion(0);
+
+        if (value.getParentId() == null || value.getParentId() <= 0) {
+            if (value.getAnswerId() != null && value.getAnswerId() > 0) {
+                value.setParentId(value.getAnswerId());
+            } else if (value.getTargetReplyId() != null && value.getTargetReplyId() > 0) {
+                value.setParentId(value.getTargetReplyId());
+            } else {
+                value.setParentId(0L);
+            }
+        }
+
         replyMapper.insert(value);
         EduQuestion question = requireQuestion(value.getQuestionId());
         question.setReplyCount(defaultValue(question.getReplyCount(), 0) + 1);
@@ -2081,6 +2111,27 @@ public class EducationService {
                 note.setLikeCount(Math.max(defaultValue(note.getLikeCount(), 0) - 1, 0));
             }
             noteMapper.updateById(note);
+            return liked;
+        }
+        EduReply reply = replyMapper.selectById(bizId);
+        if (reply != null) {
+            Long userId = currentUserId();
+            String likeKey = "edu:reply:likes:" + bizId;
+            if (liked) {
+                if (Boolean.TRUE.equals(redisService.sIsMember(likeKey, String.valueOf(userId)))) {
+                    return true;
+                }
+                redisService.sAdd(likeKey, String.valueOf(userId));
+                reply.setLikeCount(defaultValue(reply.getLikeCount(), 0) + 1);
+            } else {
+                if (Boolean.FALSE.equals(redisService.sIsMember(likeKey, String.valueOf(userId)))) {
+                    return false;
+                }
+                redisService.sRemove(likeKey, String.valueOf(userId));
+                reply.setLikeCount(Math.max(defaultValue(reply.getLikeCount(), 0) - 1, 0));
+            }
+            reply.setUpdateTime(LocalDateTime.now());
+            replyMapper.updateById(reply);
             return liked;
         }
         EduQuestion question = requireQuestion(bizId);
@@ -2609,8 +2660,117 @@ public class EducationService {
     }
 
     private Map<String, Object> planView(EduLearningPlan item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("courseId", item.getCourseId()); result.put("planName", item.getPlanName()); result.put("courseName", Optional.ofNullable(courseMapper.selectById(item.getCourseId())).map(EduCourse::getCourseName).orElse("课程")); result.put("targetDate", item.getTargetDate()); result.put("planDate", item.getTargetDate()); result.put("dailyMinutes", item.getDailyMinutes()); result.put("progressPercent", item.getProgressPercent()); result.put("status", item.getStatus()); return result; }
-    private Map<String, Object> questionView(EduQuestion item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("userId", item.getUserId()); result.put("courseId", item.getCourseId()); result.put("title", item.getTitle()); result.put("content", item.getContent()); result.put("category", item.getCategory()); result.put("viewCount", item.getViewCount()); result.put("replyCount", item.getReplyCount()); result.put("replyTimes", item.getReplyCount()); result.put("likeCount", item.getLikeCount()); result.put("likedTimes", item.getLikeCount()); result.put("liked", false); result.put("userName", item.getUserId() != null && item.getUserId().equals(currentUserId()) ? currentUserName() : "学习者"); result.put("createTime", item.getCreateTime()); return result; }
-    private Map<String, Object> replyView(EduReply item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("questionId", item.getQuestionId()); result.put("answerId", item.getParentId()); result.put("parentId", item.getParentId()); result.put("userId", item.getUserId()); result.put("content", item.getContent()); result.put("liked", false); result.put("likedTimes", item.getLikeCount()); result.put("replyTimes", 0); result.put("userName", item.getUserId() != null && item.getUserId().equals(currentUserId()) ? currentUserName() : "学习者"); result.put("targetUserName", "提问者"); result.put("createTime", item.getCreateTime()); return result; }
+    private Map<String, String> resolveUserBasic(Long userId) {
+        if (userId == null) return Map.of("name", "匿名用户", "avatar", "");
+        if (jdbcTemplate != null) {
+            try {
+                List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                        "SELECT user_name, nick_name, avatar FROM share.sys_user WHERE user_id = ? LIMIT 1", userId);
+                if (!rows.isEmpty()) {
+                    Map<String, Object> r = rows.get(0);
+                    String nick = (String) r.get("nick_name");
+                    String user = (String) r.get("user_name");
+                    String avatar = (String) r.get("avatar");
+                    String displayName = StringUtils.hasText(nick) ? nick : (StringUtils.hasText(user) ? user : "学习者");
+                    return Map.of("name", displayName, "avatar", avatar != null ? avatar : "");
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return Map.of("name", Objects.equals(userId, currentUserId()) ? currentUserName() : "学习者" + userId, "avatar", "");
+    }
+
+    private Map<String, Object> questionView(EduQuestion item) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", item.getId());
+        result.put("userId", item.getUserId());
+        result.put("courseId", item.getCourseId());
+        result.put("title", item.getTitle());
+        result.put("content", item.getContent());
+        result.put("description", item.getContent());
+        result.put("category", item.getCategory());
+        result.put("sectionId", item.getCategory());
+        result.put("viewCount", item.getViewCount());
+        result.put("replyCount", item.getReplyCount());
+        result.put("replyTimes", item.getReplyCount());
+        result.put("answerTimes", item.getReplyCount());
+        result.put("likeCount", item.getLikeCount());
+        result.put("likedTimes", item.getLikeCount());
+
+        Long currentUid = currentUserId();
+        boolean isLiked = false;
+        if (currentUid != null) {
+            isLiked = questionLikeMapper.selectCount(new LambdaQueryWrapper<EduQuestionLike>()
+                    .eq(EduQuestionLike::getQuestionId, item.getId())
+                    .eq(EduQuestionLike::getUserId, currentUid)) > 0;
+        }
+        result.put("liked", isLiked);
+
+        Map<String, String> userInfo = resolveUserBasic(item.getUserId());
+        result.put("userName", userInfo.getOrDefault("name", "学习者"));
+        result.put("userIcon", userInfo.getOrDefault("avatar", ""));
+
+        EduReply latest = replyMapper.selectOne(new LambdaQueryWrapper<EduReply>()
+                .eq(EduReply::getQuestionId, item.getId())
+                .eq(EduReply::getHidden, 0)
+                .eq(EduReply::getStatus, ENABLED)
+                .orderByDesc(EduReply::getCreateTime)
+                .last("limit 1"));
+        if (latest != null) {
+            Map<String, String> latestUser = resolveUserBasic(latest.getUserId());
+            result.put("latestReplyContent", latest.getContent());
+            result.put("latestReplyUser", latestUser.getOrDefault("name", "热心学伴"));
+            result.put("latestReplyTime", latest.getCreateTime());
+        } else {
+            result.put("latestReplyContent", null);
+            result.put("latestReplyUser", null);
+            result.put("latestReplyTime", null);
+        }
+
+        result.put("createTime", item.getCreateTime());
+        return result;
+    }
+
+    private Map<String, Object> replyView(EduReply item) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", item.getId());
+        result.put("questionId", item.getQuestionId());
+        result.put("answerId", item.getParentId());
+        result.put("parentId", item.getParentId());
+        result.put("userId", item.getUserId());
+        result.put("content", item.getContent());
+
+        Long currentUid = currentUserId();
+        boolean isLiked = false;
+        String likeKey = "edu:reply:likes:" + item.getId();
+        if (currentUid != null) {
+            isLiked = Boolean.TRUE.equals(redisService.sIsMember(likeKey, String.valueOf(currentUid)));
+        }
+        result.put("liked", isLiked);
+        result.put("likedTimes", defaultValue(item.getLikeCount(), 0));
+
+        long subReplyCount = replyMapper.selectCount(new LambdaQueryWrapper<EduReply>()
+                .eq(EduReply::getHidden, 0)
+                .eq(EduReply::getStatus, ENABLED)
+                .eq(EduReply::getParentId, item.getId()));
+        result.put("replyTimes", subReplyCount);
+
+        Map<String, String> userInfo = resolveUserBasic(item.getUserId());
+        result.put("userName", userInfo.getOrDefault("name", "学习者"));
+        result.put("userIcon", userInfo.getOrDefault("avatar", ""));
+
+        String targetName = "提问者";
+        if (item.getParentId() != null && item.getParentId() > 0) {
+            EduReply parent = replyMapper.selectById(item.getParentId());
+            if (parent != null && parent.getUserId() != null) {
+                Map<String, String> parentUser = resolveUserBasic(parent.getUserId());
+                targetName = parentUser.getOrDefault("name", "同学");
+            }
+        }
+        result.put("targetUserName", targetName);
+        result.put("createTime", item.getCreateTime());
+        return result;
+    }
     private Map<String, Object> noteView(EduNote item) { Long userId = currentUserId(); Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("userId", item.getUserId()); result.put("authorId", item.getUserId()); result.put("authorName", item.getUserId() != null && item.getUserId().equals(userId) ? currentUserName() : "学习者"); result.put("title", item.getTitle()); result.put("content", item.getContent()); result.put("courseId", item.getCourseId()); result.put("catalogId", item.getCatalogId()); result.put("visibility", item.getVisibility()); result.put("likedTimes", item.getLikeCount()); result.put("isGathered", noteCollectMapper.selectCount(new LambdaQueryWrapper<EduNoteCollect>().eq(EduNoteCollect::getNoteId, item.getId()).eq(EduNoteCollect::getUserId, userId)) > 0); result.put("liked", noteLikeMapper.selectCount(new LambdaQueryWrapper<EduNoteLike>().eq(EduNoteLike::getNoteId, item.getId()).eq(EduNoteLike::getUserId, userId)) > 0); result.put("createTime", item.getCreateTime()); return result; }
     private Map<String, Object> examView(EduExam item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("courseId", item.getCourseId()); result.put("courseName", courseName(item.getCourseId())); result.put("examName", item.getExamName()); result.put("name", item.getExamName()); result.put("sectionName", item.getExamName()); result.put("description", item.getDescription()); result.put("totalScore", item.getTotalScore()); result.put("passScore", item.getPassScore()); result.put("durationMinutes", item.getDurationMinutes()); result.put("duration", item.getDurationMinutes() == null ? 0 : item.getDurationMinutes() * 60); result.put("status", item.getStatus()); return result; }
     private Map<String, Object> examRecordView(EduExamRecord item) { Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("examId", item.getExamId()); result.put("score", item.getScore()); result.put("totalScore", item.getTotalScore()); result.put("correctCount", item.getCorrectCount()); result.put("questionCount", item.getQuestionCount()); result.put("status", item.getStatus()); result.put("statusName", Integer.valueOf(1).equals(item.getStatus()) ? "通过" : Integer.valueOf(2).equals(item.getStatus()) ? "未通过" : "进行中"); result.put("startedAt", item.getStartedAt()); result.put("startTime", item.getStartedAt()); result.put("submittedAt", item.getSubmittedAt()); result.put("endTime", item.getSubmittedAt()); result.put("commitTime", item.getSubmittedAt()); result.put("duration", durationSeconds(item.getStartedAt(), item.getSubmittedAt())); EduExam exam = examMapper.selectById(item.getExamId()); if (exam != null) { result.put("examName", exam.getExamName()); result.put("sectionName", exam.getExamName()); result.put("courseId", exam.getCourseId()); result.put("courseName", courseName(exam.getCourseId())); } return result; }

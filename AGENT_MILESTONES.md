@@ -14,9 +14,33 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-13 14:00:00 - 社区问答与互动讨论全生命周期架构重构：多级嵌套回复隔离、跨库真实用户身份穿透、点赞底层模型兼容与游客免登录友好浏览升级
+
+* **核心成果**：
+  1. **层级化回复模型与嵌套评论混杂隔离治理**：
+     - 后端 `EduReply` 实体扩展 `@TableField(exist = false)` 属性，支持 `answerId`、`targetReplyId`、`targetUserId`、`anonymity` 等前端表单参数；
+     - 重构 `EducationService.saveReply`：建立规范的父子关联树。顶级回答严格挂载为 `parentId = 0`，楼中楼回复根据 `targetReplyId` 或 `answerId` 精确关联父级评论，杜绝脏层级；
+     - 重构 `EducationService.replyPage`：当未传 `answerId`（或为 0）时，严格限定仅查询一级顶级回答（`parentId IS NULL OR parentId = 0`），彻底根除顶级回答列表中将楼中楼子评论当成独立主回答混合展示的严重架构缺陷；当传入 `answerId` 时，精准下钻查询指定回答下的子回复。
+  2. **同实例跨库秒级穿透与真实用户身份/点赞状态透传**：
+     - 充分利用 MySQL 单实例架构，在 `EducationService` 中引入轻量级 `JdbcTemplate` 直接跨库穿透关联 `share.sys_user`，实现 <1ms 极速查询提问者、回答者与回复目标的真实昵称（`nick_name`）、用户名与头像；
+     - 重构 `questionView` 与 `replyView`：完整计算与透传 `description`、`sectionId`、`answerTimes`、真实头像与提问者/回答者身份，以及当前登录用户在该问题/回答下的实时独立点赞状态（`liked: true/false`）；
+     - 修复 `questionPage` 中分类过滤条件将主键 `id` 错误比对 `sectionId` 的严重代码笔误（修正为匹配 `category`）。
+  3. **互动点赞底层服务对问答与回答模型全面兼容**：
+     - 修复 `EducationService.like` 方法仅校验 `EduQuestion` 导致给任何回答或子评论点赞时必抛 500 异常「问题不存在: ...」的严重缺陷；
+     - 优先判定并递增/递减 `EduReply` 的点赞量与 Redis 集合，无法命中时再校验 `EduQuestion`，使问答区所有层级的点赞功能 100% 顺畅工作。
+  4. **前端提问详情、课程问答与游客体验深度重构**：
+     - 提问页 (`ask/index.vue`)：修复原分类标签笔误（“笔记归属于分项于分类”），规范化提交后携带返回路由参数跳转结果页；
+     - 成功结果页 (`result/success/index.vue`)：支持动态文案与路由参数（`btnText`、`to`），确保问答发布后平滑返回所属问答或课程页；
+     - 问答详情页 (`ask/askDetails.vue`)：登录用户兜底头像优化、重构顶级回答与楼中楼回复参数隔离（提交顶级回答时重置临时 `answerId`）、空内容警告规范为 `ElMessage.warning`、增加无回答清爽 Empty 状态；
+     - 课程学习问答组件 (`ClassAsk.vue`)：解绑未登录游客强制鉴权，允许游客直接查阅课程问答与对应章节讨论，仅在发起提问与查阅「我的问答」时弹出温和的登录引导；补全列表 `:key` 绑定与空状态展示。
+  5. **生产热更新部署与真实鉴权定向验证**：
+     - 本地完成 `share-education.jar` 与 `portal-ui` 静态打包并热更新至云端生产环境；
+     - 云端通过 Python 真实请求鉴权接口验证：用户登录获取 Token、详情接口 200 OK（`description`、`userName`、`answerTimes`、`latestReplyContent` 正确透传）、二级回答列表隔离无杂质（2条顶级回答 + 子评论数精准统计）、点赞接口对问题与特定回答双向测试 200 OK 且无任何 500 异常。
+
 ### 2026-09-13 13:30:00 - AI全真模拟面试评分与答题防作弊防御、音视频Web Speech双向交互、考试详情真假值逻辑缺陷修复与结算优惠券算法重构上线
 
 * **核心成果**：
+
   1. **AI 模拟面试空卷 0 分防御与实质答题率动态加权**：
      - 后端 `InterviewServiceImpl.finishSession`：重构得分计算逻辑，彻底根除未作答即交卷却默认保底 75 分并误发阿里 P6 录用判定（Hire）的严重缺陷；
      - 引入实质有效答题统计：若 `answeredCount == 0`，总分严格锁定为 0 分；若候选人中途提前交卷，按照完成度比例（$\frac{\text{answeredCount}}{\text{plannedTurns}}$）折算总分；

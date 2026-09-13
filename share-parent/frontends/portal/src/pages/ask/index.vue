@@ -25,7 +25,7 @@
                     :props="props"
                     @change="handleChange"
                   />
-                  <div class="desc">选择课程，提问将归属于全局课程；选择分类（如1.1）时，笔记归属于分项于分类。</div>
+                  <div class="desc">选择章节后，提问将精准归属于对应章节，便于讲师与学伴快速定位解答。</div>
                 </div>
               </el-form-item>
               <el-form-item label="问题标题:" prop="title" >
@@ -187,7 +187,13 @@ const submitForm = (formEl) => {
 
      await subFunc(ruleForm).then((res) => {
         if (res.code == 200) {
-          router.push({path: '/result/success', query: '查看我的问题'})
+          router.push({
+            path: '/result/success',
+            query: {
+              btnText: '返回课程问答',
+              to: `/details/index?id=${classInfo.id || classInfo.courseId || ''}`
+            }
+          })
         } else {
           ElMessage({
             message:res.data.msg,

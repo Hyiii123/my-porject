@@ -6,11 +6,14 @@
         <span @click="askCheck(false)" :class="{act:!params.onlyMine,'bt-grey2': params.onlyMine}" class="marg-rt-20 ">全部问答</span>
         <span @click="askCheck(true)" :class="{act:params.onlyMine,'bt-grey2': !params.onlyMine}">我的问答</span>
       </div> 
-      <div class="ask"><span @click="() => $router.push({path: '/ask', query: {id: $props.id, title: $props.title}})" class="bt bt-round ft-14">提问</span></div>
+      <div class="ask"><span @click="handleGoAsk" class="bt bt-round ft-14">提问</span></div>
     </div>
     <AskChapterItems :data="chapterData" @checkCahpter="checkCahpter"></AskChapterItems>
     <div class="askCont">
-      <div class="askLists" v-for="item in askListsDataes">
+      <div v-if="askListsDataes.length === 0" class="empty-wrap fx-ct" style="padding: 40px 0;">
+        <el-empty description="暂无问答，快来提出第一个问题吧~" />
+      </div>
+      <div class="askLists" v-for="item in askListsDataes" :key="item.id">
         <div class="userInfo fx">
           <img :src="item.userIcon || anonymityImg" alt="">
           {{item.userName || "匿名用户"}}
@@ -18,17 +21,17 @@
         <div class="ask">
           <div class="ft-16">{{item.title}}</div>
           <div class="font-bt2" @click="goDetails(item)" v-if="item.latestReplyContent">
-            最新【{{item.latestReplyUser}}】的回答
+            最新【{{item.latestReplyUser || '学伴'}}】的回答：{{item.latestReplyContent}}
           </div>
         </div>
         <div class="time fx-sb">
           <div>{{item.createTime}}</div>
           <div class="actBut">
-            <span class="font-bt2 marg-rt-20" @click="() => $router.push({path:'/ask', query:{id:$props.id,queryId:item.id,type:'edit',title:item.title}})" v-if="userInfo.id == item.userId">
+            <span class="font-bt2 marg-rt-20" @click="() => $router.push({path:'/ask', query:{id:$props.id,queryId:item.id,type:'edit',title:item.title}})" v-if="userInfo && (userInfo.id == item.userId || userInfo.userId == item.userId)">
               <i class="iconfont zhy-a-icon_kaoshi2x"></i> 编辑</span>
-            <span class="font-bt2 marg-rt-20" @click="delQuestionsHandle(item.id)" v-if="userInfo.id == item.userId">
+            <span class="font-bt2 marg-rt-20" @click="delQuestionsHandle(item.id)" v-if="userInfo && (userInfo.id == item.userId || userInfo.userId == item.userId)">
               <i class="iconfont zhy-a-btn_delete_nor2x"></i> 删除 </span>
-            <span class="font-bt2" @click="goDetails(item)"><i class="iconfont zhy-a-btn_pinglun_nor2x"></i> 回答 {{item.answerTimes}}</span>
+            <span class="font-bt2" @click="goDetails(item)"><i class="iconfont zhy-a-btn_pinglun_nor2x"></i> 回答 {{item.answerTimes || 0}}</span>
           </div>
         </div>
       </div>
@@ -75,19 +78,28 @@ const props = defineProps({
 // 用户信息
 const userInfo = ref();
 onMounted(() => {
-  if(isLogin()){
+  if (isLogin()) {
     // 获取登录信息中的我的信息
-    userInfo.value = store.getUserInfo
-    // 获取小节数据
-    getClassChapterData(route.query.id)
-    // 获取问答列表
-    getAskListsDataes()
+    userInfo.value = store.getUserInfo;
   }
-})
+  // 获取小节数据与问答列表（游客也可正常浏览）
+  getClassChapterData(props.id || route.query.id);
+  getAskListsDataes();
+});
+
+const handleGoAsk = () => {
+  if (!isLogin()) {
+    ElMessage.warning('请先登录后再提问');
+    router.push('/login');
+    return;
+  }
+  router.push({ path: '/ask', query: { id: props.id || route.query.id, title: props.title } });
+};
+
 // 问答列表参数
 const params = ref({
-  courseId: route.query.id,
-  isAsc:true,
+  courseId: props.id || route.query.id,
+  isAsc: false,
   pageNo: 1,
   pageSize: 10,
   sectionId: '',
@@ -95,21 +107,26 @@ const params = ref({
   onlyMine: false
 });
 // 列表数据
-const askListsDataes =  ref([])
-const total = ref(0)
+const askListsDataes = ref([]);
+const total = ref(0);
 // 切换全部问答及我的问答
-const askCheck = onlyMine => {
-  params.value.pageNo = 1
-  params.value.pageSize = 10
-  params.value.onlyMine=onlyMine
-  getAskListsDataes()
-}
+const askCheck = (onlyMine) => {
+  if (onlyMine && !isLogin()) {
+    ElMessage.warning('请先登录查看我的问答');
+    return;
+  }
+  params.value.pageNo = 1;
+  params.value.pageSize = 10;
+  params.value.onlyMine = onlyMine;
+  getAskListsDataes();
+};
 const checkCahpter = (id) => {
-  params.value.pageNo = 1
-  params.value.pageSize = 10
-  params.value.sectionId = id
-  getAskListsDataes()
-}
+  params.value.pageNo = 1;
+  params.value.pageSize = 10;
+  params.value.sectionId = id;
+  getAskListsDataes();
+};
+
 // 获取问答列表
 const getAskListsDataes = async () => {
   await getAskList(params.value)

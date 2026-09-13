@@ -28,4 +28,17 @@ public class EduQuestion implements Serializable {
     private LocalDateTime updateTime;
     @TableLogic(value = "0", delval = "1") private Integer delFlag;
     @Version private Integer version;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Long chapterId;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Long sectionId;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String description;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Boolean anonymity;
 }
+

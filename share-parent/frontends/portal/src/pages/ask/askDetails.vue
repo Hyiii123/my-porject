@@ -21,11 +21,11 @@
             <div class="answerCont bg-wt marg-bt-20">
               <div class="ft-20 ft-wt-600 marg-bt-20">我要回答</div>
               <div class="answer fx">
-                <img :src="store.getUserInfo.icon" alt="" srcset="">
+                <img :src="store.getUserInfo?.icon || anonymityImg" alt="">
                 <div class="fx-1">
                   <el-input v-model="description" rows="11" type="textarea" @input="ruleshandle" maxlength="500" show-word-limit placeholder="请发表高见" />
                   <div class="fx-sb fx-al-ct">
-                    <div><el-checkbox v-model="anonymity" label="匿名提问" size="large" /></div>
+                    <div><el-checkbox v-model="anonymity" label="匿名回答" size="large" /></div>
                     <div class="subCont">
                       <span class="bt ft-14" :class="{'bt-dis':!isSend}" @click="answerHandle('first')">回答</span>
                       </div>
@@ -81,9 +81,11 @@
                     </div>
                   </div>
                 </div>
-                <div></div>
-                <p @click="clickLoad" v-if="!noMore" class="fx-ct ft-14 ft-cl-des">点击查看更多</p>
-                <p class="fx-ct ft-14 ft-cl-des" v-if="noMore">没有更多了</p>
+                <div v-if="questionData.length === 0" class="fx-ct ft-14 ft-cl-des" style="padding: 40px 0;">
+                  暂无回答，快来发表你的第一个高见吧~
+                </div>
+                <p @click="clickLoad" v-if="questionData.length > 0 && !noMore" class="fx-ct ft-14 ft-cl-des cur-pt">点击查看更多</p>
+                <p class="fx-ct ft-14 ft-cl-des" v-if="questionData.length > 0 && noMore">没有更多了</p>
               </div>
             </div>
           </div>
@@ -302,66 +304,70 @@ function commentHandle (val){
 }
 // 提交回复
 const answerHandle = async (type) => {
+  if (!askInfo.value?.id) return
   params.questionId = askInfo.value.id
-  params.targetUserId = targetInfo.value.userId || askInfo.value.userId
-  if(params.content == ''){
+  if (type === 'first') {
     params.content = description.value
     params.anonymity = anonymity.value
+    params.answerId = 0
+    params.targetReplyId = 0
+    params.targetUserId = askInfo.value.userId || ''
+  } else {
+    params.answerId = answerInfo.value?.id || 0
+    params.targetReplyId = targetInfo.value?.id || 0
+    params.targetUserId = targetInfo.value?.userId || askInfo.value?.userId || ''
   }
-  params.answerId = answerInfo.value.id
-  params.targetReplyId = targetInfo.value.id
-  if (params.content == '') {
+  if (!params.content || !params.content.trim()) {
     ElMessage({
-          message:'请输入您的内容！',
-          type: 'success'
-        });
+      message: '请输入您的内容！',
+      type: 'warning'
+    });
     return 
   }
- await postAnswers(params)
+  await postAnswers(params)
     .then((res) => {
       if (res.code == 200) {
         ElMessage({
-          message:'回复成功！',
+          message: '回复成功！',
           type: 'success'
         });
         
         // 第一层的回答
-        if (type == 'first'){
+        if (type == 'first') {
           getAllQuestionsData()
-        } else if(dialogTableVisible) {
-          getReplyData(isReplay.value, 'one')
         } else {
           getReplyData(isReplay.value, 'one')
         }
         params.content = ''
         description.value = ''
         params.anonymity = ''
-        anonymity.value = ''
+        anonymity.value = false
         isSend.value = false
+        openReplyFormId.value = null
       } else {
         ElMessage({
-          message:res.data.msg,
+          message: res.data?.msg || res.msg || '回复失败',
           type: 'error'
         });
       }
     })
     .catch(() => {
       ElMessage({
-        message: "课程问题数据请求出错！",
+        message: "回复请求出错！",
         type: 'error'
       });
     });
 }
 // 点赞
 const likedHandle = async (item) => {
-await putLiked({bizId:item.id, liked:!item.liked, bizType: "QA"})
+  await putLiked({ bizId: item.id, liked: !item.liked, bizType: "QA" })
     .then((res) => {
       if (res.code == 200) {
         item.liked = !item.liked
-        item.liked ? item.likedTimes++ : item.likedTimes--
+        item.likedTimes = item.liked ? (item.likedTimes || 0) + 1 : Math.max(0, (item.likedTimes || 0) - 1)
       } else {
         ElMessage({
-          message:res.data.msg,
+          message: res.data?.msg || res.msg || '点赞失败',
           type: 'error'
         });
       }

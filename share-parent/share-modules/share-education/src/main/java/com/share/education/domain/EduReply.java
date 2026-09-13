@@ -25,4 +25,17 @@ public class EduReply implements Serializable {
     private LocalDateTime updateTime;
     @TableLogic(value = "0", delval = "1") private Integer delFlag;
     @Version private Integer version;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Long answerId;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Long targetReplyId;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Long targetUserId;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Boolean anonymity;
 }
+
