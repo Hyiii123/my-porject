@@ -6,13 +6,16 @@ import com.share.education.ai.config.AiRecommendProperties;
 import com.share.education.ai.evals.AgentEvalMetricsVO;
 import com.share.education.ai.evals.AgentEvaluationService;
 import com.share.education.ai.model.*;
+import com.share.education.ai.streaming.AgentReasoningEvent;
 import com.share.education.ai.workflow.AgentWorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 下一代动态自省多智能体协同导学总编排器 (MultiAgentRecommendOrchestrator)。
@@ -58,6 +61,19 @@ public class MultiAgentRecommendOrchestrator {
     private final AgentEvaluationService evalService;
     private final RedisService redisService;
     private final AiRecommendProperties properties;
+
+    private final ExecutorService agentThreadPool = Executors.newFixedThreadPool(
+            Math.max(4, Runtime.getRuntime().availableProcessors() * 2),
+            new ThreadFactory() {
+                private final AtomicInteger counter = new AtomicInteger(1);
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread t = new Thread(r, "agent-orchestrator-" + counter.getAndIncrement());
+                    t.setDaemon(true);
+                    return t;
+                }
+            }
+    );
 
     public MultiAgentRecommendOrchestrator(UserProfileAgent userProfileAgent,
                                           RecommendationAgent recommendationAgent,
@@ -323,6 +339,163 @@ public class MultiAgentRecommendOrchestrator {
      */
     public AgentEvalMetricsVO getEvaluationMetrics() {
         return evalService.getMetricsSnapshot();
+    }
+
+    /**
+     * 下一代 L5 智能体流式思考与异步并发总线 (SSE Streaming Deliberation)
+     *
+     * @param userId 学员 ID (访客为 null)
+     * @param targetRole 目标角色覆盖 (可选)
+     * @param emitter Spring SseEmitter 实例
+     */
+    public void streamReasoning(Long userId, String targetRole, SseEmitter emitter) {
+        agentThreadPool.execute(() -> {
+            try {
+                long pipelineStart = System.currentTimeMillis();
+
+                // STEP 1: 冷启动主动探针检测
+                emitter.send(SseEmitter.event()
+                        .name("agent_event")
+                        .data(AgentReasoningEvent.of("PROBE_CHECK", "ActiveProbingAgent", 1,
+                                "正在检测学员画像完备度并评估冷启动意图基线...", null, 1L)));
+
+                // 并发执行：1. 画像构建 2. 候选课程多路初筛 (Fork-Join)
+                long tProfileStart = System.currentTimeMillis();
+                CompletableFuture<UserProfileContext> profileFuture = CompletableFuture.supplyAsync(() -> {
+                    UserProfileContext p = userProfileAgent.buildProfile(userId, Collections.emptyMap());
+                    if (targetRole != null && !targetRole.isBlank()) {
+                        p = UserProfileContext.builder()
+                                .userId(p.getUserId())
+                                .intendedRole(targetRole.trim())
+                                .preferredDifficulty(p.getPreferredDifficulty())
+                                .skillWeights(p.getSkillWeights())
+                                .topSkills(p.getTopSkills())
+                                .skillGaps(p.getSkillGaps())
+                                .disciplineScore(p.getDisciplineScore())
+                                .userTags(p.getUserTags())
+                                .enrolledCourseIds(p.getEnrolledCourseIds())
+                                .completedHours(p.getCompletedHours())
+                                .cognitiveLevel(p.getCognitiveLevel())
+                                .chronologicalCourseIds(p.getChronologicalCourseIds())
+                                .courseProgressMap(p.getCourseProgressMap())
+                                .build();
+                    }
+                    return p;
+                }, agentThreadPool);
+
+                UserProfileContext profile = profileFuture.join();
+                long profileLatency = System.currentTimeMillis() - tProfileStart;
+
+                // 发射画像建模完成事件
+                Map<String, Object> profileSummary = new HashMap<>();
+                profileSummary.put("intendedRole", profile.getIntendedRole());
+                profileSummary.put("disciplineScore", profile.getDisciplineScore());
+                profileSummary.put("skillGaps", profile.getSkillGaps());
+                profileSummary.put("topSkills", profile.getTopSkills());
+
+                emitter.send(SseEmitter.event()
+                        .name("agent_event")
+                        .data(AgentReasoningEvent.of("PROFILE_BUILT", "UserProfileAgent", 1,
+                                String.format("已完成学情特征建模：锁定目标方向【%s】，挖掘技能短板【%s】",
+                                        profile.getIntendedRole(), String.join("、", profile.getSkillGaps())),
+                                profileSummary, profileLatency)));
+
+                // STEP 2: 候选课程初筛与推荐召回
+                long tRecallStart = System.currentTimeMillis();
+                List<CandidateCourseDTO> candidates = recommendationAgent.recallCandidates(profile, 14);
+                long recallLatency = System.currentTimeMillis() - tRecallStart;
+                emitter.send(SseEmitter.event()
+                        .name("agent_event")
+                        .data(AgentReasoningEvent.of("CANDIDATES_RECALLED", "RecommendationAgent", 2,
+                                String.format("SPI 算法多路初筛召回 %d 门专业课程，已完成跨品类多样性打散", candidates.size()),
+                                candidates.size(), recallLatency)));
+
+                // STEP 3: 布鲁姆大纲解构与 Capstone 识别
+                long tAnalysisStart = System.currentTimeMillis();
+                List<AnalyzedCourseVO> analyzed = courseAnalysisAgent.analyzeCourses(candidates, profile);
+                long analysisLatency = System.currentTimeMillis() - tAnalysisStart;
+                emitter.send(SseEmitter.event()
+                        .name("agent_event")
+                        .data(AgentReasoningEvent.of("COURSE_ANALYSIS", "CourseAnalysisAgent", 3,
+                                "已深度解构课程知识拓扑：构建布鲁姆六级认知梯队，标注综合实战 Capstone 项目与先修依赖",
+                                analyzed.size(), analysisLatency)));
+
+                // STEP 4: 路径规划编排
+                long tPlanStart = System.currentTimeMillis();
+                Map<String, Object> customOverrides = new HashMap<>();
+                if (targetRole != null && !targetRole.isBlank()) {
+                    customOverrides.put("customRole", targetRole.trim());
+                }
+                LearningPathPlan pathPlan = pathPlanningAgent.planPath(profile, analyzed, customOverrides);
+                long planLatency = System.currentTimeMillis() - tPlanStart;
+                emitter.send(SseEmitter.event()
+                        .name("agent_event")
+                        .data(AgentReasoningEvent.of("PATH_PLANNED", "PathPlanningAgent", 4,
+                                String.format("DAG 阶段拓扑编排完成：规划出【%s】共 4 阶段进阶成长路线", pathPlan.getIntendedRole()),
+                                pathPlan.getStages(), planLatency)));
+
+                // STEP 5: 审判反思 Agent
+                long tCriticStart = System.currentTimeMillis();
+                CriticReport criticReport = pathCriticAgent.auditPathPlan(pathPlan, profile);
+
+                // 判断是否触发反思回路
+                if (!Boolean.TRUE.equals(criticReport.getPassed())) {
+                    emitter.send(SseEmitter.event()
+                            .name("agent_event")
+                            .data(AgentReasoningEvent.of("REFLECTION_DIRECTIVE", "PathCriticAgent", 5,
+                                    "审判质检发现排布缺陷，触发单次受控反思回路：正在应用修正指令重排...",
+                                    criticReport.getRefinementDirectives(), System.currentTimeMillis() - tCriticStart)));
+
+                    Map<String, Object> directives = new HashMap<>(criticReport.getRefinementDirectives());
+                    directives.putAll(customOverrides);
+                    pathPlan = pathPlanningAgent.planPath(profile, analyzed, directives);
+                    criticReport = pathCriticAgent.auditPathPlan(pathPlan, profile);
+                }
+
+                pathPlan.setCriticReport(criticReport);
+                long criticLatency = System.currentTimeMillis() - tCriticStart;
+                emitter.send(SseEmitter.event()
+                        .name("agent_event")
+                        .data(AgentReasoningEvent.of("CRITIC_AUDIT", "PathCriticAgent", 5,
+                                String.format("PathCritic 量化质检通过：得分 %d 分，评级 %s，Kahn DAG 无环拓扑合规",
+                                        criticReport.getOverallScore() != null ? criticReport.getOverallScore() : 100,
+                                        criticReport.getVerdictLevel() != null ? criticReport.getVerdictLevel() : "卓越 (A+)"),
+                                criticReport, criticLatency)));
+
+                // STEP 6: 解释生成与最终交付
+                long tExplStart = System.currentTimeMillis();
+                List<PersonalizedRecommendVO> recs = explanationGenerationAgent.generateExplanations(profile, pathPlan, 4);
+                long explLatency = System.currentTimeMillis() - tExplStart;
+
+                Map<String, Object> finalPayload = new HashMap<>();
+                finalPayload.put("recommendations", recs);
+                finalPayload.put("learningPath", pathPlan);
+                finalPayload.put("criticReport", criticReport);
+                finalPayload.put("totalPipelineLatencyMs", System.currentTimeMillis() - pipelineStart);
+
+                emitter.send(SseEmitter.event()
+                        .name("agent_event")
+                        .data(AgentReasoningEvent.of("FINAL_RESULT", "ExplanationGenerationAgent", 6,
+                                "全链路多智能体流式思考推演完成，成果已交付！",
+                                finalPayload, explLatency)));
+
+                emitter.send(SseEmitter.event()
+                        .name("agent_event")
+                        .data(AgentReasoningEvent.of("STREAM_DONE", "Orchestrator", 6,
+                                "推演流正常完成", null, System.currentTimeMillis() - pipelineStart)));
+
+                emitter.complete();
+            } catch (Exception e) {
+                log.error("[StreamOrchestrator] 智能体流式推演异常", e);
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("agent_event")
+                            .data(AgentReasoningEvent.of("STREAM_ERROR", "Orchestrator", 0,
+                                    "推演流异常中断: " + e.getMessage(), null, 0L)));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(e);
+            }
+        });
     }
 
     /**

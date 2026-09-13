@@ -63,6 +63,7 @@ import com.share.education.mapper.EduTeacherMapper;
 import com.share.education.mapper.EduUserPortraitMapper;
 import com.share.education.ai.orchestrator.MultiAgentRecommendOrchestrator;
 import com.share.education.ai.model.PersonalizedRecommendVO;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.share.education.ai.model.LearningPathPlan;
 import com.share.education.ai.model.ActiveProbeQuestion;
 import com.share.education.ai.evals.AgentEvalMetricsVO;
@@ -880,6 +881,19 @@ public class EducationService {
      */
     public AgentEvalMetricsVO getAgentEvaluationMetrics() {
         return multiAgentOrchestrator.getEvaluationMetrics();
+    }
+
+    /**
+     * 下一代 L5 智能体流式思考与异步并发推演端点 (Server-Sent Events)
+     */
+    public SseEmitter streamPersonalizedReasoning(String targetRole) {
+        Long currentUid = null;
+        try {
+            currentUid = SecurityUtils.getUserId();
+        } catch (Exception ignored) {}
+        SseEmitter emitter = new SseEmitter(60000L);
+        multiAgentOrchestrator.streamReasoning(currentUid, targetRole, emitter);
+        return emitter;
     }
 
     /** 标准化 50 维 IT 技术栈特征向量空间字典 (Dense Skill Vector Dimensions) */

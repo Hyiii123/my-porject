@@ -16,9 +16,11 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -145,6 +147,15 @@ public class EducationPortalController extends BaseController {
     @GetMapping({"/courses/recommendations/evals/metrics", "/courses/recommend/evals/metrics"})
     public AjaxResult agentEvaluationMetrics() {
         return success(educationService.getAgentEvaluationMetrics());
+    }
+
+    /**
+     * 下一代 L5 智能体流式思考与异步并发推演端点 (Server-Sent Events)
+     */
+    @GetMapping(value = {"/courses/recommendations/stream/reasoning", "/courses/recommend/stream/reasoning"},
+                produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamPersonalizedReasoning(@RequestParam(required = false) String targetRole) {
+        return educationService.streamPersonalizedReasoning(targetRole);
     }
 
     @GetMapping("/user/portrait")

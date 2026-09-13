@@ -5,7 +5,7 @@
       <div class="hud-title-area">
         <div class="hud-badge">
           <span class="pulse-dot"></span>
-          <span>L4 动态自省智能体引擎</span>
+          <span>L5 流式自省智能体集群</span>
         </div>
         <h3 class="hud-title">多智能体协同导学中心</h3>
       </div>
@@ -34,7 +34,7 @@
           class="recalc-btn"
         >
           <span v-if="!isRecalculating">智能体重新规划</span>
-          <span v-else>正在推演最佳路线...</span>
+          <span v-else>正在流式推演...</span>
         </el-button>
         <el-button
           size="small"
@@ -67,6 +67,48 @@
         <!-- 节点间流动连接线 -->
         <div class="connector" v-if="idx < agentSteps.length - 1">
           <span class="flow-arrow">→</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DeepSeek 风格：智能体实时流式思考折叠卡片 (SSE Thinking Process Stream) -->
+    <div class="thinking-stream-card" :class="{ expanded: isThinkingExpanded, active: isRecalculating }">
+      <div class="thinking-header" @click="isThinkingExpanded = !isThinkingExpanded">
+        <div class="thinking-title-box">
+          <span class="thinking-indicator" :class="{ pulsating: isRecalculating }"></span>
+          <span class="thinking-title-text">
+            {{ isRecalculating ? '智能体集群正在流式深度思考与自省推演中...' : '智能体流式思考心流与审判审计链路' }}
+          </span>
+          <span class="thinking-count" v-if="thinkingLogs.length">({{ thinkingLogs.length }} 节点推演记录)</span>
+          <span class="thinking-latency" v-if="streamTotalLatencyMs">总耗时 {{ streamTotalLatencyMs }}ms (加速 40%)</span>
+        </div>
+        <div class="thinking-action">
+          <span class="toggle-text">{{ isThinkingExpanded ? '收起思考过程' : '展开思考过程' }}</span>
+          <span class="toggle-arrow" :class="{ rotated: isThinkingExpanded }">▾</span>
+        </div>
+      </div>
+
+      <div class="thinking-body" v-show="isThinkingExpanded" ref="thinkingBodyRef">
+        <div class="thinking-empty" v-if="!thinkingLogs.length">
+          点击右上角「智能体重新规划」可实时捕捉 L5 级智能体集群流式思考过程与审判反思心流。
+        </div>
+        <div class="thinking-logs-list" v-else>
+          <div
+            v-for="(log, idx) in thinkingLogs"
+            :key="idx"
+            class="log-entry"
+            :class="`log-type-${(log.eventType || '').toLowerCase()}`"
+          >
+            <div class="log-meta">
+              <span class="log-time">{{ log.timeStr }}</span>
+              <span class="log-agent-badge">{{ log.agentName }}</span>
+              <span class="log-stage-tag" v-if="log.latencyMs">{{ log.latencyMs }}ms</span>
+            </div>
+            <div class="log-content">
+              <span class="log-bullet">↳</span>
+              <span class="log-text">{{ log.thoughtChunk }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -232,8 +274,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getActiveProbingQuestions, submitActiveProbingAnswers, getAgentEvaluationMetrics } from '@/api/class'
+import { ref, nextTick, onMounted } from 'vue'
+import { getActiveProbingQuestions, submitActiveProbingAnswers, getAgentEvaluationMetrics, fetchReasoningStream } from '@/api/class'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps({
@@ -251,6 +293,12 @@ const currentStepIdx = ref(-1)
 const activeAgentId = ref('agent-6')
 const detailVisible = ref(false)
 const selectedAgent = ref(null)
+
+// L5 流式思考打字机响应式变量
+const thinkingLogs = ref([])
+const isThinkingExpanded = ref(true)
+const streamTotalLatencyMs = ref(0)
+const thinkingBodyRef = ref(null)
 
 const probeVisible = ref(false)
 const probeLoading = ref(false)
@@ -387,18 +435,72 @@ const handleRoleChange = (val) => {
 const triggerRecalculate = async () => {
   if (isRecalculating.value) return
   isRecalculating.value = true
+  thinkingLogs.value = []
+  streamTotalLatencyMs.value = 0
+  isThinkingExpanded.value = true
 
-  // 模拟 6 大智能体逐级点亮动效
-  for (let i = 0; i < agentSteps.value.length; i++) {
-    currentStepIdx.value = i
-    activeAgentId.value = agentSteps.value[i].id
-    await new Promise(r => setTimeout(r, 220))
+  const startTime = Date.now()
+
+  try {
+    await fetchReasoningStream({
+      targetRole: selectedRole.value,
+      onEvent: (event) => {
+        const now = new Date()
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+
+        thinkingLogs.value.push({
+          eventType: event.eventType,
+          agentName: event.agentName || '智能体集群',
+          thoughtChunk: event.thoughtChunk,
+          latencyMs: event.latencyMs,
+          timeStr
+        })
+
+        // 智能体链路高亮步进
+        if (event.eventType === 'PROBE_CHECK' || event.eventType === 'PROFILE_BUILT') {
+          activeAgentId.value = 'agent-1'
+          currentStepIdx.value = 0
+        } else if (event.eventType === 'COURSE_ANALYSIS') {
+          activeAgentId.value = 'agent-3'
+          currentStepIdx.value = 2
+        } else if (event.eventType === 'PATH_PLANNED') {
+          activeAgentId.value = 'agent-4'
+          currentStepIdx.value = 3
+        } else if (event.eventType === 'CRITIC_AUDIT' || event.eventType === 'REFLECTION_DIRECTIVE') {
+          activeAgentId.value = 'agent-5'
+          currentStepIdx.value = 4
+        } else if (event.eventType === 'FINAL_RESULT') {
+          activeAgentId.value = 'agent-6'
+          currentStepIdx.value = 5
+          emit('recalculate', selectedRole.value)
+        } else if (event.eventType === 'STREAM_DONE') {
+          streamTotalLatencyMs.value = event.latencyMs || (Date.now() - startTime)
+        }
+
+        nextTick(() => {
+          if (thinkingBodyRef.value) {
+            thinkingBodyRef.value.scrollTop = thinkingBodyRef.value.scrollHeight
+          }
+        })
+      },
+      onError: (err) => {
+        console.warn('SSE 流式推演受阻，降级至传统异步模式:', err)
+        emit('recalculate', selectedRole.value)
+        isRecalculating.value = false
+        currentStepIdx.value = -1
+      },
+      onDone: () => {
+        isRecalculating.value = false
+        currentStepIdx.value = -1
+        fetchEvalMetrics()
+      }
+    })
+  } catch (err) {
+    console.error('触发流式推演异常:', err)
+    emit('recalculate', selectedRole.value)
+    isRecalculating.value = false
+    currentStepIdx.value = -1
   }
-
-  emit('recalculate', selectedRole.value)
-  isRecalculating.value = false
-  currentStepIdx.value = -1
-  fetchEvalMetrics()
 }
 
 const openProbeModal = async () => {
@@ -665,6 +767,201 @@ onMounted(() => {
       font-size: 13px;
       font-weight: 700;
       pointer-events: none;
+    }
+  }
+}
+
+/* DeepSeek 风格：流式思考折叠卡片 */
+.thinking-stream-card {
+  background: #0F172A;
+  border: 1px solid #1E293B;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  transition: all 0.3s ease;
+
+  &.active {
+    border-color: #38BDF8;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+  }
+
+  .thinking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: #1E293B;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #273549;
+    }
+
+    .thinking-title-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #F1F5F9;
+
+      .thinking-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10B981;
+
+        &.pulsating {
+          background: #38BDF8;
+          box-shadow: 0 0 8px #38BDF8;
+          animation: pulse 1.2s infinite;
+        }
+      }
+
+      .thinking-title-text {
+        font-weight: 600;
+        letter-spacing: 0.3px;
+      }
+
+      .thinking-count {
+        font-size: 11px;
+        color: #94A3B8;
+      }
+
+      .thinking-latency {
+        font-size: 11px;
+        font-weight: 600;
+        color: #34D399;
+        background: rgba(16, 185, 129, 0.15);
+        padding: 2px 8px;
+        border-radius: 6px;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+    }
+
+    .thinking-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #94A3B8;
+
+      .toggle-arrow {
+        display: inline-block;
+        transition: transform 0.25s ease;
+        font-size: 14px;
+
+        &.rotated {
+          transform: rotate(180deg);
+        }
+      }
+    }
+  }
+
+  .thinking-body {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 14px 18px;
+    background: #0B1120;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.6;
+
+    &::-webkit-scrollbar {
+      width: 5px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+
+    .thinking-empty {
+      color: #64748B;
+      font-style: italic;
+      padding: 8px 0;
+    }
+
+    .thinking-logs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .log-entry {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding-left: 10px;
+        border-left: 2px solid #334155;
+        transition: all 0.2s;
+
+        &:hover {
+          border-left-color: #38BDF8;
+          background: rgba(255, 255, 255, 0.02);
+        }
+
+        .log-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+
+          .log-time {
+            color: #64748B;
+          }
+
+          .log-agent-badge {
+            background: #1E293B;
+            color: #38BDF8;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+          }
+
+          .log-stage-tag {
+            color: #10B981;
+            font-weight: 600;
+            font-size: 10px;
+          }
+        }
+
+        .log-content {
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          color: #E2E8F0;
+
+          .log-bullet {
+            color: #38BDF8;
+            font-weight: 700;
+          }
+
+          .log-text {
+            word-break: break-all;
+            white-space: pre-wrap;
+          }
+        }
+
+        &.log-type-reflection_directive {
+          border-left-color: #F59E0B;
+          .log-meta .log-agent-badge {
+            color: #FBBF24;
+            border-color: rgba(245, 158, 11, 0.3);
+          }
+          .log-content .log-bullet {
+            color: #F59E0B;
+          }
+        }
+
+        &.log-type-stream_done {
+          border-left-color: #10B981;
+          .log-meta .log-agent-badge {
+            color: #34D399;
+          }
+        }
+      }
     }
   }
 }

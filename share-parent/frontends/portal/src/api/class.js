@@ -356,4 +356,56 @@ request({
 	method: 'get'
 })
 
+// 下一代 L5 智能体流式思考与推演 SSE 端点
+export const fetchReasoningStream = async ({ targetRole, onEvent, onError, onDone }) => {
+	const baseUrl = import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? '' : 'http://localhost:8080')
+	const token = sessionStorage.getItem('token') || ''
+	const url = `${baseUrl}${COURSE_API_PREFIX}/courses/recommendations/stream/reasoning?targetRole=${encodeURIComponent(targetRole || '')}`
+
+	try {
+		const response = await fetch(url, {
+			method: 'GET',
+			headers: {
+				'Accept': 'text/event-stream',
+				'authorization': token
+			}
+		})
+
+		if (!response.ok) {
+			throw new Error(`SSE 连接失败: HTTP ${response.status}`)
+		}
+
+		const reader = response.body.getReader()
+		const decoder = new TextDecoder('utf-8')
+		let buffer = ''
+
+		while (true) {
+			const { done, value } = await reader.read()
+			if (done) break
+
+			buffer += decoder.decode(value, { stream: true })
+			const lines = buffer.split('\n')
+			buffer = lines.pop() || ''
+
+			for (const line of lines) {
+				const trimmed = line.trim()
+				if (trimmed.startsWith('data:')) {
+					const dataStr = trimmed.replace(/^data:\s*/, '')
+					try {
+						const eventObj = JSON.parse(dataStr)
+						if (onEvent) onEvent(eventObj)
+					} catch (e) {
+						// ignore unparsed chunk
+					}
+				}
+			}
+		}
+
+		if (onDone) onDone()
+	} catch (err) {
+		if (onError) onError(err)
+		else console.error('SSE 流式推演异常:', err)
+	}
+}
+
 
