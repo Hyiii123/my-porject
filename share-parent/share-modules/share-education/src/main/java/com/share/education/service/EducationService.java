@@ -2250,6 +2250,7 @@ public class EducationService {
         }
         result.put("details", details);
         result.put("list", details);
+        result.put("answers", answers);
         return result;
     }
 
@@ -2322,8 +2323,6 @@ public class EducationService {
         if (record != null) {
             Long userId = currentUserId();
             require(Objects.equals(record.getUserId(), userId) || SecurityUtils.isAdmin(userId), "无权提交该考试记录");
-            // 已提交记录重复请求直接返回原结果，避免违反 uk_exam_answer 唯一索引或重复累计分数。
-            if (!Integer.valueOf(0).equals(record.getStatus())) return examRecordView(record);
         }
         if (record == null) {
             Long examId = longValue(request.get("examId"));
@@ -2346,6 +2345,18 @@ public class EducationService {
                 ? relationByQuestion.keySet().stream().map(questionBankMapper::selectById).filter(Objects::nonNull).toList()
                 : questionBankMapper.selectList(new LambdaQueryWrapper<EduExamQuestionBank>()
                         .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId));
+
+        // 已提交记录重复请求直接返回原结果与完整解析，避免违反 uk_exam_answer 唯一索引或重复累计分数
+        if (!Integer.valueOf(0).equals(record.getStatus())) {
+            Map<String, Object> result = examRecordView(record);
+            result.put("score", record.getScore());
+            result.put("correctCount", record.getCorrectCount());
+            result.put("passScore", defaultValue(exam.getPassScore(), BigDecimal.valueOf(60)));
+            result.put("questions", examQuestions.stream().map(this::legacyQuestionView).toList());
+            result.putAll(examRecordDetails(record.getId()));
+            return result;
+        }
+
         Map<Long, EduExamAnswer> existingAnswers = examAnswerMapper.selectList(new LambdaQueryWrapper<EduExamAnswer>()
                 .eq(EduExamAnswer::getRecordId, record.getId())).stream()
                 .collect(Collectors.toMap(EduExamAnswer::getQuestionId, Function.identity(), (left, right) -> right,
@@ -2361,12 +2372,14 @@ public class EducationService {
             for (Object item : answers) {
                 if (!(item instanceof Map<?, ?> answer)) continue;
                 Long questionId = longValue(answer.get("questionId"));
+                if (questionId == null) questionId = longValue(answer.get("id"));
                 require(questionId != null, "题目编号不能为空");
                 require(processedQuestions.add(questionId), "同一题目不能重复提交");
                 EduExamQuestionBank question = questionId == null ? null : questionBankMapper.selectById(questionId);
                 EduExamQuestion relation = relationByQuestion.get(questionId);
                 require(question != null && (!hasExplicitQuestions || relation != null), "提交的题目不属于该考试");
-                String userAnswer = normalizeAnswer(text(answer.get("answer")), question.getQuestionType());
+                Object rawAns = answer.get("answer") != null ? answer.get("answer") : answer.get("userAnswer");
+                String userAnswer = normalizeAnswer(text(rawAns), question.getQuestionType());
                 boolean right = question != null && sameAnswer(question.getCorrectAnswer(), userAnswer, question.getQuestionType());
                 BigDecimal itemScore = relation != null && relation.getScore() != null
                         && relation.getScore().compareTo(BigDecimal.ZERO) > 0
@@ -2381,6 +2394,25 @@ public class EducationService {
                 if (entity.getCreateTime() == null) entity.setCreateTime(LocalDateTime.now());
                 if (existingAnswers.containsKey(questionId)) examAnswerMapper.updateById(entity);
                 else { examAnswerMapper.insert(entity); existingAnswers.put(questionId, entity); }
+            }
+        }
+
+        // 补全所有未作答题目的答题明细（记录为空作答、0分、未通过），确保审计和详情完整
+        for (EduExamQuestionBank question : examQuestions) {
+            if (question != null && question.getId() != null && !processedQuestions.contains(question.getId())) {
+                EduExamAnswer unattempted = existingAnswers.get(question.getId());
+                if (unattempted == null) {
+                    unattempted = new EduExamAnswer();
+                    unattempted.setId(newId());
+                    unattempted.setRecordId(record.getId());
+                    unattempted.setQuestionId(question.getId());
+                    unattempted.setUserAnswer("");
+                    unattempted.setIsCorrect(0);
+                    unattempted.setScore(BigDecimal.ZERO);
+                    unattempted.setCreateTime(LocalDateTime.now());
+                    examAnswerMapper.insert(unattempted);
+                    existingAnswers.put(question.getId(), unattempted);
+                }
             }
         }
         record.setScore(score);

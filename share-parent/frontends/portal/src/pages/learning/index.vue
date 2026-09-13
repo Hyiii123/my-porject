@@ -65,6 +65,131 @@
             </div>
           </el-tab-pane>
 
+          <el-tab-pane label="随堂测验" name="quiz">
+            <div class="quiz-content" v-loading="quizLoading">
+              <!-- 无测验时的空状态 -->
+              <div v-if="!quizExam && !quizQuestions.length" class="quiz-empty">
+                <el-empty description="当前课程暂无配套随堂测试题" :image-size="100">
+                  <template #description>
+                    <p style="color: #64748b; font-size: 14px; margin-top: 8px;">当前课程暂无专属小节测验，您可在个人中心查阅综合能力模考</p>
+                  </template>
+                  <el-button type="primary" @click="$router.push('/personal/main/myExam')">查看我的考试</el-button>
+                </el-empty>
+              </div>
+
+              <!-- 存在测验题目 -->
+              <div v-else>
+                <!-- 测验头部概要 -->
+                <div class="quiz-header-card">
+                  <div class="quiz-header-info">
+                    <h3 class="quiz-title">{{ quizExam?.examName || '随堂能力测评' }}</h3>
+                    <div class="quiz-badges">
+                      <el-tag type="info" effect="plain">共 {{ quizQuestions.length }} 题</el-tag>
+                      <el-tag type="warning" effect="plain">满分 {{ quizExam?.totalScore || 100 }} 分</el-tag>
+                      <el-tag type="success" effect="plain">及格线 {{ quizExam?.passScore || 60 }} 分</el-tag>
+                    </div>
+                  </div>
+                  <div class="quiz-header-actions" v-if="quizSubmitted">
+                    <el-button size="small" @click="handleRetakeQuiz">重新测试</el-button>
+                    <el-button type="primary" size="small" @click="$router.push({ name: 'myExamDetails', query: { id: quizResult?.id } })">查看完整批阅</el-button>
+                  </div>
+                </div>
+
+                <!-- 成绩大屏 (提交后展示) -->
+                <div v-if="quizSubmitted" class="quiz-result-banner" :class="quizResult?.status === 1 ? 'pass' : 'fail'">
+                  <div class="result-score">
+                    <span class="num">{{ quizResult?.score ?? 0 }}</span>
+                    <span class="unit">分</span>
+                  </div>
+                  <div class="result-meta">
+                    <div class="result-status">{{ quizResult?.status === 1 ? '🎉 恭喜通过随堂测评！' : '💪 还需继续加油哦！' }}</div>
+                    <div class="result-detail">答对 {{ quizResult?.correctCount ?? 0 }} / {{ quizQuestions.length }} 题 ｜ 所属测评：{{ quizExam?.examName }}</div>
+                  </div>
+                </div>
+
+                <!-- 题目列表 -->
+                <div class="quiz-question-list">
+                  <div v-for="(q, qIdx) in quizQuestions" :key="q.id || qIdx" class="quiz-card">
+                    <div class="quiz-question-header">
+                      <span class="quiz-index">{{ qIdx + 1 }}.</span>
+                      <el-tag size="small" :type="getQuestionTypeTag(q.type)">{{ getQuestionTypeName(q.type) }}</el-tag>
+                      <span class="quiz-score">({{ q.score || 10 }}分)</span>
+                      <span class="quiz-stem" v-html="q.title || q.stem"></span>
+                    </div>
+
+                    <!-- 单选题 -->
+                    <div v-if="q.type === 1" class="quiz-options">
+                      <el-radio-group v-model="userAnswers[q.id]" :disabled="quizSubmitted">
+                        <div v-for="(opt, optIdx) in q.options" :key="optIdx" class="quiz-opt-item">
+                          <el-radio :label="getOptionLabel(optIdx)">
+                            <span class="opt-label">{{ getOptionLabel(optIdx) }}.</span>
+                            <span class="opt-text" v-html="opt"></span>
+                          </el-radio>
+                        </div>
+                      </el-radio-group>
+                    </div>
+
+                    <!-- 多选题 / 不定向 -->
+                    <div v-else-if="q.type === 2 || q.type === 3" class="quiz-options">
+                      <el-checkbox-group v-model="userAnswers[q.id]" :disabled="quizSubmitted">
+                        <div v-for="(opt, optIdx) in q.options" :key="optIdx" class="quiz-opt-item">
+                          <el-checkbox :label="getOptionLabel(optIdx)">
+                            <span class="opt-label">{{ getOptionLabel(optIdx) }}.</span>
+                            <span class="opt-text" v-html="opt"></span>
+                          </el-checkbox>
+                        </div>
+                      </el-checkbox-group>
+                    </div>
+
+                    <!-- 判断题 -->
+                    <div v-else-if="q.type === 4" class="quiz-options">
+                      <el-radio-group v-model="userAnswers[q.id]" :disabled="quizSubmitted">
+                        <div class="quiz-opt-item">
+                          <el-radio label="A">A. 正确</el-radio>
+                        </div>
+                        <div class="quiz-opt-item">
+                          <el-radio label="B">B. 错误</el-radio>
+                        </div>
+                      </el-radio-group>
+                    </div>
+
+                    <!-- 问答 / 主观题 -->
+                    <div v-else class="quiz-options">
+                      <el-input v-model="userAnswers[q.id]" type="textarea" :rows="3" placeholder="请输入你的回答..." :disabled="quizSubmitted" />
+                    </div>
+
+                    <!-- 提交后的解析展示 -->
+                    <div v-if="quizSubmitted" class="quiz-analysis-box">
+                      <div class="ans-row">
+                        <span class="ans-label">你的作答：</span>
+                        <span :class="isAnswerCorrect(q) ? 'ans-right' : 'ans-wrong'">
+                          {{ formatUserDisplayAnswer(q.type, userAnswers[q.id]) }}
+                        </span>
+                        <span class="ans-label marg-l">正确答案：</span>
+                        <span class="ans-right">{{ formatUserDisplayAnswer(q.type, q.correctAnswer || q.answer) }}</span>
+                      </div>
+                      <div class="analysis-text" v-if="q.analysis">
+                        <span class="anal-label">💡 考点解析：</span>
+                        <span v-html="q.analysis"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 提交答卷操作栏 (未提交状态) -->
+                <div v-if="!quizSubmitted" class="quiz-submit-bar">
+                  <div class="answered-progress">
+                    已答 <strong>{{ answeredCount }}</strong> / {{ quizQuestions.length }} 题
+                  </div>
+                  <div class="bar-btns">
+                    <el-button @click="handleResetAnswers">重置作答</el-button>
+                    <el-button type="primary" :loading="quizSubmitting" @click="handleSubmitQuiz">提交测验</el-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+
           <el-tab-pane label="问答" name="qa">
             <div class="qa-content">
               <div class="qa-input">
@@ -147,13 +272,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight, ArrowDown, VideoPlay, Document } from '@element-plus/icons-vue'
 import { getClassDetails, getAskList, getReply, postQuestions } from '@/api/classDetails.js'
 import { getCourseLearning, getLearningClassDetails, getMediasSignature, addPlayLog, getLearningLog } from '@/api/class.js'
 import { getAllNotes, addNotes } from '@/api/notes.js'
+import { getSubject, postSubject } from '@/api/subject.js'
 
 const cleanHtml = (text) => {
   if (!text) return ''
@@ -183,6 +309,22 @@ const qaList = reactive([])
 const newNote = ref('')
 const noteIsPublic = ref(true)
 const notes = reactive([])
+
+const quizLoading = ref(false)
+const quizSubmitting = ref(false)
+const quizExam = ref(null)
+const quizQuestions = ref([])
+const userAnswers = reactive({})
+const quizSubmitted = ref(false)
+const quizResult = ref(null)
+
+const answeredCount = computed(() => {
+  return quizQuestions.value.filter(q => {
+    const ans = userAnswers[q.id]
+    if (Array.isArray(ans)) return ans.length > 0
+    return ans !== undefined && ans !== null && String(ans).trim() !== ''
+  }).length
+})
 
 const courseId = () => Number(route.query.courseId || route.query.id || 0)
 
@@ -310,6 +452,9 @@ const loadCourse = async () => {
     if (noteResponse.status === 'fulfilled' && noteResponse.value?.code === 200) {
       replaceReactive(notes, listFrom(noteResponse.value.data).map(normalizeNote))
     }
+
+    // 异步拉取随堂测验考题
+    loadQuiz(id)
   } catch (error) {
     ElMessage.error(error?.message || '学习数据加载失败')
   } finally {
@@ -463,6 +608,149 @@ const handleAddNote = async () => {
     ElMessage.success('笔记已保存')
   } catch (error) {
     ElMessage.error(error?.message || '笔记保存失败，请先登录')
+  }
+}
+
+const loadQuiz = async (cId) => {
+  quizLoading.value = true
+  try {
+    const res = await getSubject({ courseId: cId })
+    if (res?.code === 200 && res.data) {
+      quizExam.value = res.data
+      const rawQuestions = res.data.questions || []
+      quizQuestions.value = rawQuestions.map(q => {
+        let opts = q.options
+        if (typeof opts === 'string') {
+          try { opts = JSON.parse(opts) } catch (e) { opts = [] }
+        }
+        return {
+          ...q,
+          options: opts || []
+        }
+      })
+      quizQuestions.value.forEach(q => {
+        if (q.type === 2 || q.type === 3) {
+          userAnswers[q.id] = []
+        } else {
+          userAnswers[q.id] = ''
+        }
+      })
+      quizSubmitted.value = false
+      quizResult.value = null
+    }
+  } catch (err) {
+    console.debug('获取课程随堂测试失败:', err)
+  } finally {
+    quizLoading.value = false
+  }
+}
+
+const getOptionLabel = (idx) => String.fromCharCode(65 + idx)
+
+const getQuestionTypeName = (type) => {
+  switch (Number(type)) {
+    case 1: return '单选题'
+    case 2: return '多选题'
+    case 3: return '不定项'
+    case 4: return '判断题'
+    case 5: return '主观题'
+    default: return '选择题'
+  }
+}
+
+const getQuestionTypeTag = (type) => {
+  switch (Number(type)) {
+    case 1: return 'primary'
+    case 2: return 'warning'
+    case 3: return 'danger'
+    case 4: return 'success'
+    default: return 'info'
+  }
+}
+
+const formatUserDisplayAnswer = (type, val) => {
+  if (val === undefined || val === null || val === '') return '未作答'
+  if (Array.isArray(val)) return val.length ? val.join(', ') : '未作答'
+  if (Number(type) === 4) {
+    if (val === 'A' || val === '1' || val === 1 || val === true || val === 'true') return 'A. 正确'
+    if (val === 'B' || val === '0' || val === 0 || val === false || val === 'false') return 'B. 错误'
+  }
+  return String(val)
+}
+
+const isAnswerCorrect = (q) => {
+  if (quizResult.value?.answers) {
+    const recordAns = quizResult.value.answers.find(a => Number(a.questionId) === Number(q.id))
+    if (recordAns) return Number(recordAns.isCorrect) === 1
+  }
+  const ans = userAnswers[q.id]
+  const target = q.correctAnswer || q.answer
+  if (!ans || !target) return false
+  if (Array.isArray(ans)) {
+    const joined = [...ans].sort().join(',')
+    const targetArr = String(target).split(',').map(s => s.trim()).sort().join(',')
+    return joined === targetArr
+  }
+  return String(ans).trim().toUpperCase() === String(target).trim().toUpperCase()
+}
+
+const handleResetAnswers = () => {
+  quizQuestions.value.forEach(q => {
+    if (q.type === 2 || q.type === 3) {
+      userAnswers[q.id] = []
+    } else {
+      userAnswers[q.id] = ''
+    }
+  })
+  ElMessage.info('已重置所有答题选项')
+}
+
+const handleRetakeQuiz = () => {
+  quizSubmitted.value = false
+  quizResult.value = null
+  handleResetAnswers()
+}
+
+const handleSubmitQuiz = async () => {
+  if (!quizExam.value?.id) {
+    ElMessage.warning('测验信息无效')
+    return
+  }
+  quizSubmitting.value = true
+  try {
+    const formattedAnswers = quizQuestions.value.map(q => {
+      let raw = userAnswers[q.id]
+      let ansStr = ''
+      if (Array.isArray(raw)) {
+        ansStr = raw.sort().join(',')
+      } else if (raw !== undefined && raw !== null) {
+        ansStr = String(raw).trim()
+      }
+      return {
+        questionId: q.id,
+        answer: ansStr,
+        userAnswer: ansStr
+      }
+    })
+
+    const payload = {
+      examId: quizExam.value.id,
+      courseId: course.value.id,
+      answers: formattedAnswers
+    }
+
+    const res = await postSubject(payload)
+    if (res?.code === 200 && res.data) {
+      quizResult.value = res.data
+      quizSubmitted.value = true
+      ElMessage.success(`测验提交成功！得分：${res.data.score || 0} 分`)
+    } else {
+      throw new Error(res?.msg || '提交失败')
+    }
+  } catch (err) {
+    ElMessage.error(err?.message || '测验提交失败，请登录后重试')
+  } finally {
+    quizSubmitting.value = false
   }
 }
 
@@ -797,6 +1085,228 @@ onMounted(loadCourse)
 .section-duration {
   font-size: 12px;
   color: #909399;
+}
+
+/* 随堂测验样式 */
+.quiz-content {
+  min-height: 240px;
+}
+
+.quiz-empty {
+  padding: 40px 0;
+  text-align: center;
+}
+
+.quiz-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.quiz-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.quiz-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.quiz-header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.quiz-result-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 24px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.quiz-result-banner.pass {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.quiz-result-banner.fail {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.result-score .num {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.result-score .unit {
+  font-size: 14px;
+  margin-left: 2px;
+}
+
+.result-status {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.result-detail {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.quiz-question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quiz-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 18px 20px;
+  transition: box-shadow 0.2s ease;
+}
+
+.quiz-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.quiz-question-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.quiz-index {
+  font-weight: 700;
+  color: #334155;
+  font-size: 15px;
+}
+
+.quiz-score {
+  font-size: 13px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.quiz-stem {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+  flex: 1;
+}
+
+.quiz-options {
+  padding-left: 8px;
+  margin-bottom: 12px;
+}
+
+.quiz-opt-item {
+  margin-bottom: 10px;
+}
+
+.quiz-opt-item:last-child {
+  margin-bottom: 0;
+}
+
+.opt-label {
+  font-weight: 600;
+  margin-right: 6px;
+  color: #475569;
+}
+
+.opt-text {
+  color: #334155;
+}
+
+.quiz-analysis-box {
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 4px solid #3b82f6;
+  font-size: 13px;
+}
+
+.ans-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ans-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.ans-label.marg-l {
+  margin-left: 16px;
+}
+
+.ans-right {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.ans-wrong {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.analysis-text {
+  color: #475569;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+
+.anal-label {
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.quiz-submit-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  margin-top: 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.answered-progress {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.answered-progress strong {
+  color: #3b82f6;
+  font-size: 16px;
+}
+
+.bar-btns {
+  display: flex;
+  gap: 12px;
 }
 
 /* 响应式 */
