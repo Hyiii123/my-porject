@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -82,9 +83,13 @@ public class RemotePythonAlgorithmEngine implements IRecommendAlgorithmEngine {
                 requestPayload.put("topK", topK);
                 requestPayload.put("useFrontier", true);
 
+                String jsonBody = objectMapper.writeValueAsString(requestPayload);
+                byte[] bodyBytes = jsonBody.getBytes(StandardCharsets.UTF_8);
+
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
-                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestPayload, headers);
+                headers.setContentLength(bodyBytes.length);
+                HttpEntity<byte[]> entity = new HttpEntity<>(bodyBytes, headers);
 
                 ResponseEntity<String> response = restTemplate.postForEntity(serviceUrl, entity, String.class);
                 if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
