@@ -230,6 +230,9 @@ services:
       - "${TJ_UI_PORT:-18080}:80"
     depends_on:
       - gateway
+    volumes:
+      - ./share-ui/dist:/usr/share/nginx/html:ro
+      - ./frontends/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - zhiwen-net
 
@@ -249,6 +252,9 @@ services:
       - "${TJ_PORTAL_UI_PORT:-18081}:80"
     depends_on:
       - gateway
+    volumes:
+      - ./frontends/portal/dist:/usr/share/nginx/html:ro
+      - ./frontends/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - zhiwen-net
 
@@ -268,6 +274,9 @@ services:
       - "${TJ_BUSINESS_ADMIN_UI_PORT:-18082}:80"
     depends_on:
       - gateway
+    volumes:
+      - ./frontends/business-admin/dist:/usr/share/nginx/html:ro
+      - ./frontends/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - zhiwen-net
 

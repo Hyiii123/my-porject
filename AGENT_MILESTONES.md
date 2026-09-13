@@ -14,6 +14,22 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-13 20:10:00 - 前端三大 UI 容器宿主机挂载解耦与现代产物全量恢复 (UI Containers Volume Decoupling & Stale Rollback Fix)：根治容器重建回退历史镜像缺陷、docker-compose 引入 host dist 与 nginx.conf 只读挂载、云端学生端与管理端全量恢复最新 AI/邮箱功能并确立零构建热载体系
+
+* **核心成果**：
+  1. **排查并根治容器重建导致的前端历史版本回退缺陷**：
+     - 深度排查发现：此前服务更名重建容器时，Docker Compose 在无 `volumes:` 挂载配置下拉取了 ECS 历史基础镜像（9月7日初始构建包 `index.eaa8a476.js`），导致后续演进的 QQ 邮箱验证码登录、AI 模拟面试厅、多智能体 HUD 拓扑分析、个人中心与防裂图封面等功能在容器重建后“假性丢失”；
+  2. **Docker Compose 宿主机挂载解耦与配置硬化**：
+     - 在 `share-parent/docker-compose.yml` 中为 `portal-ui`、`business-admin-ui`、`ruoyi-ui` 分别增加宿主机只读挂载：`./frontends/portal/dist:/usr/share/nginx/html:ro`、`./frontends/business-admin/dist:/usr/share/nginx/html:ro`、`./share-ui/dist:/usr/share/nginx/html:ro` 以及统一配置 `./frontends/nginx.conf:/etc/nginx/conf.d/default.conf:ro`；
+     - 彻底解耦容器运行态与静态镜像，今后容器任意重建或更新均永久锁定宿主机最新静态资产；
+  3. **遵循云盘保护铁律（Rule 2），本地极速构建并无损同步**：
+     - 本地开发机 11 秒极速完成 `frontends/portal` 与 `frontends/business-admin` 生产打包，生成最新现代产物（包含 `index.0a8f265c.js`、`index.5dc64745.js`、`index.dacc7557.js`）；
+     - 将静态包打包为 `frontends_dist.tar.gz`（60MB）上传至 ECS 宿主机对应路径，避免在服务器执行并发 npm build 抽干 ESSD 磁盘突发积分（Burst Credits）；
+  4. **云端平滑重载与定向验证全链路通过**：
+     - 重新拉起 `zhiwen-portal-ui`、`zhiwen-business-admin-ui`、`zhiwen-ruoyi-ui`，实测三者精确挂载最新产物；
+     - 验证 `http://47.120.67.187:18081`（学生端）、`http://47.120.67.187:18082`（业务端）、`http://47.120.67.187:18080`（管理端）及相关静态资源（`index.0a8f265c.js` 等）均 100% 返回 HTTP 200 OK；
+     - 执行 `start-project.ps1 health`，8 大核心服务（网关、前端、Nacos、Qdrant、推荐算法、向量嵌入）探针全部通过。
+
 ### 2026-09-13 19:45:00 - 服务容器名与底层数据库 Schema 全面去「天机」化更名为「智问」(Rename Containers & Schemas to Zhiwen)：16 个微服务容器全量平滑迁移至 zhiwen-*、MySQL 四大库 49 张表重命名与全量视图向下兼容、Qdrant 向量库别名映射、Nacos/Docker Compose/微服务网络全链路零缺陷平滑切换
 
 * **核心成果**：
