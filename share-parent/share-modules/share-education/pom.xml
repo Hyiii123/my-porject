@@ -30,10 +30,10 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- 官方 Spring AI OpenAI Starter，直连 DashScope / 通义千问 OpenAI 兼容端 -->
+        <!-- 官方 Spring AI 1.0.0 GA OpenAI Starter，直连 DashScope / 通义千问 OpenAI 兼容端 -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
         <dependency>
             <groupId>com.alibaba.cloud</groupId>

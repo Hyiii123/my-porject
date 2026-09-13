@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration;
+import org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration;
 
 /**
  * 官方 Spring AI 核心配置与工具 Bean 注册中心。
@@ -31,7 +31,7 @@ import org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration;
  * 3. 注册 {@code dragRecommendTool} 为 Spring AI Function 回调，使自研 DRAG-KP4SR 算法具备标准 Tool Calling 能力。</p>
  */
 @Configuration
-@AutoConfigureBefore(OpenAiAutoConfiguration.class)
+@AutoConfigureBefore(OpenAiChatAutoConfiguration.class)
 public class SpringAiConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(SpringAiConfiguration.class);
@@ -48,7 +48,10 @@ public class SpringAiConfiguration {
             apiKey = "dummy-key-for-spring-ai-init";
         }
         log.info("[Spring AI] Initialized official OpenAiApi bean with baseUrl: {}", baseUrl);
-        return new OpenAiApi(baseUrl, apiKey);
+        return OpenAiApi.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .build();
     }
 
     @Bean
@@ -65,7 +68,10 @@ public class SpringAiConfiguration {
                 .build();
 
         log.info("[Spring AI] Initialized official OpenAiChatModel bean with model: {}", model);
-        return new OpenAiChatModel(openAiApi, options);
+        return OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
     }
 
     @Bean

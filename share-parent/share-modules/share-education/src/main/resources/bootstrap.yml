@@ -9,6 +9,9 @@ spring:
     active: dev
   main:
     allow-bean-definition-overriding: true
+  ai:
+    openai:
+      api-key: ${AI_RECOMMEND_API_KEY:dummy-key-for-spring-ai-init}
   cloud:
     compatibility-verifier:
       enabled: false

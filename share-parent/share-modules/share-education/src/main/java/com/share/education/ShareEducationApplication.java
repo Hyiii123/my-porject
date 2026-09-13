@@ -6,7 +6,7 @@ import com.share.common.security.annotation.EnableRyFeignClients;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration;
+import org.springframework.ai.model.openai.autoconfigure.*;
 
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +14,14 @@ import org.springframework.context.annotation.Bean;
 /** 智问学伴课程、学习、互动、考试和积分服务。 */
 @EnableCustomConfig
 @EnableRyFeignClients
-@SpringBootApplication(exclude = {OpenAiAutoConfiguration.class})
+@SpringBootApplication(exclude = {
+    OpenAiChatAutoConfiguration.class,
+    OpenAiImageAutoConfiguration.class,
+    OpenAiAudioSpeechAutoConfiguration.class,
+    OpenAiAudioTranscriptionAutoConfiguration.class,
+    OpenAiEmbeddingAutoConfiguration.class,
+    OpenAiModerationAutoConfiguration.class
+})
 public class ShareEducationApplication {
     public static void main(String[] args) {
         SpringApplication.run(ShareEducationApplication.class, args);

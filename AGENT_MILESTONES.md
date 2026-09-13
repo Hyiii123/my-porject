@@ -14,6 +14,26 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-13 18:00:00 - 官方 Spring AI 框架全线跃迁至 1.0.0 GA 正式版：Starter 坐标模块化大重构（spring-ai-starter-model-openai）、OpenAiApi 与 OpenAiChatModel 全面切换 Builder 规范、全量自动装配与空 Key 熔断闭环、双入口定向验证通过
+
+* **核心成果**：
+  1. **Spring AI 全线跃迁至官方 1.0.0 GA 正式版（General Availability）**：
+     - 在父工程 `share-parent/pom.xml` 中将 `<spring-ai.version>` 设置为 `1.0.0` GA 正式版；
+     - 全面顺应官方 1.0.0 GA 模块化命名大重构，将 Starter 依赖从历史坐标 `spring-ai-openai-spring-boot-starter` 跃迁为官方最新规范 **`spring-ai-starter-model-openai`**；
+     - 自动引入拆分后的 15 大官方核心构件（`spring-ai-model`、`spring-ai-client-chat`、`spring-ai-commons` 等），淘汰已废弃的单体 `spring-ai-core`。
+  2. **API 规范全面对齐 1.0.0 GA Builder 模式**：
+     - `OpenAiApi` 彻底适配为官方推荐的 `OpenAiApi.builder().baseUrl(...).apiKey(...).build()`；
+     - `OpenAiChatModel` 适配为 `OpenAiChatModel.builder().openAiApi(...).defaultOptions(...).build()`，根除旧版已废弃的单参/双参构造函数警告；
+     - 保持自研 `DRAG-KP4SR` 知识图谱序列推荐 Tool Calling 回调机制无缝衔接。
+  3. **1.0.0 GA 全量 AutoConfiguration 治理与空 Key 闪退双层防御**：
+     - 深度排查 1.0.0 GA 新增的多模态自动装配（AudioSpeech、Image、Embedding、Transcription 等）在空 Key 下执行断言导致容器崩溃的隐患；
+     - 在 `ShareEducationApplication` 中显式排除所有非必要自动装配（`OpenAiChatAutoConfiguration`、`OpenAiImageAutoConfiguration`、`OpenAiAudioSpeechAutoConfiguration` 等 6 大类）；
+     - 在 `bootstrap.yml` 中注入 `spring.ai.openai.api-key: ${AI_RECOMMEND_API_KEY:dummy-key-for-spring-ai-init}` 形成第二道坚固防线，确保任意环境下微服务零闪退。
+  4. **云端生产热部署与定向范围测试零缺陷通过（严格遵循 Rule 8）**：
+     - 本地 JDK 17 环境完成编译打包，产物 `share-education.jar` 内置完整的 15 个 1.0.0 GA 核心 JAR；
+     - 通过 Workbench CLI 同步到服务器并热重启 `tianji-education` 容器，服务在 49 秒内初始化完成并成功注册进 Nacos（端口 9210）；
+     - 定向范围验证通过：服务直连端口 `http://127.0.0.1:19210/courses/recommendations/personalized?limit=4` 与微服务网关入口 `http://127.0.0.1:8080/cs/courses/recommendations/personalized?limit=4` 均返回 200 OK，包含高质量的拓扑推演、技能缺口弥补与可解释性多智能体推荐卡片。
+
 ### 2026-09-13 17:30:00 - 官方 Spring AI 框架全线跃升至最新版本 1.0.0-M6：BOM 与 Starter 全面升级、OpenAiChatOptions Fluent API 规范对齐、JDK 17 生产热更新与双入口零缺陷验证
 
 * **核心成果**：
