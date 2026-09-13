@@ -98,9 +98,11 @@ export const formatRule = (d) => {
 		case NO_THRESHOLD:
 			rule = `无门槛抵扣${d.discountValue / 100}元`;
 			break;
-		case RATE_DISCOUNT:
-			rule = `满${ d.thresholdAmount / 100}元打${d.discountValue / 10}折，不超过${d.maxDiscountAmount / 100}元`
+		case RATE_DISCOUNT: {
+			let rate = d.discountValue > 100 ? (d.discountValue / 100) : (d.discountValue > 10 ? d.discountValue / 10 : d.discountValue);
+			rule = `满${ d.thresholdAmount / 100}元打${rate}折，不超过${d.maxDiscountAmount / 100}元`;
 			break;
+		}
 	}
 	return rule;
 }

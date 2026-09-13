@@ -36,7 +36,9 @@
           </el-table-column>
           <el-table-column label="操作" align="center" width="120">
             <template #default="scope">
-              <div v-if="scope.row.canRefund" class="font-bt1" @click="openRefundDialog('refund', scope.row)">申请退款</div>
+              <div v-if="scope.row.canRefund" class="font-bt1" @click="openRefundDialog('refund', scope.row)">
+                {{ scope.row.refundStatus === 4 ? '重新申请' : '申请退款' }}
+              </div>
               <span v-else-if="!scope.row.refundStatus || scope.row.refundStatus === 3"> -- </span>
               <div v-else class="font-bt1" @click="openRefundDialog('details', scope.row)">退款详情</div>
             </template>
@@ -127,9 +129,19 @@
           </div>
           <div class="row">
             <p class="ft-wt-600">处理结果：</p>
-            <p class="ft-cl-des" v-if="refundDetailsData.remark != null">
-              审批结果：{{ refundDetailsData.remark ? '同意' : '拒绝退款' }}</p>
-            <p class="ft-cl-des">审批意见：{{ refundDetailsData.approvalOpinion || '暂无！' }}</p>
+            <p class="ft-cl-des" v-if="refundDetailsData.status === 0">
+              审批结果：<span style="color: #e6a23c; font-weight: 500;">审核中（请耐心等待客服审核）</span>
+            </p>
+            <p class="ft-cl-des" v-else-if="refundDetailsData.status === 1 || refundDetailsData.remark === true">
+              审批结果：<span style="color: #67c23a; font-weight: 500;">同意退款（款项将原路退回）</span>
+            </p>
+            <p class="ft-cl-des" v-else-if="refundDetailsData.status === 2 || refundDetailsData.remark === false">
+              审批结果：<span style="color: #f56c6c; font-weight: 500;">拒绝退款</span>
+            </p>
+            <p class="ft-cl-des" v-else>
+              审批结果：{{ refundDetailsData.statusText || '已受理' }}
+            </p>
+            <p class="ft-cl-des" v-if="refundDetailsData.approvalOpinion">审批意见：{{ refundDetailsData.approvalOpinion }}</p>
           </div>
         </div>
       </div>

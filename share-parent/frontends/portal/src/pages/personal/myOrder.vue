@@ -23,7 +23,7 @@
               <span @click="() => $router.push({path: 'myOrderDetails',query: {id:item.id}})" class="bt bt-grey1">查看订单</span>
               <span v-if="item.status == 1 " @click="cancelOrderHandle(item)" class="bt bt-grey">取消订单</span>
               <span v-if="item.status == 1 " @click="() => $router.push({path: '/pay/payment',query: {orderId:item.id}})" class="bt">去支付</span>
-              <span v-if="item.status == 3 || item.status == 5"  @click="delOrderHandle(item)" class="bt bt-grey1">删除订单</span>
+              <span v-if="item.status == 3 || item.status == 5 || item.status == 6"  @click="delOrderHandle(item)" class="bt bt-grey1">删除订单</span>
             </span>
           </div>
         </div>

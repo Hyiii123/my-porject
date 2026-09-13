@@ -6,7 +6,7 @@
      <div class="desc">{{item.rule}}</div>
    </div>
    <div class="price ft-cl-wt" v-if="item.discountType == 2 || item.discountType == 5">
-     <div><em>{{item.discountValue / 10}}</em> 折</div>
+     <div><em>{{ formatDiscountRate(item.discountValue) }}</em> 折</div>
      <div class="desc">{{item.rule}}</div>
    </div>
     <div class="info">
@@ -19,6 +19,14 @@
 </template>
 <script setup>
 import moment from 'moment';
+
+const formatDiscountRate = (val) => {
+  if (!val) return 0;
+  if (val > 100) return (val / 100);
+  if (val > 10) return (val / 10);
+  return val;
+};
+
 const props = defineProps({
   data:{
     type: Object,

@@ -652,7 +652,10 @@ public class TradeService {
 
     @Transactional
     public Map<String, Object> createPayment(Map<String, ?> body) {
-        Long orderId = longValue(body == null ? null : body.get("orderId")); TrOrder order = findOrder(orderId); require(Objects.equals(order.getUserId(), currentUserId()), "无权支付该订单");
+        Long orderId = longValue(body == null ? null : body.get("orderId"));
+        TrOrder order = findOrder(orderId);
+        require(Objects.equals(order.getUserId(), currentUserId()), "无权支付该订单");
+        require(order.getOrderStatus() == 0, "订单当前状态不可发起支付" + (order.getOrderStatus() == 4 ? "（订单已超时关闭）" : order.getOrderStatus() == 1 ? "（订单已支付）" : ""));
         String channel = defaultText(body == null ? null : body.get("channel"), defaultText(body == null ? null : body.get("paymentChannel"), "wechat"));
         TrPaymentOrder payment = paymentMapper.selectOne(new LambdaQueryWrapper<TrPaymentOrder>().eq(TrPaymentOrder::getOrderId, order.getId()).eq(TrPaymentOrder::getPaymentChannel, channel));
         if (payment == null) { payment = new TrPaymentOrder(); payment.setId(newId()); payment.setPaymentNo("PAY" + System.currentTimeMillis()); payment.setOrderId(order.getId()); payment.setPaymentChannel(channel); payment.setAmount(order.getPayableAmount()); payment.setStatus(0); payment.setExpireTime(order.getExpireTime()); payment.setCreateTime(LocalDateTime.now()); payment.setUpdateTime(LocalDateTime.now()); payment.setVersion(0); paymentMapper.insert(payment); }
@@ -665,6 +668,7 @@ public class TradeService {
     public Map<String, Object> simulatePayment(Long orderId) {
         TrOrder order = findOrder(orderId);
         require(Objects.equals(order.getUserId(), currentUserId()), "无权支付该订单");
+        require(order.getOrderStatus() == 0, "订单当前状态不可支付" + (order.getOrderStatus() == 4 ? "（订单已超时关闭）" : order.getOrderStatus() == 1 ? "（订单已支付）" : ""));
         LocalDateTime now = LocalDateTime.now();
         TrPaymentOrder payment = paymentMapper.selectOne(new LambdaQueryWrapper<TrPaymentOrder>()
                 .eq(TrPaymentOrder::getOrderId, orderId).orderByDesc(TrPaymentOrder::getCreateTime).last("limit 1"));
@@ -690,9 +694,40 @@ public class TradeService {
 
     @Transactional
     public Map<String, Object> applyRefund(Map<String, ?> body) {
-        Long detailId = longValue(body == null ? null : body.get("orderDetailId")); TrOrderItem item = detailId == null ? null : itemMapper.selectById(detailId); require(item != null, "订单明细不存在"); TrOrder order = findOrder(item.getOrderId()); require(Objects.equals(order.getUserId(), currentUserId()), "无权申请退款"); require(Integer.valueOf(1).equals(order.getPaymentStatus()) && Integer.valueOf(1).equals(order.getOrderStatus()), "当前订单不可申请退款");
-        TrRefundApply old = refundMapper.selectOne(new LambdaQueryWrapper<TrRefundApply>().eq(TrRefundApply::getOrderId, order.getId()).orderByDesc(TrRefundApply::getCreateTime).last("limit 1")); if (old != null) return refundView(old);
-        TrRefundApply value = new TrRefundApply(); value.setId(newId()); value.setRefundNo("REF" + System.currentTimeMillis()); value.setOrderId(order.getId()); value.setUserId(currentUserId()); value.setRefundAmount(item.getPayableAmount()); value.setReason(defaultText(body == null ? null : body.get("refundReason"), defaultText(body == null ? null : body.get("questionDesc"), "用户申请退款"))); value.setStatus(0); value.setCreateTime(LocalDateTime.now()); value.setUpdateTime(LocalDateTime.now()); value.setVersion(0); value.setDelFlag(0); refundMapper.insert(value); return refundView(value);
+        Long detailId = longValue(body == null ? null : body.get("orderDetailId"));
+        TrOrderItem item = detailId == null ? null : itemMapper.selectById(detailId);
+        require(item != null, "订单明细不存在");
+        TrOrder order = findOrder(item.getOrderId());
+        require(Objects.equals(order.getUserId(), currentUserId()), "无权申请退款");
+        require(Integer.valueOf(1).equals(order.getPaymentStatus()) && Integer.valueOf(1).equals(order.getOrderStatus()), "当前订单不可申请退款");
+
+        TrRefundApply old = refundMapper.selectOne(new LambdaQueryWrapper<TrRefundApply>()
+                .eq(TrRefundApply::getOrderId, order.getId())
+                .orderByDesc(TrRefundApply::getCreateTime).last("limit 1"));
+        if (old != null) {
+            if (old.getStatus() == 0) {
+                return refundView(old);
+            }
+            if (old.getStatus() == 1) {
+                throw new ServiceException("该订单已成功退款，无法重复申请");
+            }
+            // 历史申请被驳回 (status == 2) 时，允许用户修正原因重新发起退款申请
+        }
+
+        TrRefundApply value = new TrRefundApply();
+        value.setId(newId());
+        value.setRefundNo("REF" + System.currentTimeMillis());
+        value.setOrderId(order.getId());
+        value.setUserId(currentUserId());
+        value.setRefundAmount(item.getPayableAmount());
+        value.setReason(defaultText(body == null ? null : body.get("refundReason"), defaultText(body == null ? null : body.get("questionDesc"), "用户申请退款")));
+        value.setStatus(0);
+        value.setCreateTime(LocalDateTime.now());
+        value.setUpdateTime(LocalDateTime.now());
+        value.setVersion(0);
+        value.setDelFlag(0);
+        refundMapper.insert(value);
+        return refundView(value);
     }
 
     public Map<String, Object> refund(Long id) {
@@ -776,6 +811,7 @@ public class TradeService {
             if (order != null) {
                 order.setOrderStatus(3); order.setPaymentStatus(3); order.setRefundTime(LocalDateTime.now());
                 order.setRefundReason(value.getReason()); order.setUpdateTime(LocalDateTime.now()); orderMapper.updateById(order);
+                restoreOrderCoupon(order);
             }
         }
         return legacyRefundView(value);
@@ -1033,9 +1069,9 @@ public class TradeService {
         TrRefundApply refund = refundMapper.selectOne(new LambdaQueryWrapper<TrRefundApply>()
                 .eq(TrRefundApply::getOrderId, item.getId())
                 .orderByDesc(TrRefundApply::getCreateTime).last("limit 1"));
-        boolean hasRefund = (refund != null);
+        boolean hasActiveOrApprovedRefund = (refund != null && refund.getStatus() != 2);
         Integer refundStatusCode = null;
-        if (hasRefund) {
+        if (refund != null) {
             refundStatusCode = refund.getStatus() == 0 ? 1 : refund.getStatus() == 1 ? 5 : 4;
         }
         final Integer finalRefundStatus = refundStatusCode;
@@ -1050,7 +1086,7 @@ public class TradeService {
             row.put("cover", detail.getCourseCoverUrl());
             row.put("price", cents(detail.getUnitPrice()));
             row.put("realPayAmount", cents(detail.getPayableAmount()));
-            row.put("canRefund", !hasRefund && item.getPaymentStatus() == 1 && item.getOrderStatus() == 1);
+            row.put("canRefund", !hasActiveOrApprovedRefund && item.getPaymentStatus() == 1 && item.getOrderStatus() == 1);
             row.put("refundStatus", finalRefundStatus);
             return row;
         }).toList();
@@ -1099,7 +1135,8 @@ public class TradeService {
         result.put("refundChannel", "原支付渠道");
         result.put("refundAmount", cents(item.getRefundAmount()));
         result.put("status", item.getStatus());
-        result.put("remark", item.getStatus() == 1 || item.getStatus() == 3);
+        result.put("statusText", item.getStatus() == 0 ? "审核中" : item.getStatus() == 1 ? "已同意退款" : "已拒绝退款");
+        result.put("remark", item.getStatus() == 0 ? null : (item.getStatus() == 1 || item.getStatus() == 3));
         result.put("approvalOpinion", item.getAuditRemark());
         result.put("createTime", item.getCreateTime());
         result.put("approveTime", item.getAuditTime());
@@ -1107,9 +1144,13 @@ public class TradeService {
         TrOrder order = orderMapper.selectById(item.getOrderId());
         if (order != null) {
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            result.put("payChannel", order.getPaymentChannel() != null
+                    ? ("wechat".equals(order.getPaymentChannel()) ? "微信支付" : "alipay".equals(order.getPaymentChannel()) ? "支付宝" : order.getPaymentChannel())
+                    : "在线支付");
             result.put("orderTime", order.getCreateTime() != null ? order.getCreateTime().format(fmt) : "--");
             result.put("paySuccessTime", order.getPaidTime() != null ? order.getPaidTime().format(fmt) : "--");
         } else {
+            result.put("payChannel", "在线支付");
             result.put("orderTime", "--");
             result.put("paySuccessTime", "--");
         }
@@ -1135,7 +1176,16 @@ public class TradeService {
         BigDecimal value = defaultValue(coupon.getDiscountValue(), BigDecimal.ZERO);
         BigDecimal discount;
         if (coupon.getDiscountType() != null && coupon.getDiscountType() == 2) {
-            BigDecimal discountRate = value.compareTo(BigDecimal.TEN) > 0 ? value.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP) : value.divide(BigDecimal.TEN, 4, RoundingMode.HALF_UP);
+            BigDecimal discountRate;
+            if (value.compareTo(BigDecimal.valueOf(10)) > 0) {
+                discountRate = value.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            } else if (value.compareTo(BigDecimal.ONE) > 0) {
+                discountRate = value.divide(BigDecimal.TEN, 4, RoundingMode.HALF_UP);
+            } else if (value.compareTo(BigDecimal.ZERO) > 0) {
+                discountRate = value;
+            } else {
+                discountRate = BigDecimal.ONE;
+            }
             discount = total.multiply(BigDecimal.ONE.subtract(discountRate));
         } else {
             discount = value;
