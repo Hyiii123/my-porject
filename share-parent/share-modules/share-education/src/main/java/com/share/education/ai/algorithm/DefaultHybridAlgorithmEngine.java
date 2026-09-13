@@ -143,16 +143,10 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
             double finalScore = Math.min(99.5, Math.max(30.0, baseScore));
 
             // 标签标注
-            String matchTag = "精选进阶";
-            if (roleMatched && techMatchScore > 20) {
-                matchTag = "岗位强契合";
-            } else if (techMatchScore > 25) {
-                matchTag = "核心技术对齐";
-            } else if (courseDiff > preferredDifficulty) {
-                matchTag = "架构跃升突破";
-            } else if (learners > 15000) {
-                matchTag = "全站爆款好课";
-            }
+            String matchTag = (roleMatched && techMatchScore > 20) ? "岗位强契合"
+                : (techMatchScore > 25 ? "核心技术对齐"
+                : (courseDiff > preferredDifficulty ? "架构跃升突破"
+                : (learners > 15000 ? "全站爆款好课" : "精选进阶")));
 
             candidates.add(AlgorithmCandidateDTO.builder()
                 .courseId(c.getId())
@@ -164,7 +158,7 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
 
         // 按得分降序排序，取 Top K
         candidates.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
-        return candidates.stream().limit(safeLimit).collect(Collectors.toList());
+        return candidates.stream().limit(safeLimit).toList();
     }
 
     @Override

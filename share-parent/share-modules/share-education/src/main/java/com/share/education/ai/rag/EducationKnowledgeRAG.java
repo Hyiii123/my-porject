@@ -68,35 +68,24 @@ public class EducationKnowledgeRAG {
             return "【通用 IT 工程师职业进阶标准】要求建立扎实的基础理论、工程化架构能力与系统化实战经验，按由浅入深、循序渐进的梯度稳步攻坚。";
         }
 
-        // 计算知识切片匹配得分
-        KnowledgeChunk bestChunk = null;
-        int maxScore = -1;
+        return CAREER_KNOWLEDGE_BASE.stream()
+            .map(chunk -> Map.entry(chunk, scoreChunk(chunk, targetRole, skills)))
+            .filter(e -> e.getValue() > 0)
+            .max(Map.Entry.comparingByValue())
+            .map(e -> e.getKey().content)
+            .orElse("【专业技术工程师标准】聚焦核心技术实战，夯实先修基石，遵循标准工程化链路完成知识迭代与职业破局。");
+    }
 
-        for (KnowledgeChunk chunk : CAREER_KNOWLEDGE_BASE) {
-            int score = 0;
-            if (StringUtils.hasText(targetRole) && (chunk.roleName.contains(targetRole) || targetRole.contains(chunk.roleName))) {
-                score += 10;
-            }
-            if (skills != null) {
-                for (String s : skills) {
-                    for (String kw : chunk.keywords) {
-                        if (kw.equalsIgnoreCase(s) || kw.contains(s) || s.contains(kw)) {
-                            score += 2;
-                        }
-                    }
+    private int scoreChunk(KnowledgeChunk chunk, String role, List<String> skills) {
+        int score = (StringUtils.hasText(role) && (chunk.roleName.contains(role) || role.contains(chunk.roleName))) ? 10 : 0;
+        if (skills != null) {
+            for (String s : skills) {
+                if (chunk.keywords.stream().anyMatch(kw -> kw.equalsIgnoreCase(s) || kw.contains(s) || s.contains(kw))) {
+                    score += 2;
                 }
             }
-            if (score > maxScore) {
-                maxScore = score;
-                bestChunk = chunk;
-            }
         }
-
-        if (bestChunk != null && maxScore > 0) {
-            return bestChunk.content;
-        }
-
-        return "【专业技术工程师标准】聚焦核心技术实战，夯实先修基石，遵循标准工程化链路完成知识迭代与职业破局。";
+        return score;
     }
 
     private static class KnowledgeChunk {

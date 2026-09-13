@@ -89,14 +89,8 @@ public class CourseAnalysisAgent {
 
             // 4. 评估学员认知难度跨度
             int courseDiff = c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2;
-            String difficultyAssessment;
-            if (courseDiff <= userDifficulty) {
-                difficultyAssessment = "平滑承接 · 稳固基石";
-            } else if (courseDiff == userDifficulty + 1) {
-                difficultyAssessment = "适度挑战 · 技能跃升";
-            } else {
-                difficultyAssessment = "高阶攻坚 · 架构突破";
-            }
+            String difficultyAssessment = courseDiff <= userDifficulty ? "平滑承接 · 稳固基石"
+                : (courseDiff == userDifficulty + 1 ? "适度挑战 · 技能跃升" : "高阶攻坚 · 架构突破");
 
             analyzedList.add(AnalyzedCourseVO.builder()
                 .courseId(c.getCourseId())
@@ -109,41 +103,32 @@ public class CourseAnalysisAgent {
                 .learnerCount(c.getLearnerCount())
                 .matchScore(c.getAlgorithmScore())
                 .prerequisiteSkills(prerequisites)
-                .coreKnowledgePoints(knowledgePoints.stream().distinct().limit(4).collect(Collectors.toList()))
+                .coreKnowledgePoints(knowledgePoints.stream().distinct().limit(4).toList())
                 .practicalWeight(practicalWeight)
                 .syllabusSummary(syllabusSummary.length() > 0 ? syllabusSummary.toString() : "系统化进阶核心大纲")
                 .difficultyAssessment(difficultyAssessment)
                 .matchTag(c.getMatchTag())
-                .evidencePaths(c.getEvidencePaths() != null ? c.getEvidencePaths() : Collections.emptyList())
+                .evidencePaths(c.getEvidencePaths() != null ? c.getEvidencePaths() : List.of())
                 .build());
         }
 
         return analyzedList;
     }
 
+    private static final List<Map.Entry<List<String>, List<String>>> PREREQ_RULES = List.of(
+        Map.entry(List.of("springcloud", "微服务"), List.of("Java 核心语法", "SpringBoot 基础")),
+        Map.entry(List.of("k8s", "kubernetes"), List.of("Linux 基础操作", "Docker 容器基础")),
+        Map.entry(List.of("大模型", "llm", "rag"), List.of("Python 基础", "基础机器学习概念")),
+        Map.entry(List.of("vue3", "react"), List.of("HTML5/CSS3", "ES6+ / TypeScript")),
+        Map.entry(List.of("flink", "spark"), List.of("Java / Scala 基础", "SQL 复杂查询"))
+    );
+
     private List<String> extractPrerequisites(CandidateCourseDTO c) {
-        String name = (c.getCourseName() + " " + c.getSkills()).toLowerCase();
-        List<String> prereqs = new ArrayList<>();
-
-        if (name.contains("springcloud") || name.contains("微服务")) {
-            prereqs.add("Java 核心语法");
-            prereqs.add("SpringBoot 基础");
-        } else if (name.contains("k8s") || name.contains("kubernetes")) {
-            prereqs.add("Linux 基础操作");
-            prereqs.add("Docker 容器基础");
-        } else if (name.contains("大模型") || name.contains("llm") || name.contains("rag")) {
-            prereqs.add("Python 基础");
-            prereqs.add("基础机器学习概念");
-        } else if (name.contains("vue3") || name.contains("react")) {
-            prereqs.add("HTML5/CSS3");
-            prereqs.add("ES6+ / TypeScript");
-        } else if (name.contains("flink") || name.contains("spark")) {
-            prereqs.add("Java / Scala 基础");
-            prereqs.add("SQL 复杂查询");
-        } else {
-            prereqs.add("计算机基础知识");
-        }
-
-        return prereqs;
+        String text = (c.getCourseName() + " " + (c.getSkills() != null ? c.getSkills() : "")).toLowerCase();
+        return PREREQ_RULES.stream()
+            .filter(r -> r.getKey().stream().anyMatch(text::contains))
+            .map(Map.Entry::getValue)
+            .findFirst()
+            .orElseGet(() -> List.of("计算机基础知识"));
     }
 }

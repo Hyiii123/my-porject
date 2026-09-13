@@ -14,6 +14,29 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-13 19:15:00 - 项目代码重构做减法与代码精简 (Code Subtraction & Streamlining)：多智能体管线与推荐算法服务去除冗余样板、现代 Java 17 Stream/Record 声明式重构、Python 紧凑化与端到端定向验证零缺陷
+
+* **核心成果**：
+  1. **CourseAnalysisAgent 声明式规则驱动重构**：
+     - 淘汰 `extractPrerequisites` 中 25 行繁冗的硬编码 `if-else if` 链，抽象不可变声明式规则列表 `PREREQ_RULES`，通过 5 行 Stream 过滤器实现灵活匹配；
+     - 难度评定逻辑从 8 行多重嵌套分支紧凑收敛为清晰的三元表达式；
+  2. **PathPlanningAgent 数据驱动阶段构建重构**：
+     - 淘汰学习路径规划中 4 个学习阶段（筑基、进阶、冲刺、拓展）共 42 行高度重复的 `PathStageVO.builder()` 命令式样板；
+     - 引入局部 `record StageDef(...)` 结构与不可变元组列表，将 4 个阶段构建紧凑精简为单循环，代码行数下降 60% 以上；
+  3. **UserProfileAgent 与 EducationKnowledgeRAG 流式高效计算**：
+     - 用户画像模块重构：排序、唯一去重、学时累加（`mapToInt().sum() / 3600.0`）由命令式多行循环全面跃迁为 Java 17 流式管道；
+     - 领域基准比对优化：`EducationKnowledgeRAG` 中冗余的三层嵌套循环与临时局部变量，优化为现代 Stream `max(Map.Entry.comparingByValue())` 链式调用；
+  4. **ExplanationGenerationAgent 与 DefaultHybridAlgorithmEngine 语法紧凑化**：
+     - 解释生成智能体中连续 10 行冗余的 `userModel.put(...)` 序列，替换为优雅的不可变 `Map.of(...)` 语法；
+     - 混合推荐引擎的 matchTag 条件分支提炼为清晰紧凑的三元表达式；
+  5. **Python 推荐算法服务跨域与适配层精简**：
+     - `server.py` 抽取统一的 `_send_cors_headers` 辅助方法，根除跨请求头设置的重复样板；
+     - `mapping_adapter.py` 使用正则一次性分词结合海象运算符 `:=`，将繁杂的候选簇筛选从 20 行紧凑收敛至 6 行流式过滤；
+  6. **本地构建、云端生产热部署与端到端定向验证零缺陷（净减 72 行冗余样板）**：
+     - `git diff --stat` 统计显示 8 个核心文件净减 72 行冗余代码，逻辑可读性与声明式表现力大幅跃升；
+     - 本地打包 `share-education.jar` 并同步 ECS，热重启 `tianji-education` 和 `tianji-recommend`；
+     - 定向验证测试：算法预测服务 `/opt/tianji/test_semantic_predict.py` 200 OK 通过，网关入口 `http://127.0.0.1:8080/cs/courses/recommendations/personalized?limit=4` 完美返回包含完整先修证据链与认知发展阶段的个性化推荐结果。
+
 ### 2026-09-13 18:30:00 - 业务课程 (270门) 与 MOOCCubeX 知识图谱 (51门) 双塔混合语义实体对齐架构落地：BGE Dense 向量与技术词素 BM25 混合对齐、预计算高保真语义索引资产生成、CourseMappingAdapter 纯语义化双向重构与线上端到端实测通畅
 
 * **核心成果**：

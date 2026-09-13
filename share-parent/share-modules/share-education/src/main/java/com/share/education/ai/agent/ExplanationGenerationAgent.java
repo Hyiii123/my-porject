@@ -111,14 +111,15 @@ public class ExplanationGenerationAgent {
                     "学员目标岗位：{intendedRole}；已有技能：{skills}；当前阶段：{stageName}；推荐课程：《{courseName}》；核心知识点：{knowledgePoints}{pathEvidence}；行业背景参考：{benchmark}"
                 );
 
-                Map<String, Object> userModel = new HashMap<>();
-                userModel.put("intendedRole", StringUtils.hasText(profile.getIntendedRole()) ? profile.getIntendedRole() : "软件工程师");
-                userModel.put("skills", profile.getTopSkills() != null && !profile.getTopSkills().isEmpty() ? String.join(",", profile.getTopSkills()) : "计算机基础");
-                userModel.put("stageName", stage.getStageName());
-                userModel.put("courseName", ac.getCourseName());
-                userModel.put("knowledgePoints", ac.getCoreKnowledgePoints() != null ? String.join(",", ac.getCoreKnowledgePoints()) : "核心技术");
-                userModel.put("pathEvidence", pathEvidence);
-                userModel.put("benchmark", StringUtils.hasText(benchmarkEvidence) ? benchmarkEvidence : "行业通用标准");
+                Map<String, Object> userModel = Map.of(
+                    "intendedRole", StringUtils.hasText(profile.getIntendedRole()) ? profile.getIntendedRole() : "软件工程师",
+                    "skills", (profile.getTopSkills() != null && !profile.getTopSkills().isEmpty()) ? String.join(",", profile.getTopSkills()) : "计算机基础",
+                    "stageName", stage.getStageName(),
+                    "courseName", ac.getCourseName(),
+                    "knowledgePoints", (ac.getCoreKnowledgePoints() != null && !ac.getCoreKnowledgePoints().isEmpty()) ? String.join(",", ac.getCoreKnowledgePoints()) : "核心技术",
+                    "pathEvidence", pathEvidence,
+                    "benchmark", StringUtils.hasText(benchmarkEvidence) ? benchmarkEvidence : "行业通用标准"
+                );
 
                 String systemPrompt = systemTemplate.render();
                 String userPrompt = userTemplate.render(userModel);

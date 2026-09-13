@@ -77,48 +77,27 @@ public class PathPlanningAgent {
             }
         }
 
-        // 平衡各阶段课程分布，确保每个阶段均有抓手
+        // 平衡各阶段课程分布，数据驱动构建进阶里程碑
+        record StageDef(String name, String goal, int hoursPerCourse, List<AnalyzedCourseVO> courseList) {}
+        StageDef[] stageDefs = {
+            new StageDef("阶段一：核心基石与工程化筑基", "掌握现代核心语言规范与基础工程化设计，夯实扎实底座", 16, stage1Courses),
+            new StageDef("阶段二：核心技术进阶与组件精通", "深入主流企业级框架与核心中间件，攻克业务核心技术难点", 24, stage2Courses),
+            new StageDef("阶段三：分布式架构与工程级实战", "构建高并发、高可用微服务与生产集群，具备工业级项目落地能力", 32, stage3Courses),
+            new StageDef("阶段四：全景前沿攻坚与技术突破", "洞悉底层内核与前沿大模型/云原生，打破技术天花板直达架构专家", 36, stage4Courses)
+        };
+
         List<PathStageVO> stages = new ArrayList<>();
         int stageIndex = 1;
-
-        if (!stage1Courses.isEmpty()) {
-            stages.add(PathStageVO.builder()
-                .stageIndex(stageIndex++)
-                .stageName("阶段一：核心基石与工程化筑基")
-                .stageGoal("掌握现代核心语言规范与基础工程化设计，夯实扎实底座")
-                .estimatedHours(stage1Courses.size() * 16)
-                .courses(stage1Courses)
-                .build());
-        }
-
-        if (!stage2Courses.isEmpty()) {
-            stages.add(PathStageVO.builder()
-                .stageIndex(stageIndex++)
-                .stageName("阶段二：核心技术进阶与组件精通")
-                .stageGoal("深入主流企业级框架与核心中间件，攻克业务核心技术难点")
-                .estimatedHours(stage2Courses.size() * 24)
-                .courses(stage2Courses)
-                .build());
-        }
-
-        if (!stage3Courses.isEmpty()) {
-            stages.add(PathStageVO.builder()
-                .stageIndex(stageIndex++)
-                .stageName("阶段三：分布式架构与工程级实战")
-                .stageGoal("构建高并发、高可用微服务与生产集群，具备工业级项目落地能力")
-                .estimatedHours(stage3Courses.size() * 32)
-                .courses(stage3Courses)
-                .build());
-        }
-
-        if (!stage4Courses.isEmpty()) {
-            stages.add(PathStageVO.builder()
-                .stageIndex(stageIndex++)
-                .stageName("阶段四：全景前沿攻坚与技术突破")
-                .stageGoal("洞悉底层内核与前沿大模型/云原生，打破技术天花板直达架构专家")
-                .estimatedHours(stage4Courses.size() * 36)
-                .courses(stage4Courses)
-                .build());
+        for (StageDef def : stageDefs) {
+            if (!def.courseList.isEmpty()) {
+                stages.add(PathStageVO.builder()
+                    .stageIndex(stageIndex++)
+                    .stageName(def.name)
+                    .stageGoal(def.goal)
+                    .estimatedHours(def.courseList.size() * def.hoursPerCourse)
+                    .courses(def.courseList)
+                    .build());
+            }
         }
 
         int totalHours = stages.stream().mapToInt(PathStageVO::getEstimatedHours).sum();

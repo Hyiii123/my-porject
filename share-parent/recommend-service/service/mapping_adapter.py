@@ -115,10 +115,9 @@ class CourseMappingAdapter:
 
         # 2. 关键词领域锚定匹配
         if keywords:
-            kw_clean = keywords.lower().replace(",", " ").replace("，", " ").split()
-            for kw in kw_clean:
-                if kw in DOMAIN_ANCHORS and DOMAIN_ANCHORS[kw] in self.course_to_idx:
-                    return DOMAIN_ANCHORS[kw]
+            for kw in re.split(r"[,，\s]+", keywords.lower()):
+                if (did := DOMAIN_ANCHORS.get(kw)) and did in self.course_to_idx:
+                    return did
 
         # 3. 兜底保护
         if raw_id is None:
@@ -126,11 +125,9 @@ class CourseMappingAdapter:
 
         try:
             val = int(str(raw_id).strip())
-            idx = abs(val - 1) % self.num_courses
-            return self.dataset_courses[idx]
+            return self.dataset_courses[abs(val - 1) % self.num_courses]
         except (ValueError, TypeError):
-            h = abs(sum(ord(c) for c in str(raw_id))) % self.num_courses
-            return self.dataset_courses[h]
+            return self.dataset_courses[abs(sum(ord(c) for c in str(raw_id))) % self.num_courses]
 
     def to_business_id(
         self,
@@ -139,22 +136,13 @@ class CourseMappingAdapter:
         exclude_ids: Optional[Set[int]] = None,
     ) -> int:
         """从语义对齐反向簇中，挑选该学科方向下最契合且未被排除的业务课程 ID"""
-        if exclude_ids is None:
-            exclude_ids = set()
-
+        exclude_ids = exclude_ids or set()
         cluster = self.backward_clusters.get(dataset_id, [])
         if cluster:
-            available = [c for c in cluster if int(c["business_id"]) not in exclude_ids]
-            if available:
-                idx = candidate_offset % len(available)
-                return int(available[idx]["business_id"])
-            # 若全部已被排除，循环选择该簇内最佳课程
-            idx = candidate_offset % len(cluster)
-            return int(cluster[idx]["business_id"])
+            pool = [c for c in cluster if int(c["business_id"]) not in exclude_ids] or cluster
+            return int(pool[candidate_offset % len(pool)]["business_id"])
 
-        # 极罕见情况：该数据集节点无关联业务课程，平滑散列至 1..270
-        idx = self.course_to_idx.get(dataset_id, 0)
-        return ((idx * 6 + candidate_offset) % 270) + 1
+        return ((self.course_to_idx.get(dataset_id, 0) * 6 + candidate_offset) % 270) + 1
 
     def get_alignment_info(self, business_id: Any) -> Optional[Dict[str, Any]]:
         """获取指定业务课程的语义对齐元数据"""

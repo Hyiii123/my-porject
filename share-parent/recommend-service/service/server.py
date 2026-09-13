@@ -25,22 +25,26 @@ logger = logging.getLogger("drag_server")
 class DragRecommendHandler(BaseHTTPRequestHandler):
     """HTTP Request Handler for DRAG-KP4SR Inference Service."""
 
+    def _send_cors_headers(self):
+        for h, v in (
+            ("Access-Control-Allow-Origin", "*"),
+            ("Access-Control-Allow-Headers", "Content-Type, Authorization"),
+            ("Access-Control-Allow-Methods", "GET, POST, OPTIONS"),
+        ):
+            self.send_header(h, v)
+
     def _send_json(self, status: int, data: dict):
         payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self._send_cors_headers()
         self.end_headers()
         self.wfile.write(payload)
 
     def do_OPTIONS(self):
         self.send_response(HTTPStatus.NO_CONTENT)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self._send_cors_headers()
         self.end_headers()
 
     def do_GET(self):

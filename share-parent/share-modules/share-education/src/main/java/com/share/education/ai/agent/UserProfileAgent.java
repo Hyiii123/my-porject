@@ -76,11 +76,11 @@ public class UserProfileAgent {
         List<Long> chronologicalCourseIds = new ArrayList<>();
         Map<Long, Double> courseProgressMap = new LinkedHashMap<>();
         double totalHours = 0.0;
-        if (learningRecords != null) {
-            // 按最后学习时间与记录ID升序，构建严格学习历史时序
-            List<EduLearningRecord> sortedRecords = new ArrayList<>(learningRecords);
-            sortedRecords.sort(Comparator.comparing(EduLearningRecord::getLastLearnTime, Comparator.nullsFirst(Comparator.naturalOrder()))
-                .thenComparing(EduLearningRecord::getId, Comparator.nullsFirst(Comparator.naturalOrder())));
+        if (learningRecords != null && !learningRecords.isEmpty()) {
+            List<EduLearningRecord> sortedRecords = learningRecords.stream()
+                .sorted(Comparator.comparing(EduLearningRecord::getLastLearnTime, Comparator.nullsFirst(Comparator.naturalOrder()))
+                    .thenComparing(EduLearningRecord::getId, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .toList();
 
             for (EduLearningRecord r : sortedRecords) {
                 if (r.getCourseId() != null) {
@@ -92,10 +92,10 @@ public class UserProfileAgent {
                         courseProgressMap.put(r.getCourseId(), r.getProgressPercent().doubleValue());
                     }
                 }
-                if (r.getLearnDurationSeconds() != null) {
-                    totalHours += r.getLearnDurationSeconds() / 3600.0;
-                }
             }
+            totalHours = learningRecords.stream()
+                .mapToInt(r -> r.getLearnDurationSeconds() != null ? r.getLearnDurationSeconds() : 0)
+                .sum() / 3600.0;
         }
 
         // 3. 解析画像技能权重
@@ -106,15 +106,9 @@ public class UserProfileAgent {
         List<String> tags = new ArrayList<>();
 
         if (portrait != null) {
-            if (StringUtils.hasText(portrait.getIntendedRole())) {
-                intendedRole = portrait.getIntendedRole();
-            }
-            if (portrait.getPreferredDifficulty() != null) {
-                preferredDifficulty = portrait.getPreferredDifficulty();
-            }
-            if (portrait.getCompletionRate() != null) {
-                disciplineScore = portrait.getCompletionRate().intValue();
-            }
+            intendedRole = StringUtils.hasText(portrait.getIntendedRole()) ? portrait.getIntendedRole() : intendedRole;
+            preferredDifficulty = portrait.getPreferredDifficulty() != null ? portrait.getPreferredDifficulty() : preferredDifficulty;
+            disciplineScore = portrait.getCompletionRate() != null ? portrait.getCompletionRate().intValue() : disciplineScore;
             if (StringUtils.hasText(portrait.getTags())) {
                 try {
                     tags = objectMapper.readValue(portrait.getTags(), new TypeReference<List<String>>() {});
@@ -136,20 +130,14 @@ public class UserProfileAgent {
             .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
             .limit(5)
             .map(Map.Entry::getKey)
-            .collect(Collectors.toList());
+            .toList();
 
         // 5. 识别针对目标岗位的技能短板 (Skill Gaps)
         List<String> skillGaps = identifySkillGaps(intendedRole, skillWeights);
 
         // 6. 综合评定学员认知层级
-        String cognitiveLevel;
-        if (totalHours > 80 || (portrait != null && portrait.getCompletionRate() != null && portrait.getCompletionRate().doubleValue() > 88.0)) {
-            cognitiveLevel = "架构突破期";
-        } else if (totalHours > 20 || preferredDifficulty >= 2) {
-            cognitiveLevel = "技能跃升期";
-        } else {
-            cognitiveLevel = "基础筑基期";
-        }
+        String cognitiveLevel = (totalHours > 80 || (portrait != null && portrait.getCompletionRate() != null && portrait.getCompletionRate().doubleValue() > 88.0))
+            ? "架构突破期" : ((totalHours > 20 || preferredDifficulty >= 2) ? "技能跃升期" : "核心筑基期");
 
         return UserProfileContext.builder()
             .userId(userId)
