@@ -7,8 +7,7 @@
             <!-- 问题主体- start -->
             <div class="askCont bg-wt marg-bt-20">
               <div class="userInfo">
-                <img v-if="askInfo.userIcon" :src="askInfo.userIcon" alt="">
-                <img v-else src="/src/assets/anonymity.png" alt="">
+                <img :src="askInfo.userIcon || anonymityImg" alt="">
                 {{askInfo.userName || '匿名'}}
               </div>
               <div class="askInfo">
@@ -41,8 +40,7 @@
               <div class="answerItems">
                 <div class="items" v-for="item in questionData" :key="item.id">
                   <div class="fx-al-ct">
-                    <img class="img" v-if="item.userIcon" :src="item.userIcon" alt="">
-                    <img class="img" v-else src="/src/assets/anonymity.png" alt="">
+                    <img class="img" :src="item.userIcon || anonymityImg" alt="">
                     <span class="ft-cl-des">{{item.userName || '匿名'}}</span>
                   </div>
                   <div class="cont">
@@ -61,8 +59,7 @@
                   <div class="replyCont" v-show="replyData && isReplay == item.id">
                     <div class="items" v-for="it in replyData" :key="it.id">
                       <div class="fx-al-ct">
-                        <img class="img" v-if="it.userIcon" :src="it.userIcon" alt="">
-                        <img class="img" v-else src="/src/assets/anonymity.png" alt="">
+                        <img class="img" :src="it.userIcon || anonymityImg" alt="">
                         <span class="ft-cl-des"> {{it.userName || '匿名'}} 回复 {{it.targetUserName || "匿名用户"}} </span>
                       </div>
                       <div class="cont">
@@ -98,8 +95,7 @@
       <div class="dialogReplyCont" v-infinite-scroll="load" style="overflow: auto" :infinite-scroll-disabled="disabled">
         <div class="items" v-for="it in replyData" :key="`ss${it.id}`">
           <div class="fx-al-ct">
-            <img class="img" v-if="it.userIcon" :src="item.userIcon" alt="">
-            <img class="img" v-else src="/src/assets/anonymity.png" alt="">
+            <img class="img" :src="it.userIcon || anonymityImg" alt="">
             <span class="ft-cl-des"> {{it.userName || '匿名'}} 回复 {{it.targetUserName || "匿名用户"}} </span>
           </div>
           <div class="cont">
@@ -108,7 +104,7 @@
               <div class="ft-cl-des">{{it.createTime}}</div>
               <div>
                 <span class="marg-rt-10 cur-pt" @click="replayHandle(it, 'target')" > <i class="iconfont zhy-a-btn_pinglun_nor2x"></i> 评论{{it.replyTimes}} </span> 
-                <span :class="{'cur-pt':true, activeLiked: it.liked}" @click="likedHandle(item)"> <i class="iconfont zhy-a-btn_zan_nor2x"></i> 点赞 {{it.likedTimes}}</span>
+                <span :class="{'cur-pt':true, activeLiked: it.liked}" @click="likedHandle(it)"> <i class="iconfont zhy-a-btn_zan_nor2x"></i> 点赞 {{it.likedTimes}}</span>
               </div>
             </div>
           </div>
@@ -127,6 +123,7 @@
 import { onMounted, reactive, ref, computed } from "vue";
 import { ElMessage } from "element-plus";
 import { useRoute } from "vue-router";
+import anonymityImg from '@/assets/anonymity.png';
 import { getQuestionsDetails, postAnswers, getReply, putLiked } from "@/api/classDetails.js";
 import RelatedQuestions from './components/RelatedQuestions.vue'
 import ReplayForm from './components/ReplayForm.vue'

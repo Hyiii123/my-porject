@@ -107,7 +107,7 @@ const getExamDetailsData = async () => {
     })
     .catch(() => {
       ElMessage({
-        message: "最近学习数据请求出错！",
+        message: "考试详情请求失败！",
         type: 'error'
       });
     });

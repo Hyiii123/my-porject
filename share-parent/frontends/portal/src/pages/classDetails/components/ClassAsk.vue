@@ -12,8 +12,7 @@
     <div class="askCont">
       <div class="askLists" v-for="item in askListsDataes">
         <div class="userInfo fx">
-          <img v-if="item.userIcon" :src="item.userIcon" alt="" srcset="">
-          <img v-else src="/src/assets/anonymity.png" alt="" srcset="">
+          <img :src="item.userIcon || anonymityImg" alt="">
           {{item.userName || "匿名用户"}}
         </div>
         <div class="ask">
@@ -50,6 +49,7 @@
 </template>
 <script setup>
 import { ref, onMounted } from "vue"
+import anonymityImg from '@/assets/anonymity.png'
 import { getClassChapter, getAskList, delQuestions } from "@/api/classDetails.js"
 import AskChapterItems from "../../../components/AskChapterItems.vue";
 import { useUserStore, dataCacheStore, isLogin } from '@/store'

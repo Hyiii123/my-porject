@@ -6,12 +6,12 @@
     <!-- end -->
     <div class="stepsBox1" v-if="!!fromData.nodes">
       <div class="boxstate">
-        <span class="iconstate" v-if="fromData.status < 6">
+        <span class="iconstate" v-if="fromData.status < 6 && statusImg(fromData.status)">
           <img :src="statusImg(fromData.status)" alt="" class="Promptpicture" />
         </span>
         <span class="textstate"> {{ fromData.message }} </span>
         <span class="textstate" v-if="fromData.refundStatus">
-          {{refundStatusArr[fromData.refundStatus - 1].msg}}
+          {{ getRefundStatusMsg(fromData.refundStatus) }}
         </span>
       </div>
       <el-steps
@@ -153,8 +153,12 @@
 </template>
 <script setup>
 import { formatTimeOrdinary } from "@/utils/index";
-// 导入组件
-// ------定义变量------
+import iconWeizhifu from "@/assets/icon-weizhifu.png";
+import iconYzf from "@/assets/icon-yzf.png";
+import iconGb from "@/assets/icon-gb.png";
+import iconYwc from "@/assets/icon-ywc.png";
+import iconYbm from "@/assets/icon-ybm.png";
+
 // 获取父组件值、方法
 const props = defineProps({
   // 订单信息
@@ -164,23 +168,29 @@ const props = defineProps({
   }
 })
 const statusArr = [
-  {img:"/src/assets/icon-wzf.png", msg:""},
-  {img:"/src/assets/icon-yzf.png", msg:""},
-  {img:"/src/assets/icon-gb.png", msg:""},
-  {img:"/src/assets/icon-ywc.png", msg:""},
-  {img:"/src/assets/icon-ybm.png", msg:""},
+  {img: iconWeizhifu, msg: "待支付"},
+  {img: iconYzf, msg: "已支付"},
+  {img: iconGb, msg: "已关闭"},
+  {img: iconYwc, msg: "已完成"},
+  {img: iconYbm, msg: "已报名"},
 ]
 const refundStatusArr = [
-  {img:"/src/assets/icon-dsp.png", msg:"待审批"},
-  {img:"/src/assets/icon-qx.png", msg:"取消退款"},
-  {img:"/src/assets/icon-ty.png", msg:"同意退款"},
-  {img:"/src/assets/icon-jj.png", msg:"拒绝退款"},
-  {img:"/src/assets/icon-cg.png", msg:"退款成功"},
-  {img:"/src/assets/icon-sb.png", msg:"退款失败"},
+  {msg: "待审批"},
+  {msg: "取消退款"},
+  {msg: "同意退款"},
+  {msg: "拒绝退款"},
+  {msg: "退款成功"},
+  {msg: "退款失败"},
 ]
 const statusImg = (status) => {
+  if (!status || status < 1 || status > statusArr.length) return "";
   let s = statusArr[status - 1];
   return s ? s.img : "";
+}
+const getRefundStatusMsg = (status) => {
+  if (!status || status < 1 || status > refundStatusArr.length) return "";
+  let s = refundStatusArr[status - 1];
+  return s ? s.msg : "";
 }
 </script>
 <style lang="scss" scoped>

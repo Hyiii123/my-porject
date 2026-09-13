@@ -72,7 +72,7 @@ const getMyCouponData =  async () => {
     })
     .catch(() => {
       ElMessage({
-        message: "订单列表请求失败！",
+        message: "优惠券说明请求失败！",
         type: 'error'
       });
     });

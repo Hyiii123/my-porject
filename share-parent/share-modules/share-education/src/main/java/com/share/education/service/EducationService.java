@@ -1527,15 +1527,62 @@ public class EducationService {
     }
 
     public Map<String, Object> learningPage(long pageNo, long pageSize, boolean current) {
-        Page<EduLearningRecord> page = new Page<>(safePage(pageNo), safeSize(pageSize));
-        LambdaQueryWrapper<EduLearningRecord> wrapper = new LambdaQueryWrapper<EduLearningRecord>()
-                .eq(EduLearningRecord::getUserId, currentUserId());
-        if (current) {
-            wrapper.lt(EduLearningRecord::getProgressPercent, BigDecimal.valueOf(100));
+        Long userId = currentUserId();
+        List<EduLearningRecord> allRecords = learningMapper.selectList(new LambdaQueryWrapper<EduLearningRecord>()
+                .eq(EduLearningRecord::getUserId, userId)
+                .orderByDesc(EduLearningRecord::getLastLearnTime)
+                .orderByDesc(EduLearningRecord::getUpdateTime));
+
+        Map<Long, EduLearningRecord> courseMap = new LinkedHashMap<>();
+        for (EduLearningRecord record : allRecords) {
+            if (record.getCourseId() == null) continue;
+            EduLearningRecord existing = courseMap.get(record.getCourseId());
+            if (existing == null) {
+                EduLearningRecord copy = new EduLearningRecord();
+                copy.setId(record.getId());
+                copy.setUserId(record.getUserId());
+                copy.setCourseId(record.getCourseId());
+                copy.setCatalogId(record.getCatalogId());
+                copy.setProgressPercent(record.getProgressPercent());
+                copy.setProgressSeconds(record.getProgressSeconds());
+                copy.setLearnDurationSeconds(record.getLearnDurationSeconds());
+                copy.setCompletedLessons(record.getCompletedLessons());
+                copy.setTotalLessons(record.getTotalLessons());
+                copy.setStatus(record.getStatus());
+                copy.setLastLearnTime(record.getLastLearnTime());
+                copy.setUpdateTime(record.getUpdateTime());
+                courseMap.put(record.getCourseId(), copy);
+            } else {
+                if (record.getProgressPercent() != null && (existing.getProgressPercent() == null || record.getProgressPercent().compareTo(existing.getProgressPercent()) > 0)) {
+                    existing.setProgressPercent(record.getProgressPercent());
+                }
+                if (record.getCompletedLessons() != null && (existing.getCompletedLessons() == null || record.getCompletedLessons() > existing.getCompletedLessons())) {
+                    existing.setCompletedLessons(record.getCompletedLessons());
+                }
+                if (record.getLastLearnTime() != null && (existing.getLastLearnTime() == null || record.getLastLearnTime().isAfter(existing.getLastLearnTime()))) {
+                    existing.setLastLearnTime(record.getLastLearnTime());
+                    if (record.getCatalogId() != null) {
+                        existing.setCatalogId(record.getCatalogId());
+                    }
+                }
+            }
         }
-        wrapper.orderByDesc(EduLearningRecord::getLastLearnTime).orderByDesc(EduLearningRecord::getUpdateTime);
-        learningMapper.selectPage(page, wrapper);
-        return pageView(page.getTotal(), page.getRecords().stream().map(this::learningView).toList());
+
+        List<EduLearningRecord> distinctList = new ArrayList<>(courseMap.values());
+        if (current) {
+            distinctList = distinctList.stream()
+                    .filter(r -> r.getProgressPercent() == null || r.getProgressPercent().compareTo(BigDecimal.valueOf(100)) < 0)
+                    .toList();
+        }
+
+        long total = distinctList.size();
+        int safePageNo = (int) safePage(pageNo);
+        int safePageSize = (int) safeSize(pageSize);
+        int fromIndex = Math.min((safePageNo - 1) * safePageSize, (int) total);
+        int toIndex = Math.min(fromIndex + safePageSize, (int) total);
+        List<EduLearningRecord> pagedList = distinctList.subList(fromIndex, toIndex);
+
+        return pageView(total, pagedList.stream().map(this::learningView).toList());
     }
 
     public List<Map<String, Object>> plans() {
@@ -1577,38 +1624,100 @@ public class EducationService {
     public EduLearningRecord saveLearning(EduLearningRecord value) {
         require(value != null && value.getCourseId() != null, "课程不能为空");
         Long userId = currentUserId();
-        EduLearningRecord old = learningMapper.selectOne(new LambdaQueryWrapper<EduLearningRecord>()
-                .eq(EduLearningRecord::getUserId, userId).eq(EduLearningRecord::getCourseId, value.getCourseId())
-                .eq(value.getCatalogId() != null, EduLearningRecord::getCatalogId, value.getCatalogId())
-                .last("limit 1"));
         LocalDateTime now = LocalDateTime.now();
-        if (old == null) {
-            value.setId(newId());
-            value.setUserId(userId);
-            value.setProgressPercent(defaultValue(value.getProgressPercent(), BigDecimal.ZERO));
-            value.setProgressSeconds(defaultValue(value.getProgressSeconds(), 0));
-            value.setLearnDurationSeconds(defaultValue(value.getLearnDurationSeconds(), 0));
-            value.setCompletedLessons(defaultValue(value.getCompletedLessons(), 0));
-            value.setTotalLessons(defaultValue(value.getTotalLessons(), courseLessonCount(value.getCourseId())));
-            value.setStatus(defaultValue(value.getStatus(), 1));
-            value.setLastLearnTime(now);
-            value.setCreateTime(now);
-            value.setUpdateTime(now);
-            value.setDelFlag(0);
-            value.setVersion(0);
-            learningMapper.insert(value);
-            return value;
+
+        EduLearningRecord old = null;
+        if (value.getCatalogId() != null) {
+            old = learningMapper.selectOne(new LambdaQueryWrapper<EduLearningRecord>()
+                    .eq(EduLearningRecord::getUserId, userId)
+                    .eq(EduLearningRecord::getCourseId, value.getCourseId())
+                    .eq(EduLearningRecord::getCatalogId, value.getCatalogId())
+                    .last("limit 1"));
+            if (old == null) {
+                value.setId(newId());
+                value.setUserId(userId);
+                value.setProgressPercent(defaultValue(value.getProgressPercent(), BigDecimal.ZERO));
+                value.setProgressSeconds(defaultValue(value.getProgressSeconds(), 0));
+                value.setLearnDurationSeconds(defaultValue(value.getLearnDurationSeconds(), 0));
+                value.setCompletedLessons(defaultValue(value.getCompletedLessons(), 0));
+                value.setTotalLessons(defaultValue(value.getTotalLessons(), courseLessonCount(value.getCourseId())));
+                value.setStatus(defaultValue(value.getStatus(), 1));
+                value.setLastLearnTime(now);
+                value.setCreateTime(now);
+                value.setUpdateTime(now);
+                value.setDelFlag(0);
+                value.setVersion(0);
+                learningMapper.insert(value);
+                old = value;
+            } else {
+                if (value.getProgressPercent() != null) old.setProgressPercent(value.getProgressPercent());
+                if (value.getProgressSeconds() != null) old.setProgressSeconds(value.getProgressSeconds());
+                if (value.getLearnDurationSeconds() != null) old.setLearnDurationSeconds(value.getLearnDurationSeconds());
+                if (value.getCompletedLessons() != null) old.setCompletedLessons(value.getCompletedLessons());
+                if (value.getTotalLessons() != null) old.setTotalLessons(value.getTotalLessons());
+                if (value.getStatus() != null) old.setStatus(value.getStatus());
+                old.setLastLearnTime(now);
+                old.setUpdateTime(now);
+                learningMapper.updateById(old);
+            }
         }
-        if (value.getProgressPercent() != null) old.setProgressPercent(value.getProgressPercent());
-        if (value.getProgressSeconds() != null) old.setProgressSeconds(value.getProgressSeconds());
-        if (value.getLearnDurationSeconds() != null) old.setLearnDurationSeconds(value.getLearnDurationSeconds());
-        if (value.getCompletedLessons() != null) old.setCompletedLessons(value.getCompletedLessons());
-        if (value.getTotalLessons() != null) old.setTotalLessons(value.getTotalLessons());
-        if (value.getStatus() != null) old.setStatus(value.getStatus());
-        old.setLastLearnTime(now);
-        old.setUpdateTime(now);
-        learningMapper.updateById(old);
-        return old;
+
+        // 同步维护课程汇总记录 (catalogId is null)
+        EduLearningRecord summary = learningMapper.selectOne(new LambdaQueryWrapper<EduLearningRecord>()
+                .eq(EduLearningRecord::getUserId, userId)
+                .eq(EduLearningRecord::getCourseId, value.getCourseId())
+                .isNull(EduLearningRecord::getCatalogId)
+                .last("limit 1"));
+
+        int totalLessons = courseLessonCount(value.getCourseId());
+        if (totalLessons <= 0) totalLessons = 1;
+
+        long completedCount = learningMapper.selectCount(new LambdaQueryWrapper<EduLearningRecord>()
+                .eq(EduLearningRecord::getUserId, userId)
+                .eq(EduLearningRecord::getCourseId, value.getCourseId())
+                .isNotNull(EduLearningRecord::getCatalogId)
+                .and(w -> w.ge(EduLearningRecord::getProgressPercent, 90).or().eq(EduLearningRecord::getStatus, 2)));
+
+        BigDecimal overallPercent = BigDecimal.valueOf(completedCount * 100.0 / totalLessons)
+                .setScale(2, RoundingMode.HALF_UP);
+        if (overallPercent.compareTo(BigDecimal.valueOf(100)) > 0) {
+            overallPercent = BigDecimal.valueOf(100);
+        }
+        if (completedCount == 0 && value.getProgressPercent() != null && totalLessons == 1) {
+            overallPercent = value.getProgressPercent();
+        }
+
+        if (summary == null) {
+            summary = new EduLearningRecord();
+            summary.setId(newId());
+            summary.setUserId(userId);
+            summary.setCourseId(value.getCourseId());
+            summary.setCatalogId(null);
+            summary.setProgressPercent(overallPercent);
+            summary.setProgressSeconds(defaultValue(value.getProgressSeconds(), 0));
+            summary.setLearnDurationSeconds(defaultValue(value.getLearnDurationSeconds(), 0));
+            summary.setCompletedLessons((int) completedCount);
+            summary.setTotalLessons(totalLessons);
+            summary.setStatus(overallPercent.compareTo(BigDecimal.valueOf(100)) >= 0 ? 2 : 1);
+            summary.setLastLearnTime(now);
+            summary.setCreateTime(now);
+            summary.setUpdateTime(now);
+            summary.setDelFlag(0);
+            summary.setVersion(0);
+            learningMapper.insert(summary);
+        } else {
+            summary.setProgressPercent(overallPercent);
+            summary.setCompletedLessons((int) completedCount);
+            summary.setTotalLessons(totalLessons);
+            summary.setLastLearnTime(now);
+            summary.setUpdateTime(now);
+            if (overallPercent.compareTo(BigDecimal.valueOf(100)) >= 0) {
+                summary.setStatus(2);
+            }
+            learningMapper.updateById(summary);
+        }
+
+        return old != null ? old : summary;
     }
 
     /** 题库旧接口和社区问答共用 /questions/page，带题型/分类参数时按题库查询。 */

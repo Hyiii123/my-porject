@@ -19,7 +19,17 @@
       <!-- 左侧视频区域 -->
       <div class="video-section">
         <div class="video-player">
-          <video v-if="currentSection.mediaUrl" class="video-element" controls :src="currentSection.mediaUrl" />
+          <video
+            v-if="currentSection.mediaUrl"
+            ref="videoPlayerRef"
+            class="video-element"
+            controls
+            :src="currentSection.mediaUrl"
+            @timeupdate="handleVideoTimeUpdate"
+            @ended="handleVideoEnded"
+            @pause="handleVideoPause"
+            @loadedmetadata="handleVideoLoadedMetadata"
+          />
           <div v-if="!currentSection.mediaUrl" class="video-placeholder">
             <el-icon :size="64" color="#c0c4cc"><VideoPlay /></el-icon>
             <p>当前小节暂无可播放媒资</p>
@@ -142,7 +152,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight, ArrowDown, VideoPlay, Document } from '@element-plus/icons-vue'
 import { getClassDetails, getAskList, getReply, postQuestions } from '@/api/classDetails.js'
-import { getCourseLearning, getLearningClassDetails, getMediasSignature } from '@/api/class.js'
+import { getCourseLearning, getLearningClassDetails, getMediasSignature, addPlayLog, getLearningLog } from '@/api/class.js'
 import { getAllNotes, addNotes } from '@/api/notes.js'
 
 const cleanHtml = (text) => {
@@ -307,7 +317,89 @@ const loadCourse = async () => {
   }
 }
 
+const videoPlayerRef = ref(null)
+let lastReportTime = 0
+let lastReportProgress = 0
+
+// 上报小节学习记录
+const reportProgress = async (isFinished = false) => {
+  const video = videoPlayerRef.value
+  const cId = course.value.id
+  const catId = currentSection.value.id
+  if (!video || !cId || !catId) return
+
+  const currentTime = Math.floor(video.currentTime || 0)
+  const duration = Math.floor(video.duration || 0)
+  const percent = isFinished ? 100 : (duration > 0 ? Math.min(100, Math.round((currentTime / duration) * 100)) : 0)
+
+  try {
+    const res = await addPlayLog({
+      courseId: cId,
+      catalogId: catId,
+      progressSeconds: currentTime,
+      learnDurationSeconds: currentTime,
+      progressPercent: percent,
+      totalLessons: course.value.lessons || 1,
+      status: percent >= 90 ? 2 : 1
+    })
+    lastReportTime = Date.now()
+    lastReportProgress = currentTime
+    if (res?.data?.progressPercent != null) {
+      course.value.progress = Math.min(100, Math.max(0, Number(res.data.progressPercent)))
+    }
+  } catch (err) {
+    console.debug('上报学习记录稍后重试:', err)
+  }
+}
+
+// 视频播放进度节流更新（每15秒或变动较大时上报）
+const handleVideoTimeUpdate = () => {
+  const now = Date.now()
+  const video = videoPlayerRef.value
+  if (!video) return
+  const currentTime = Math.floor(video.currentTime || 0)
+  if (now - lastReportTime > 15000 || Math.abs(currentTime - lastReportProgress) >= 15) {
+    reportProgress(false)
+  }
+}
+
+const handleVideoPause = () => {
+  reportProgress(false)
+}
+
+const handleVideoEnded = () => {
+  reportProgress(true)
+  ElMessage.success({
+    message: `恭喜完成【${currentSection.value.title}】的学习！`,
+    duration: 3000
+  })
+}
+
+// 当视频元数据就绪后，尝试恢复上次学习进度
+const handleVideoLoadedMetadata = async () => {
+  const catId = currentSection.value.id
+  if (!catId) return
+  try {
+    const res = await getLearningLog(catId)
+    if (res?.code === 200 && res.data?.progressSeconds > 0) {
+      const savedSeconds = Number(res.data.progressSeconds)
+      const video = videoPlayerRef.value
+      if (video && video.duration && savedSeconds < video.duration - 5) {
+        video.currentTime = savedSeconds
+        ElMessage.info({
+          message: `已为您恢复到上次学习进度：${formatDuration(savedSeconds)}`,
+          duration: 2500
+        })
+      }
+    }
+  } catch (err) {
+    // 忽略加载历史进度失败
+  }
+}
+
 const handleSelectSection = async (section) => {
+  // 切换前先保存当前小节学习进度
+  await reportProgress(false)
   currentSection.value = section
   if (section.mediaId && !section.mediaUrl) {
     try {

@@ -25,7 +25,16 @@
             <ClassCards :data="item" @planHandle="planHandle" type="2"/>
           </div>
         </div>
-        <div v-if="count > 10" class="fx-ct ft-18 ft-wt-600">查看全部</div>
+        <div class="pageination" v-show="count > 10" style="margin-top: 20px; display: flex; justify-content: center;">
+          <el-pagination
+            background
+            layout="total, prev, pager, next"
+            :total="count"
+            :page-size="params.pageSize"
+            :current-page="params.pageNo"
+            @current-change="handlePageChange"
+          />
+        </div>
       </div>
     </div>
 
@@ -196,7 +205,7 @@ const createPlan = async () => {
       })
       .catch(() => {
         ElMessage({
-          message: "最近学习数据请求出错！",
+          message: `${title.value}失败，请稍后重试！`,
           type: 'error'
         });
       });
@@ -218,9 +227,16 @@ const delMyClassData = async (id) => {
 // 我的课程
 const myClassData = ref(null)
 const count = ref(0)
-const params = {
+const params = reactive({
   page: 1,
+  pageNo: 1,
   pageSize: 10,
+})
+
+const handlePageChange = (val) => {
+  params.page = val
+  params.pageNo = val
+  getMylessonsData()
 }
 
 // 查询我的课

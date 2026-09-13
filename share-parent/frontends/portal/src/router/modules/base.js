@@ -57,13 +57,13 @@ export default [
     component: Layout,
     name: 'details',
     redirect: '/details/index',
-    meta: { title: '问题详情' },
+    meta: { title: '课程详情' },
     children: [
       {
         path: 'index',
         name: 'detailsIndex',
         component: () => import('@/pages/classDetails/index.vue'),
-        meta: { title: '问题详情' },
+        meta: { title: '课程详情' },
       }
     ],
   },
@@ -197,7 +197,7 @@ export default [
             path: 'myIntegralRanking',
             name: 'myIntegralRanking',
             component: () => import('@/pages/personal/myIntegralRanking.vue'),
-            meta: { title: '我的积分',current: '优惠券说明', active:'myIntegral', hidden: true, icon: '&#xe610;'},
+            meta: { title: '我的积分',current: '学霸天梯榜', active:'myIntegral', hidden: true, icon: '&#xe610;'},
           },
           {
             path: 'myCollect',

@@ -233,6 +233,10 @@ import { useRouter } from 'vue-router'
 import { Reading, ArrowRight, Pointer, Loading } from '@element-plus/icons-vue'
 import { getClassCategorys, getRecommendClassList, classSeach, getMylessons, getCourseLikeRanking, getPersonalizedRecommendations, getPersonalizedLearningPath } from '@/api/class.js'
 import defaultCover from '@/assets/images/courses/default-cover.svg'
+import vue3Svg from '@/assets/images/courses/vue3.svg'
+import springbootSvg from '@/assets/images/courses/springboot.svg'
+import mlSvg from '@/assets/images/courses/ml.svg'
+import mysqlSvg from '@/assets/images/courses/mysql.svg'
 import AgentReasoningHUD from '@/components/AgentReasoningHUD.vue'
 import CareerPathDrawer from '@/components/CareerPathDrawer.vue'
 
@@ -255,7 +259,7 @@ const DEFAULT_PREHEAT_COURSES = [
   {
     id: '1',
     title: 'Vue3 从入门到精通',
-    cover: '/src/assets/images/courses/vue3.svg',
+    cover: vue3Svg,
     teacherName: '张老师',
     price: 19900,
     originalPrice: 39900,
@@ -268,7 +272,7 @@ const DEFAULT_PREHEAT_COURSES = [
   {
     id: '4',
     title: 'Java SpringBoot 实战',
-    cover: '/src/assets/images/courses/springboot.svg',
+    cover: springbootSvg,
     teacherName: '王老师',
     price: 29900,
     originalPrice: 59900,
@@ -281,7 +285,7 @@ const DEFAULT_PREHEAT_COURSES = [
   {
     id: '10',
     title: '机器学习入门',
-    cover: '/src/assets/images/courses/ml.svg',
+    cover: mlSvg,
     teacherName: '黄老师',
     price: 34900,
     originalPrice: 69900,
@@ -294,7 +298,7 @@ const DEFAULT_PREHEAT_COURSES = [
   {
     id: '8',
     title: 'MySQL 数据库优化',
-    cover: '/src/assets/images/courses/mysql.svg',
+    cover: mysqlSvg,
     teacherName: '刘老师',
     price: 16900,
     originalPrice: 33900,

@@ -213,7 +213,7 @@ const refundApplyReq = () => {
       })
       .catch(() => {
         ElMessage({
-          message: "订单列表请求失败！",
+          message: "申请退款失败，请稍后重试！",
           type: 'error'
         });
       });
@@ -235,7 +235,7 @@ const refundDetailsReq = () => {
       })
       .catch(() => {
         ElMessage({
-          message: "订单列表请求失败！",
+          message: "退款详情请求失败！",
           type: 'error'
         });
       });
@@ -258,7 +258,7 @@ const getOrderDetailsData = async () => {
       })
       .catch(() => {
         ElMessage({
-          message: "订单列表请求失败！",
+          message: "订单详情请求失败！",
           type: 'error'
         });
       });

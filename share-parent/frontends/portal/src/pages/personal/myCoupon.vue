@@ -96,7 +96,7 @@ const getMyCouponData = async () => {
       })
       .catch(() => {
         ElMessage({
-          message: "订单列表请求失败！",
+          message: "优惠券列表请求失败！",
           type: 'error'
         });
       });
@@ -130,7 +130,7 @@ const exchangeCouponHandle = async () => {
       })
       .catch(() => {
         ElMessage({
-          message: "订单列表请求失败！",
+          message: "优惠券兑换失败，请稍后重试！",
           type: 'error'
         });
       });
