@@ -109,6 +109,95 @@
               <span class="log-text">{{ log.thoughtChunk }}</span>
             </div>
           </div>
+          <!-- 推演完成提示条 -->
+          <div class="stream-done-footer" v-if="deliveryResult">
+            <span class="done-check">✓</span>
+            <span class="done-summary">
+              推演完成：已为【{{ selectedRole }}】生成 4 阶段进阶路线与专属优选课程，成果已呈现于下方看板！
+            </span>
+            <el-button link type="primary" size="small" @click="$emit('view-path', deliveryResult.learningPath)">
+              查看拓扑大屏 ➔
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 智能体推演成果交付展示看板 (Delivery Result Showcase) -->
+    <div class="delivery-result-showcase" v-if="deliveryResult">
+      <div class="delivery-header">
+        <div class="delivery-badge-group">
+          <span class="delivery-status-badge">
+            <span class="status-icon">🎉</span>
+            <span>【{{ selectedRole }}】推演方案已交付</span>
+          </span>
+          <span class="delivery-critic-badge" v-if="deliveryResult.criticReport">
+            ⚖️ 质检评级: {{ deliveryResult.criticReport.verdictLevel || '卓越 (A+)' }} · {{ deliveryResult.criticReport.overallScore || 100 }}分
+          </span>
+          <span class="delivery-meta-badge" v-if="deliveryResult.learningPath">
+            共 {{ deliveryResult.learningPath.totalHours || 480 }} 课时 · {{ deliveryResult.learningPath.totalCourses || 12 }} 门全景课程
+          </span>
+        </div>
+        <div class="delivery-actions">
+          <el-button type="success" size="small" @click="$emit('view-path', deliveryResult.learningPath)" class="action-btn path-btn">
+            🗺️ 展开 4 阶段拓扑成长大屏
+          </el-button>
+          <el-button type="primary" size="small" @click="scrollToCourses" class="action-btn scroll-btn">
+            🎯 浏览下方推荐选课区 ↓
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 交付内容：4阶段成长路线导览 + 专属必修课精选卡片 -->
+      <div class="delivery-content-grid">
+        <!-- 4 阶段进阶路线导览 -->
+        <div class="delivery-stage-box" v-if="deliveryResult.learningPath && deliveryResult.learningPath.stages">
+          <div class="box-title">
+            <span class="box-icon">🗺️</span>
+            <span>4 阶段 DAG 进阶拓扑路线概览</span>
+            <span class="box-subtitle">点击任意阶段可在全屏大屏中深度研读</span>
+          </div>
+          <div class="stage-stepper">
+            <div
+              v-for="(stg, sIdx) in deliveryResult.learningPath.stages"
+              :key="sIdx"
+              class="stage-chip"
+              @click="$emit('view-path', deliveryResult.learningPath)"
+            >
+              <div class="chip-index">PHASE 0{{ stg.stageIndex || sIdx + 1 }}</div>
+              <div class="chip-name">{{ stg.stageName }}</div>
+              <div class="chip-stat">{{ (stg.courses || []).length }} 门课程 · {{ stg.stageHours || 40 }}h</div>
+              <span class="chip-arrow" v-if="sIdx < deliveryResult.learningPath.stages.length - 1">➔</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 本次优选专属推荐课简报 -->
+        <div class="delivery-courses-box" v-if="deliveryResult.recommendations && deliveryResult.recommendations.length">
+          <div class="box-title">
+            <span class="box-icon">💡</span>
+            <span>本次推理优选必修课程 ({{ deliveryResult.recommendations.length }}门 · 已实时同步下方专属推荐区)</span>
+          </div>
+          <div class="rec-mini-cards">
+            <div
+              v-for="c in deliveryResult.recommendations"
+              :key="c.id"
+              class="rec-mini-card"
+              @click="goCourseDetail(c.id)"
+            >
+              <div class="mini-card-head">
+                <span class="mini-title" :title="c.title">{{ c.title }}</span>
+                <span class="mini-score">{{ c.matchScore || 95 }}% 契合</span>
+              </div>
+              <div class="mini-tags">
+                <span class="mini-tag bloom" v-if="c.bloomLevelName">{{ c.bloomLevelName }}</span>
+                <span class="mini-tag capstone" v-if="c.capstoneProject">🏆 实战项目</span>
+              </div>
+              <div class="mini-reason" :title="c.recommendReason">
+                💡 {{ c.recommendReason }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -275,8 +364,11 @@
 
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { getActiveProbingQuestions, submitActiveProbingAnswers, getAgentEvaluationMetrics, fetchReasoningStream } from '@/api/class'
 import { ElMessage } from 'element-plus'
+
+const router = useRouter()
 
 const props = defineProps({
   userPortrait: {
@@ -285,7 +377,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['recalculate', 'calibrated'])
+const emit = defineEmits(['recalculate', 'calibrated', 'view-path'])
 
 const selectedRole = ref('Java全栈架构师')
 const isRecalculating = ref(false)
@@ -294,11 +386,12 @@ const activeAgentId = ref('agent-6')
 const detailVisible = ref(false)
 const selectedAgent = ref(null)
 
-// L5 流式思考打字机响应式变量
+// L5 流式思考打字机与成果交付响应式变量
 const thinkingLogs = ref([])
 const isThinkingExpanded = ref(true)
 const streamTotalLatencyMs = ref(0)
 const thinkingBodyRef = ref(null)
+const deliveryResult = ref(null)
 
 const probeVisible = ref(false)
 const probeLoading = ref(false)
@@ -430,6 +523,25 @@ const handleRoleChange = (val) => {
   } else {
     userProfileSummary.value.skillGaps = '高并发性能调优、分布式中间件底层、微服务治理'
   }
+  // 岗位切换后自适应触发流式重新规划
+  triggerRecalculate()
+}
+
+const goCourseDetail = (courseId) => {
+  if (courseId) {
+    router.push(`/details?id=${courseId}`)
+  }
+}
+
+const scrollToCourses = () => {
+  const el = document.querySelector('.personalized-section')
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    el.classList.add('highlight-pulse')
+    setTimeout(() => {
+      el.classList.remove('highlight-pulse')
+    }, 2500)
+  }
 }
 
 const triggerRecalculate = async () => {
@@ -486,7 +598,10 @@ const triggerRecalculate = async () => {
         } else if (event.eventType === 'FINAL_RESULT') {
           activeAgentId.value = 'agent-6'
           currentStepIdx.value = 5
-          emit('recalculate', selectedRole.value)
+          if (event.dataPayload) {
+            deliveryResult.value = event.dataPayload
+          }
+          emit('recalculate', selectedRole.value, event.dataPayload)
         } else if (event.eventType === 'STREAM_DONE') {
           streamTotalLatencyMs.value = event.latencyMs || (Date.now() - startTime)
         }
@@ -983,7 +1098,307 @@ onMounted(() => {
           }
         }
       }
+
+      .stream-done-footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px dashed rgba(16, 185, 129, 0.35);
+        border-radius: 6px;
+        padding: 6px 12px;
+        margin-top: 6px;
+        color: #E2E8F0;
+        font-size: 11px;
+
+        .done-check {
+          color: #34D399;
+          font-weight: bold;
+        }
+
+        .done-summary {
+          flex: 1;
+          color: #F1F5F9;
+        }
+      }
     }
+  }
+}
+
+/* 智能体推演交付成果面板 */
+.delivery-result-showcase {
+  background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%);
+  border: 1px solid #BFDBFE;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 20px -4px rgba(37, 99, 235, 0.1);
+  animation: fadeInDown 0.4s ease-out;
+
+  .delivery-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(191, 219, 254, 0.6);
+    margin-bottom: 14px;
+
+    .delivery-badge-group {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      .delivery-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #10B981;
+        color: #FFFFFF;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 20px;
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+      }
+
+      .delivery-critic-badge {
+        display: inline-flex;
+        align-items: center;
+        background: #EEF2FF;
+        border: 1px solid #C7D2FE;
+        color: #4F46E5;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 16px;
+      }
+
+      .delivery-meta-badge {
+        font-size: 12px;
+        color: #64748B;
+        font-weight: 500;
+      }
+    }
+
+    .delivery-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .action-btn {
+        border-radius: 8px;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .delivery-content-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+
+    .delivery-stage-box {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 12px 16px;
+
+      .box-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 10px;
+
+        .box-subtitle {
+          font-size: 11px;
+          font-weight: normal;
+          color: #94A3B8;
+          margin-left: 6px;
+        }
+      }
+
+      .stage-stepper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+
+        .stage-chip {
+          flex: 1;
+          min-width: 140px;
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          border-radius: 8px;
+          padding: 8px 12px;
+          cursor: pointer;
+          position: relative;
+          transition: all 0.2s ease;
+
+          &:hover {
+            border-color: #3B82F6;
+            background: #EFF6FF;
+            transform: translateY(-2px);
+          }
+
+          .chip-index {
+            font-size: 10px;
+            font-weight: 700;
+            color: #3B82F6;
+            letter-spacing: 0.5px;
+          }
+
+          .chip-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0F172A;
+            margin: 2px 0;
+          }
+
+          .chip-stat {
+            font-size: 11px;
+            color: #64748B;
+          }
+
+          .chip-arrow {
+            position: absolute;
+            right: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #CBD5E1;
+            font-weight: bold;
+            pointer-events: none;
+          }
+        }
+      }
+    }
+
+    .delivery-courses-box {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 12px 16px;
+
+      .box-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 10px;
+      }
+
+      .rec-mini-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+
+        @media (max-width: 1024px) {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .rec-mini-card {
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          border-radius: 8px;
+          padding: 10px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+
+          &:hover {
+            border-color: #2563EB;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+            transform: translateY(-2px);
+          }
+
+          .mini-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 6px;
+            margin-bottom: 6px;
+
+            .mini-title {
+              font-size: 12px;
+              font-weight: 700;
+              color: #0F172A;
+              line-height: 1.4;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
+            }
+
+            .mini-score {
+              font-size: 10px;
+              font-weight: 700;
+              color: #10B981;
+              background: #ECFDF5;
+              padding: 1px 4px;
+              border-radius: 4px;
+              white-space: nowrap;
+            }
+          }
+
+          .mini-tags {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+
+            .mini-tag {
+              font-size: 10px;
+              padding: 1px 6px;
+              border-radius: 4px;
+              font-weight: 500;
+
+              &.bloom {
+                background: #EEF2FF;
+                color: #4F46E5;
+              }
+
+              &.capstone {
+                background: #FEF3C7;
+                color: #B45309;
+                font-weight: 600;
+              }
+            }
+          }
+
+          .mini-reason {
+            font-size: 11px;
+            color: #64748B;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

@@ -3,7 +3,11 @@
     <!-- 顶部核心区：AI 多智能体协同决策看板 (替换原 Banner 轮播图) -->
     <div class="hero-agent-section container">
       <!-- 多智能体协同推理实时动态看板 (Live Agent Reasoning HUD) -->
-      <AgentReasoningHUD @recalculate="handleRecalculateRecommendations" @calibrated="handleProbingCalibrated" />
+      <AgentReasoningHUD
+        @recalculate="handleRecalculateRecommendations"
+        @calibrated="handleProbingCalibrated"
+        @view-path="openLearningPathModal"
+      />
     </div>
 
     <!-- 智能个性化专属推荐 (基于多智能体协同系统与 IT 知识图谱) -->
@@ -375,17 +379,38 @@ const persistCache = () => {
 
 const careerPathDrawerRef = ref(null)
 
-const openLearningPathModal = () => {
-  careerPathDrawerRef.value?.openDrawer()
+const openLearningPathModal = (pathData = null) => {
+  careerPathDrawerRef.value?.openDrawer(pathData)
 }
 
-const handleRecalculateRecommendations = async (targetRole) => {
+const triggerSectionHighlight = () => {
+  const el = document.querySelector('.personalized-section')
+  if (el) {
+    el.classList.add('highlight-pulse')
+    setTimeout(() => {
+      el.classList.remove('highlight-pulse')
+    }, 2500)
+  }
+}
+
+const handleRecalculateRecommendations = async (targetRole, payload = null) => {
+  if (payload && payload.recommendations && payload.recommendations.length) {
+    const pRows = normalizeRows({ data: payload.recommendations })
+    if (pRows.length) {
+      personalizedCourses.value = pRows
+      persistCache()
+      triggerSectionHighlight()
+      return
+    }
+  }
   try {
     const res = await getPersonalizedRecommendations({ limit: 4, targetRole })
     if (res && res.code === 200) {
       const pRows = normalizeRows(res)
       if (pRows.length) {
         personalizedCourses.value = pRows
+        persistCache()
+        triggerSectionHighlight()
       }
     }
   } catch (e) {
@@ -611,6 +636,14 @@ onMounted(() => {
 
 .personalized-section {
   margin-bottom: 36px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
+
+  &.highlight-pulse {
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.4), 0 10px 30px rgba(37, 99, 235, 0.15);
+    background: #FFFFFF;
+    padding: 16px;
+  }
 }
 
 /* 继续学习快捷条 */
