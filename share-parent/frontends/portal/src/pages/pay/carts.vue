@@ -133,7 +133,11 @@ const loadCart = async () => {
 // 全选状态
 const isAllChecked = computed({
   get: () => cartList.value.length > 0 && cartList.value.every(item => item.checked),
-  set: () => {}
+  set: (val) => {
+    cartList.value.forEach(item => {
+      item.checked = val
+    })
+  }
 })
 
 // 选中数量

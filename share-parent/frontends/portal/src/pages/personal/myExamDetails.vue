@@ -37,30 +37,30 @@
      </div>
      <div class="answerCardTitle" v-if="myExamDetails.length">答题卡</div>
      <div class="answerCards">
-      <span v-for="(item, index) in myExamDetails" :class="{right:item.correct,wrong:!item.correct && item.answer != ''}">{{index + 1}}</span>
+      <span v-for="(item, index) in myExamDetails" :key="index" :class="{right:item.correct, wrong:!item.correct && item.answer != null && item.answer !== ''}">{{index + 1}}</span>
      </div>
      <div class="examCont" >
-        <div class="item" v-for="(item, index) in myExamDetails">
+        <div class="item" v-for="(item, index) in myExamDetails" :key="index">
         <div class="examTitle">
           <div>
             <img v-if="item.correct" src="@/assets/icon_right.png" alt="">
             <img v-else src="@/assets/icon_wrong.png" alt="">
           </div>
         <div class="quest fx">
-            {{index+1}}. <span v-html="item.question.title || item.question.stem"></span>
+            {{index+1}}. <span v-html="item.question?.title || item.question?.stem || '无题干'"></span>
           </div>
         </div>
         <div class="answer">
-          <li v-for="(it, optionIndex) in normalizedOptions(item.question.options)" :key="optionIndex"><span v-html="it"></span></li>
+          <li v-for="(it, optionIndex) in normalizedOptions(item.question?.options)" :key="optionIndex"><span v-html="it"></span></li>
         </div>
         <div class="analysis">
           <div class="fx marg-bt-20">
-            <div class="col ft-wt-600">你的答案：{{answerChange(item.question.type, item.answer)}}</div>
-            <div class="col rt ft-wt-600">正确答案：{{answerChange(item.question.type, item.question.answer)}}</div>
-            <div class="col">难易程度：{{defficultyChange(item.question.difficulty)}}</div>
+            <div class="col ft-wt-600">你的答案：{{answerChange(item.question?.type, item.answer)}}</div>
+            <div class="col rt ft-wt-600">正确答案：{{answerChange(item.question?.type, item.question?.answer)}}</div>
+            <div class="col">难易程度：{{defficultyChange(item.question?.difficulty)}}</div>
             <div>得分：{{item.score}}</div>
           </div>
-          <div class="fx" v-if="item.question.analysis">答案解析：<span v-html="item.question.analysis"></span></div>
+          <div class="fx" v-if="item.question?.analysis">答案解析：<span v-html="item.question?.analysis"></span></div>
         </div>
         </div>
      </div>
@@ -114,6 +114,7 @@ const getExamDetailsData = async () => {
 }
 // 问题类型，1：单选题，2：多选题，3：不定向选择题，4：判断题，5：主观题
 const answerChange = (type, val) => {
+  if (val === null || val === undefined || val === '') return '未作答'
   let data = ''
   switch (parseInt(type)){
     case 1 : {
@@ -122,18 +123,26 @@ const answerChange = (type, val) => {
     }
     case 2:
     case 3: {
-      const arr = typeof val == 'string' ? val.split(',') : val
-      data = (Array.isArray(arr) ? arr : [arr]).map(n => isNaN(Number(n)) ? n : upperAlpha(Number(n))).join(',')
+      const arr = typeof val == 'string' ? (val.includes(',') ? val.split(',') : val.split('')) : val
+      data = (Array.isArray(arr) ? arr : [arr]).map(n => isNaN(Number(n)) ? n : upperAlpha(Number(n))).join(val && typeof val === 'string' && val.includes(',') ? ',' : '')
       break
     }
     case 4 : {
-      data = val  ? '正确' : '错误'
+      if (val === 'A' || val === '0' || val === 0 || val === true || val === 'true' || val === '正确') {
+        data = '正确'
+      } else if (val === 'B' || val === '1' || val === 1 || val === false || val === 'false' || val === '错误') {
+        data = '错误'
+      } else {
+        data = val
+      }
       break
     }
     case 5 : {
       data = val
       break
     }
+    default:
+      data = val
   }
   return data
 }

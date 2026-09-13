@@ -39,7 +39,9 @@
               >
                 <span>{{ coupon.name }}</span>
                 <span style="float: right; color: #f56c6c">
-                  {{ coupon.type === 'fixed' ? `减${coupon.value / 100}元` : `${coupon.value / 10}折` }}
+                  <template v-if="coupon.type === 'percent'">{{ coupon.discountRateText }}</template>
+                  <template v-else-if="coupon.type === 'fixed'">满¥{{ (coupon.minAmount / 100).toFixed(0) }}减¥{{ (coupon.value / 100).toFixed(0) }}</template>
+                  <template v-else>立减¥{{ (coupon.value / 100).toFixed(0) }}</template>
                 </span>
               </el-option>
             </el-select>
@@ -139,9 +141,21 @@ const discountAmount = computed(() => {
   const coupon = availableCoupons.value.find(c => String(c.id) === String(selectedCoupon.value))
   if (!coupon) return 0
 
-  if (coupon.type === 'direct') return coupon.value
-  if (coupon.type === 'fixed' && totalPrice.value >= coupon.minAmount) return coupon.value
-  if (coupon.type === 'percent' && totalPrice.value >= coupon.minAmount) return totalPrice.value - (totalPrice.value * coupon.value / 100)
+  if (totalPrice.value < coupon.minAmount) return 0
+
+  if (coupon.type === 'direct' || coupon.type === 'fixed') {
+    return Math.min(totalPrice.value, coupon.value)
+  }
+
+  if (coupon.type === 'percent') {
+    const payableRate = Math.max(0, Math.min(coupon.discountPercent, 100)) / 100
+    const discount = Math.round(totalPrice.value * (1 - payableRate))
+    const maxDiscount = Number(coupon.maxDiscountAmount || 0)
+    if (maxDiscount > 0) {
+      return Math.min(totalPrice.value, Math.min(discount, maxDiscount))
+    }
+    return Math.min(totalPrice.value, discount)
+  }
 
   return 0
 })
@@ -168,13 +182,23 @@ const normalizeCourse = (course = {}) => ({
 const normalizeCoupon = (coupon = {}) => {
   const discountType = Number(coupon.discountType)
   const type = discountType === 2 ? 'percent' : discountType === 4 ? 'fixed' : 'direct'
-  const centsValue = Number(coupon.discountValue || coupon.value || 0)
+  const rawValue = Number(coupon.discountValue ?? coupon.value ?? 0)
+
+  let percentRate = 100
+  if (type === 'percent') {
+    percentRate = rawValue > 10 ? rawValue : rawValue * 10
+  }
+
+  const rateText = (percentRate / 10).toFixed(percentRate % 10 === 0 ? 0 : 1) + '折'
+  const minAmount = Number(coupon.thresholdAmount ?? coupon.minAmount ?? 0)
+
   return {
     ...coupon,
     type,
-    // 旧页面按分处理金额；折扣券的 value 表示百分比（80 = 8 折）。
-    value: type === 'percent' ? centsValue / 10 : centsValue,
-    minAmount: Number(coupon.thresholdAmount ?? coupon.minAmount ?? 0)
+    discountPercent: percentRate,
+    discountRateText: rateText,
+    value: rawValue,
+    minAmount
   }
 }
 

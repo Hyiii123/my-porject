@@ -249,26 +249,34 @@ public class InterviewServiceImpl implements IInterviewService {
         List<InterviewCodeSubmission> codes = codeMapper.selectList(new LambdaQueryWrapper<InterviewCodeSubmission>()
                 .eq(InterviewCodeSubmission::getSessionId, session.getId()));
 
-        // 计算总得分
-        int avgScore = 75;
-        if (!turns.isEmpty()) {
-            double sum = 0;
-            int count = 0;
-            for (InterviewTurn t : turns) {
-                if (t.getTurnScore() != null) {
-                    sum += t.getTurnScore();
-                    count++;
-                }
-            }
-            if (count > 0) {
-                avgScore = (int) Math.round(sum / count);
+        // 计算总得分：必须严格结合实质答题率与各轮得分
+        int answeredCount = 0;
+        double sum = 0;
+        for (InterviewTurn t : turns) {
+            if (StringUtils.hasText(t.getUserAnswer()) && t.getTurnScore() != null) {
+                sum += t.getTurnScore();
+                answeredCount++;
             }
         }
-        session.setScore(avgScore);
+
+        int finalScore;
+        if (answeredCount == 0) {
+            finalScore = 0; // 全场未作答 / 零分快速交卷
+        } else {
+            // 若提前交卷（未完成全部轮次），未作答轮次按 0 分折算完成度综合计算
+            int plannedTurns = Math.max(1, session.getTotalTurns() != null ? session.getTotalTurns() : 6);
+            double avgAnswered = sum / answeredCount;
+            if (answeredCount < plannedTurns) {
+                finalScore = (int) Math.round(avgAnswered * ((double) answeredCount / plannedTurns));
+            } else {
+                finalScore = (int) Math.round(avgAnswered);
+            }
+        }
+        session.setScore(finalScore);
         sessionMapper.updateById(session);
 
-        // 终局委员会多维能力综合裁决（调用 AI 合成阿里P6/P7职级、六维雷达、STAR话术重塑）
-        InterviewReport report = generateFinalReport(session, turns, codes, avgScore);
+        // 终局委员会多维能力综合裁决（调用 AI 合成职级、六维雷达、STAR话术重塑）
+        InterviewReport report = generateFinalReport(session, turns, codes, finalScore);
         report.setSessionId(session.getId());
         report.setCreateTime(now);
         reportMapper.insert(report);
@@ -672,6 +680,23 @@ public class InterviewServiceImpl implements IInterviewService {
      */
     private InterviewReport generateFinalReport(InterviewSession session, List<InterviewTurn> turns,
                                                 List<InterviewCodeSubmission> codes, int avgScore) {
+        JobTrack track = detectJobTrack(session.getTargetJob());
+        String defaultCourses = resolveDefaultCourses(track);
+
+        // 缺考或零分交卷防御
+        if (avgScore <= 0 || turns == null || turns.stream().noneMatch(t -> StringUtils.hasText(t.getUserAnswer()))) {
+            InterviewReport report = new InterviewReport();
+            report.setOfferDecision("Reject");
+            report.setLevelMatch("未达标 (本场面试未完成实质作答)");
+            report.setRadarData("{\"core\":20,\"architecture\":20,\"storage\":20,\"distributed\":20,\"coding\":20,\"communication\":20}");
+            report.setOverallSummary(String.format("候选人在【%s】岗位的考察中未进行实质性作答即交卷，暂无法评估其实际技术深度。建议端正求职态度并系统性复习基础知识后再次挑战。", session.getTargetJob()));
+            report.setCoreStrengths("暂未采集到有效答题数据。");
+            report.setCriticalWeaknesses("全场核心题目均未作答，缺乏有效技术输出与工程实战证明。");
+            report.setSpeechRefactoring("建议至少完成三轮以上完整技术追问与代码沙箱实测，方可获得精准的大厂 STAR 话术诊断。");
+            report.setRecommendedCourses(defaultCourses);
+            return report;
+        }
+
         StringBuilder transcript = new StringBuilder();
         for (InterviewTurn t : turns) {
             transcript.append("【第").append(t.getTurnNum()).append("轮 - ").append(t.getDimension())
@@ -735,7 +760,6 @@ public class InterviewServiceImpl implements IInterviewService {
                 Math.max(avgScore - 8, 60), Math.min(avgScore + 4, 90), 82));
         report.setOverallSummary(String.format("候选人在【%s】岗位的考察中表现出扎实的技术底色，综合得分 %d 分。具备独立负责核心业务模块与中大型架构攻坚能力。", session.getTargetJob(), avgScore));
 
-        JobTrack track = detectJobTrack(session.getTargetJob());
         String strengths = switch (track) {
             case SYSTEMS_HIGH_PERF -> "1. 系统底层与高并发机制理解深刻；\n2. 具备良好的无锁与低延迟设计意识；\n3. 答题逻辑严密，具备硬核攻坚特质。";
             case FRONTEND_MOBILE -> "1. Web 前端核心渲染管线与事件循环掌握扎实；\n2. 具备现代框架底层机制与工程化抽象思维；\n3. 重视用户极致体验与性能边界防护。";
@@ -769,7 +793,12 @@ public class InterviewServiceImpl implements IInterviewService {
         };
         report.setSpeechRefactoring(speechRefactoring);
 
-        String courses = switch (track) {
+        report.setRecommendedCourses(defaultCourses);
+        return report;
+    }
+
+    private String resolveDefaultCourses(JobTrack track) {
+        return switch (track) {
             case SYSTEMS_HIGH_PERF -> "[\"《Go语言高并发架构实战与GMP深度解析》\", \"《C++20核心系统编程与高性能网络通信》\", \"《Linux内核网络与eBPF排障指南》\"]";
             case FRONTEND_MOBILE -> "[\"《前端架构设计与大型工程化体系构建》\", \"《Vue3/React源码深度剖析与性能极致调优》\", \"《Web全栈与微前端实战》\"]";
             case AI_LLM -> "[\"《大语言模型架构精要与Transformer微调实战》\", \"《工业级RAG检索增强与Agent智能体开发》\", \"《vLLM推理加速与大模型分布式训练》\"]";
@@ -779,8 +808,6 @@ public class InterviewServiceImpl implements IInterviewService {
             case QA_SECURITY -> "[\"《全链路压测与大促高可用容量规划》\", \"《Web应用安全攻防与企业级零信任架构》\", \"《自动化测试平台与测试开发实战》\"]";
             default -> "[\"《亿级流量架构核心技术与高并发实战》\", \"《深入理解 Java 虚拟机与线上 OOM 排障》\", \"《MySQL 实战 45 讲与调优指南》\"]";
         };
-        report.setRecommendedCourses(courses);
-        return report;
     }
 
     private String determineOffer(int score) {
@@ -794,7 +821,8 @@ public class InterviewServiceImpl implements IInterviewService {
         if (score >= 88) return "对标阿里P7资深架构师 / 字节2-2";
         if (score >= 78) return "对标阿里P6+高级开发 / 字节2-1";
         if (score >= 65) return "对标阿里P6中级开发 / 字节1-2";
-        return "对标阿里P5初级开发 / 字节1-1";
+        if (score >= 50) return "对标阿里P5初级开发 / 字节1-1";
+        return "未达标 (建议系统性补强基础)";
     }
 
     /**

@@ -84,6 +84,15 @@
                     第 {{ turn.turnNum }} 轮 · {{ getDepthText(turn.depthLevel) }}
                   </el-tag>
                   <span class="time">{{ formatTime(turn.createTime) }}</span>
+                  <el-button
+                    link
+                    size="small"
+                    class="tts-btn"
+                    :class="{ playing: speakingTurnId === turn.id }"
+                    @click="toggleSpeakQuestion(turn)"
+                  >
+                    {{ speakingTurnId === turn.id ? '🔊 停止播放' : '🔈 考官发音' }}
+                  </el-button>
                 </div>
                 <div class="bubble-text question-text">
                   {{ turn.question }}
@@ -151,6 +160,7 @@
         <div class="dialogue-input-bar">
           <div class="input-tip">
             <span>当前第 <b>{{ currentTurnNum }}</b> 轮：请结合实际项目指标与底层原理结构化作答</span>
+            <span class="tip-shortcut">（支持 Ctrl + Enter 快捷提交）</span>
           </div>
           <el-input
             v-model="currentAnswer"
@@ -159,18 +169,34 @@
             placeholder="在此输入您的回答...（建议按结构化阐述：首先从核心概念与底层原理谈起，其次剖析运行机制与关键设计权衡，最后联系生产实战与排障经验...）"
             resize="none"
             :disabled="submittingAnswer || isCompleted"
+            @keydown.ctrl.enter="handleSubmitAnswer"
           />
           <div class="input-actions">
-            <span class="char-count">{{ currentAnswer.length }} 字</span>
-            <el-button
-              type="primary"
-              size="default"
-              :loading="submittingAnswer"
-              :disabled="!currentAnswer.trim() || isCompleted"
-              @click="handleSubmitAnswer"
-            >
-              提交本轮作答 & 迎接追问 ➔
-            </el-button>
+            <div class="voice-tool">
+              <el-button
+                size="small"
+                :type="isRecording ? 'danger' : 'default'"
+                class="voice-btn"
+                :class="{ recording: isRecording }"
+                :disabled="submittingAnswer || isCompleted"
+                @click="toggleVoiceRecognition"
+              >
+                <span class="voice-icon">{{ isRecording ? '⏹ 停止连麦' : '🎙️ 麦克风录音' }}</span>
+              </el-button>
+              <span v-if="isRecording" class="recording-pulse">正在收音辨识中...</span>
+            </div>
+            <div class="submit-actions">
+              <span class="char-count">{{ currentAnswer.length }} 字</span>
+              <el-button
+                type="primary"
+                size="default"
+                :loading="submittingAnswer"
+                :disabled="!currentAnswer.trim() || isCompleted"
+                @click="handleSubmitAnswer"
+              >
+                提交本轮作答 & 迎接追问 ➔
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -461,14 +487,109 @@ const handleResetCode = () => {
   }
 }
 
+// Web Speech API - 语音合成 (TTS)
+const speakingTurnId = ref(null)
+const toggleSpeakQuestion = (turn) => {
+  if (!('speechSynthesis' in window)) {
+    ElMessage.warning('当前浏览器不支持 Web Speech 语音朗读功能')
+    return
+  }
+  if (speakingTurnId.value === turn.id) {
+    window.speechSynthesis.cancel()
+    speakingTurnId.value = null
+    return
+  }
+  window.speechSynthesis.cancel()
+  const utterance = new SpeechSynthesisUtterance(turn.question)
+  utterance.lang = 'zh-CN'
+  utterance.rate = 1.0
+  utterance.pitch = 1.0
+  utterance.onend = () => {
+    speakingTurnId.value = null
+  }
+  utterance.onerror = () => {
+    speakingTurnId.value = null
+  }
+  speakingTurnId.value = turn.id
+  window.speechSynthesis.speak(utterance)
+}
+
+// Web Speech API - 语音识别 (STT)
+const isRecording = ref(false)
+let speechRecognitionInstance = null
+
+const toggleVoiceRecognition = () => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  if (!SpeechRecognition) {
+    ElMessage.info('您的浏览器暂未开放 Web 语音识别接口（推荐使用 Chrome / Edge 浏览器）')
+    return
+  }
+
+  if (isRecording.value) {
+    if (speechRecognitionInstance) {
+      speechRecognitionInstance.stop()
+    }
+    isRecording.value = false
+    return
+  }
+
+  try {
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'zh-CN'
+    recognition.continuous = true
+    recognition.interimResults = true
+
+    recognition.onstart = () => {
+      isRecording.value = true
+      ElMessage.success('已开启麦克风收音，请开始阐述您的回答...')
+    }
+
+    recognition.onresult = (event) => {
+      let finalTranscript = ''
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript
+        }
+      }
+      if (finalTranscript) {
+        currentAnswer.value = (currentAnswer.value ? currentAnswer.value + ' ' : '') + finalTranscript.trim()
+      }
+    }
+
+    recognition.onerror = (event) => {
+      console.warn('语音识别异常:', event.error)
+      isRecording.value = false
+      if (event.error !== 'no-speech') {
+        ElMessage.warning('麦克风收音中断：' + event.error)
+      }
+    }
+
+    recognition.onend = () => {
+      isRecording.value = false
+    }
+
+    speechRecognitionInstance = recognition
+    recognition.start()
+  } catch (err) {
+    isRecording.value = false
+    ElMessage.error('启动麦克风失败：' + (err.message || '权限被拒绝'))
+  }
+}
+
 const handleFinishInterview = () => {
+  const turns = sessionData.value.turns || []
+  const hasAnyAnswer = turns.some(t => Boolean(t.userAnswer && t.userAnswer.trim()))
+  const confirmMsg = hasAnyAnswer
+    ? '确认现在交卷并结束面试？系统将立即触发阿里/字节多维评审委员会终局裁决与六维能力雷达图生成。'
+    : '【注意】：您当前尚未作答任何题目，直接交卷将按【缺考/未达标】终局裁定且综合得分为 0。确认现在交卷吗？'
+
   ElMessageBox.confirm(
-    '确认现在交卷并结束面试？系统将立即触发阿里/字节多维评审委员会终局裁决与六维能力雷达图生成。',
-    '交卷终审确认',
+    confirmMsg,
+    hasAnyAnswer ? '交卷终审确认' : '缺考直接交卷警示',
     {
       confirmButtonText: '立即交卷',
       cancelButtonText: '继续答题',
-      type: 'warning'
+      type: hasAnyAnswer ? 'warning' : 'danger'
     }
   ).then(async () => {
     try {
@@ -501,6 +622,12 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (timerInterval) clearInterval(timerInterval)
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
+  if (speechRecognitionInstance) {
+    speechRecognitionInstance.stop()
+  }
 })
 </script>
 
@@ -733,6 +860,27 @@ onBeforeUnmount(() => {
   color: #64748b;
 }
 
+.tts-btn {
+  font-size: 11px;
+  color: #0284c7;
+  padding: 0 4px;
+}
+
+.tts-btn:hover {
+  color: #0369a1;
+}
+
+.tts-btn.playing {
+  color: #ea580c;
+  font-weight: 600;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .candidate-meta {
   justify-content: flex-end;
 }
@@ -843,9 +991,17 @@ onBeforeUnmount(() => {
 }
 
 .input-tip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 12px;
   color: #64748b;
   margin-bottom: 8px;
+}
+
+.tip-shortcut {
+  font-size: 11px;
+  color: #94a3b8;
 }
 
 .input-actions {
@@ -853,6 +1009,29 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   margin-top: 10px;
+}
+
+.voice-tool {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-btn.recording {
+  animation: pulse 1s infinite;
+}
+
+.recording-pulse {
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 500;
+  animation: pulse 1s infinite;
+}
+
+.submit-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .char-count {

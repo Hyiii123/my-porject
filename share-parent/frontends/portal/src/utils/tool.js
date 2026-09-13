@@ -1,25 +1,13 @@
- // 转换 A、B、C、D
+// 转换 A、B、C、D ...
 export const upperAlpha = (num, type) => {
-  let str = ''
-  let n = type && type == 0 ? num : num - 1
-  switch(n){
-    case 0 :
-      str = 'A';
-      break
-    case 1 :
-      str = 'B';
-      break
-    case 2 :
-      str = 'C';
-      break
-    case 3 :
-      str = 'D';
-      break
-    case 4 :
-      str = 'E';
-      break
+  if (num === null || num === undefined) return ''
+  const n = Number(num)
+  if (isNaN(n)) return String(num)
+  const index = (type === 0 || n === 0) ? n : n - 1
+  if (index >= 0 && index < 26) {
+    return String.fromCharCode(65 + index)
   }
-  return str
+  return String(num)
 }
 // 时间转换 h:m:s
 export const timeFormat = (time) => {

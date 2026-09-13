@@ -158,7 +158,7 @@
             v-for="(course, idx) in parsedCourses"
             :key="idx"
             class="course-card"
-            @click="handleJumpCourse"
+            @click="handleJumpCourse(course)"
           >
             <div class="course-badge">推荐 {{ idx + 1 }}</div>
             <div class="course-name">{{ course }}</div>
@@ -349,8 +349,9 @@ const handleBack = () => {
   router.push({ name: 'interviewIndex' })
 }
 
-const handleJumpCourse = () => {
-  router.push({ path: '/search/index' })
+const handleJumpCourse = (course) => {
+  const kw = (course || '').replace(/[《》]/g, '').trim()
+  router.push({ path: '/search/index', query: kw ? { keyword: kw } : {} })
 }
 
 onMounted(() => {
