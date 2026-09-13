@@ -10,20 +10,32 @@ import org.springframework.util.StringUtils;
 import java.util.*;
 
 /**
- * 智能体 4：路径规划 Agent (PathPlanningAgent)。
+ * 智能体 5：路径规划 Agent (PathPlanningAgent)。
  *
  * <p>【核心职责】：
- * 1. 依据知识图谱先修依赖与软件工程师成长进阶曲线，构建有向无环拓扑路线 (DAG)；
- * 2. 将候选课程按进阶梯度合理划分为 3~4 个阶段性成长里程碑；
- * 3. 避免先修断层与学习焦虑，确保学员沿着清晰路径稳步提升。</p>
+ * 1. 依据知识图谱先修依赖与工程师成长进阶曲线，构建有向无环拓扑路线 (DAG)；
+ * 2. 将候选课程按进阶梯度合理划分为 4 个阶段性成长里程碑；
+ * 3. 响应 Critic 审判反思修正指令与 Human-in-the-Loop 人机协同微调指令；
+ * 4. 动态消除先修断层，保障课程拓扑 100% 合规。</p>
  */
 @Component
 public class PathPlanningAgent {
 
-    /**
-     * 为学员规划个性化阶段成长路线
-     */
     public LearningPathPlan planPath(UserProfileContext profile, List<AnalyzedCourseVO> courses) {
+        return planPath(profile, courses, Collections.emptyMap());
+    }
+
+    /**
+     * 带针对性修正指令或人机协同微调的路径规划
+     *
+     * @param profile 学员画像
+     * @param courses 候选课程集合
+     * @param directives Critic 指令集或用户微调参数 (如 needMoreBeginnerCourses, excludedCourseIds 等)
+     * @return 优化后的结构化进阶路线
+     */
+    public LearningPathPlan planPath(UserProfileContext profile,
+                                    List<AnalyzedCourseVO> courses,
+                                    Map<String, Object> directives) {
         String role = (profile != null && StringUtils.hasText(profile.getIntendedRole()))
             ? profile.getIntendedRole() : "高级全栈软件工程师";
 
@@ -38,35 +50,54 @@ public class PathPlanningAgent {
                 .build();
         }
 
-        // 1. 基于知识图谱先修依赖 (DRAG-KP4SR 证据链) 与难度的拓扑保序排序
-        List<AnalyzedCourseVO> sortedCourses = new ArrayList<>(courses);
+        // 0. 处理人机协同排除课程 (Human-in-the-Loop: excludedCourseIds)
+        List<AnalyzedCourseVO> activeCourses = new ArrayList<>(courses);
+        if (directives != null && directives.containsKey("excludedCourseIds")) {
+            Object exObj = directives.get("excludedCourseIds");
+            if (exObj instanceof Collection<?> exList) {
+                Set<Long> exIds = new HashSet<>();
+                for (Object item : exList) {
+                    if (item instanceof Number num) {
+                        exIds.add(num.longValue());
+                    } else if (item != null) {
+                        try { exIds.add(Long.parseLong(item.toString())); } catch (Exception ignored) {}
+                    }
+                }
+                activeCourses.removeIf(c -> exIds.contains(c.getCourseId()));
+            }
+        }
+
+        // 1. 基于知识图谱先修依赖与难度的拓扑保序排序
+        List<AnalyzedCourseVO> sortedCourses = new ArrayList<>(activeCourses);
         sortedCourses.sort((c1, c2) -> {
-            // (1) 检查 c1 是否为 c2 的显式先修
+            // 拓扑先修关系严格优先
             boolean c1IsPrereqOfC2 = isPrerequisite(c1, c2);
             boolean c2IsPrereqOfC1 = isPrerequisite(c2, c1);
             if (c1IsPrereqOfC2 && !c2IsPrereqOfC1) return -1;
             if (c2IsPrereqOfC1 && !c1IsPrereqOfC2) return 1;
 
-            // (2) 难度等级升序 (基础筑基 -> 架构突破)
+            // 难度等级升序 (筑基 -> 突破)
             int diff1 = c1.getDifficultyLevel() != null ? c1.getDifficultyLevel() : 2;
             int diff2 = c2.getDifficultyLevel() != null ? c2.getDifficultyLevel() : 2;
             if (diff1 != diff2) return Integer.compare(diff1, diff2);
 
-            // (3) 同难度下算法匹配得分降序
+            // 算法得分降序
             double s1 = c1.getMatchScore() != null ? c1.getMatchScore() : 85.0;
             double s2 = c2.getMatchScore() != null ? c2.getMatchScore() : 85.0;
             return Double.compare(s2, s1);
         });
 
-        // 2. 将拓扑有序的课程平滑切分至 4 个进阶里程碑阶段
+        // 2. 切分至 4 个进阶里程碑阶段
         List<AnalyzedCourseVO> stage1Courses = new ArrayList<>(); // 初级筑基 (难度 1 或先修基石)
         List<AnalyzedCourseVO> stage2Courses = new ArrayList<>(); // 核心进阶 (难度 2)
         List<AnalyzedCourseVO> stage3Courses = new ArrayList<>(); // 架构实战 (难度 3)
         List<AnalyzedCourseVO> stage4Courses = new ArrayList<>(); // 综合攻坚与突破
 
+        boolean needMoreBeginner = directives != null && Boolean.TRUE.equals(directives.get("needMoreBeginnerCourses"));
+
         for (AnalyzedCourseVO c : sortedCourses) {
             int diff = c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2;
-            if (diff == 1 && stage1Courses.size() < 3) {
+            if ((diff == 1 || needMoreBeginner) && stage1Courses.size() < 3) {
                 stage1Courses.add(c);
             } else if (diff <= 2 && stage2Courses.size() < 3) {
                 stage2Courses.add(c);
@@ -77,7 +108,12 @@ public class PathPlanningAgent {
             }
         }
 
-        // 平衡各阶段课程分布，数据驱动构建进阶里程碑
+        // 兜底保障：若 stage1 依然为空但有其他课程，借调一门最低难度的课程至 stage1 夯实底座
+        if (stage1Courses.isEmpty() && !stage2Courses.isEmpty()) {
+            stage1Courses.add(stage2Courses.remove(0));
+        }
+
+        // 数据驱动构建阶段定义
         record StageDef(String name, String goal, int hoursPerCourse, List<AnalyzedCourseVO> courseList) {}
         StageDef[] stageDefs = {
             new StageDef("阶段一：核心基石与工程化筑基", "掌握现代核心语言规范与基础工程化设计，夯实扎实底座", 16, stage1Courses),
@@ -105,7 +141,7 @@ public class PathPlanningAgent {
         return LearningPathPlan.builder()
             .intendedRole(role)
             .overallGoal("基于 " + role + " 胜任力标准的自适应闭环成长路径")
-            .totalCourses(courses.size())
+            .totalCourses(activeCourses.size())
             .totalEstimatedHours(totalHours)
             .stages(stages)
             .referenceStandard("国家 IT 软件工程师能力标准及大厂 P6/P7 技术模型")

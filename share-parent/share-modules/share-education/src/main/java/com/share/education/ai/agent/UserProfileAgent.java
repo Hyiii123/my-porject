@@ -30,22 +30,32 @@ public class UserProfileAgent {
     private final EduUserPortraitMapper portraitMapper;
     private final EduLearningRecordMapper learningMapper;
     private final ObjectMapper objectMapper;
+    private final ActiveProbingAgent probingAgent;
 
     public UserProfileAgent(EduUserPortraitMapper portraitMapper,
                             EduLearningRecordMapper learningMapper,
-                            ObjectMapper objectMapper) {
+                            ObjectMapper objectMapper,
+                            ActiveProbingAgent probingAgent) {
         this.portraitMapper = portraitMapper;
         this.learningMapper = learningMapper;
         this.objectMapper = objectMapper;
+        this.probingAgent = probingAgent;
     }
 
     /**
-     * 构建学员深度画像上下文
+     * 构建学员深度画像上下文 (默认模式)
      */
     public UserProfileContext buildProfile(Long userId) {
+        return buildProfile(userId, Collections.emptyMap());
+    }
+
+    /**
+     * 构建学员深度画像上下文 (支持探针反馈自适应校准)
+     */
+    public UserProfileContext buildProfile(Long userId, Map<String, String> probeAnswers) {
         if (userId == null || userId <= 0) {
-            // 未登录访客：默认返回冷启动通用画像
-            return UserProfileContext.builder()
+            // 未登录访客：默认返回冷启动通用画像，若有探针则自适应校准
+            UserProfileContext guestProfile = UserProfileContext.builder()
                 .userId(null)
                 .intendedRole("全栈开发工程师")
                 .preferredDifficulty(2)
@@ -58,6 +68,11 @@ public class UserProfileAgent {
                 .completedHours(0.0)
                 .cognitiveLevel("初级进阶")
                 .build();
+
+            if (probeAnswers != null && !probeAnswers.isEmpty()) {
+                return probingAgent.calibrateProfile(guestProfile, probeAnswers);
+            }
+            return guestProfile;
         }
 
         // 1. 查询用户画像数据
@@ -139,7 +154,7 @@ public class UserProfileAgent {
         String cognitiveLevel = (totalHours > 80 || (portrait != null && portrait.getCompletionRate() != null && portrait.getCompletionRate().doubleValue() > 88.0))
             ? "架构突破期" : ((totalHours > 20 || preferredDifficulty >= 2) ? "技能跃升期" : "核心筑基期");
 
-        return UserProfileContext.builder()
+        UserProfileContext built = UserProfileContext.builder()
             .userId(userId)
             .intendedRole(intendedRole)
             .preferredDifficulty(preferredDifficulty)
@@ -154,6 +169,11 @@ public class UserProfileAgent {
             .chronologicalCourseIds(chronologicalCourseIds)
             .courseProgressMap(courseProgressMap)
             .build();
+
+        if (probeAnswers != null && !probeAnswers.isEmpty()) {
+            return probingAgent.calibrateProfile(built, probeAnswers);
+        }
+        return built;
     }
 
     private List<String> identifySkillGaps(String role, Map<String, Integer> currentSkills) {

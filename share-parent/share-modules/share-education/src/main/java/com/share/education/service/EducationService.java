@@ -64,6 +64,8 @@ import com.share.education.mapper.EduUserPortraitMapper;
 import com.share.education.ai.orchestrator.MultiAgentRecommendOrchestrator;
 import com.share.education.ai.model.PersonalizedRecommendVO;
 import com.share.education.ai.model.LearningPathPlan;
+import com.share.education.ai.model.ActiveProbeQuestion;
+import com.share.education.ai.evals.AgentEvalMetricsVO;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -838,6 +840,46 @@ public class EducationService {
             currentUid = SecurityUtils.getUserId();
         } catch (Exception ignored) {}
         return multiAgentOrchestrator.getLearningPath(currentUid);
+    }
+
+    /**
+     * 人机协同微调学习进阶路线 (Human-in-the-Loop)
+     */
+    public Map<String, Object> refinePersonalizedLearningPath(Map<String, Object> overrides) {
+        Long currentUid = null;
+        try {
+            currentUid = SecurityUtils.getUserId();
+        } catch (Exception ignored) {}
+        return multiAgentOrchestrator.refineLearningPath(currentUid, overrides);
+    }
+
+    /**
+     * 获取冷启动主动探针诊断问卷
+     */
+    public List<ActiveProbeQuestion> getActiveProbingQuestions() {
+        Long currentUid = null;
+        try {
+            currentUid = SecurityUtils.getUserId();
+        } catch (Exception ignored) {}
+        return multiAgentOrchestrator.getProbingQuestions(currentUid);
+    }
+
+    /**
+     * 提交主动探针诊断回答并自适应生成推荐
+     */
+    public Map<String, Object> submitActiveProbingAnswers(Map<String, String> answers) {
+        Long currentUid = null;
+        try {
+            currentUid = SecurityUtils.getUserId();
+        } catch (Exception ignored) {}
+        return multiAgentOrchestrator.submitProbingAnswers(currentUid, answers);
+    }
+
+    /**
+     * 获取智能体自动化质量评测与可观测性看板数据
+     */
+    public AgentEvalMetricsVO getAgentEvaluationMetrics() {
+        return multiAgentOrchestrator.getEvaluationMetrics();
     }
 
     /** 标准化 50 维 IT 技术栈特征向量空间字典 (Dense Skill Vector Dimensions) */

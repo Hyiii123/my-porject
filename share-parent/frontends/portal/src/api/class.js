@@ -325,3 +325,34 @@ request({
 	method: 'get'
 })
 
+// 人机协同微调学员个性化进阶路线 (Human-in-the-Loop)
+export const refinePersonalizedLearningPath = (data) =>
+request({
+	url: `${COURSE_API_PREFIX}/courses/recommendations/refine`,
+	method: 'post',
+	data
+})
+
+// 获取冷启动主动探针诊断问卷 (Active Probing)
+export const getActiveProbingQuestions = () =>
+request({
+	url: `${COURSE_API_PREFIX}/courses/recommendations/probe`,
+	method: 'get'
+})
+
+// 提交主动探针反馈并即时自适应校准生成推荐
+export const submitActiveProbingAnswers = (data) =>
+request({
+	url: `${COURSE_API_PREFIX}/courses/recommendations/probe/submit`,
+	method: 'post',
+	data
+})
+
+// 获取多智能体系统自动化质量评测度量指标 (Agent Evals)
+export const getAgentEvaluationMetrics = () =>
+request({
+	url: `${COURSE_API_PREFIX}/courses/recommendations/evals/metrics`,
+	method: 'get'
+})
+
+

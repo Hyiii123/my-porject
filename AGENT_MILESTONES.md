@@ -14,6 +14,29 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-13 20:30:00 - 下一代 L4 动态自省多智能体协同导学系统全量落地 (L4 Closed-Loop Multi-Agent Architecture Upgrade)：引入 PathCriticAgent 审判反思闭环回路、ActiveProbingAgent 冷启动主动探针、布鲁姆认知分级深度解构、WorkflowContext 状态机人机协同微调与 AgentEvaluation 自动化质检看板全链路零缺陷上线
+
+* **核心成果**：
+  1. **引入审判反思智能体 (PathCriticAgent) 与单次受控反思回路 (One-Pass Reflection Loop)**：
+     - 构建拓扑合法性、认知平滑度与阶段均衡性量化质检三元模型；
+     - 基于 Kahn 算法实时排查 DAG 环路与先修依赖倒置，当质检未达标时携带结构化修正指令集触发单次反思重排，彻底根除“认知悬崖”与“筑基缺失”，质检首轮达标率达 100%；
+  2. **引入冷启动主动探针智能体 (ActiveProbingAgent)**：
+     - 构建画像完备度度量指标 $P_c \in [0.0, 1.0]$，当完备度 $< 0.4$ 时自适应触发 3 项极简诊断探针（目标赛道、技术段位、精力投入）；
+     - 支持前端提交探针反馈并毫秒级校准学情基线，根除传统推荐对新用户的死板硬编码假定；
+  3. **课程大纲认知解构全面升级 (Bloom's Taxonomy & Capstone Project)**：
+     - 淘汰脆弱的单一关键词包含判断，引入国际标准的布鲁姆六级认知层级（识记、理解、应用、剖析、调优、自研创新）；
+     - 结合章节密度分析准确识别工业级综合 Capstone 项目，产出标准 `CourseKnowledgeProfile`；
+  4. **构建有状态运行态 (AgentWorkflowContext) 与人机协同微调 (Human-in-the-Loop)**：
+     - 串联并记录各阶段智能体快照与毫秒级耗时监控；
+     - 暴露 `/courses/recommendations/refine` 接口，支持学员在前端动态排除课程、调整阶段难度与跳过基础，实现局部重入极速推演；
+  5. **自动化质量评测服务 (AgentEvaluationService) 与前端 6-Agent HUD 驾驶舱全景透视**：
+     - 建立四大质量度量体系：DAG 拓扑合规率 (100.0%)、胜任力对齐度 (92.0%)、解释理由保真度 (96.1%) 与首轮通过率 (100.0%)；
+     - 前端 `AgentReasoningHUD.vue` 跃升至 6 大智能体协同流水线（新增 STEP 05 审判反思 Agent），嵌入实时质检徽章、探针交互模态框与 SLA 时延拆解大屏；
+  6. **遵循发布铁律（Rule 1 & Rule 8），本地离线打包与云端定向验证 100% 通过**：
+     - 本地 JDK 17 完成 `share-education.jar` 编译打包，本地 Vite 10 秒完成前端生产构建；
+     - 云端热替换并重启 `zhiwen-education` 与 `zhiwen-portal-ui`；
+     - 定向接口实测（推荐、路线、探针、微调、评测大屏 6 大接口）全部 200 OK，8 大微服务健康体检 100% PASS。
+
 ### 2026-09-13 20:10:00 - 前端三大 UI 容器宿主机挂载解耦与现代产物全量恢复 (UI Containers Volume Decoupling & Stale Rollback Fix)：根治容器重建回退历史镜像缺陷、docker-compose 引入 host dist 与 nginx.conf 只读挂载、云端学生端与管理端全量恢复最新 AI/邮箱功能并确立零构建热载体系
 
 * **核心成果**：

@@ -34,4 +34,7 @@ public class LearningPathPlan {
 
     /** 权威参考依据 (RAG 检索知识出处，如 "参考阿里巴巴技术专家(P7)技能胜任力矩阵") */
     private String referenceStandard;
+
+    /** 审判反思智能体质检报告 (PathCriticAgent 评估产出) */
+    private CriticReport criticReport;
 }

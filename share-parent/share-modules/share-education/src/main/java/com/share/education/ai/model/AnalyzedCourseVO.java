@@ -49,4 +49,13 @@ public class AnalyzedCourseVO {
     /** 知识图谱先修推导路径 (由 DRAG-KP4SR 算法检索产出) */
     @Builder.Default
     private List<String> evidencePaths = Collections.emptyList();
+
+    /** 布鲁姆认知分级标识 (REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE) */
+    private String bloomLevel;
+
+    /** 布鲁姆认知中文分级 (如 "工程应用级", "架构调优级") */
+    private String bloomName;
+
+    /** 是否包含工业级 Capstone 综合实战大项目 */
+    private Boolean isCapstone;
 }

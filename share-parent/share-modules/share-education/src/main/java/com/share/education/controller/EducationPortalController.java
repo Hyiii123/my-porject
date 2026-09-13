@@ -12,6 +12,7 @@ import com.share.education.domain.EduNote;
 import com.share.education.domain.EduQuestion;
 import com.share.education.domain.EduReply;
 import com.share.education.service.EducationService;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,6 +113,38 @@ public class EducationPortalController extends BaseController {
     @GetMapping({"/courses/recommendations/learning-path", "/courses/recommend/learning-path"})
     public AjaxResult personalizedLearningPath() {
         return success(educationService.getPersonalizedLearningPath());
+    }
+
+    /**
+     * 人机协同微调学员个性化成长进阶路线 (Human-in-the-Loop Refinement)。
+     */
+    @PostMapping({"/courses/recommendations/refine", "/courses/recommend/refine"})
+    public AjaxResult refinePersonalizedLearningPath(@RequestBody(required = false) Map<String, Object> overrides) {
+        return success(educationService.refinePersonalizedLearningPath(overrides != null ? overrides : Collections.emptyMap()));
+    }
+
+    /**
+     * 获取冷启动主动探针诊断问卷 (Active Probing Questions)。
+     */
+    @GetMapping({"/courses/recommendations/probe", "/courses/recommend/probe"})
+    public AjaxResult activeProbingQuestions() {
+        return success(educationService.getActiveProbingQuestions());
+    }
+
+    /**
+     * 提交主动探针反馈并即刻自适应生成校准推荐。
+     */
+    @PostMapping({"/courses/recommendations/probe/submit", "/courses/recommend/probe/submit"})
+    public AjaxResult submitActiveProbingAnswers(@RequestBody(required = false) Map<String, String> answers) {
+        return success(educationService.submitActiveProbingAnswers(answers != null ? answers : Collections.emptyMap()));
+    }
+
+    /**
+     * 获取多智能体系统自动化质量评测度量大屏数据 (Agent Evals & Observability Metrics)。
+     */
+    @GetMapping({"/courses/recommendations/evals/metrics", "/courses/recommend/evals/metrics"})
+    public AjaxResult agentEvaluationMetrics() {
+        return success(educationService.getAgentEvaluationMetrics());
     }
 
     @GetMapping("/user/portrait")
