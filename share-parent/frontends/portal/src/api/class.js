@@ -332,6 +332,7 @@ request({
 	method: 'post',
 	data
 })
+export const refineLearningPath = refinePersonalizedLearningPath
 
 // 获取冷启动主动探针诊断问卷 (Active Probing)
 export const getActiveProbingQuestions = () =>

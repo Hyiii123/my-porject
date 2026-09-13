@@ -3,7 +3,7 @@
     <!-- 顶部核心区：AI 多智能体协同决策看板 (替换原 Banner 轮播图) -->
     <div class="hero-agent-section container">
       <!-- 多智能体协同推理实时动态看板 (Live Agent Reasoning HUD) -->
-      <AgentReasoningHUD @recalculate="handleRecalculateRecommendations" />
+      <AgentReasoningHUD @recalculate="handleRecalculateRecommendations" @calibrated="handleProbingCalibrated" />
     </div>
 
     <!-- 智能个性化专属推荐 (基于多智能体协同系统与 IT 知识图谱) -->
@@ -33,6 +33,16 @@
           </div>
           <div class="course-info">
             <h4 class="course-title" :title="course.title">{{ course.title }}</h4>
+
+            <!-- 布鲁姆认知分级 & Capstone 工业级综合实战标签 -->
+            <div class="bloom-tags-row" v-if="course.bloomLevelName || course.capstoneProject">
+              <span class="bloom-badge" v-if="course.bloomLevelName">
+                🎓 {{ course.bloomLevelName }}
+              </span>
+              <span class="capstone-mini-badge" v-if="course.capstoneProject">
+                🏆 Capstone 综合实战
+              </span>
+            </div>
 
             <!-- AI 推荐理由 (Explainable AI 极简导学理由) -->
             <div class="recommend-reason-row" v-if="course.recommendReason">
@@ -267,7 +277,9 @@ const DEFAULT_PREHEAT_COURSES = [
     matchScore: 98,
     matchTag: '🔥 目标岗位强契合',
     recommendReason: '全面掌握Vue3核心语法、组合式API与状态管理',
-    difficulty: 1
+    difficulty: 1,
+    bloomLevelName: '应用层 (L3)',
+    capstoneProject: false
   },
   {
     id: '4',
@@ -280,7 +292,9 @@ const DEFAULT_PREHEAT_COURSES = [
     matchScore: 95,
     matchTag: '📌 先修必修基石',
     recommendReason: '从零开始学习SpringBoot，掌握微服务架构设计',
-    difficulty: 2
+    difficulty: 2,
+    bloomLevelName: '剖析层 (L4)',
+    capstoneProject: true
   },
   {
     id: '10',
@@ -293,7 +307,9 @@ const DEFAULT_PREHEAT_COURSES = [
     matchScore: 92,
     matchTag: '💡 关键技能补齐',
     recommendReason: 'Python机器学习、Scikit-learn、TensorFlow实战',
-    difficulty: 1
+    difficulty: 1,
+    bloomLevelName: '应用层 (L3)',
+    capstoneProject: false
   },
   {
     id: '8',
@@ -306,7 +322,9 @@ const DEFAULT_PREHEAT_COURSES = [
     matchScore: 90,
     matchTag: '🚀 架构突破攻坚',
     recommendReason: '索引优化、查询优化、分库分表、主从复制',
-    difficulty: 3
+    difficulty: 3,
+    bloomLevelName: '调优层 (L5)',
+    capstoneProject: false
   }
 ]
 
@@ -372,6 +390,17 @@ const handleRecalculateRecommendations = async (targetRole) => {
     }
   } catch (e) {
     console.error('重新计算个性化推荐失败:', e)
+  }
+}
+
+const handleProbingCalibrated = (calibratedData) => {
+  if (calibratedData && calibratedData.recommendations) {
+    const pRows = normalizeRows({ data: calibratedData.recommendations })
+    if (pRows.length) {
+      personalizedCourses.value = pRows
+    }
+  } else {
+    handleRecalculateRecommendations()
   }
 }
 
@@ -844,12 +873,46 @@ onMounted(() => {
       color: #0F172A;
       line-height: 1.45;
       height: 40px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
       transition: color 0.2s ease;
+    }
+
+    .bloom-tags-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+
+      .bloom-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 4px;
+        background: #EFF6FF;
+        color: #2563EB;
+        border: 1px solid #DBEAFE;
+      }
+
+      .capstone-mini-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 4px;
+        background: #FEF3C7;
+        color: #B45309;
+        border: 1px solid #FDE68A;
+      }
     }
 
     .recommend-reason-row {
