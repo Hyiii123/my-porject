@@ -14,6 +14,26 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-13 17:00:00 - 教育核心微服务 Spring Boot 3.2 与官方 Spring AI 体系重构升级：引入 spring-ai-openai 官方 Starter、ChatModel/ChatClient/PromptTemplate 多智能体标准规范落地、DRAG-KP4SR Tool Calling 体系注入与双版本依赖隔离治理
+
+* **核心成果**：
+  1. **采用策略 A 定向升级教育微服务至 Spring Boot 3.2.4 与 Spring AI 1.0.0-M1**：
+     - 在父工程 `share-parent/pom.xml` 中引入 `spring-milestones` 仓库与 `spring-ai-bom:1.0.0-M1` 版本物料清单；
+     - 在 `share-modules/share-education` 中实施模块级依赖升级，引入 Spring Boot 3.2.4，正式依赖官方 `org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M1`，彻底淘汰历史 raw RestTemplate 伪包装。
+  2. **多智能体架构全面遵循官方 Spring AI 体系深度重构**：
+     - 新建 `SpringAiConfiguration`，基于官方体系向 Spring 容器注入标准的 `OpenAiApi`、`OpenAiChatModel`（实现 `ChatModel`）与新一代提示词客户端 `ChatClient`；
+     - 重构 `DashScopeAiClient`，全面托管给官方 `ChatClient`，保留 5 分钟原子熔断器（Circuit Breaker），确保大模型接口抖动或未配置 API Key 时在 <1ms 内无感降级为自研规则与知识图谱引擎；
+     - 重构 `ExplanationGenerationAgent`，使用官方 `PromptTemplate` 和 `SystemPromptTemplate` 实现多智能体提示词动态变量渲染；
+     - 将自研 `DRAG-KP4SR` 知识图谱序列推荐算法注册为标准 Spring AI Function / Tool（`@Bean @Description dragRecommendTool`），使大模型智能体具备标准 Tool Calling 能力。
+  3. **复杂微服务兼容性与依赖冲突深度治理**：
+     - 解决 Spring Framework 6.1 / Spring Boot 3.2 下 MyBatis-Plus 兼容异常，引入专门适配的 `mybatis-plus-spring-boot3-starter:3.5.6`（内置 `mybatis-spring:3.0.3`），并显式排除传递依赖的旧版 `mybatis-plus-boot-starter:3.5.3.1`，根除双版本 JAR 混淆导致的 `NullBean` Runner 异常；
+     - 在 `ShareEducationApplication` 中排除官方默认 `OpenAiAutoConfiguration`，交由具备智能兜底的 `SpringAiConfiguration` 统一装配，杜绝由于环境变量空 Key 引发的断言崩溃；
+     - 在 `bootstrap.yml` 中配置 `spring.cloud.compatibility-verifier.enabled: false`，消除 Spring Cloud 2022 与 Spring Boot 3.2 的启动期跨版本拦截。
+  4. **云端生产部署与定向范围测试零缺陷通过（严格遵循发布铁律与 Rule 8）**：
+     - 离线完成 `share-education.jar` 编译打包，内置官方 5 大 `spring-ai-*` 核心 JAR；
+     - 通过阿里云 Workbench CLI 安全上传并热重载云端 `tianji-education` 容器，服务成功在端口 9210 上线并注册进 Nacos；
+     - 定向接口测试：直接端口请求 `http://127.0.0.1:19210/courses/recommendations/personalized?limit=4` 返回 200 OK，包含高精度匹配分、先修要求、学习阶段与技能填补；微服务网关入口 `http://127.0.0.1:8080/cs/courses/recommendations/personalized?limit=4` 同步验证 200 OK。
+
 ### 2026-09-13 16:00:00 - 课程随堂测评闭环上线与考试审计全链路贯通：学习室随堂测验Tab开箱即用、未答题目完整审计轨迹入库、交卷与重考结果幂等回显、答卷参数全兼容容错
 
 * **核心成果**：

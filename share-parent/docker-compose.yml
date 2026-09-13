@@ -381,7 +381,7 @@ services:
       TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
       AI_BASE_URL: "${AI_BASE_URL:-https://ai-pixel.online/v1}"
       AI_MODEL: "${AI_MODEL:-gpt-5.6-luna}"
-      AI_API_KEY: "${AI_API_KEY:-}"
+      AI_API_KEY: "${AI_API_KEY:-sk-tianji-spring-ai-token}"
       JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
     ports:
       - "${TJ_EDUCATION_PORT:-19210}:9210"

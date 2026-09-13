@@ -46,11 +46,21 @@
         <drools.version>8.41.0.Final</drools.version>
         <mqttv3.version>1.2.2</mqttv3.version>
         <redisson.version>3.23.3</redisson.version>
+        <spring-ai.version>1.0.0-M1</spring-ai.version>
     </properties>
 
     <!-- 依赖声明 -->
     <dependencyManagement>
         <dependencies>
+
+            <!-- Spring AI 官方 BOM -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
             <!-- SpringCloud 微服务 -->
             <dependency>
@@ -390,6 +400,14 @@
             <releases>
                 <enabled>true</enabled>
             </releases>
+        </repository>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
         </repository>
     </repositories>
 
