@@ -186,7 +186,7 @@
             <div class="item-footer">
               <span class="time">{{ formatTime(item.createTime) }}</span>
               <el-button link type="primary" size="small">
-                {{ item.status === 2 ? '查看诊断大屏 ➔' : '继续答题 ➔' }}
+                {{ item.status === 2 ? '查看诊断大屏 ➔' : (item.status === 3 ? '回顾问答实录 ➔' : '继续答题 ➔') }}
               </el-button>
             </div>
           </div>

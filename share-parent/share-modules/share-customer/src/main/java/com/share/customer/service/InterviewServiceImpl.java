@@ -620,9 +620,24 @@ public class InterviewServiceImpl implements IInterviewService {
         }
 
         // 启发式兜底评估
-        int length = turn.getUserAnswer() != null ? turn.getUserAnswer().length() : 0;
-        int score = length > 200 ? 85 : (length > 80 ? 75 : 60);
-        String feedback = "【评语】：回答切中了部分核心要点，但在底层运行机制和工程实践边界上阐述较为简略。建议结合大厂生产环境实际指标进行更深度的结构化答题。";
+        String rawAnswer = turn.getUserAnswer() != null ? turn.getUserAnswer().trim() : "";
+        int length = rawAnswer.length();
+        boolean isNegative = rawAnswer.matches("(?i)^(不知道|不会|没了解过|pass|跳过|略|不清楚|不了解|未掌握|没用过|无|暂无|没做过).*$") || length < 5;
+        int score;
+        String feedback;
+        if (isNegative) {
+            score = 0;
+            feedback = "【评语】：候选人表明未掌握该领域技术或作答过于简短，未能展现相关工程技术沉淀。建议深入研读对应底层原理与标准实现方案，切忌在面试中直接放弃。";
+        } else if (length > 200) {
+            score = 85;
+            feedback = "【评语】：回答结构相对完整，阐述了关键逻辑。建议进一步结合线上排障指标与高并发极限场景做更深层次的对比总结。";
+        } else if (length > 80) {
+            score = 75;
+            feedback = "【评语】：回答切中了部分核心要点，但在底层运行机制和工程实践边界上阐述较为简略。建议结合大厂生产环境实际指标进行更深度的结构化答题。";
+        } else {
+            score = 50;
+            feedback = "【评语】：回答较为简略，仅提及表层概念，缺乏深层原理机制与生产实践支撑。建议遵循 STAR 法则进行系统性补充。";
+        }
         return new TurnEvaluation(score, feedback, standardKnowledge);
     }
 
@@ -755,21 +770,43 @@ public class InterviewServiceImpl implements IInterviewService {
         InterviewReport report = new InterviewReport();
         report.setOfferDecision(determineOffer(avgScore));
         report.setLevelMatch(determineLevel(avgScore));
-        report.setRadarData(String.format("{\"core\":%d,\"architecture\":%d,\"storage\":%d,\"distributed\":%d,\"coding\":%d,\"communication\":%d}",
-                Math.min(avgScore + 5, 95), Math.max(avgScore - 5, 60), Math.min(avgScore + 2, 92),
-                Math.max(avgScore - 8, 60), Math.min(avgScore + 4, 90), 82));
-        report.setOverallSummary(String.format("候选人在【%s】岗位的考察中表现出扎实的技术底色，综合得分 %d 分。具备独立负责核心业务模块与中大型架构攻坚能力。", session.getTargetJob(), avgScore));
 
-        String strengths = switch (track) {
-            case SYSTEMS_HIGH_PERF -> "1. 系统底层与高并发机制理解深刻；\n2. 具备良好的无锁与低延迟设计意识；\n3. 答题逻辑严密，具备硬核攻坚特质。";
-            case FRONTEND_MOBILE -> "1. Web 前端核心渲染管线与事件循环掌握扎实；\n2. 具备现代框架底层机制与工程化抽象思维；\n3. 重视用户极致体验与性能边界防护。";
-            case AI_LLM -> "1. Transformer 底层注意力机制与数学原理掌握熟练；\n2. 对大模型微调、RAG 检索增强与 Agent 规划有落地实战；\n3. 思维敏锐，紧跟前沿算法进展。";
-            case BIG_DATA -> "1. 批流一体计算引擎与状态机机制理解透彻；\n2. 具备海量数据倾斜与千万级作业调优经验；\n3. 数据湖仓一体架构视野广阔。";
-            case DATABASE_STORAGE -> "1. 存储引擎底层 B+Tree/LSM-Tree 与事务 MVCC 机制透彻；\n2. 千万级慢 SQL 与高可用容灾实战经验丰富；\n3. 严谨稳健，具备优秀的数据安全性保障意识。";
-            case CLOUD_NATIVE_SRE -> "1. K8s 控制器编排机制与 Linux 容器底层网络深刻；\n2. 具备优秀的全链路可观测性与生产容灾快速止血经验；\n3. 具有极高的线上稳定性风险敬畏心。";
-            case QA_SECURITY -> "1. 全链路高并发压测设计与容量规划体系完备；\n2. 敏锐的边界攻防、漏洞排查与自动化建设能力；\n3. 质量门禁与混沌演练把控全面。";
-            default -> "1. Java 核心与并发底层掌握熟练；\n2. 具备良好的工程代码编写习惯；\n3. 能够快速领会面试官的连环追问意图。";
-        };
+        int core = Math.max(15, Math.min(avgScore + 3, 95));
+        int arch = Math.max(15, Math.min(avgScore - 4, 92));
+        int storage = Math.max(15, Math.min(avgScore + 1, 95));
+        int dist = Math.max(15, Math.min(avgScore - 6, 90));
+        int coding = Math.max(15, Math.min(avgScore + 2, 95));
+        int comm = Math.max(20, Math.min(avgScore + 5, 90));
+        report.setRadarData(String.format("{\"core\":%d,\"architecture\":%d,\"storage\":%d,\"distributed\":%d,\"coding\":%d,\"communication\":%d}",
+                core, arch, storage, dist, coding, comm));
+
+        String summary;
+        if (avgScore >= 85) {
+            summary = String.format("候选人在【%s】岗位的多轮深度考察中展现出卓越的技术深度与架构功底，综合得分 %d 分。完全契合大厂资深技术岗位要求，具备主导核心业务与架构攻坚能力。", session.getTargetJob(), avgScore);
+        } else if (avgScore >= 70) {
+            summary = String.format("候选人在【%s】岗位的考察中表现出扎实的技术底色与工程素养，综合得分 %d 分。具备独立负责业务核心模块研发与方案落地能力。", session.getTargetJob(), avgScore);
+        } else if (avgScore >= 50) {
+            summary = String.format("候选人在【%s】岗位的考察中具备基础技术认知，综合得分 %d 分。但在底层高并发机制、源码原理及生产级排障实战上存在短板，建议针对性补强实战。", session.getTargetJob(), avgScore);
+        } else {
+            summary = String.format("候选人在【%s】岗位的考察中未能展现出岗位所需的专业技术深度，综合得分 %d 分。技术基础较为薄弱或核心题目未作实质答复，未达大厂准入门槛。", session.getTargetJob(), avgScore);
+        }
+        report.setOverallSummary(summary);
+
+        String strengths;
+        if (avgScore < 50) {
+            strengths = "1. 勇于参与大厂高压实战模拟；\n2. 展现出一定的学习意愿与探索心态。";
+        } else {
+            strengths = switch (track) {
+                case SYSTEMS_HIGH_PERF -> "1. 系统底层与高并发机制理解深刻；\n2. 具备良好的无锁与低延迟设计意识；\n3. 答题逻辑严密，具备硬核攻坚特质。";
+                case FRONTEND_MOBILE -> "1. Web 前端核心渲染管线与事件循环掌握扎实；\n2. 具备现代框架底层机制与工程化抽象思维；\n3. 重视用户极致体验与性能边界防护。";
+                case AI_LLM -> "1. Transformer 底层注意力机制与数学原理掌握熟练；\n2. 对大模型微调、RAG 检索增强与 Agent 规划有落地实战；\n3. 思维敏锐，紧跟前沿算法进展。";
+                case BIG_DATA -> "1. 批流一体计算引擎与状态机机制理解透彻；\n2. 具备海量数据倾斜与千万级作业调优经验；\n3. 数据湖仓一体架构视野广阔。";
+                case DATABASE_STORAGE -> "1. 存储引擎底层 B+Tree/LSM-Tree 与事务 MVCC 机制透彻；\n2. 千万级慢 SQL 与高可用容灾实战经验丰富；\n3. 严谨稳健，具备优秀的数据安全性保障意识。";
+                case CLOUD_NATIVE_SRE -> "1. K8s 控制器编排机制与 Linux 容器底层网络深刻；\n2. 具备优秀的全链路可观测性与生产容灾快速止血经验；\n3. 具有极高的线上稳定性风险敬畏心。";
+                case QA_SECURITY -> "1. 全链路高并发压测设计与容量规划体系完备；\n2. 敏锐的边界攻防、漏洞排查与自动化建设能力；\n3. 质量门禁与混沌演练把控全面。";
+                default -> "1. Java 核心与并发底层掌握熟练；\n2. 具备良好的工程代码编写习惯；\n3. 能够快速领会面试官的连环追问意图。";
+            };
+        }
         report.setCoreStrengths(strengths);
 
         String weaknesses = switch (track) {

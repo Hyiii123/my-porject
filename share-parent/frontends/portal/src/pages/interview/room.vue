@@ -46,6 +46,25 @@
           轮次：<b>{{ currentTurnNum }}/{{ sessionData.totalTurns || 6 }}</b>
         </div>
         <el-button
+          v-if="sessionData.status === 2"
+          type="success"
+          size="small"
+          class="finish-btn completed"
+          @click="goToReport"
+        >
+          📊 查看终局报告
+        </el-button>
+        <el-button
+          v-else-if="sessionData.status === 3"
+          type="info"
+          size="small"
+          class="finish-btn"
+          disabled
+        >
+          🛑 已终止
+        </el-button>
+        <el-button
+          v-else
           type="danger"
           size="small"
           class="finish-btn"
@@ -156,8 +175,20 @@
           </div>
         </div>
 
-        <!-- 底部答题输入框 -->
-        <div class="dialogue-input-bar">
+        <!-- 底部答题输入区 / 完赛横幅 -->
+        <div v-if="isCompleted" class="dialogue-completed-banner">
+          <div class="banner-left">
+            <span class="banner-icon">{{ isTerminated ? '🛑' : '🎉' }}</span>
+            <div class="banner-texts">
+              <div class="title">{{ isTerminated ? '本场模拟面试已终止' : '本次模拟面试已圆满完成！' }}</div>
+              <div class="desc">{{ isTerminated ? '您可在此回顾问答记录与已提交代码，如需重新挑战请返回大厅开启新场次。' : '大厂面试官评审委员会已完成终局职级裁决与六维能力雷达图评定。' }}</div>
+            </div>
+          </div>
+          <el-button v-if="sessionData.status === 2" type="primary" size="default" @click="goToReport">
+            查看终局评测报告 ➔
+          </el-button>
+        </div>
+        <div v-else class="dialogue-input-bar">
           <div class="input-tip">
             <span>当前第 <b>{{ currentTurnNum }}</b> 轮：请结合实际项目指标与底层原理结构化作答</span>
             <span class="tip-shortcut">（支持 Ctrl + Enter 快捷提交）</span>
@@ -354,8 +385,12 @@ const currentTurn = computed(() => {
 
 const currentTurnNum = computed(() => currentTurn.value?.turnNum || 1)
 const currentDepth = computed(() => currentTurn.value?.depthLevel || 1)
-const currentDimension = computed(() => currentTurn.value?.dimension || 'Java核心与高并发')
-const isCompleted = computed(() => sessionData.value.status === 2)
+const isCompleted = computed(() => sessionData.value.status === 2 || sessionData.value.status === 3)
+const isTerminated = computed(() => sessionData.value.status === 3)
+
+const goToReport = () => {
+  router.push({ name: 'interviewReport', params: { id: sessionId } })
+}
 
 const getPersonaMeta = computed(() => {
   const style = sessionData.value.interviewerStyle || 'p7_architect'
@@ -437,6 +472,17 @@ const handleSubmitAnswer = async () => {
       ElMessage.success('本轮回答已提交，AI 面试官已完成评分！')
       currentAnswer.value = ''
       await loadSession()
+      if (sessionData.value.status === 2) {
+        ElMessageBox.alert(
+          '恭喜您已完成全部轮次考核！大厂评审委员会已完成终局职级裁决与六维能力雷达报告。',
+          '模拟面试已完成',
+          {
+            confirmButtonText: '查看终局报告',
+            type: 'success',
+            callback: () => goToReport()
+          }
+        )
+      }
     }
   } catch (err) {
     ElMessage.error('提交回答失败：' + (err.message || '系统繁忙'))
@@ -983,7 +1029,40 @@ onBeforeUnmount(() => {
   margin-top: 8px;
 }
 
-/* 底部输入框 */
+/* 完赛横幅与底部输入框 */
+.dialogue-completed-banner {
+  padding: 16px 20px;
+  border-top: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.dialogue-completed-banner .banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dialogue-completed-banner .banner-icon {
+  font-size: 26px;
+}
+
+.dialogue-completed-banner .banner-texts .title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #166534;
+  margin-bottom: 2px;
+}
+
+.dialogue-completed-banner .banner-texts .desc {
+  font-size: 12px;
+  color: #15803d;
+  line-height: 1.4;
+}
+
 .dialogue-input-bar {
   padding: 16px 20px;
   border-top: 1px solid #e2e8f0;

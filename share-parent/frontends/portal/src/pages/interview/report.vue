@@ -28,7 +28,7 @@
         </div>
         <div class="hero-right">
           <div class="score-circle">
-            <div class="num">{{ sessionData.score || 80 }}</div>
+            <div class="num">{{ sessionData.score !== undefined && sessionData.score !== null ? sessionData.score : 0 }}</div>
             <div class="unit">综合得分</div>
           </div>
           <div class="session-meta">
@@ -89,7 +89,7 @@
                 class="radar-label"
                 text-anchor="middle"
               >
-                {{ axis.name }} ({{ radarScores[axis.key] || 75 }})
+                {{ axis.name }} ({{ radarScores[axis.key] ?? 75 }})
               </text>
             </svg>
           </div>
@@ -274,7 +274,7 @@ const getWebPoints = (level) => {
 
 const radarDataCoords = computed(() => {
   return axes.map((axis, i) => {
-    const val = radarScores.value[axis.key] || 75
+    const val = radarScores.value[axis.key] ?? 75
     const scale = Math.max(0.1, Math.min(val / 100, 1.0))
     return getVertex(i, scale)
   })
