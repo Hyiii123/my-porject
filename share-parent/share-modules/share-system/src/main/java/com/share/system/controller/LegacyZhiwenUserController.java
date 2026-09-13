@@ -5,8 +5,10 @@ import com.share.common.core.web.controller.BaseController;
 import com.share.common.core.web.domain.AjaxResult;
 import com.share.common.core.web.page.TableDataInfo;
 import com.share.common.core.constant.SecurityConstants;
+import com.share.common.core.utils.StringUtils;
 import com.share.common.security.annotation.RequiresLogin;
 import com.share.common.security.annotation.RequiresPermissions;
+import com.share.common.security.auth.AuthUtil;
 import com.share.common.security.utils.SecurityUtils;
 import com.share.education.api.RemoteTeacherProfileService;
 import com.share.system.api.domain.SysRole;
@@ -19,6 +21,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -188,20 +191,43 @@ public class LegacyZhiwenUserController extends BaseController {
         SysUser user = fromBody(body);
         user.setUserId(SecurityUtils.getUserId());
         user.setUpdateBy(SecurityUtils.getUsername());
+        if (StringUtils.isNotEmpty(user.getPhonenumber()) && !userService.checkPhoneUnique(user)) {
+            return error("修改个人信息失败，手机号码已存在");
+        }
+        if (StringUtils.isNotEmpty(user.getEmail()) && !userService.checkEmailUnique(user)) {
+            return error("修改个人信息失败，邮箱账号已存在");
+        }
         return toAjax(userService.updateUserProfile(user));
     }
 
-    @RequiresPermissions("system:user:edit")
+    @RequiresLogin
     @PutMapping("/students/password")
     public AjaxResult updatePassword(@RequestBody Map<String, Object> body) {
-        Long userId = SecurityUtils.getUserId();
-        SysUser user = userId == null ? null : userService.selectUserById(userId);
+        Long targetUserId = longValue(body.get("userId"), longValue(body.get("id"), null));
+        Long currentUserId = SecurityUtils.getUserId();
+        if (targetUserId != null && !Objects.equals(targetUserId, currentUserId)) {
+            if (!SecurityUtils.isAdmin(currentUserId) && !AuthUtil.hasPermi("system:user:edit")) {
+                return error("无权修改其他用户的密码");
+            }
+        } else {
+            targetUserId = currentUserId;
+        }
+        SysUser user = targetUserId == null ? null : userService.selectUserById(targetUserId);
         if (user == null) {
-            return error("当前登录用户不存在");
+            return error("目标用户不存在");
+        }
+        String oldPassword = text(body, "oldPassword", null);
+        if (Objects.equals(targetUserId, currentUserId) && StringUtils.isNotEmpty(oldPassword)) {
+            if (!SecurityUtils.matchesPassword(oldPassword, user.getPassword())) {
+                return error("修改密码失败，旧密码错误");
+            }
         }
         String password = text(body, "newPassword", text(body, "password", null));
         if (password == null || password.length() < 6) {
             return error("新密码长度不能少于6位");
+        }
+        if (SecurityUtils.matchesPassword(password, user.getPassword())) {
+            return error("新密码不能与旧密码相同");
         }
         return toAjax(userService.resetUserPwd(user.getUserName(), SecurityUtils.encryptPassword(password)));
     }

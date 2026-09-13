@@ -504,3 +504,31 @@
   4. **前端大屏得分视觉多态与定向双场景验证通过**：
      - 诊断大屏 breakdown 维度新增动态彩色评级徽标（卓越/良好/基础/偏弱/匮乏/严重脱节）与 0 分红字告警；
      - 双场景端到端自动化测试 100% 通过（场景A：跨赛道不相干简历严格 60 分且零虚构；场景B：真实专业架构师简历 95 分卓越对标）。
+
+
+### 2026-09-13 06:15:00 - 课程随堂测验 Tab 激活、未答题全量审计留痕与考试重交自愈治理
+
+* **核心成果**：
+  1. **课程播放室随堂测验交互全面激活**：
+     - `frontends/portal/src/pages/learning/index.vue` 激活沉浸式“随堂测验”功能，基于课程 ID 动态拉取测验题目；
+     - 实现题型徽标、富文本题干渲染、单选/多选/判断专属答题卡、即时交卷与考后得分/错题解析折叠展示；
+  2. **后端测验未答题审计与落库修复**：
+     - `share-education` 中修正提交试卷时未答题丢失的缺陷，在 `tj_education.edu_exam_answer` 全量保留未答题审计记录（标记 user_answer 为空字符串与 is_correct=0）；
+     - 增强 `examRecordDetails` 接口，回显题目清单时自动聚合答卷详情，解决二次查询试卷题目丢失问题；
+     - 消除字段别名差异（兼容 `questionId`/`id` 与 `userAnswer`/`answer`），实现交卷与成绩查看幂等闭环；
+  3. **云端生产部署与定向回归验证**：
+     - 热部署 `tianji-education` 与 `tianji-portal-ui`，自动化测试覆盖模拟答卷、未答题审计与成绩详情查询，100% 通过。
+
+### 2026-09-13 06:22:00 - 学员个人安全中心重构、越权权限修复与安全绑定治理
+
+* **核心成果**：
+  1. **学员密码修改越权漏洞与鉴权机制修复**：
+     - `LegacyZhiwenUserController` 修正 `PUT /students/password` 原先强依赖管理员权限 `@RequiresPermissions("system:user:edit")` 导致学员修改密码报 403 的重大缺陷；
+     - 切换为 `@RequiresLogin`，并建立自主修改与管理员代修严格边界；自主修改时必须通过 BCrypt 校验旧密码、验证新密码长度（>=6 位）及新旧密码防重，管理员修改保留权限校验；
+  2. **学员资料手机号与邮箱唯一性校验补齐**：
+     - `PUT /students` 补齐 `userService.checkPhoneUnique` 与 `userService.checkEmailUnique`，杜绝手机号或邮箱冲突被静默覆盖；
+  3. **学员端个人安全中心 UI 激活**：
+     - `frontends/portal/src/pages/personal/mySet.vue` 废弃“暂未开放”提示，正式上线修改密码、绑定/更换手机号（11位正则）、绑定/更换邮箱专用模态对话框与即时状态同步；
+  4. **云端生产热部署与端到端自动化测试**：
+     - 热部署 `tianji-system` 与 `tianji-portal-ui`；
+     - 编写并执行 `.scratch/test_user_security.py`，验证错误旧密码阻断、短密码阻断、密码修改后成功登录及重置恢复，全链路 100% 满分通过。

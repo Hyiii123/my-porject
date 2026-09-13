@@ -59,14 +59,63 @@
         <div><span>登录账号</span> 当前登录名：{{ userInfo.username || userInfo.userName || '未设置' }}</div>
       </div>
       <div class="line fx-sb">
+        <div><span>登录密码</span> 账户登录密码：已设置安全保护</div>
+        <span class="font-bt" @click="passwordDialogVisible = true">修改密码</span>
+      </div>
+      <div class="line fx-sb">
         <div><span>绑定手机</span> 已绑定手机：{{ formatPhone(userInfo.phone || userInfo.phonenumber) }}</div>
-        <span class="font-bt" @click="changeHandle">修改</span>
+        <span class="font-bt" @click="openPhoneModal">修改</span>
       </div>
       <div class="line fx-sb">
         <div><span>绑定邮箱</span> 已绑定邮箱：{{ userInfo.email || '未绑定邮箱' }}</div>
-        <span class="font-bt" @click="changeHandle">修改</span>
+        <span class="font-bt" @click="openEmailModal">修改</span>
       </div>
     </div>
+
+    <!-- 修改密码弹窗 -->
+    <el-dialog v-model="passwordDialogVisible" title="修改登录密码" width="420px" destroy-on-close>
+      <el-form label-width="90px" :model="passwordForm">
+        <el-form-item label="原密码" required>
+          <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入当前原密码" />
+        </el-form-item>
+        <el-form-item label="新密码" required>
+          <el-input v-model="passwordForm.newPassword" type="password" show-password placeholder="请输入不少于6位的新密码" />
+        </el-form-item>
+        <el-form-item label="确认新密码" required>
+          <el-input v-model="passwordForm.confirmPassword" type="password" show-password placeholder="请再次输入新密码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="passwordDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="passwordSubmitting" @click="handleUpdatePassword">确定修改</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 绑定/更换手机弹窗 -->
+    <el-dialog v-model="phoneDialogVisible" title="绑定/更换手机号码" width="400px" destroy-on-close>
+      <el-form label-width="80px" :model="phoneForm">
+        <el-form-item label="手机号码" required>
+          <el-input v-model="phoneForm.phone" placeholder="请输入11位手机号码" maxlength="11" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="phoneDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="phoneSubmitting" @click="handleUpdatePhone">确定保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 绑定/更换邮箱弹窗 -->
+    <el-dialog v-model="emailDialogVisible" title="绑定/更换邮箱" width="400px" destroy-on-close>
+      <el-form label-width="80px" :model="emailForm">
+        <el-form-item label="电子邮箱" required>
+          <el-input v-model="emailForm.email" placeholder="请输入有效邮箱地址" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="emailDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="emailSubmitting" @click="handleUpdateEmail">确定保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -74,7 +123,7 @@
 /** 数据导入 **/
 import { ref, reactive, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
-import { updateUserInfo, getUserInfo } from "@/api/user.js";
+import { updateUserInfo, updateStudentPassword, getUserInfo } from "@/api/user.js";
 import { useUserStore } from "@/store";
 import defaultAvatar from "@/assets/icon_touxiang.png";
 
@@ -185,9 +234,120 @@ function handleAvatarUploadError(err) {
   ElMessage.error(msg);
 }
 
-// 更改密码 手机号提示
-const changeHandle = () => {
-  ElMessage.info('安全设置修改功能暂未开放，如需更换绑定请联系客服！');
+// 安全设置弹窗与状态
+const passwordDialogVisible = ref(false);
+const passwordSubmitting = ref(false);
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+});
+
+const phoneDialogVisible = ref(false);
+const phoneSubmitting = ref(false);
+const phoneForm = reactive({ phone: '' });
+
+const emailDialogVisible = ref(false);
+const emailSubmitting = ref(false);
+const emailForm = reactive({ email: '' });
+
+const openPhoneModal = () => {
+  phoneForm.phone = userInfo.value.phone || userInfo.value.phonenumber || '';
+  phoneDialogVisible.value = true;
+};
+
+const openEmailModal = () => {
+  emailForm.email = userInfo.value.email || '';
+  emailDialogVisible.value = true;
+};
+
+const handleUpdatePassword = async () => {
+  if (!passwordForm.oldPassword) {
+    ElMessage.warning('请输入当前原密码');
+    return;
+  }
+  if (!passwordForm.newPassword || passwordForm.newPassword.length < 6) {
+    ElMessage.warning('新密码长度不能少于6位');
+    return;
+  }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    ElMessage.warning('两次输入的新密码不一致');
+    return;
+  }
+  passwordSubmitting.value = true;
+  try {
+    const res = await updateStudentPassword({
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
+    });
+    if (res?.code === 200) {
+      ElMessage.success('登录密码修改成功，请牢记新密码！');
+      passwordDialogVisible.value = false;
+      passwordForm.oldPassword = '';
+      passwordForm.newPassword = '';
+      passwordForm.confirmPassword = '';
+    } else {
+      ElMessage.error(res?.msg || '修改密码失败');
+    }
+  } catch (err) {
+    ElMessage.error(err?.msg || err?.message || '修改密码失败，请核对原密码');
+  } finally {
+    passwordSubmitting.value = false;
+  }
+};
+
+const handleUpdatePhone = async () => {
+  const clean = (phoneForm.phone || '').trim();
+  if (!/^1[3-9]\d{9}$/.test(clean)) {
+    ElMessage.warning('请输入正确的11位手机号码');
+    return;
+  }
+  phoneSubmitting.value = true;
+  try {
+    const res = await updateUserInfo({ phonenumber: clean, phone: clean });
+    if (res?.code === 200) {
+      ElMessage.success('手机号码绑定成功！');
+      phoneDialogVisible.value = false;
+      userInfo.value.phone = clean;
+      userInfo.value.phonenumber = clean;
+      const cached = store.getUserInfo || {};
+      cached.phone = clean;
+      cached.phonenumber = clean;
+      await store.setUserInfo(cached);
+    } else {
+      ElMessage.error(res?.msg || '绑定手机号码失败');
+    }
+  } catch (err) {
+    ElMessage.error(err?.msg || err?.message || '绑定失败，请重试');
+  } finally {
+    phoneSubmitting.value = false;
+  }
+};
+
+const handleUpdateEmail = async () => {
+  const clean = (emailForm.email || '').trim();
+  if (!/^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$/.test(clean)) {
+    ElMessage.warning('请输入有效的邮箱地址');
+    return;
+  }
+  emailSubmitting.value = true;
+  try {
+    const res = await updateUserInfo({ email: clean });
+    if (res?.code === 200) {
+      ElMessage.success('邮箱绑定成功！');
+      emailDialogVisible.value = false;
+      userInfo.value.email = clean;
+      const cached = store.getUserInfo || {};
+      cached.email = clean;
+      await store.setUserInfo(cached);
+    } else {
+      ElMessage.error(res?.msg || '绑定邮箱失败');
+    }
+  } catch (err) {
+    ElMessage.error(err?.msg || err?.message || '绑定失败，请重试');
+  } finally {
+    emailSubmitting.value = false;
+  }
 };
 
 // 提交更新信息

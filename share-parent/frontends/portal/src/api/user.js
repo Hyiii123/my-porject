@@ -72,6 +72,13 @@ export const updateUserInfo = (params) =>
 		method: 'put',
 		data:params
 	})
+// 更改学生账号密码
+export const updateStudentPassword = (data) =>
+	request({
+		url: `${USER_API_PREFIX}/students/password`,
+		method: 'put',
+		data
+	})
 // 账号退出登录
 export const userLogout = () => {
 	return request({
