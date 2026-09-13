@@ -14,6 +14,20 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-13 17:30:00 - 官方 Spring AI 框架全线跃升至最新版本 1.0.0-M6：BOM 与 Starter 全面升级、OpenAiChatOptions Fluent API 规范对齐、JDK 17 生产热更新与双入口零缺陷验证
+
+* **核心成果**：
+  1. **Spring AI 核心依赖版本全线跃升至最新版本 1.0.0-M6**：
+     - 在父工程 `share-parent/pom.xml` 中将 `<spring-ai.version>` 升级为 `1.0.0-M6`；
+     - 驱动 `spring-ai-bom`、`spring-ai-openai-spring-boot-starter`、`spring-ai-core`、`spring-ai-openai`、`spring-ai-spring-boot-autoconfigure` 与 `spring-ai-retry` 等 5 大官方核心库统一跃迁至 2025 最新公开发布版本。
+  2. **API 规范演进与标准链式语法无缝对齐**：
+     - 重构 `SpringAiConfiguration` 中的 `OpenAiChatOptions.builder()`，从旧版 `withModel/withTemperature` 平滑演进至官方最新推荐的标准 Fluent 链式方法（`.model(model).temperature(...)`），消除未来版本弃用风险；
+     - 保留 `OpenAiApi`、`OpenAiChatModel`、`ChatClient` 以及自研 `DRAG-KP4SR` 知识图谱序列推荐 Tool Calling 回调机制无缝运作。
+  3. **生产热更新与严格定向范围测试（Rule 8）零缺陷通过**：
+     - 本地 JDK 17 环境一次性离线编译成功，产物内置最新 `1.0.0-M6` 系列 JAR；
+     - 通过 Workbench CLI 安全同步到云端服务器，容器 `tianji-education` 平滑重启并自动重新注册至 Nacos；
+     - 定向范围验证通过：服务直连端口 `http://127.0.0.1:19210/courses/recommendations/personalized?limit=4` 与微服务网关入口 `http://127.0.0.1:8080/cs/courses/recommendations/personalized?limit=4` 均返回 200 OK，包含高质量的拓扑推演、技能缺口弥补与可解释性多智能体推荐卡片。
+
 ### 2026-09-13 17:00:00 - 教育核心微服务 Spring Boot 3.2 与官方 Spring AI 体系重构升级：引入 spring-ai-openai 官方 Starter、ChatModel/ChatClient/PromptTemplate 多智能体标准规范落地、DRAG-KP4SR Tool Calling 体系注入与双版本依赖隔离治理
 
 * **核心成果**：

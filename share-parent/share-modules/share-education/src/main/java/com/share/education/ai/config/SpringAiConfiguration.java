@@ -60,8 +60,8 @@ public class SpringAiConfiguration {
         }
 
         OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .withModel(model)
-                .withTemperature((float) properties.getTemperature())
+                .model(model)
+                .temperature(properties.getTemperature())
                 .build();
 
         log.info("[Spring AI] Initialized official OpenAiChatModel bean with model: {}", model);

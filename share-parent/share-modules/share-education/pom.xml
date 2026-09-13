@@ -18,7 +18,7 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- 模块级升级 Spring Boot 至 3.2.4，对齐 Spring AI 1.0.0-M1 运行时规范 -->
+            <!-- 模块级升级 Spring Boot 至 3.2.4，对齐 Spring AI 1.0.0-M6 运行时规范 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
