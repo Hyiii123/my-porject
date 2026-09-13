@@ -257,6 +257,6 @@ if __name__ == "__main__":
     concepts = base_dir / "data" / "MOOCCubeX" / "processed" / "course_concepts.json"
     out = base_dir / "data" / "semantic_alignment.json"
 
-    embed_url = os.getenv("EMBED_SERVICE_URL", "http://tianji-embedding:8000/embed")
+    embed_url = os.getenv("EMBED_SERVICE_URL", "http://zhiwen-embedding:8000/embed")
     build_semantic_alignment(tsv, meta, concepts, out, embed_url=embed_url)
 

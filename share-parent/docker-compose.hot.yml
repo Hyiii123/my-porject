@@ -2,14 +2,14 @@
 #
 # 使用方式（只替换一个目标服务）：
 #   docker compose -f docker-compose.yml stop customer
-#   docker compose -f docker-compose.hot.yml -p tianji-hot up -d customer-hot
+#   docker compose -f docker-compose.hot.yml -p zhiwen-hot up -d customer-hot
 #
 # customer-hot 只在生产 customer 已停止时注册到 Nacos，保证网关仍能路由到唯一实例；
 # 停止热部署后可用生产 Compose start customer 恢复原服务。
 services:
   customer-hot:
     image: ${TJ_MAVEN_IMAGE:-docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17}
-    container_name: tianji-customer-hot
+    container_name: zhiwen-customer-hot
     working_dir: /workspace
     command: ["sh", "/workspace/deploy/hot-run.sh"]
     environment:
@@ -41,12 +41,12 @@ services:
     ports:
       - "${TJ_CUSTOMER_HOT_PORT:-19206}:9206"
     networks:
-      - tianji-net
+      - zhiwen-net
 
 volumes:
   tianji_maven_cache:
     name: tianji_maven_cache
 
 networks:
-  tianji-net:
+  zhiwen-net:
     external: true

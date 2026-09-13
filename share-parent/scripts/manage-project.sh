@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# 智问学伴 (Tianji-Share) 全栈项目运维与一键启停脚本
+# 智问学伴 (Zhiwen-Share) 全栈项目运维与一键启停脚本
 # 适用环境: 阿里云 ECS Linux (Ubuntu/Debian/CentOS)
 # 目录: /opt/tianji/share-parent
 # ==============================================================================
@@ -50,11 +50,11 @@ get_public_ip() {
 # 等待容器健康就绪
 wait_container_healthy() {
     local container_name=$1
-    local max_wait=${2:-45}
-    local interval=3
+    local max_wait=${2:-60}
+    local interval=2
     local elapsed=0
 
-    log_info "等待容器 ${container_name} 就绪 (最长 ${max_wait}s)..."
+    log_info "等待容器 ${container_name} 健康检查通过 (最长等待 ${max_wait}s)..."
     while [ $elapsed -lt $max_wait ]; do
         local status
         status=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_name" 2>/dev/null)
@@ -73,21 +73,21 @@ wait_container_healthy() {
 # 启动全套项目服务 (阶梯式启动，规避 CPU/IO 争抢)
 start_project() {
     echo -e "\n${BOLD}==============================================================================${NC}"
-    echo -e "${GREEN}${BOLD}         🚀 智问学伴 (Tianji-Share) 全套微服务集群阶梯式启动中...         ${NC}"
+    echo -e "${GREEN}${BOLD}         🚀 智问学伴 (Zhiwen-Share) 全套微服务集群阶梯式启动中...         ${NC}"
     echo -e "${BOLD}==============================================================================${NC}\n"
 
     # Tier 1: 基础设施 (MySQL, Redis, Qdrant)
     log_info "[Tier 1/4] 正在启动基础中间件 (MySQL, Redis, Qdrant)..."
     docker compose up -d mysql redis qdrant
-    wait_container_healthy "tianji-mysql" 50
-    wait_container_healthy "tianji-redis" 20
-    wait_container_healthy "tianji-qdrant" 20
+    wait_container_healthy "zhiwen-mysql" 50
+    wait_container_healthy "zhiwen-redis" 20
+    wait_container_healthy "zhiwen-qdrant" 20
 
-    # Tier 2: 注册中心与 AI 向量嵌入 (Nacos, Embedding)
-    log_info "[Tier 2/4] 正在启动配置注册中心与向量服务 (Nacos, Embedding)..."
-    docker compose up -d nacos embedding
-    wait_container_healthy "tianji-nacos" 60
-    wait_container_healthy "tianji-embedding" 30
+    # Tier 2: 注册中心与 AI 向量嵌入 (Nacos, Embedding, Recommend)
+    log_info "[Tier 2/4] 正在启动配置注册中心与向量/推荐服务 (Nacos, Embedding, Recommend)..."
+    docker compose up -d nacos embedding recommend
+    wait_container_healthy "zhiwen-nacos" 60
+    wait_container_healthy "zhiwen-embedding" 30
 
     # Tier 3: 核心服务与 API 网关 (Auth, System, Gateway)
     log_info "[Tier 3/4] 正在启动认证鉴权、系统核心与网关 (Auth, System, Gateway)..."
@@ -136,7 +136,7 @@ start_project() {
 stop_project() {
     echo -e "\n${YELLOW}${BOLD}正在安全停止智问学伴微服务集群 (严格保留 MySQL/Redis/Nacos 数据持久卷)...${NC}"
     docker compose stop
-    log_success "全部 15 个项目容器已安全停止。"
+    log_success "全部 16 个项目容器已安全停止。"
 }
 
 # 重启项目
@@ -153,7 +153,7 @@ status_project() {
     pub_ip=$(get_public_ip)
 
     echo -e "\n${BOLD}==============================================================================${NC}"
-    echo -e "${GREEN}${BOLD}                    📊 智问学伴 (Tianji-Share) 运行状态概览                  ${NC}"
+    echo -e "${GREEN}${BOLD}                    📊 智问学伴 (Zhiwen-Share) 运行状态概览                  ${NC}"
     echo -e "${BOLD}==============================================================================${NC}"
     echo -e "服务器公网 IP : ${CYAN}${pub_ip}${NC}"
     echo -e "系统当前负载   : $(uptime | awk -F'load average:' '{ print $2 }')"
@@ -161,7 +161,7 @@ status_project() {
     echo ""
 
     echo -e "${BOLD}【Docker 容器运行列表】${NC}"
-    docker ps --filter "name=tianji-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    docker ps --filter "name=zhiwen-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
     echo ""
 
     echo -e "${BOLD}【Nacos 微服务注册列表】${NC}"
@@ -187,8 +187,8 @@ status_project() {
 logs_service() {
     local svc=$1
     if [ -z "$svc" ]; then
-        echo "请指定要查看日志的容器名称，如: ./manage-project.sh logs tianji-gateway"
-        echo "可选容器: $(docker ps --filter 'name=tianji-' --format '{{.Names}}' | tr '\n' ' ')"
+        echo "请指定要查看日志的容器名称，如: ./manage-project.sh logs zhiwen-gateway"
+        echo "可选容器: $(docker ps --filter 'name=zhiwen-' --format '{{.Names}}' | tr '\n' ' ')"
         return
     fi
     docker logs -f --tail 100 "$svc"
@@ -217,7 +217,7 @@ case "$1" in
         echo -e "  ${YELLOW}stop${NC}    : 安全停止全套容器 (保留数据卷)"
         echo -e "  ${CYAN}restart${NC} : 重启全套服务"
         echo -e "  ${GREEN}status${NC}  : 查看当前运行状态、容器列表及访问地址"
-        echo -e "  ${CYAN}logs${NC}    : 实时查看指定容器日志 (例如: $0 logs tianji-gateway)"
+        echo -e "  ${CYAN}logs${NC}    : 实时查看指定容器日志 (例如: $0 logs zhiwen-gateway)"
         exit 1
         ;;
 esac

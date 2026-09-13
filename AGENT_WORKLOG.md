@@ -47,15 +47,15 @@
 | :--- | :--- | :--- |
 | **ECS 实例 ID** | `i-f8z1loc07p8p5ve8c7jf` | 阿里云 ECS（华东区） |
 | **ECS 公网 IP** | `47.120.67.187` | 线上运行地址（动态公网，当前已切换至 `47.120.67.187`） |
-| **服务器项目路径** | `/opt/tianji/share-parent` | Docker Compose `tianji-share` 运行目录（注：无 `.git`） |
+| **服务器项目路径** | `/opt/tianji/share-parent` | Docker Compose `zhiwen-share` 运行目录（注：无 `.git`） |
 | **本地代码根目录** | `D:\education system\my-porject\share-parent` | Java 17 + Vue3 前后端源码 |
 | **本地 Git 仓库根** | `D:\education system\my-porject` | 分支 `master`，远端 `git@github.com:Hyiii123/my-porject.git` |
 | **远程连接工具** | `D:\nodejs_global\workbench.exe` | 阿里云 Workbench CLI（已配置凭证，支持 `exec` 与 `upload`） |
-| **前端 - 学生端** | `http://47.120.67.187:18081` | 容器 `tianji-portal-ui`，对应源码 `frontends/portal` |
-| **前端 - 业务管理端** | `http://47.120.67.187:18082` | 容器 `tianji-business-admin-ui`，对应源码 `frontends/business-admin` |
-| **前端 - 基础管理端** | `http://47.120.67.187:18080` | 容器 `tianji-ruoyi-ui`，对应源码 `share-ui` |
-| **API 网关 Gateway** | `http://47.120.67.187:8080` | 容器 `tianji-gateway`，统一接口入口 |
-| **推荐算法微服务** | `http://47.120.67.187:15000` | 容器 `tianji-recommend`，内部端口 `5000`，`DRAG-KP4SR` 语义桥接引擎 |
+| **前端 - 学生端** | `http://47.120.67.187:18081` | 容器 `zhiwen-portal-ui`，对应源码 `frontends/portal` |
+| **前端 - 业务管理端** | `http://47.120.67.187:18082` | 容器 `zhiwen-business-admin-ui`，对应源码 `frontends/business-admin` |
+| **前端 - 基础管理端** | `http://47.120.67.187:18080` | 容器 `zhiwen-ruoyi-ui`，对应源码 `share-ui` |
+| **API 网关 Gateway** | `http://47.120.67.187:8080` | 容器 `zhiwen-gateway`，统一接口入口 |
+| **推荐算法微服务** | `http://47.120.67.187:15000` | 容器 `zhiwen-recommend`，内部端口 `5000`，`DRAG-KP4SR` 语义桥接引擎 |
 | **Nacos 控制台** | 内部端口 `8848` / 宿主机 `8848` | 配置中心与服务发现（命名空间等依赖外部 MySQL） |
 
 ---
@@ -88,7 +88,7 @@
 | **11** | **前端静态课程图片 404 导致裂图** | 数据库/Mock 封面路径与前端静态资源文件名不一致（如 `performance.svg` vs `web.svg`、`golang.svg` vs `go.svg`），且组件未挂载 `@error` 容灾事件与默认封面回退。 | 1. 补齐所有别名图片文件；<br>2. 新增深色学术科技风 16:9 标准默认课程封面 `default-cover.svg`；<br>3. 所有渲染课程封面的 Vue 组件统一挂载 `@error="handleImgError"` 与 `defaultCover` 容灾回退。 |
 | **12** | **新开放免鉴权接口被网关拦截报 401** | Spring Cloud Gateway 默认会对微服务路由实施统一鉴权，仅在 `security.ignore.whites` 中的接口放行。 | 新增面向未登录用户的公开接口（如 `/cs/courses/ranking/**` 点赞榜）时，必须同步在 Nacos 的 `share-gateway-dev.yml` 配置的 `security.ignore.whites` 中声明放行，并通过 Nacos OpenAPI 更新配置。 |
 | **13** | **后端服务构建耗尽服务器突发磁盘 IOPS** | 服务器 ECS 未安装 Maven 且磁盘突发积分宝贵，直接在服务器容器内执行编译会耗尽 IOPS 并造成死机。且 Dockerfile 直接通过 `COPY ${JAR_FILE} app.jar` 运行。 | 在本地利用已配置好的 JDK 17 执行 `mvn clean package -DskipTests` 生成目标 JAR，将更新的 JAR 打包压缩后通过 Workbench CLI 上传，服务器仅需 10 秒轻量 `docker build` 替换容器。 |
-| **14** | **Docker 容器更新 JAR 包后重启依然运行旧代码** | 业务微服务容器 `ENTRYPOINT` 是 `exec java $JAVA_OPTS -jar /app/app.jar`（位于 `/app/app.jar` 而非容器根目录 `/app.jar`）。若将新编译包直接复制到 `/app.jar`，容器启动仍旧加载 `/app/` 子目录下的旧版本。 | 替换容器运行时 JAR 时，务必检查容器配置的真实 Entrypoint / Cmd 路径，准确拷贝至目标路径（如 `docker cp new.jar tianji-customer:/app/app.jar`），并重启容器生效。 |
+| **14** | **Docker 容器更新 JAR 包后重启依然运行旧代码** | 业务微服务容器 `ENTRYPOINT` 是 `exec java $JAVA_OPTS -jar /app/app.jar`（位于 `/app/app.jar` 而非容器根目录 `/app.jar`）。若将新编译包直接复制到 `/app.jar`，容器启动仍旧加载 `/app/` 子目录下的旧版本。 | 替换容器运行时 JAR 时，务必检查容器配置的真实 Entrypoint / Cmd 路径，准确拷贝至目标路径（如 `docker cp new.jar zhiwen-customer:/app/app.jar`），并重启容器生效。 |
 | **15** | **上传 PDF/Word 简历后返回原始二进制字节码 (%PDF-1.6) 导致编辑区乱码与 AI 虚构** | 后端直接使用 `new BufferedReader(new InputStreamReader(file.getInputStream(), UTF_8))` 读取所有上传文件。遇到 PDF/Word 二进制文件时，会将压缩流和 PDF 描述字节读为乱码字符串，多达数十万字符，造成前端卡死、大模型超时或报错，最终回退为生硬虚构模板。 | 1. 引入 Apache PDFBox (`PDDocument`, `PDFTextStripper`) 解析 PDF 文字层；<br>2. 解析 Word (.docx) 的 `word/document.xml` 提取纯文本与段落结构；<br>3. 增加二进制特征字符探测 (`isRawBinary`)，直接阻断二进制字符串落盘；<br>4. 职涯诊断基于候选人真实项目名称与量化指标深度抽取，确保高光亮点与考题真实准确。 |
 | **16** | **非对口/不相干简历仍能获得技术契合度与虚构考题** | 旧逻辑在未匹配到技术标签时注入了 Java、MySQL 兜底标签，且目标岗位契合度打分存在保底 +2 分的保底逻辑，大模型 Prompt 缺乏反事实审计导致即使非技术简历也会生成高并发题目。 | 1. 彻底移除空标签时的伪造兜底逻辑；<br>2. 建立 8 大技术赛道 31 岗位的严谨对口词匹配，命中为 0 则契合度严格 0 分；<br>3. 大模型 Prompt 明确要求“简历没有的坚决说没有”，后端增加真实度审计，对无对口经历者强制输出事实警告；<br>4. 确立 60 分基准门槛体系，让不相干简历严格锁定 60 分并亮红警示。 |
 | **17** | **学生端个人设置页面保存时报 404 / 500 或无法更新信息** | 前端 `api/user.js` 中的 `updateUserInfo` 请求路径硬编码为 `/students`，遗漏了微服务网关代理前缀 `/us`（即缺少 `${USER_API_PREFIX}`），导致网关直接抛出 404 NOT_FOUND。且组件中错误读取 `res.data.msg` 触发 TypeError 导致弹窗“请求出错！”。 | 1. `updateUserInfo` 修正为 `${USER_API_PREFIX}/students` 对齐网关路由；<br>2. 规范组件内响应解构与错误捕获；<br>3. 在 `onMounted` 钩子中主动拉取最新用户画像补齐 nickname、avatar、gender，添加按钮保存中防重复提交状态。 |
@@ -97,7 +97,7 @@
 | **20** | **短信登录改版为邮箱验证码登录时旧有接口协议与鉴权模式不兼容** | 1. 用户端原短信登录走 `/accounts/login` 传 `cellPhone` 与 `code`，直接修改可能导致旧版接口报 500 或用户名格式校验拒绝；<br>2. 新用户直接使用邮箱验证码登录若未提前注册，传统模式会直接报用户不存在导致登录失败；<br>3. 邮箱验证码未设置防重放机制可能被复用。 | 1. 在 `LoginBody` 拓展 `email`、`code`、`type`，并做向后兼容；<br>2. 鉴权服务 `SysLoginService` 中新增 `loginByEmailCode`，校验 Redis 验证码后原子销毁（防重放）；<br>3. 自动检测用户是否存在，未注册用户自动为其创建学员账号（`user_type: "01"`）并直接发牌（JWT），达成免密极速登录体验；<br>4. 前端 `LoginPhone.vue` 转型为专用 QQ 邮箱验证码登录组件，内置 60s 倒计时与严格邮箱正则校验。 |
 | **21** | **用户端首页继续学习横幅对新用户错误显示「上次学习数据可视化」虚假记录** | 1. 首页 SWR 缓存机制将属于用户私密态的 `recentLearning` 与全站公开课程分类缓存混存于 `localStorage` 的 `HOME_CACHE_KEY`，导致换账号或新用户继承老用户的脏缓存；<br>2. `getMylessons()` 在返回空列表（新用户）时缺少 `else` 重置分支，导致界面永久保留脏缓存；<br>3. 模板字段与后端实体字段不一致（`learnedSections` vs `completedLessons`、`sections` vs `totalLessons`），导致进度计算错误回退为 0/10 节。 | 1. `recentLearning` 彻底从公开 `HOME_CACHE_KEY` 解耦，初始化与无记录时严格为 `null`，并在读取缓存时主动清理历史存量键；<br>2. `loadRecentLearning` 严格判断 `lessons.length > 0`，无记录时强制重置为 `null`；<br>3. 兼容后端真实返回字段（`completedLessons`、`totalLessons`、`progressPercent`），确保真实学员进度精准无误。 |
 | **22** | **个人中心点击「我的课程」跳转 404 页面** | Vue Router 4 中存在路由名称冲突：`components.js` 的独立顶层课表路由 `/my-class` 也声明了 `name: 'myClass'`，后注册的顶层路由覆盖并注销了 `base.js` 中个人中心子路由 `/personal/main/myClass` 的 matcher。同时 `/:w+` 404 兜底路由原本写在 `defaultRouterList` 头部，导致匹配失效直接被转派至 `/result/404`。 | 1. 将 `components.js` 顶层课表路由重命名为 `name: 'myClassSchedule'`，彻底消除路由名冲突；<br>2. 规范修正 `base.js` 与 `components.js` 内部父子路由同名隐患（`searchIndex`, `detailsIndex`, `learningIndex` 等）；<br>3. 将 `notFoundRouter` (`/:w+`) 规范移至全部路由列表的最末尾（`[...defaultRouterList, ...asyncRouterList, ...notFoundRouter]`）；<br>4. `myClass.vue` 增加加载骨架、空状态提示与接口容灾，彻底杜绝无课程时的异常弹窗与白屏。 |
-| **23** | **容器间 HTTP 调用报 Connection Refused 或解析失败** | 同一 Docker 网络内，容器之间通信必须使用 Docker 服务名/容器名（如 `http://tianji-recommend:5000`），若误写为 `127.0.0.1:5000` 则请求打向容器自身，导致连接被拒。 | 在 Nacos 动态配置及微服务调用地址中，容器互联严格配置为 Docker 服务名域名（如 `http://tianji-recommend:5000/api/recommend/predict`），严禁在容器内使用 `127.0.0.1` 指向同宿主机其他容器。 |
+| **23** | **容器间 HTTP 调用报 Connection Refused 或解析失败** | 同一 Docker 网络内，容器之间通信必须使用 Docker 服务名/容器名（如 `http://zhiwen-recommend:5000`），若误写为 `127.0.0.1:5000` 则请求打向容器自身，导致连接被拒。 | 在 Nacos 动态配置及微服务调用地址中，容器互联严格配置为 Docker 服务名域名（如 `http://zhiwen-recommend:5000/api/recommend/predict`），严禁在容器内使用 `127.0.0.1` 指向同宿主机其他容器。 |
 | **24** | **第三方大模型接口网络抖动或不可达导致智能体推荐接口长久挂起阻塞** | 智能体在调用 DashScope/OpenAI 兼容接口时若遇到代理不可达或长耗时，多次重试叠加后单个推荐请求可被阻塞长达 2 分钟以上，耗尽 Servlet 线程池。 | 在 `DashScopeAiClient` 等 AI 客户端中引入原子熔断器（Circuit Breaker）机制，当连续超时或网络中断时立即熔断并保持熔断窗口（如 5 分钟），请求瞬间无感回退至确定性知识图谱规则生成逻辑（耗时 < 1ms），保障系统高吞吐与高可用。 |
 | **25** | **MyBatis-Plus 与 Spring Boot 3.2 / Spring 6.1 `factoryBeanObjectType` 及双 JAR 混淆** | 1. 旧版 `mybatis-plus-boot-starter:3.5.3.1` 依赖 `mybatis-spring:2.1.2`，在 Spring 6.1 下会将 `factoryBeanObjectType` 设为 String 导致启动异常；<br>2. 传递依赖同时拉入 3.5.3.1 和 3.5.6 两个不同版本的 MyBatis-Plus Starter，导致老版本的 `ddlApplicationRunner` 返回 `null` 触发 Spring Boot 3.2 的 `NullBean` Runner 异常。 | 1. 采用专门适配 Spring Boot 3 的 `com.baomidou:mybatis-plus-spring-boot3-starter:3.5.6`（内置 `mybatis-spring:3.0.3`）；<br>2. 在服务的 pom.xml 中对 `share-common-redis` 和 `share-common-log` 等模块显式 `<exclusions>` 排除旧版 `mybatis-plus-boot-starter`，彻底消除双 JAR 混淆；<br>3. 在主类中兜底注入 `ddlApplicationRunner` Bean，确保容器在任何环境下均稳定运行。 |
 | **26** | **Spring AI Starter 自动装配在空 API Key 下抛异常导致微服务闪退** | 官方 Starter 内置的 AutoConfiguration（1.0.0 GA 细分为 `OpenAiChatAutoConfiguration`、`OpenAiAudioSpeechAutoConfiguration`、`OpenAiImageAutoConfiguration` 等）会在初始化时对 API Key 执行 `Assert.hasText(apiKey)` 严格非空断言。若环境变量未配 Key，容器将直接抛出 `IllegalArgumentException: OpenAI API key must be set` 崩溃。 | 1. 在微服务主类上批量排除 6 大官方 OpenAI 自动装配类（Chat/Image/AudioSpeech/AudioTranscription/Embedding/Moderation）；<br>2. 在 `bootstrap.yml` 中注入默认兜底键：`spring.ai.openai.api-key: ${AI_RECOMMEND_API_KEY:dummy-key-for-spring-ai-init}`；<br>3. 在自研 `SpringAiConfiguration` 中声明具有安全兜底值的标准 `OpenAiApi`、`OpenAiChatModel` 与 `ChatClient`，配合 `DashScopeAiClient` 的毫秒级原子熔断器与规则降级引擎，彻底杜绝闪退。 |
@@ -118,18 +118,18 @@ flowchart TD
     F --> G{冒烟测试是否全通?}
     G -- 失败 --> H[查看容器日志与排查, 修复后重新验证]
     H --> E
-    G -- 成功 --> I[同步代码至本地对应路径]
-    I --> J[本地 git diff 逐行审查差异]
-    J --> K[git commit 规范提交并推送 GitHub]
-    K --> L[验证本地与远端 Commit Hash 一致]
-    L --> M[更新 AGENT_WORKLOG / AGENT_MILESTONES 并向用户交付]
+    G -- 成功 --> I[同步修改回本地代码库]
+    I --> J[本地执行 Git Diff 审查]
+    J --> K[提交并推送至 GitHub 仓库]
+    K --> L[维护 AGENT_WORKLOG.md / AGENT_MILESTONES.md]
+    L --> M[任务完成, 形成交付摘要]
 ```
 
 ### 1. 动工前检查 (Pre-flight)
 - [ ] 阅读本 `AGENT_WORKLOG.md` 确认最新的卡点与注意事项。
 - [ ] 阅读 [`AGENT_MILESTONES.md`](file:///D:/education%20system/my-porject/AGENT_MILESTONES.md) 了解最新业务演进与里程碑。
 - [ ] 检查本地 Git 状态：`git status`、`git branch`、`git log -3 --oneline`。
-- [ ] 检查服务器运行状态：`docker compose -p tianji-share ps`、网关健康 `curl http://127.0.0.1:8080/actuator/health`。
+- [ ] 检查服务器运行状态：`docker compose -p zhiwen-share ps`、网关健康 `curl http://127.0.0.1:8080/actuator/health`。
 
 ### 2. 变更中约束 (In-flight)
 - [ ] 仅修改与本次任务直接相关的文件，绝不扩大战线。

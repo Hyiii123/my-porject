@@ -4,10 +4,10 @@ from pydantic import BaseModel
 from fastembed import TextEmbedding
 import requests
 
-app = FastAPI(title="Tianji Knowledge Embedding & Semantic Search Service")
+app = FastAPI(title="Zhiwen Knowledge Embedding & Semantic Search Service")
 
 QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "tianji_knowledge")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "zhiwen_knowledge")
 CACHE_DIR = os.getenv("FASTEMBED_CACHE_PATH", "/root/.cache/fastembed")
 
 model = None

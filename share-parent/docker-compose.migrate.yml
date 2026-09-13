@@ -1,11 +1,11 @@
 # Flyway 数据库迁移编排。
 #
 # 这是一次性任务，不与业务服务并行构建或启动。正式启动前执行：
-# docker compose -p tianji-share -f docker-compose.yml -f docker-compose.migrate.yml run --rm db-migrate
+# docker compose -p zhiwen-share -f docker-compose.yml -f docker-compose.migrate.yml run --rm db-migrate
 services:
   db-migrate:
     image: ${TJ_MAVEN_IMAGE:-docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17}
-    container_name: tianji-db-migrate
+    container_name: zhiwen-db-migrate
     working_dir: /workspace
     command:
       - sh
@@ -25,8 +25,8 @@ services:
       mysql:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
 networks:
-  tianji-net:
+  zhiwen-net:
     external: true

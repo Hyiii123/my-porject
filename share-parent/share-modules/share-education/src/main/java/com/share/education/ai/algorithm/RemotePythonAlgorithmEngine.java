@@ -58,7 +58,7 @@ public class RemotePythonAlgorithmEngine implements IRecommendAlgorithmEngine {
     @Override
     public List<AlgorithmCandidateDTO> recallCandidates(Long userId, UserProfileContext profile, int topK) {
         AiRecommendProperties.PythonServiceProperties pyProps = properties != null ? properties.getPythonService() : null;
-        String serviceUrl = pyProps != null ? pyProps.getUrl() : "http://tianji-recommend:5000/api/recommend/predict";
+        String serviceUrl = pyProps != null ? pyProps.getUrl() : "http://zhiwen-recommend:5000/api/recommend/predict";
         boolean serviceEnabled = pyProps == null || pyProps.isEnabled();
 
         log.info("[AlgorithmEngine] recallCandidates: userId={}, enabled={}, targetUrl={}", userId, serviceEnabled, serviceUrl);

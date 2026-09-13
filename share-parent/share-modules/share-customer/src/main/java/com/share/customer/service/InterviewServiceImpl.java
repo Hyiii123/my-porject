@@ -42,7 +42,7 @@ import java.util.*;
 @Service
 public class InterviewServiceImpl implements IInterviewService {
 
-    private static final String EMBEDDING_SERVICE_URL = "http://tianji-embedding:8000/search";
+    private static final String EMBEDDING_SERVICE_URL = "http://zhiwen-embedding:8000/search";
     private static final long CONFIG_ID = 1L;
 
     private final InterviewSessionMapper sessionMapper;

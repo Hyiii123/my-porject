@@ -1,9 +1,9 @@
-name: tianji-share
+name: zhiwen-share
 
 services:
   mysql:
     image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/library/mysql:8.0
-    container_name: tianji-mysql
+    container_name: zhiwen-mysql
     restart: unless-stopped
     command:
       - --character-set-server=utf8mb4
@@ -49,11 +49,11 @@ services:
       retries: 12
       start_period: 30s
     networks:
-      - tianji-net
+      - zhiwen-net
 
   redis:
     image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/library/redis:7-alpine
-    container_name: tianji-redis
+    container_name: zhiwen-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     environment:
@@ -68,12 +68,12 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      - tianji-net
+      - zhiwen-net
 
   # 轻量级 Rust 向量数据库 (Qdrant)，用于知识库语义向量存储与混合检索，内存仅占 ~50MB
   qdrant:
     image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/qdrant/qdrant:latest
-    container_name: tianji-qdrant
+    container_name: zhiwen-qdrant
     restart: unless-stopped
     ports:
       - "${TJ_QDRANT_HTTP_PORT:-16333}:6333"
@@ -83,12 +83,12 @@ services:
     environment:
       TZ: Asia/Shanghai
     networks:
-      - tianji-net
+      - zhiwen-net
 
   # 语义向量嵌入检索服务 (FastAPI + FastEmbed BGE-small-zh)，内存仅占 ~170MB
   embedding:
     image: tianji-embedding:latest
-    container_name: tianji-embedding
+    container_name: zhiwen-embedding
     restart: unless-stopped
     ports:
       - "${TJ_EMBEDDING_PORT:-18000}:8000"
@@ -97,17 +97,20 @@ services:
     environment:
       TZ: Asia/Shanghai
       QDRANT_URL: http://qdrant:6333
-      COLLECTION_NAME: tianji_knowledge
+      COLLECTION_NAME: zhiwen_knowledge
       FASTEMBED_CACHE_PATH: /root/.cache/fastembed
     depends_on:
       - qdrant
     networks:
-      - tianji-net
+      zhiwen-net:
+        aliases:
+          - tianji-embedding
+          - zhiwen-embedding
 
   # 推荐算法知识图谱微服务 (DRAG-KP4SR 语义桥接引擎)，内存仅占 ~90MB
   recommend:
     image: tianji-recommend:latest
-    container_name: tianji-recommend
+    container_name: zhiwen-recommend
     restart: unless-stopped
     ports:
       - "${TJ_RECOMMEND_PORT:-15000}:5000"
@@ -115,11 +118,14 @@ services:
       TZ: Asia/Shanghai
       PORT: 5000
     networks:
-      - tianji-net
+      zhiwen-net:
+        aliases:
+          - tianji-recommend
+          - zhiwen-recommend
 
   nacos:
     image: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}/nacos/nacos-server:v2.2.0
-    container_name: tianji-nacos
+    container_name: zhiwen-nacos
     restart: unless-stopped
     environment:
       MODE: standalone
@@ -156,7 +162,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
   auth:
     build:
@@ -165,7 +171,7 @@ services:
       args:
         JAR_FILE: target/share-auth.jar
     image: tianji/share-auth:local
-    container_name: tianji-auth
+    container_name: zhiwen-auth
     restart: unless-stopped
     environment:
       NACOS_SERVER_ADDR: nacos:8848
@@ -180,7 +186,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
   gateway:
     build:
@@ -189,7 +195,7 @@ services:
       args:
         JAR_FILE: target/share-gateway.jar
     image: tianji/share-gateway:local
-    container_name: tianji-gateway
+    container_name: zhiwen-gateway
     restart: unless-stopped
     environment:
       NACOS_SERVER_ADDR: nacos:8848
@@ -205,7 +211,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
   # 三个前端均为独立应用：若依基础管理端、用户端和业务管理端。
   ruoyi-ui:
@@ -218,14 +224,14 @@ services:
         TJ_NODE_REGISTRY: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}
         NPM_REGISTRY: ${TJ_NPM_REGISTRY:-https://registry.npmmirror.com}
     image: tianji/share-ui:local
-    container_name: tianji-ruoyi-ui
+    container_name: zhiwen-ruoyi-ui
     restart: unless-stopped
     ports:
       - "${TJ_UI_PORT:-18080}:80"
     depends_on:
       - gateway
     networks:
-      - tianji-net
+      - zhiwen-net
 
   portal-ui:
     build:
@@ -237,14 +243,14 @@ services:
         TJ_NODE_REGISTRY: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}
         NPM_REGISTRY: ${TJ_NPM_REGISTRY:-https://registry.npmmirror.com}
     image: tianji/tianji-portal:local
-    container_name: tianji-portal-ui
+    container_name: zhiwen-portal-ui
     restart: unless-stopped
     ports:
       - "${TJ_PORTAL_UI_PORT:-18081}:80"
     depends_on:
       - gateway
     networks:
-      - tianji-net
+      - zhiwen-net
 
   business-admin-ui:
     build:
@@ -256,14 +262,14 @@ services:
         TJ_NODE_REGISTRY: ${TJ_DOCKER_REGISTRY:-docker.m.daocloud.io}
         NPM_REGISTRY: ${TJ_NPM_REGISTRY:-https://registry.npmmirror.com}
     image: tianji/tianji-business-admin:local
-    container_name: tianji-business-admin-ui
+    container_name: zhiwen-business-admin-ui
     restart: unless-stopped
     ports:
       - "${TJ_BUSINESS_ADMIN_UI_PORT:-18082}:80"
     depends_on:
       - gateway
     networks:
-      - tianji-net
+      - zhiwen-net
 
   system:
     build:
@@ -272,7 +278,7 @@ services:
       args:
         JAR_FILE: target/share-system.jar
     image: tianji/share-system:local
-    container_name: tianji-system
+    container_name: zhiwen-system
     restart: unless-stopped
     environment:
       NACOS_SERVER_ADDR: nacos:8848
@@ -293,7 +299,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
   customer:
     build:
@@ -302,7 +308,7 @@ services:
       args:
         JAR_FILE: target/share-customer.jar
     image: tianji/share-customer:local
-    container_name: tianji-customer
+    container_name: zhiwen-customer
     restart: unless-stopped
     environment:
       NACOS_SERVER_ADDR: nacos:8848
@@ -329,7 +335,7 @@ services:
       embedding:
         condition: service_started
     networks:
-      - tianji-net
+      - zhiwen-net
 
   file:
     build:
@@ -338,7 +344,7 @@ services:
       args:
         JAR_FILE: target/share-file.jar
     image: tianji/share-file:local
-    container_name: tianji-file
+    container_name: zhiwen-file
     restart: unless-stopped
     environment:
       TJ_REDIS_HOST: redis
@@ -360,7 +366,7 @@ services:
       nacos:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
   education:
     build:
@@ -369,7 +375,7 @@ services:
       args:
         JAR_FILE: target/share-education.jar
     image: tianji/share-education:local
-    container_name: tianji-education
+    container_name: zhiwen-education
     restart: unless-stopped
     environment:
       NACOS_SERVER_ADDR: nacos:8848
@@ -393,7 +399,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
   trade:
     build:
@@ -402,7 +408,7 @@ services:
       args:
         JAR_FILE: target/share-trade.jar
     image: tianji/share-trade:local
-    container_name: tianji-trade
+    container_name: zhiwen-trade
     restart: unless-stopped
     environment:
       NACOS_SERVER_ADDR: nacos:8848
@@ -423,7 +429,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
   # 代码生成服务：默认永久停用（释放 520MB+ 内存），非核心业务必需，禁止随站点默认拉起。
   gen:
@@ -434,7 +440,7 @@ services:
       args:
         JAR_FILE: target/share-gen.jar
     image: tianji/share-gen:local
-    container_name: tianji-gen
+    container_name: zhiwen-gen
     restart: "no"
     environment:
       NACOS_SERVER_ADDR: nacos:8848
@@ -455,7 +461,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
   # 定时任务服务：默认永久停用（释放 528MB+ 内存），无教育核心定时任务，禁止随站点默认拉起。
   job:
@@ -466,7 +472,7 @@ services:
       args:
         JAR_FILE: target/share-job.jar
     image: tianji/share-job:local
-    container_name: tianji-job
+    container_name: zhiwen-job
     restart: "no"
     environment:
       NACOS_SERVER_ADDR: nacos:8848
@@ -487,7 +493,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
   # 监控面板服务：默认永久停用（释放 322MB+ 内存），纯开发辅助监控，禁止随站点默认拉起。
   monitor:
@@ -498,7 +504,7 @@ services:
       args:
         JAR_FILE: target/share-monitor.jar
     image: tianji/share-monitor:local
-    container_name: tianji-monitor
+    container_name: zhiwen-monitor
     restart: "no"
     environment:
       NACOS_SERVER_ADDR: nacos:8848
@@ -509,7 +515,7 @@ services:
       nacos:
         condition: service_healthy
     networks:
-      - tianji-net
+      - zhiwen-net
 
 volumes:
   tianji_mysql_data:
@@ -526,6 +532,6 @@ volumes:
     name: tianji_qdrant_data
 
 networks:
-  tianji-net:
-    name: tianji-net
+  zhiwen-net:
+    name: zhiwen-net
     driver: bridge

@@ -73,7 +73,7 @@ public class CustomerService {
     private static final int MESSAGE_USER = 1;
     private static final int MESSAGE_AI = 2;
     private static final int MESSAGE_SYSTEM = 4;
-    private static final String EMBEDDING_SERVICE_URL = "http://tianji-embedding:8000/search";
+    private static final String EMBEDDING_SERVICE_URL = "http://zhiwen-embedding:8000/search";
 
     private final CustomerKnowledgeMapper knowledgeMapper;
     private final CustomerFaqMapper faqMapper;

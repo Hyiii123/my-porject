@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    智问学伴 (Tianji-Share) 全栈项目一键启停与状态运维脚本 (Windows 本地端)
+    智问学伴 (Zhiwen-Share) 全栈项目一键启停与状态运维脚本 (Windows 本地端)
 
 .DESCRIPTION
     本脚本在本地执行，通过阿里云 Workbench CLI 远程调度 ECS 云端微服务集群。
@@ -41,7 +41,7 @@ if (-not $workbenchCmd) {
 }
 
 Write-Host "==============================================================================" -ForegroundColor DarkCyan
-Write-Host "   🌟 智问学伴 (Tianji-Share) 远程服务器控制台 (ECS: $InstanceId)" -ForegroundColor Cyan
+Write-Host "   🌟 智问学伴 (Zhiwen-Share) 远程服务器控制台 (ECS: $InstanceId)" -ForegroundColor Cyan
 Write-Host "==============================================================================" -ForegroundColor DarkCyan
 
 # 每日公网 IP 校验 (Rule 7)

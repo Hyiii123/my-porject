@@ -14,6 +14,32 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-13 19:45:00 - 服务容器名与底层数据库 Schema 全面去「天机」化更名为「智问」(Rename Containers & Schemas to Zhiwen)：16 个微服务容器全量平滑迁移至 zhiwen-*、MySQL 四大库 49 张表重命名与全量视图向下兼容、Qdrant 向量库别名映射、Nacos/Docker Compose/微服务网络全链路零缺陷平滑切换
+
+* **核心成果**：
+  1. **16 大服务容器与 Docker Compose 网络全面去 tianji 化**：
+     - Compose 工程名更新为 `zhiwen-share`，Docker 网络更名为 `zhiwen-net`；
+     - 16 个核心容器全面更名为 `zhiwen-*`（`zhiwen-gateway`, `zhiwen-auth`, `zhiwen-education`, `zhiwen-customer`, `zhiwen-trade`, `zhiwen-file`, `zhiwen-system`, `zhiwen-recommend`, `zhiwen-embedding`, `zhiwen-mysql`, `zhiwen-redis`, `zhiwen-nacos`, `zhiwen-qdrant`, `zhiwen-portal-ui`, `zhiwen-business-admin-ui`, `zhiwen-ruoyi-ui`）；
+     - 显式保留原有持久化物理数据卷挂载（`tianji_mysql_data`, `tianji_redis_data` 等），确保无损数据保留；
+     - 网络配置注入 `aliases` 别名，确保新老网络域名均可平滑解析。
+  2. **MySQL 四大业务领域库 49 张物理表原子迁移与零停机双向兼容**：
+     - 深度审查确认 MySQL 表名均采用业务前缀（`edu_*`, `tr_*`, `cs_*`, `file_*`），`tianji` 标识仅存于 Schema 库名中（`tj_education`, `tj_trade`, `tj_customer`, `tj_file`）；
+     - 创建对应四大智问领域新库（`zhiwen_education`, `zhiwen_trade`, `zhiwen_customer`, `zhiwen_file`），通过 `RENAME TABLE` 将 49 张表原子迁移至新库；
+     - 为原 `tj_*` 库中全部 49 张表创建同名视图（`CREATE VIEW tj_xxx.tbl AS SELECT * FROM zhiwen_xxx.tbl`），做到 100% 向下兼容历史脚本与视图，彻底消除数据断层风险；
+     - 更新 Nacos 配置中心 `share-education-dev.yml`、`share-trade-dev.yml`、`share-customer-dev.yml`、`share-file-dev.yml` 的 JDBC 数据库连接串至 `zhiwen_*`。
+  3. **Qdrant 知识库向量集合别名平滑映射**：
+     - 调用 Qdrant REST Collections Aliases API，为 `tianji_knowledge` 集合（10,000 条语义切片）建立官方标准别名 `zhiwen_knowledge`；
+     - 更新 `embedding-service/main.py` 检索集合名称为 `zhiwen_knowledge`，并完成健康探针与向量语义搜索定向验证。
+  4. **微服务源码、跨容器互联配置与运维脚本全面收敛**：
+     - 更新 `AiRecommendProperties` 与 `RemotePythonAlgorithmEngine` 调用地址为 `http://zhiwen-recommend:5000/api/recommend/predict`；
+     - 更新 `CustomerService` 与 `InterviewServiceImpl` 向量调用地址为 `http://zhiwen-embedding:8000/search`；
+     - 更新 `build_semantic_alignment.py` 向量嵌入地址为 `http://zhiwen-embedding:8000/embed`；
+     - 更新 `manage-project.sh`、`start-project.ps1`、`start-project.bat` 的服务健康检查、日志追踪与终端标题。
+  5. **云端集群平滑重建与定向范围全链路验证（Rule 8 零缺陷）**：
+     - 本地 JDK 17 完成 `share-education.jar` 与 `share-customer.jar` 编译打包并安全上传 ECS；
+     - 16 个新容器平滑重建启动，7 大 Java 微服务 100% 成功注册至 Nacos；
+     - 定向接口实测：微服务网关入口 `http://127.0.0.1:8080/cs/courses/recommendations/personalized?limit=4` 返回 HTTP 200 与完整技能缺口证据链；`zhiwen-embedding` 的 `/health` 与 `/search?q=Java` 均正常返回；三大前端 UI（18080/18081/18082）均返回 HTTP 200 OK。
+
 ### 2026-09-13 19:15:00 - 项目代码重构做减法与代码精简 (Code Subtraction & Streamlining)：多智能体管线与推荐算法服务去除冗余样板、现代 Java 17 Stream/Record 声明式重构、Python 紧凑化与端到端定向验证零缺陷
 
 * **核心成果**：

@@ -84,8 +84,8 @@ public class AiRecommendProperties {
         /** 是否启用远程 Python 推荐模型服务 */
         private boolean enabled = true;
 
-        /** Python 模型服务预测接口 URL (容器互联默认为 http://tianji-recommend:5000/api/recommend/predict) */
-        private String url = "http://tianji-recommend:5000/api/recommend/predict";
+        /** Python 模型服务预测接口 URL (容器互联默认为 http://zhiwen-recommend:5000/api/recommend/predict) */
+        private String url = "http://zhiwen-recommend:5000/api/recommend/predict";
 
         /** 调用超时时间 (毫秒) */
         private int timeoutMs = 5000;

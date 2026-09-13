@@ -1,8 +1,8 @@
 @echo off
 chcp 65001 >nul
-title Tianji-Share Project Console
+title Zhiwen-Share Project Console
 
-echo Starting Tianji-Share project control script...
+echo Starting Zhiwen-Share project control script...
 echo.
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start-project.ps1" %*
