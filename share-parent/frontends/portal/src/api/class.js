@@ -358,17 +358,22 @@ request({
 
 // 下一代 L5 智能体流式思考与推演 SSE 端点
 export const fetchReasoningStream = async ({ targetRole, onEvent, onError, onDone }) => {
-	const baseUrl = import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? '' : 'http://localhost:8080')
-	const token = sessionStorage.getItem('token') || ''
+	const rawBase = (import.meta.env.VITE_API_BASE_URL || '').trim()
+	const baseUrl = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase
+	const token = sessionStorage.getItem('token')
 	const url = `${baseUrl}${COURSE_API_PREFIX}/courses/recommendations/stream/reasoning?targetRole=${encodeURIComponent(targetRole || '')}`
 
 	try {
+		const headers = {
+			'Accept': 'text/event-stream'
+		}
+		if (token) {
+			headers['authorization'] = token
+		}
+
 		const response = await fetch(url, {
 			method: 'GET',
-			headers: {
-				'Accept': 'text/event-stream',
-				'authorization': token
-			}
+			headers
 		})
 
 		if (!response.ok) {
@@ -399,6 +404,14 @@ export const fetchReasoningStream = async ({ targetRole, onEvent, onError, onDon
 					}
 				}
 			}
+		}
+
+		if (buffer && buffer.trim().startsWith('data:')) {
+			const dataStr = buffer.trim().replace(/^data:\s*/, '')
+			try {
+				const eventObj = JSON.parse(dataStr)
+				if (onEvent) onEvent(eventObj)
+			} catch (e) {}
 		}
 
 		if (onDone) onDone()

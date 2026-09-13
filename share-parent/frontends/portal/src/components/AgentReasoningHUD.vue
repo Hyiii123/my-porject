@@ -435,9 +435,20 @@ const handleRoleChange = (val) => {
 const triggerRecalculate = async () => {
   if (isRecalculating.value) return
   isRecalculating.value = true
-  thinkingLogs.value = []
   streamTotalLatencyMs.value = 0
   isThinkingExpanded.value = true
+
+  const now = new Date()
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+
+  // 即刻初始化第一条启动心流，给用户即时视觉反馈
+  thinkingLogs.value = [{
+    eventType: 'PROBE_CHECK',
+    agentName: 'Orchestrator',
+    thoughtChunk: `已启动面向【${selectedRole.value}】的多智能体流式协同推演网络...`,
+    latencyMs: 0,
+    timeStr
+  }]
 
   const startTime = Date.now()
 
@@ -445,21 +456,24 @@ const triggerRecalculate = async () => {
     await fetchReasoningStream({
       targetRole: selectedRole.value,
       onEvent: (event) => {
-        const now = new Date()
-        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+        const curTime = new Date()
+        const curTimeStr = `${String(curTime.getHours()).padStart(2, '0')}:${String(curTime.getMinutes()).padStart(2, '0')}:${String(curTime.getSeconds()).padStart(2, '0')}`
 
         thinkingLogs.value.push({
           eventType: event.eventType,
           agentName: event.agentName || '智能体集群',
           thoughtChunk: event.thoughtChunk,
           latencyMs: event.latencyMs,
-          timeStr
+          timeStr: curTimeStr
         })
 
         // 智能体链路高亮步进
         if (event.eventType === 'PROBE_CHECK' || event.eventType === 'PROFILE_BUILT') {
           activeAgentId.value = 'agent-1'
           currentStepIdx.value = 0
+        } else if (event.eventType === 'CANDIDATES_RECALLED') {
+          activeAgentId.value = 'agent-2'
+          currentStepIdx.value = 1
         } else if (event.eventType === 'COURSE_ANALYSIS') {
           activeAgentId.value = 'agent-3'
           currentStepIdx.value = 2
@@ -485,6 +499,13 @@ const triggerRecalculate = async () => {
       },
       onError: (err) => {
         console.warn('SSE 流式推演受阻，降级至传统异步模式:', err)
+        thinkingLogs.value.push({
+          eventType: 'STREAM_ERROR',
+          agentName: 'Orchestrator',
+          thoughtChunk: `流式连接异常 (${err.message || '网络连接失败'})，已自动降级至本地规划模式`,
+          latencyMs: 0,
+          timeStr: `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}:${String(new Date().getSeconds()).padStart(2, '0')}`
+        })
         emit('recalculate', selectedRole.value)
         isRecalculating.value = false
         currentStepIdx.value = -1
