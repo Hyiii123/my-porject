@@ -69,7 +69,7 @@
      - 将静态包打包为 `frontends_dist.tar.gz`（60MB）上传至 ECS 宿主机对应路径，避免在服务器执行并发 npm build 抽干 ESSD 磁盘突发积分（Burst Credits）；
   4. **云端平滑重载与定向验证全链路通过**：
      - 重新拉起 `zhiwen-portal-ui`、`zhiwen-business-admin-ui`、`zhiwen-ruoyi-ui`，实测三者精确挂载最新产物；
-     - 验证 `http://47.120.67.187:18081`（学生端）、`http://47.120.67.187:18082`（业务端）、`http://47.120.67.187:18080`（管理端）及相关静态资源（`index.0a8f265c.js` 等）均 100% 返回 HTTP 200 OK；
+     - 验证 `http://47.121.31.17:18081`（学生端）、`http://47.121.31.17:18082`（业务端）、`http://47.121.31.17:18080`（管理端）及相关静态资源（`index.0a8f265c.js` 等）均 100% 返回 HTTP 200 OK；
      - 执行 `start-project.ps1 health`，8 大核心服务（网关、前端、Nacos、Qdrant、推荐算法、向量嵌入）探针全部通过。
 
 ### 2026-09-13 19:45:00 - 服务容器名与底层数据库 Schema 全面去「天机」化更名为「智问」(Rename Containers & Schemas to Zhiwen)：16 个微服务容器全量平滑迁移至 zhiwen-*、MySQL 四大库 49 张表重命名与全量视图向下兼容、Qdrant 向量库别名映射、Nacos/Docker Compose/微服务网络全链路零缺陷平滑切换

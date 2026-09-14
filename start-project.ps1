@@ -71,7 +71,7 @@ try {
 }
 
 if (-not $pubIp) {
-    $pubIp = "47.120.67.187"
+    $pubIp = "47.121.31.17"
 }
 Write-Host "      ECS 公网 IP: $pubIp" -ForegroundColor Green
 
@@ -85,11 +85,11 @@ if ($Service) {
     $remoteCmd += " $Service"
 }
 
-# 全量启动需要阶梯式等待+健康检查+Nacos注册，设置400s超时；单服务或巡检命令使用120s
+# 全量启动需要 5 级阶梯式平滑启动 + 健康检查 + Nacos 注册轮询，设置 500s 超时；单服务或巡检命令使用 120s
 $timeoutSeconds = 120
 if ($Action -eq "start" -or $Action -eq "restart") {
     if (-not $Service) {
-        $timeoutSeconds = 400
+        $timeoutSeconds = 500
     }
 }
 

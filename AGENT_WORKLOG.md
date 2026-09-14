@@ -23,7 +23,7 @@
    * 严禁私自变更、删除已有微服务路由、Java Controller 接口路径、DTO 字段结构、数据库表结构或菜单权限配置。
 5. **【本地禁启准则】严禁在本地环境中启动微服务或中间件**
    * **严禁执行**：在本地启动 Spring Boot 微服务（如 `java -jar`、`mvn spring-boot:run`、IDEA Run）、本地 Docker Compose、本地 MySQL、Redis 或 Nacos 实例。
-   * **原因**：项目微服务集群已全面统一部署于阿里云 ECS 线上服务器（`47.120.67.187`），所有数据状态、Nacos 配置中心、Redis 缓存与数据库均在线上闭环。在本地拉起本地服务不仅会争抢本地系统端口、造成端口冲突，还会产生因本地与云端配置不一致带来的“脏调用”与环境割裂。
+   * **原因**：项目微服务集群已全面统一部署于阿里云 ECS 线上服务器（`47.121.31.17`），所有数据状态、Nacos 配置中心、Redis 缓存与数据库均在线上闭环。在本地拉起本地服务不仅会争抢本地系统端口、造成端口冲突，还会产生因本地与云端配置不一致带来的“脏调用”与环境割裂。
    * **正确方式**：本地环境严格仅用于代码编写、Git 版本管理、离线打包构建（`mvn package -DskipTests`、`npm run build`）以及向服务器发起命令运维和测试验证。所有应用服务的运行与联调必须严格在线上服务器进行。
 6. **【严禁占用C盘准则】本地工作严禁占用C盘，临时与工作数据严格落地D盘**
    * **严禁执行**：在 C: 盘（包括各类临时目录、用户缓存、IDE 工作区、测试数据抓取目录等）写入大文件、临时脚本产物、离线数据集或日志。
@@ -46,16 +46,16 @@
 | 资产项 | 配置详情 | 备注 |
 | :--- | :--- | :--- |
 | **ECS 实例 ID** | `i-f8z1loc07p8p5ve8c7jf` | 阿里云 ECS（华东区） |
-| **ECS 公网 IP** | `47.120.67.187` | 线上运行地址（动态公网，当前已切换至 `47.120.67.187`） |
+| **ECS 公网 IP** | `47.121.31.17` | 线上运行地址（动态公网，当前已切换至 `47.121.31.17`） |
 | **服务器项目路径** | `/opt/tianji/share-parent` | Docker Compose `zhiwen-share` 运行目录（注：无 `.git`） |
 | **本地代码根目录** | `D:\education system\my-porject\share-parent` | Java 17 + Vue3 前后端源码 |
 | **本地 Git 仓库根** | `D:\education system\my-porject` | 分支 `master`，远端 `git@github.com:Hyiii123/my-porject.git` |
 | **远程连接工具** | `D:\nodejs_global\workbench.exe` | 阿里云 Workbench CLI（已配置凭证，支持 `exec` 与 `upload`） |
-| **前端 - 学生端** | `http://47.120.67.187:18081` | 容器 `zhiwen-portal-ui`，对应源码 `frontends/portal` |
-| **前端 - 业务管理端** | `http://47.120.67.187:18082` | 容器 `zhiwen-business-admin-ui`，对应源码 `frontends/business-admin` |
-| **前端 - 基础管理端** | `http://47.120.67.187:18080` | 容器 `zhiwen-ruoyi-ui`，对应源码 `share-ui` |
-| **API 网关 Gateway** | `http://47.120.67.187:8080` | 容器 `zhiwen-gateway`，统一接口入口 |
-| **推荐算法微服务** | `http://47.120.67.187:15000` | 容器 `zhiwen-recommend`，内部端口 `5000`，`DRAG-KP4SR` 语义桥接引擎 |
+| **前端 - 学生端** | `http://47.121.31.17:18081` | 容器 `zhiwen-portal-ui`，对应源码 `frontends/portal` |
+| **前端 - 业务管理端** | `http://47.121.31.17:18082` | 容器 `zhiwen-business-admin-ui`，对应源码 `frontends/business-admin` |
+| **前端 - 基础管理端** | `http://47.121.31.17:18080` | 容器 `zhiwen-ruoyi-ui`，对应源码 `share-ui` |
+| **API 网关 Gateway** | `http://47.121.31.17:8080` | 容器 `zhiwen-gateway`，统一接口入口 |
+| **推荐算法微服务** | `http://47.121.31.17:15000` | 容器 `zhiwen-recommend`，内部端口 `5000`，`DRAG-KP4SR` 语义桥接引擎 |
 | **Nacos 控制台** | 内部端口 `8848` / 宿主机 `8848` | 配置中心与服务发现（命名空间等依赖外部 MySQL） |
 
 ---
@@ -106,6 +106,7 @@
 | **29** | **Docker 重建 UI 容器后前端回退到历史最初版本（未挂载 volumes 导致回退至 Docker 初始镜像）** | `docker-compose.yml` 中前端容器最初未挂载宿主机 `volumes:`，而是依赖 Dockerfile 构建时固化的静态文件。当容器被重新拉起或重建时（如容器更名），Docker 载入了早期的旧镜像层（9月7日初始包），导致此前新增的 QQ 邮箱验证码登录、AI 模拟面试、多智能体 HUD 拓扑、个人中心修复等最新产物被旧镜像覆盖；且浏览器对旧 bundle 存在强缓存。 | 1. 在 `docker-compose.yml` 中为三大前端容器显式配置宿主机挂载：`./frontends/xxx/dist:/usr/share/nginx/html:ro` 与 `./frontends/nginx.conf:/etc/nginx/conf.d/default.conf:ro`；<br>2. 本地执行 `npm run build` 构建最新现代 Bundle，打包上传并解压覆盖宿主机 `dist/` 目录；<br>3. 重启容器并验证最新 bundle（`index.0a8f265c.js`、`index.dacc7557.js`）正常提供服务；<br>4. 用户端浏览器需执行硬刷新（`Ctrl + F5`）击穿本地强缓存。 |
 | **30** | **前端 SSE 请求路径拼接双斜杠导致浏览器解析为网络相对域名（//cs/..）引发 ERR_NAME_NOT_RESOLVED** | `fetchReasoningStream` 拼接 `${baseUrl}${COURSE_API_PREFIX}` 时，因生产环境 `baseUrl` 留空或为 `/`，与 `/cs` 拼接产生了以 `//` 开头的协议相对 URL（`//cs/...`），浏览器将 `cs` 误判为主机名导致网络瞬间失败并静默回退，给用户造成“点击无反应”假象；且 Nginx 默认缓冲 SSE 流。 | 1. 严格去除 `baseUrl` 结尾斜杠，确保同源路径以单斜杠 `/cs` 规范发出；<br>2. 在 `nginx.conf` 中为 `/courses/recommendations/stream/` 配置 `proxy_buffering off; proxy_cache off; chunked_transfer_encoding off;`；<br>3. 并在前端点击时即刻注入第一条启动心流与异常状态回显。 |
 | **31** | **多智能体流式推演仅停留在心流打字机日志，缺乏显式交付看板导致用户无法感知推演成果** | SSE 流虽然推送了 `FINAL_RESULT` 与完整数据载荷，但前端仅在 HUD 内呈现折叠打字机日志，末尾显示“推演流正常完成”，未在视口呈现结构化成果看板或联动平滑滚动，导致用户产生“推演完然后呢”的困惑。 | 1. 在 HUD 内部显式渲染「推演成果交付展示看板」（`.delivery-result-showcase`），直接呈现目标岗位、PathCritic 质检评分、4 阶段路线芯片与 4 门必修课微卡片；<br>2. 提供「展开 4 阶段拓扑成长大屏」与「浏览下方推荐选课区」两个高价值 CTA，并为推荐区增加 2.5s 霓虹呼吸高亮脉冲；<br>3. 优先利用 SSE 交付的 `payload.recommendations` 零延迟热更新下方推荐流，杜绝二次冗余请求。 |
+| **32** | **ECS 2 vCPU 规格下并发启动多个 Spring Boot 导致 CPU 争抢、类加载耗时超 300s 并引发启动脚本超时报错** | 原脚本在 Tier 4 瞬间并发启动 7 个容器（含 4 个重型 Spring Boot），在 2 vCPU 环境下造成各 JVM 极端争抢 CPU，单服务启动拉长至 390s；而原 Nacos 轮询写死 150s 超时，过早退出并误报服务未就绪；此外云端重启后动态 IP 变更导致原地址不可达。 | 1. 重构为 5 级平滑启动微阶梯（中间件 ➔ Nacos/AI ➔ Auth/System 鉴权基石 ➔ Gateway/UI ➔ 错峰启动业务微服务），削峰填谷；<br>2. 提升轮询等待至 360s，并实时精准输出待装配的服务名；<br>3. 扩展端到端健康体检覆盖 15 项核心指标（含 Java 微服务直连探针与网关业务路由连通性）；<br>4. 遵循 Rule 7 动态感知并同步更新 ECS 公网 IP 至 `47.121.31.17`。 |
 
 ---
 
