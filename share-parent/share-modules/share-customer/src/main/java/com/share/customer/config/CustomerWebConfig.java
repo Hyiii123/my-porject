@@ -18,4 +18,9 @@ public class CustomerWebConfig {
                 .setReadTimeout(Duration.ofMillis(timeout))
                 .build();
     }
+
+    @Bean
+    public feign.Request.Options feignOptions() {
+        return new feign.Request.Options(10, java.util.concurrent.TimeUnit.SECONDS, 60, java.util.concurrent.TimeUnit.SECONDS, true);
+    }
 }

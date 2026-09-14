@@ -142,8 +142,10 @@ public class MultiAgentRecommendOrchestrator {
         // 步骤 1: 用户画像 Agent 提取多维画像 (若有探针输入则动态校准)
         long t1 = System.currentTimeMillis();
         UserProfileContext profile = userProfileAgent.buildProfile(userId, probeAnswers);
-        if (customOverrides != null && customOverrides.containsKey("customRole")) {
-            String role = customOverrides.get("customRole").toString();
+        if (customOverrides != null && (customOverrides.containsKey("customRole") || customOverrides.containsKey("targetRole"))) {
+            String role = customOverrides.containsKey("customRole")
+                ? customOverrides.get("customRole").toString()
+                : customOverrides.get("targetRole").toString();
             profile = UserProfileContext.builder()
                 .userId(profile.getUserId())
                 .intendedRole(role)
@@ -252,8 +254,10 @@ public class MultiAgentRecommendOrchestrator {
         }
 
         UserProfileContext profile = userProfileAgent.buildProfile(userId, probeAnswers);
-        if (customOverrides != null && customOverrides.containsKey("customRole")) {
-            String role = customOverrides.get("customRole").toString();
+        if (customOverrides != null && (customOverrides.containsKey("customRole") || customOverrides.containsKey("targetRole"))) {
+            String role = customOverrides.containsKey("customRole")
+                ? customOverrides.get("customRole").toString()
+                : customOverrides.get("targetRole").toString();
             profile = UserProfileContext.builder()
                 .userId(profile.getUserId())
                 .intendedRole(role)

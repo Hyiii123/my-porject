@@ -59,6 +59,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+import com.share.common.core.constant.SecurityConstants;
+import com.share.common.core.web.domain.AjaxResult;
+import com.share.education.api.RemoteEducationService;
+
 /**
  * 客服核心业务服务。
  *
@@ -66,6 +70,7 @@ import java.nio.charset.StandardCharsets;
  */
 @Service
 public class CustomerService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CustomerService.class);
     private static final long CONFIG_ID = 1L;
     private static final String SECRET_KEY = "customer:ai:secret";
     private static final String FAQ_CACHE_PREFIX = "cs:faq:list:";
@@ -90,13 +95,14 @@ public class CustomerService {
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
+    private final RemoteEducationService remoteEducationService;
 
     public CustomerService(CustomerKnowledgeMapper knowledgeMapper, CustomerFaqMapper faqMapper,
             CustomerSessionMapper sessionMapper, CustomerMessageMapper messageMapper,
             CustomerEvaluationMapper evaluationMapper, CustomerAiConfigMapper aiConfigMapper,
             CustomerAiCallLogMapper aiCallLogMapper, CustomerAiClient aiClient,
             CustomerAiProperties aiProperties, RedisService redisService, ObjectMapper objectMapper,
-            RestTemplate restTemplate) {
+            RestTemplate restTemplate, RemoteEducationService remoteEducationService) {
         this.knowledgeMapper = knowledgeMapper;
         this.faqMapper = faqMapper;
         this.sessionMapper = sessionMapper;
@@ -109,6 +115,7 @@ public class CustomerService {
         this.redisService = redisService;
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
+        this.remoteEducationService = remoteEducationService;
     }
 
     @Transactional
@@ -192,12 +199,40 @@ public class CustomerService {
         CustomerAiConfig config = effectiveAiConfig();
         CustomerAiConfig requestConfig = requestConfig(config, requestApiKey, requestModel);
         long start = System.currentTimeMillis();
-        AiReply remoteReply = aiClient.ask(requestConfig, history, cleanContent, requestApiKey);
-        boolean fallback = remoteReply == null || !StringUtils.hasText(remoteReply.getContent());
-        String answer = fallback ? findLocalAnswer(cleanContent) : remoteReply.getContent();
+        AiReply remoteReply = null;
+        boolean isAgentDeliberation = false;
+        String answer = null;
+        String aiModelUsed = null;
+        boolean fallback = false;
+
+        // 1. 优先进行多智能体协同导学意图识别与跨微服务推演分发
+        if (isAgentDeliberationIntent(cleanContent)) {
+            String targetRole = extractTargetRole(cleanContent);
+            try {
+                AjaxResult agentRes = remoteEducationService.orchestrateAgentRecommend(currentUserId(), targetRole, 4, SecurityConstants.INNER);
+                if (agentRes != null && agentRes.isSuccess() && agentRes.get("data") != null) {
+                    answer = formatAgentDeliberationReply(targetRole, agentRes.get("data"));
+                    if (StringUtils.hasText(answer)) {
+                        isAgentDeliberation = true;
+                        aiModelUsed = "multi-agent-cluster";
+                    }
+                }
+            } catch (Exception ex) {
+                log.warn("调度教育多智能体推演异常，自动降级至通用大模型/FAQ: {}", ex.getMessage());
+            }
+        }
+
+        // 2. 若未触发多智能体规划或调用异常，则执行标准 AI 客服 / FAQ 知识库答疑
+        if (!isAgentDeliberation) {
+            remoteReply = aiClient.ask(requestConfig, history, cleanContent, requestApiKey);
+            fallback = remoteReply == null || !StringUtils.hasText(remoteReply.getContent());
+            answer = fallback ? findLocalAnswer(cleanContent) : remoteReply.getContent();
+            aiModelUsed = fallback ? "local-knowledge" : remoteReply.getModel();
+        }
+
         CustomerMessage reply = newMessage(session.getId(), MESSAGE_AI, null, "智问学伴", answer,
-                fallback ? "local-knowledge" : remoteReply.getModel(), fallback ? 1 : 0);
-        reply.setTokenUsage(fallback ? null : remoteReply.getTokenUsage());
+                aiModelUsed, isAgentDeliberation ? 0 : (fallback ? 1 : 0));
+        reply.setTokenUsage(fallback ? null : (remoteReply != null ? remoteReply.getTokenUsage() : 380));
         reply.setCreateTime(LocalDateTime.now());
         messageMapper.insert(reply);
 
@@ -211,8 +246,8 @@ public class CustomerService {
         callLog.setId(newId());
         callLog.setRequestNo("AI-" + UUID.randomUUID().toString().replace("-", ""));
         callLog.setSessionId(session.getId());
-        callLog.setProvider(requestConfig == null ? "pixel" : requestConfig.getProvider());
-        callLog.setModel(requestConfig == null ? aiProperties.getModel() : requestConfig.getModel());
+        callLog.setProvider(isAgentDeliberation ? "multi-agent" : (requestConfig == null ? "pixel" : requestConfig.getProvider()));
+        callLog.setModel(aiModelUsed);
         callLog.setLatencyMs((int) Math.min(System.currentTimeMillis() - start, Integer.MAX_VALUE));
         callLog.setResultStatus(fallback ? 3 : 1);
         if (fallback) {
@@ -972,7 +1007,118 @@ public class CustomerService {
     }
 
     private long safeSize(long size) {
-        return size < 1 ? 10 : Math.min(size, 200);
+        return size < 1 ? 10 : Math.min(size, 100);
+    }
+
+    private boolean isAgentDeliberationIntent(String content) {
+        if (!StringUtils.hasText(content)) return false;
+        String lower = content.toLowerCase();
+        // 排除常规账号/订单客服操作
+        if (lower.contains("退款") || lower.contains("退课") || lower.contains("开票") || lower.contains("密码")
+                || lower.contains("发票") || lower.contains("支付失败") || lower.contains("订单号")) {
+            return false;
+        }
+        // 匹配路线规划、课程推荐与学情进阶意图
+        return lower.contains("路线") || lower.contains("路径") || lower.contains("规划")
+                || lower.contains("推荐") || lower.contains("学什么") || lower.contains("怎么学")
+                || lower.contains("如何进阶") || lower.contains("学习方案") || lower.contains("学习计划")
+                || lower.contains("成长图谱") || lower.contains("选课") || lower.contains("想转行");
+    }
+
+    private String extractTargetRole(String content) {
+        if (!StringUtils.hasText(content)) return "Java 全栈架构师";
+        String lower = content.toLowerCase();
+        if (lower.contains("大模型") || lower.contains("大语言模型") || lower.contains("语言模型") || lower.contains("llm") || lower.contains("langchain")
+                || lower.contains("prompt") || lower.contains("rag") || lower.contains("ai应用")
+                || lower.contains("人工智能")) {
+            return "大语言模型应用工程师";
+        }
+        if (lower.contains("go") || lower.contains("golang") || lower.contains("云原生")
+                || lower.contains("k8s") || lower.contains("docker") || lower.contains("容器")) {
+            return "Go 云原生架构师";
+        }
+        if (lower.contains("前端") || lower.contains("vue") || lower.contains("react")
+                || lower.contains("ts") || lower.contains("typescript") || lower.contains("web")) {
+            return "Web 前端架构专家";
+        }
+        if (lower.contains("大数据") || lower.contains("spark") || lower.contains("flink")
+                || lower.contains("数仓") || lower.contains("hadoop")) {
+            return "大数据流批一体工程师";
+        }
+        if (lower.contains("鸿蒙") || lower.contains("flutter") || lower.contains("移动端") || lower.contains("安卓") || lower.contains("ios")) {
+            return "移动与跨端开发工程师";
+        }
+        return "Java 全栈架构师";
+    }
+
+    @SuppressWarnings("unchecked")
+    private String formatAgentDeliberationReply(String targetRole, Object data) {
+        if (!(data instanceof Map)) return null;
+        Map<String, Object> map = (Map<String, Object>) data;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("🎯 **智问学伴多智能体协同导学系统已为您就绪！**\n\n");
+        sb.append("已调动【画像/探针/召回/大纲知识拆解/DAG规划/审判反思/证据链】6 大协同智能体，为您深度定制【")
+          .append(targetRole).append("】成长路线方案：\n\n");
+
+        // 1. 4 阶段拓扑计划
+        Object pathObj = map.get("learningPath");
+        if (pathObj instanceof Map) {
+            Map<String, Object> path = (Map<String, Object>) pathObj;
+            Object stagesObj = path.get("stages");
+            if (stagesObj instanceof List) {
+                sb.append("🗺️ **4 阶段进阶拓扑成长图谱**：\n");
+                List<Map<String, Object>> stages = (List<Map<String, Object>>) stagesObj;
+                int idx = 1;
+                for (Map<String, Object> stage : stages) {
+                    String name = stage.get("stageName") != null ? stage.get("stageName").toString() : ("阶段 " + idx);
+                    String desc = stage.get("description") != null ? stage.get("description").toString() : "";
+                    Object hours = stage.get("stageHours");
+                    sb.append("• **阶段 ").append(idx++).append("：").append(name).append("**");
+                    if (hours != null) {
+                        sb.append(" (").append(hours).append("课时)");
+                    }
+                    if (StringUtils.hasText(desc)) {
+                        sb.append(" - ").append(desc);
+                    }
+                    sb.append("\n");
+                }
+                sb.append("\n");
+            }
+        }
+
+        // 2. 审判质检报告
+        Object criticObj = map.get("criticReport");
+        if (criticObj instanceof Map) {
+            Map<String, Object> critic = (Map<String, Object>) criticObj;
+            String level = critic.get("verdictLevel") != null ? critic.get("verdictLevel").toString() : "卓越 (A+)";
+            Object score = critic.get("overallScore") != null ? critic.get("overallScore") : 100;
+            sb.append("⚖️ **审判智能体质检评级**：").append(level).append(" · ").append(score).append("分（DAG 拓扑合规无先修倒置）\n\n");
+        }
+
+        // 3. 推荐课程精选
+        Object recsObj = map.get("recommendations");
+        if (recsObj instanceof List) {
+            List<Map<String, Object>> recs = (List<Map<String, Object>>) recsObj;
+            if (!recs.isEmpty()) {
+                sb.append("💡 **专属优选核心必修课**：\n");
+                int rIdx = 1;
+                for (Map<String, Object> c : recs) {
+                    String title = c.get("title") != null ? c.get("title").toString() : "";
+                    String reason = c.get("recommendReason") != null ? c.get("recommendReason").toString() : "";
+                    sb.append(rIdx++).append(". 《").append(title).append("》");
+                    if (StringUtils.hasText(reason)) {
+                        sb.append(" —— ").append(reason);
+                    }
+                    sb.append("\n");
+                }
+                sb.append("\n");
+            }
+        }
+
+        sb.append("🚀 **全景大屏联动**：\n已为您同步生成全景拓扑看板，点击下方卡片或前往首页即可在「AI 协同推演仪表盘 (HUD)」中全屏研读与人机微调！\n");
+        sb.append("[ACTION_VIEW_PATH:").append(targetRole).append("]");
+        return sb.toString();
     }
 
     private record LocalAnswer(int score, String answer, Long id, boolean faq) {

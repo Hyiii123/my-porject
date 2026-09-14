@@ -917,6 +917,28 @@ public class EducationService {
         return emitter;
     }
 
+    /**
+     * 跨微服务协同：触发多智能体集群推演，生成指定赛道的推荐课程与 4 阶段进阶拓扑方案 (供客服/其他微服务 Feign 调用)
+     */
+    public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit) {
+        int recLimit = limit != null && limit > 0 ? Math.min(limit, 10) : 4;
+        Map<String, Object> overrides = new LinkedHashMap<>();
+        if (StringUtils.hasText(targetRole)) {
+            overrides.put("targetRole", targetRole.trim());
+        }
+        List<PersonalizedRecommendVO> recs = multiAgentOrchestrator.recommendCourses(userId, recLimit, Collections.emptyMap(), overrides);
+        LearningPathPlan plan = multiAgentOrchestrator.getLearningPath(userId, Collections.emptyMap(), overrides);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("targetRole", StringUtils.hasText(targetRole) ? targetRole.trim() : "Java 全栈开发工程师");
+        result.put("recommendations", recs);
+        result.put("learningPath", plan);
+        if (plan != null && plan.getCriticReport() != null) {
+            result.put("criticReport", plan.getCriticReport());
+        }
+        return result;
+    }
+
     /** 标准化 50 维 IT 技术栈特征向量空间字典 (Dense Skill Vector Dimensions) */
     private static final List<String> IT_SKILL_DIMENSIONS = List.of(
             "Java", "SpringBoot", "SpringCloud", "MyBatis", "MySQL", "Redis", "微服务", "高并发",

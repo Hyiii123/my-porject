@@ -21,3 +21,14 @@ spring:
         file-extension: yml
         shared-configs:
           - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+
+# Feign
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 10000
+        readTimeout: 60000
+      remoteEducationService:
+        connectTimeout: 10000
+        readTimeout: 60000

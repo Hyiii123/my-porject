@@ -1,5 +1,6 @@
 package com.share.education.api;
 
+import com.share.common.core.constant.SecurityConstants;
 import com.share.common.core.constant.ServiceNameConstants;
 import com.share.common.core.web.domain.AjaxResult;
 import com.share.education.api.factory.RemoteEducationFallbackFactory;
@@ -7,6 +8,8 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * 教育服务的跨服务调用契约。
@@ -29,4 +32,13 @@ public interface RemoteEducationService {
     /** 撤销当前登录用户的课程学习权限（退款时调用）。 */
     @PostMapping("/internal/enrollments/{courseId}/revoke")
     AjaxResult revokeEnrollment(@PathVariable("courseId") Long courseId);
+
+    /** 触发多智能体协同推荐与路径规划 (内部调用)。 */
+    @PostMapping("/internal/ai/agent/orchestrate")
+    AjaxResult orchestrateAgentRecommend(
+        @RequestParam(value = "userId", required = false) Long userId,
+        @RequestParam(value = "targetRole", required = false) String targetRole,
+        @RequestParam(value = "limit", required = false, defaultValue = "4") Integer limit,
+        @RequestHeader(SecurityConstants.FROM_SOURCE) String source
+    );
 }

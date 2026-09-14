@@ -364,11 +364,12 @@
 
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { getActiveProbingQuestions, submitActiveProbingAnswers, getAgentEvaluationMetrics, fetchReasoningStream } from '@/api/class'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+const route = useRoute()
 
 const props = defineProps({
   userPortrait: {
@@ -690,6 +691,33 @@ const fetchEvalMetrics = async () => {
 
 onMounted(() => {
   fetchEvalMetrics()
+  // 检测 URL query 是否由外部（如 AI 客服多智能体导学卡片）联动带入 targetRole
+  const targetRoleQuery = route?.query?.targetRole
+  if (targetRoleQuery && typeof targetRoleQuery === 'string') {
+    const roleStr = targetRoleQuery.trim()
+    if (roleStr) {
+      if (roleStr.includes('大模型') || roleStr.includes('LLM') || roleStr.includes('大语言模型')) {
+        selectedRole.value = '大语言模型应用工程师'
+      } else if (roleStr.includes('大数据')) {
+        selectedRole.value = '大数据开发工程师'
+      } else if (roleStr.includes('Go') || roleStr.includes('云原生')) {
+        selectedRole.value = 'Go云原生架构师'
+      } else if (roleStr.includes('前端')) {
+        selectedRole.value = '前端技术专家'
+      } else if (roleStr.includes('Java')) {
+        selectedRole.value = 'Java全栈架构师'
+      } else {
+        selectedRole.value = roleStr
+      }
+      handleRoleChange(selectedRole.value)
+      nextTick(() => {
+        const hudEl = document.querySelector('.agent-hud-container')
+        if (hudEl) {
+          hudEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      })
+    }
+  }
 })
 </script>
 

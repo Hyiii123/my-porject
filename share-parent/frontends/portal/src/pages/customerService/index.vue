@@ -103,7 +103,24 @@
                   <span>{{ message.type === 'user' ? '我' : (message.senderName || 'AI客服') }}</span>
                   <time>{{ formatMessageTime(message.time) }}</time>
                 </div>
-                <div class="message-bubble">{{ message.content }}</div>
+                <div class="message-bubble">
+                  <div class="bubble-text">{{ cleanMessageContent(message.content) }}</div>
+                  <div
+                    v-if="hasActionPath(message.content)"
+                    class="agent-action-card"
+                    @click="goToAgentPath(extractActionRole(message.content))"
+                  >
+                    <div class="card-left">
+                      <div class="card-badge">🎯 多智能体推演就绪</div>
+                      <div class="card-title">前往首页查看【{{ extractActionRole(message.content) || '目标岗位' }}】4 阶段进阶拓扑图谱</div>
+                      <div class="card-desc">已为您在首页 AI 协同推演仪表盘 (HUD) 部署全屏 DAG 拓扑、知识大纲拆解与审判质检报告</div>
+                    </div>
+                    <div class="card-right">
+                      <span class="btn-text">前往大屏</span>
+                      <el-icon><ArrowRight /></el-icon>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div v-if="message.type === 'user'" class="message-avatar user-avatar">
                 <el-icon :size="17"><User /></el-icon>
@@ -183,10 +200,33 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ArrowRight, ChatDotRound, CircleCheck, Clock, Document, Headset, Promotion, QuestionFilled, Refresh, Service, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getPixelApiKey, getPixelModel } from '@/api/pixelApi'
 import { createServiceSession, evaluateService, getServiceFaqs, getServiceSession, sendServiceMessage } from '@/api/customerService'
+
+const router = useRouter()
+
+function hasActionPath(content) {
+  return /\[ACTION_VIEW_PATH:(.+?)\]/.test(content || '')
+}
+
+function extractActionRole(content) {
+  const match = (content || '').match(/\[ACTION_VIEW_PATH:(.+?)\]/)
+  return match ? match[1].trim() : ''
+}
+
+function cleanMessageContent(content) {
+  return (content || '').replace(/\[ACTION_VIEW_PATH:.+?\]/g, '').trim()
+}
+
+function goToAgentPath(targetRole) {
+  router.push({
+    path: '/',
+    query: targetRole ? { targetRole } : {}
+  })
+}
 
 const SESSION_KEY = 'customer_service_session_id'
 const inputMessage = ref('')
@@ -806,16 +846,92 @@ onMounted(async () => {
 }
 
 .message-bubble {
-  padding: 11px 14px;
-  color: #424d68;
+  padding: 12px 16px;
+  color: #334155;
   font-size: 14px;
   line-height: 1.7;
-  white-space: pre-line;
+  white-space: pre-wrap;
   word-break: break-word;
   background: #fff;
   border: 1px solid #edf0f5;
   border-radius: 4px 13px 13px 13px;
   box-shadow: 0 2px 7px rgba(45, 58, 93, 0.03);
+}
+
+.bubble-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.agent-action-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e0edff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
+}
+
+.agent-action-card:hover {
+  background: linear-gradient(135deg, #e5f0ff 0%, #d4e7fe 100%);
+  border-color: #93c5fd;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.14);
+}
+
+.card-left {
+  flex: 1;
+}
+
+.card-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: #dbeafe;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 3px;
+}
+
+.card-desc {
+  font-size: 11px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.card-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #bfdbfe;
+  transition: all 0.2s ease;
+}
+
+.agent-action-card:hover .card-right {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
 }
 
 .user-message .message-bubble {

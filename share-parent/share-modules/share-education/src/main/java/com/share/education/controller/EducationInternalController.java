@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 教育服务内部接口，只供微服务间 Feign 调用。 */
@@ -40,5 +41,15 @@ public class EducationInternalController extends BaseController {
     public AjaxResult deleteTeacher(@PathVariable Long userId) {
         educationService.deleteTeacherProfile(userId);
         return success();
+    }
+
+    /** 触发多智能体协同推荐与路径规划 (供客服/其他微服务 Feign 调用) */
+    @InnerAuth
+    @PostMapping("/ai/agent/orchestrate")
+    public AjaxResult orchestrateAgentRecommend(
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestParam(value = "targetRole", required = false) String targetRole,
+            @RequestParam(value = "limit", required = false, defaultValue = "4") Integer limit) {
+        return success(educationService.orchestrateAgentRecommend(userId, targetRole, limit));
     }
 }

@@ -14,6 +14,27 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-14 18:55:00 - AI 客服对话直通多智能体协同导学集群与全景大屏联动全链路贯通上线 (Seamless Multi-Agent Recommendation & Learning Path Orchestration via AI Customer Service Chat with HUD Deep-Linking)
+
+* **演进主题**：跨微服务智能协同、导学意图自动分类路由、大模型与多智能体混编、会话富格式气泡与全屏 HUD 深度接力
+* **核心成果**：
+  1. **跨微服务契约与安全调用闭环**：
+     - 在契约层 [`RemoteEducationService.java`](file:///d:/education%20system/my-porject/share-parent/share-api/share-api-education/src/main/java/com/share/education/api/RemoteEducationService.java) 规范定义 `@PostMapping("/internal/ai/agent/orchestrate")` 端点，显式传递 `@RequestHeader(SecurityConstants.FROM_SOURCE) String source`；
+     - 在 [`EducationInternalController.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-education/src/main/java/com/share/education/controller/EducationInternalController.java) 严格实施 `@InnerAuth` 网关安全防伪造校验；
+     - 配置 Feign 客户端 60 秒长响应保护（`bootstrap.yml` 与 `CustomerWebConfig.java` 双重配置），彻底根除长链路推演 Read timed out 隐患；
+  2. **客服中枢意图识别与 6-Agent 集群调度**：
+     - 在 [`CustomerService.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-customer/src/main/java/com/share/customer/service/CustomerService.java) 中构建轻量导学意图分类器与技术岗位提取器（全面覆盖大语言模型、Go云原生、大数据、Web前端、Java全栈等赛道）；
+     - 非事务区间远程调用教育集群完成【画像/探针/召回/布鲁姆大纲解构/DAG规划/审判反思/证据链】6 大智能体协同推演；
+     - 提供优雅降级机制（`RemoteEducationFallbackFactory`），当教育服务繁忙时无缝回退至 Pixel AI/本地 FAQ 知识库，保障客服会话零崩溃；
+  3. **富格式导学气泡与全屏 HUD 深度联动**：
+     - 结构化整合 4 阶段进阶拓扑图谱、布鲁姆层级说明、审判智能体 100 分质检评级（DAG 拓扑合规无先修倒置）与核心必修课实证证据链；
+     - 在 [`customerService/index.vue`](file:///d:/education%20system/my-porject/share-parent/frontends/portal/src/pages/customerService/index.vue) 渲染自适应富格式文本与高颜值快捷操作卡片「🎯 前往首页查看 4 阶段拓扑大屏」；
+     - 在 [`AgentReasoningHUD.vue`](file:///d:/education%20system/my-porject/share-parent/frontends/portal/src/components/AgentReasoningHUD.vue) 中监听 `route.query.targetRole`，实现从客服对话到首页全屏推演与人机微调大屏的丝滑无缝接力；
+  4. **遵循发布铁律（Rule 1 & Rule 2 & Rule 8），本地离线打包与云端靶向验证全量通过**：
+     - 本地 JDK 17 完成 `share-api-education`、`share-education`、`share-customer` 编译打包，本地 Vite 构建前端产物；
+     - 串行热更新 ECS `zhiwen-education`、`zhiwen-customer` 与 `zhiwen-portal-ui`；
+     - 定向接口实测（Feign 内部调用 200 OK、网关学生端会话问答实测 3 秒极速产出完整多智能体导学方案，`aiModel: "multi-agent-cluster"`）100% 通过。
+
 ### 2026-09-14 18:30:00 - 多智能体推荐集群架构精简演进：ActiveProbingAgent 与 UserProfileAgent 深度合并交付 (Consolidation of Active Probing & User Profile Agents into Unified Learner Profiling Agent)
 
 * **演进主题**：智能体职责高度内聚、拓扑解耦与消除跨类循环委派
