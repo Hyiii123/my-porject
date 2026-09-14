@@ -826,6 +826,12 @@ public class EducationService {
             view.put("learningStage", vo.getLearningStage());
             view.put("skillGapFilled", vo.getSkillGapFilled());
             view.put("prerequisiteSkills", vo.getPrerequisiteSkills());
+            view.put("evidencePaths", vo.getEvidencePaths());
+            view.put("bloomLevel", vo.getBloomLevel());
+            view.put("bloomName", vo.getBloomName());
+            view.put("bloomLevelName", vo.getBloomLevelName() != null ? vo.getBloomLevelName() : vo.getBloomName());
+            view.put("isCapstone", vo.getIsCapstone());
+            view.put("capstoneProject", vo.getCapstoneProject() != null ? vo.getCapstoneProject() : vo.getIsCapstone());
             result.add(view);
         }
 

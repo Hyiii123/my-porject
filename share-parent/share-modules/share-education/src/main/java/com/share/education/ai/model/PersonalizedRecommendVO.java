@@ -48,4 +48,19 @@ public class PersonalizedRecommendVO {
     /** 知识图谱先修推导链路 (供前端展示前沿进阶脉络) */
     @Builder.Default
     private List<String> evidencePaths = Collections.emptyList();
+
+    /** 布鲁姆认知等级编码 (REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE) */
+    private String bloomLevel;
+
+    /** 布鲁姆认知分级名称 (如 "工程应用级", "架构调优级") */
+    private String bloomName;
+
+    /** 前端兼容别名 */
+    private String bloomLevelName;
+
+    /** 是否综合实战 Capstone 大项目 */
+    private Boolean isCapstone;
+
+    /** 前端兼容别名 */
+    private Boolean capstoneProject;
 }

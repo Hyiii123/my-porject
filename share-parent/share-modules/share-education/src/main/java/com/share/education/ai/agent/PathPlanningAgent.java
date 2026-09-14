@@ -50,42 +50,92 @@ public class PathPlanningAgent {
                 .build();
         }
 
-        // 0. 处理人机协同排除课程 (Human-in-the-Loop: excludedCourseIds)
+        // 0. 处理人机协同排除课程 (Human-in-the-Loop: excludedCourseIds 或 excludeCourseIds)
         List<AnalyzedCourseVO> activeCourses = new ArrayList<>(courses);
-        if (directives != null && directives.containsKey("excludedCourseIds")) {
-            Object exObj = directives.get("excludedCourseIds");
-            if (exObj instanceof Collection<?> exList) {
-                Set<Long> exIds = new HashSet<>();
-                for (Object item : exList) {
-                    if (item instanceof Number num) {
-                        exIds.add(num.longValue());
-                    } else if (item != null) {
-                        try { exIds.add(Long.parseLong(item.toString())); } catch (Exception ignored) {}
-                    }
+        Object exObj = null;
+        if (directives != null) {
+            if (directives.containsKey("excludedCourseIds")) {
+                exObj = directives.get("excludedCourseIds");
+            } else if (directives.containsKey("excludeCourseIds")) {
+                exObj = directives.get("excludeCourseIds");
+            }
+        }
+        if (exObj instanceof Collection<?> exList) {
+            Set<Long> exIds = new HashSet<>();
+            for (Object item : exList) {
+                if (item instanceof Number num) {
+                    exIds.add(num.longValue());
+                } else if (item != null) {
+                    try { exIds.add(Long.parseLong(item.toString())); } catch (Exception ignored) {}
                 }
-                activeCourses.removeIf(c -> exIds.contains(c.getCourseId()));
+            }
+            activeCourses.removeIf(c -> exIds.contains(c.getCourseId()));
+        }
+
+        // 1. 基于 Kahn 算法的 DAG 严格拓扑排序 (避免 ComparableTimSort 破坏 contract 异常)
+        Map<Long, AnalyzedCourseVO> courseMap = new HashMap<>();
+        Map<Long, List<Long>> adj = new HashMap<>();
+        Map<Long, Integer> inDegree = new HashMap<>();
+
+        for (AnalyzedCourseVO c : activeCourses) {
+            courseMap.put(c.getCourseId(), c);
+            adj.put(c.getCourseId(), new ArrayList<>());
+            inDegree.put(c.getCourseId(), 0);
+        }
+
+        for (AnalyzedCourseVO c1 : activeCourses) {
+            for (AnalyzedCourseVO c2 : activeCourses) {
+                if (!c1.getCourseId().equals(c2.getCourseId()) && isPrerequisite(c1, c2)) {
+                    adj.get(c1.getCourseId()).add(c2.getCourseId());
+                    inDegree.put(c2.getCourseId(), inDegree.get(c2.getCourseId()) + 1);
+                }
             }
         }
 
-        // 1. 基于知识图谱先修依赖与难度的拓扑保序排序
-        List<AnalyzedCourseVO> sortedCourses = new ArrayList<>(activeCourses);
-        sortedCourses.sort((c1, c2) -> {
-            // 拓扑先修关系严格优先
-            boolean c1IsPrereqOfC2 = isPrerequisite(c1, c2);
-            boolean c2IsPrereqOfC1 = isPrerequisite(c2, c1);
-            if (c1IsPrereqOfC2 && !c2IsPrereqOfC1) return -1;
-            if (c2IsPrereqOfC1 && !c1IsPrereqOfC2) return 1;
-
-            // 难度等级升序 (筑基 -> 突破)
-            int diff1 = c1.getDifficultyLevel() != null ? c1.getDifficultyLevel() : 2;
-            int diff2 = c2.getDifficultyLevel() != null ? c2.getDifficultyLevel() : 2;
+        Comparator<AnalyzedCourseVO> nodeComparator = (a, b) -> {
+            int diff1 = a.getDifficultyLevel() != null ? a.getDifficultyLevel() : 2;
+            int diff2 = b.getDifficultyLevel() != null ? b.getDifficultyLevel() : 2;
             if (diff1 != diff2) return Integer.compare(diff1, diff2);
+            double s1 = a.getMatchScore() != null ? a.getMatchScore() : 85.0;
+            double s2 = b.getMatchScore() != null ? b.getMatchScore() : 85.0;
+            if (Double.compare(s2, s1) != 0) return Double.compare(s2, s1);
+            return Long.compare(a.getCourseId(), b.getCourseId());
+        };
 
-            // 算法得分降序
-            double s1 = c1.getMatchScore() != null ? c1.getMatchScore() : 85.0;
-            double s2 = c2.getMatchScore() != null ? c2.getMatchScore() : 85.0;
-            return Double.compare(s2, s1);
-        });
+        PriorityQueue<AnalyzedCourseVO> pq = new PriorityQueue<>(nodeComparator);
+        for (AnalyzedCourseVO c : activeCourses) {
+            if (inDegree.get(c.getCourseId()) == 0) {
+                pq.offer(c);
+            }
+        }
+
+        List<AnalyzedCourseVO> sortedCourses = new ArrayList<>();
+        Set<Long> visited = new HashSet<>();
+
+        while (!pq.isEmpty()) {
+            AnalyzedCourseVO curr = pq.poll();
+            sortedCourses.add(curr);
+            visited.add(curr.getCourseId());
+
+            for (Long nxtId : adj.getOrDefault(curr.getCourseId(), Collections.emptyList())) {
+                int deg = inDegree.get(nxtId) - 1;
+                inDegree.put(nxtId, deg);
+                if (deg <= 0 && !visited.contains(nxtId)) {
+                    AnalyzedCourseVO nxtCourse = courseMap.get(nxtId);
+                    if (nxtCourse != null && !pq.contains(nxtCourse)) {
+                        pq.offer(nxtCourse);
+                    }
+                }
+            }
+        }
+
+        if (sortedCourses.size() < activeCourses.size()) {
+            List<AnalyzedCourseVO> remaining = activeCourses.stream()
+                .filter(c -> !visited.contains(c.getCourseId()))
+                .sorted(nodeComparator)
+                .toList();
+            sortedCourses.addAll(remaining);
+        }
 
         // 2. 切分至 4 个进阶里程碑阶段
         List<AnalyzedCourseVO> stage1Courses = new ArrayList<>(); // 初级筑基 (难度 1 或先修基石)
@@ -93,11 +143,13 @@ public class PathPlanningAgent {
         List<AnalyzedCourseVO> stage3Courses = new ArrayList<>(); // 架构实战 (难度 3)
         List<AnalyzedCourseVO> stage4Courses = new ArrayList<>(); // 综合攻坚与突破
 
+        boolean skipBasic = directives != null && (Boolean.TRUE.equals(directives.get("skipBasicPhase"))
+            || "true".equalsIgnoreCase(String.valueOf(directives.get("skipBasicPhase"))));
         boolean needMoreBeginner = directives != null && Boolean.TRUE.equals(directives.get("needMoreBeginnerCourses"));
 
         for (AnalyzedCourseVO c : sortedCourses) {
             int diff = c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2;
-            if ((diff == 1 || needMoreBeginner) && stage1Courses.size() < 3) {
+            if (!skipBasic && (diff == 1 || needMoreBeginner) && stage1Courses.size() < 3) {
                 stage1Courses.add(c);
             } else if (diff <= 2 && stage2Courses.size() < 3) {
                 stage2Courses.add(c);
@@ -108,8 +160,8 @@ public class PathPlanningAgent {
             }
         }
 
-        // 兜底保障：若 stage1 依然为空但有其他课程，借调一门最低难度的课程至 stage1 夯实底座
-        if (stage1Courses.isEmpty() && !stage2Courses.isEmpty()) {
+        // 兜底保障：若未跳过基础且 stage1 依然为空但有其他课程，借调一门最低难度的课程至 stage1 夯实底座
+        if (!skipBasic && stage1Courses.isEmpty() && !stage2Courses.isEmpty()) {
             stage1Courses.add(stage2Courses.remove(0));
         }
 
@@ -152,6 +204,12 @@ public class PathPlanningAgent {
         if (c1 == null || c2 == null || c1.getCourseId().equals(c2.getCourseId())) {
             return false;
         }
+        int diff1 = c1.getDifficultyLevel() != null ? c1.getDifficultyLevel() : 2;
+        int diff2 = c2.getDifficultyLevel() != null ? c2.getDifficultyLevel() : 2;
+        if (diff1 > diff2) {
+            return false;
+        }
+
         String c1Name = c1.getCourseName() != null ? c1.getCourseName().toLowerCase() : "";
         List<String> prereqs = c2.getPrerequisiteSkills();
         if (prereqs != null) {

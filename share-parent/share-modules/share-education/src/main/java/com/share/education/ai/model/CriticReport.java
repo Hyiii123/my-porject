@@ -48,4 +48,34 @@ public class CriticReport {
     /** 触发反思回溯时的针对性修正指令集 (供 RecommendationAgent 与 PathPlanningAgent 局部修正) */
     @Builder.Default
     private Map<String, Object> refinementDirectives = Collections.emptyMap();
+
+    /** 拓扑合法性 (prerequisiteScore >= 80，前端兼容字段) */
+    private Boolean topologyValid;
+
+    /** 认知连续性/平滑度得分 (前端兼容字段) */
+    private Integer cognitiveContinuityScore;
+
+    /** 阶段均衡性得分 (前端兼容字段) */
+    private Integer phaseBalanceScore;
+
+    /** 质检综述摘要 (前端兼容字段) */
+    private String summary;
+
+    public Boolean getTopologyValid() {
+        if (topologyValid != null) return topologyValid;
+        return prerequisiteScore != null ? prerequisiteScore >= 80 : (passed != null && passed);
+    }
+
+    public Integer getCognitiveContinuityScore() {
+        return cognitiveContinuityScore != null ? cognitiveContinuityScore : smoothnessScore;
+    }
+
+    public Integer getPhaseBalanceScore() {
+        return phaseBalanceScore != null ? phaseBalanceScore : balanceScore;
+    }
+
+    public String getSummary() {
+        if (summary != null) return summary;
+        return critiqueNotes != null && !critiqueNotes.isEmpty() ? String.join("；", critiqueNotes) : "审判质检完成";
+    }
 }

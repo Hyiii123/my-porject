@@ -39,11 +39,11 @@
             <h4 class="course-title" :title="course.title">{{ course.title }}</h4>
 
             <!-- 布鲁姆认知分级 & Capstone 工业级综合实战标签 -->
-            <div class="bloom-tags-row" v-if="course.bloomLevelName || course.capstoneProject">
-              <span class="bloom-badge" v-if="course.bloomLevelName">
-                🎓 {{ course.bloomLevelName }}
+            <div class="bloom-tags-row" v-if="course.bloomLevelName || course.bloomName || course.capstoneProject || course.isCapstone">
+              <span class="bloom-badge" v-if="course.bloomLevelName || course.bloomName">
+                🎓 {{ course.bloomLevelName || course.bloomName }}
               </span>
-              <span class="capstone-mini-badge" v-if="course.capstoneProject">
+              <span class="capstone-mini-badge" v-if="course.capstoneProject || course.isCapstone">
                 🏆 Capstone 综合实战
               </span>
             </div>

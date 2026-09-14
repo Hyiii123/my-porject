@@ -467,6 +467,25 @@ public class MultiAgentRecommendOrchestrator {
                 List<PersonalizedRecommendVO> recs = explanationGenerationAgent.generateExplanations(profile, pathPlan, 4);
                 long explLatency = System.currentTimeMillis() - tExplStart;
 
+                // 记录流式推演快照至在线质量度量体系
+                try {
+                    AgentWorkflowContext streamCtx = AgentWorkflowContext.builder()
+                            .sessionId(UUID.randomUUID().toString())
+                            .userId(userId)
+                            .startTime(pipelineStart)
+                            .userProfile(profile)
+                            .candidates(candidates)
+                            .analyzedCourses(analyzed)
+                            .learningPathPlan(pathPlan)
+                            .criticReport(criticReport)
+                            .passedCritic(Boolean.TRUE.equals(criticReport.getPassed()))
+                            .recommendations(recs)
+                            .build();
+                    evalService.recordPipelineExecution(streamCtx);
+                } catch (Exception evalEx) {
+                    log.warn("[StreamOrchestrator] 记录评测快照异常: {}", evalEx.getMessage());
+                }
+
                 Map<String, Object> finalPayload = new HashMap<>();
                 finalPayload.put("recommendations", recs);
                 finalPayload.put("learningPath", pathPlan);

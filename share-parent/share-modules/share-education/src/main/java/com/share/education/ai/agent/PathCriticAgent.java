@@ -39,6 +39,10 @@ public class PathCriticAgent {
                 .prerequisiteScore(50)
                 .smoothnessScore(40)
                 .balanceScore(30)
+                .topologyValid(false)
+                .cognitiveContinuityScore(40)
+                .phaseBalanceScore(30)
+                .summary("规划内容为空，无可用进阶阶段")
                 .verdictLevel("待修正 (C)")
                 .critiqueNotes(List.of("规划内容为空，无可用进阶阶段"))
                 .detectedAnomalies(List.of("路径阶段未有效生成"))
@@ -91,11 +95,41 @@ public class PathCriticAgent {
             .prerequisiteScore(prereqScore)
             .smoothnessScore(smoothnessScore)
             .balanceScore(balanceScore)
+            .topologyValid(prereqScore >= 80)
+            .cognitiveContinuityScore(smoothnessScore)
+            .phaseBalanceScore(balanceScore)
+            .summary(critiqueNotes != null && !critiqueNotes.isEmpty() ? String.join("；", critiqueNotes) : "审判质检完成")
             .verdictLevel(verdictLevel)
             .critiqueNotes(critiqueNotes)
             .detectedAnomalies(anomalies)
             .refinementDirectives(directives)
             .build();
+    }
+
+    private static final List<String> ADVANCED_KEYWORDS = List.of(
+        "微服务", "架构", "调优", "源码", "底层", "高级", "高并发", "进阶", "实战", "深入", "内核", "expert", "advanced", "tuning"
+    );
+
+    private static final List<String> FOUNDATIONAL_KEYWORDS = List.of(
+        "基础", "入门", "从零", "速通", "核心", "原理", "语法", "规范", "basic", "intro"
+    );
+
+    private boolean isAdvancedCourseName(String name) {
+        if (name == null) return false;
+        String lower = name.toLowerCase();
+        for (String kw : ADVANCED_KEYWORDS) {
+            if (lower.contains(kw)) return true;
+        }
+        return false;
+    }
+
+    private boolean isFoundationalCourseName(String name) {
+        if (name == null) return false;
+        String lower = name.toLowerCase();
+        for (String kw : FOUNDATIONAL_KEYWORDS) {
+            if (lower.contains(kw)) return true;
+        }
+        return false;
     }
 
     /**
@@ -108,14 +142,17 @@ public class PathCriticAgent {
         int score = 100;
         List<PathStageVO> stages = plan.getStages();
 
-        // 建立课程 ID 到其所处阶段索引 (0-based) 的映射
+        // 建立课程对象与所处阶段索引的映射
         Map<String, Integer> courseNameToStage = new HashMap<>();
+        Map<String, AnalyzedCourseVO> courseNameToObj = new HashMap<>();
         for (int i = 0; i < stages.size(); i++) {
             PathStageVO stage = stages.get(i);
             if (stage.getCourses() == null) continue;
             for (AnalyzedCourseVO c : stage.getCourses()) {
                 if (c.getCourseName() != null) {
-                    courseNameToStage.put(c.getCourseName().toLowerCase(), i);
+                    String normName = c.getCourseName().toLowerCase();
+                    courseNameToStage.put(normName, i);
+                    courseNameToObj.put(normName, c);
                 }
             }
         }
@@ -129,19 +166,38 @@ public class PathCriticAgent {
                 List<String> prereqs = c.getPrerequisiteSkills();
                 if (prereqs == null) continue;
 
+                int cDiff = c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2;
+
                 for (String req : prereqs) {
                     if (!StringUtils.hasText(req)) continue;
-                    String reqKey = req.toLowerCase();
+                    String reqKey = req.toLowerCase().trim();
 
                     // 检查先修课程是否被错误放置在后续阶段
                     for (Map.Entry<String, Integer> entry : courseNameToStage.entrySet()) {
-                        if (entry.getKey().contains(reqKey) || reqKey.contains(entry.getKey())) {
-                            int prereqStageIdx = entry.getValue();
-                            if (prereqStageIdx > i) {
-                                // 发现先修倒置！
+                        String targetCourseName = entry.getKey();
+                        int prereqStageIdx = entry.getValue();
+                        AnalyzedCourseVO targetCourse = courseNameToObj.get(targetCourseName);
+
+                        if (prereqStageIdx > i && targetCourse != null) {
+                            // 难度更高的后续课程绝不作为前置先修
+                            int targetDiff = targetCourse.getDifficultyLevel() != null ? targetCourse.getDifficultyLevel() : 2;
+                            if (targetDiff > cDiff) {
+                                continue;
+                            }
+
+                            // 排除高级/高阶课程被误判为基础先修的情况
+                            if (isAdvancedCourseName(targetCourseName) && !isAdvancedCourseName(reqKey)) {
+                                continue;
+                            }
+
+                            // 精确匹配或具有明确基础/先修特征的课程匹配
+                            boolean isMatch = reqKey.contains(targetCourseName)
+                                || (targetCourseName.contains(reqKey) && isFoundationalCourseName(targetCourseName));
+
+                            if (isMatch) {
                                 inversions++;
                                 String anomalyMsg = String.format("先修倒置：课程《%s》(阶段%d) 的前置知识《%s》被错误放置在后续阶段(阶段%d)",
-                                    c.getCourseName(), i + 1, entry.getKey(), prereqStageIdx + 1);
+                                    c.getCourseName(), i + 1, targetCourse.getCourseName(), prereqStageIdx + 1);
                                 anomalies.add(anomalyMsg);
                             }
                         }

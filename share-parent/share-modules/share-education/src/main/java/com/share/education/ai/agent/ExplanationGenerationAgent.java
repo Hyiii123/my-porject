@@ -78,6 +78,11 @@ public class ExplanationGenerationAgent {
                     .skillGapFilled(skillGapFilled)
                     .prerequisiteSkills(ac.getPrerequisiteSkills())
                     .evidencePaths(ac.getEvidencePaths() != null ? ac.getEvidencePaths() : Collections.emptyList())
+                    .bloomLevel(ac.getBloomLevel())
+                    .bloomName(ac.getBloomName())
+                    .bloomLevelName(ac.getBloomName())
+                    .isCapstone(ac.getIsCapstone())
+                    .capstoneProject(ac.getIsCapstone())
                     .build());
 
                 if (result.size() >= limit) {

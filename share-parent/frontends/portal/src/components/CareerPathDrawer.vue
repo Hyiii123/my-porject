@@ -58,23 +58,23 @@
         <div class="critic-metrics-grid">
           <div class="c-metric">
             <span class="c-lbl">拓扑合法性:</span>
-            <span class="c-val" :class="pathData.criticReport.topologyValid ? 'text-success' : 'text-danger'">
-              {{ pathData.criticReport.topologyValid ? '✅ Kahn DAG 无环/无依赖倒置' : '❌ 存在先修依赖倒置' }}
+            <span class="c-val" :class="(pathData.criticReport.topologyValid != null ? pathData.criticReport.topologyValid : (pathData.criticReport.prerequisiteScore >= 80)) ? 'text-success' : 'text-danger'">
+              {{ (pathData.criticReport.topologyValid != null ? pathData.criticReport.topologyValid : (pathData.criticReport.prerequisiteScore >= 80)) ? '✅ Kahn DAG 无环/无依赖倒置' : '❌ 存在先修依赖倒置' }}
             </span>
           </div>
           <div class="c-metric">
             <span class="c-lbl">认知平滑度:</span>
-            <span class="c-val text-primary">{{ pathData.criticReport.cognitiveContinuityScore != null ? pathData.criticReport.cognitiveContinuityScore : 100 }} 分 (无认知悬崖)</span>
+            <span class="c-val text-primary">{{ pathData.criticReport.cognitiveContinuityScore != null ? pathData.criticReport.cognitiveContinuityScore : (pathData.criticReport.smoothnessScore != null ? pathData.criticReport.smoothnessScore : 100) }} 分 (无认知悬崖)</span>
           </div>
           <div class="c-metric">
             <span class="c-lbl">阶段均衡性:</span>
-            <span class="c-val text-info">{{ pathData.criticReport.phaseBalanceScore != null ? pathData.criticReport.phaseBalanceScore : 100 }} 分 (容量均衡)</span>
+            <span class="c-val text-info">{{ pathData.criticReport.phaseBalanceScore != null ? pathData.criticReport.phaseBalanceScore : (pathData.criticReport.balanceScore != null ? pathData.criticReport.balanceScore : 100) }} 分 (容量均衡)</span>
           </div>
         </div>
 
-        <div class="critic-summary" v-if="pathData.criticReport.summary">
+        <div class="critic-summary" v-if="pathData.criticReport.summary || (pathData.criticReport.critiqueNotes && pathData.criticReport.critiqueNotes.length)">
           <span class="sum-icon">📝</span>
-          <span class="sum-text">{{ pathData.criticReport.summary }}</span>
+          <span class="sum-text">{{ pathData.criticReport.summary || pathData.criticReport.critiqueNotes.join('；') }}</span>
         </div>
       </div>
 
@@ -108,10 +108,10 @@
               <div class="item-header">
                 <div class="course-name-wrap">
                   <span class="course-name" :title="course.courseName">📘 {{ course.courseName }}</span>
-                  <span class="capstone-badge" v-if="course.capstoneProject">🏆 Capstone 综合实战</span>
+                  <span class="capstone-badge" v-if="course.capstoneProject || course.isCapstone">🏆 Capstone 综合实战</span>
                 </div>
                 <div class="header-tags-wrap">
-                  <span class="bloom-tag" v-if="course.bloomLevelName">🎓 {{ course.bloomLevelName }}</span>
+                  <span class="bloom-tag" v-if="course.bloomLevelName || course.bloomName">🎓 {{ course.bloomLevelName || course.bloomName }}</span>
                   <span class="difficulty-chip" :class="course.difficultyLevel === 3 ? 'diff-high' : 'diff-mid'">
                     {{ course.difficultyAssessment || (course.difficultyLevel === 3 ? '高级攻坚' : '核心进阶') }}
                   </span>

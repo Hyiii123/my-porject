@@ -56,6 +56,12 @@ public class AnalyzedCourseVO {
     /** 布鲁姆认知中文分级 (如 "工程应用级", "架构调优级") */
     private String bloomName;
 
+    /** 前端兼容别名 */
+    private String bloomLevelName;
+
     /** 是否包含工业级 Capstone 综合实战大项目 */
     private Boolean isCapstone;
+
+    /** 前端兼容别名 */
+    private Boolean capstoneProject;
 }

@@ -119,7 +119,9 @@ public class CourseAnalysisAgent {
                 .evidencePaths(c.getEvidencePaths() != null ? c.getEvidencePaths() : List.of())
                 .bloomLevel(bloom.level)
                 .bloomName(bloom.name)
+                .bloomLevelName(bloom.name)
                 .isCapstone(isCapstone)
+                .capstoneProject(isCapstone)
                 .build());
         }
 

@@ -166,7 +166,7 @@
             >
               <div class="chip-index">PHASE 0{{ stg.stageIndex || sIdx + 1 }}</div>
               <div class="chip-name">{{ stg.stageName }}</div>
-              <div class="chip-stat">{{ (stg.courses || []).length }} 门课程 · {{ stg.stageHours || 40 }}h</div>
+              <div class="chip-stat">{{ (stg.courses || []).length }} 门课程 · {{ stg.estimatedHours || stg.stageHours || 40 }}h</div>
               <span class="chip-arrow" v-if="sIdx < deliveryResult.learningPath.stages.length - 1">➔</span>
             </div>
           </div>
@@ -190,8 +190,8 @@
                 <span class="mini-score">{{ c.matchScore || 95 }}% 契合</span>
               </div>
               <div class="mini-tags">
-                <span class="mini-tag bloom" v-if="c.bloomLevelName">{{ c.bloomLevelName }}</span>
-                <span class="mini-tag capstone" v-if="c.capstoneProject">🏆 实战项目</span>
+                <span class="mini-tag bloom" v-if="c.bloomLevelName || c.bloomName">{{ c.bloomLevelName || c.bloomName }}</span>
+                <span class="mini-tag capstone" v-if="c.capstoneProject || c.isCapstone">🏆 实战项目</span>
               </div>
               <div class="mini-reason" :title="c.recommendReason">
                 💡 {{ c.recommendReason }}

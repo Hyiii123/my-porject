@@ -195,25 +195,28 @@ public class ActiveProbingAgent {
         String roleChoice = probeAnswers.get("probe_target_role");
         if (StringUtils.hasText(roleChoice)) {
             switch (roleChoice) {
-                case "java_architect" -> {
+                case "java_architect", "Java全栈架构师" -> {
                     targetRole = "Java全栈架构师";
                     skills.putAll(Map.of("Java", 80, "SpringBoot", 75, "MySQL", 70, "Redis", 70, "微服务", 65));
                 }
-                case "llm_agent_engineer" -> {
+                case "llm_agent_engineer", "大语言模型应用工程师" -> {
                     targetRole = "大语言模型应用工程师";
                     skills.putAll(Map.of("Python", 80, "大模型", 85, "RAG", 75, "LangChain", 70));
                 }
-                case "cloud_native_go" -> {
+                case "cloud_native_go", "Go云原生架构师" -> {
                     targetRole = "Go云原生架构师";
                     skills.putAll(Map.of("Go", 80, "Docker", 80, "K8s", 75, "Linux", 75));
                 }
-                case "frontend_expert" -> {
+                case "frontend_expert", "前端技术专家" -> {
                     targetRole = "前端技术专家";
                     skills.putAll(Map.of("Vue3", 85, "TypeScript", 80, "JavaScript", 80, "前端工程化", 75));
                 }
-                case "big_data_engineer" -> {
+                case "big_data_engineer", "大数据开发工程师" -> {
                     targetRole = "大数据开发工程师";
                     skills.putAll(Map.of("Java", 70, "Python", 70, "SQL", 80, "Flink", 75));
+                }
+                default -> {
+                    targetRole = roleChoice;
                 }
             }
         }
