@@ -23,18 +23,24 @@ def load_model():
 def health():
     return {"status": "ok", "collection": COLLECTION_NAME}
 
+from typing import Optional
+
 class EmbedRequest(BaseModel):
     text: str
+
+class SearchRequest(BaseModel):
+    query: Optional[str] = None
+    q: Optional[str] = None
+    limit: Optional[int] = 3
 
 @app.post("/embed")
 def embed(req: EmbedRequest):
     vec = list(model.embed([req.text]))[0]
     return {"vector": [round(float(v), 6) for v in vec]}
 
-@app.get("/search")
-def search(q: str = Query(..., description="Query text"), limit: int = 3):
+def execute_search(text: str, limit: int = 3):
     from urllib.parse import unquote
-    clean_q = unquote(q).strip()
+    clean_q = unquote(text).strip()
     while "%" in clean_q:
         new_q = unquote(clean_q)
         if new_q == clean_q:
@@ -73,3 +79,12 @@ def search(q: str = Query(..., description="Query text"), limit: int = 3):
     except Exception as e:
         print(f"Error querying Qdrant: {e}")
     return {"hits": []}
+
+@app.get("/search")
+def search(q: str = Query(..., description="Query text"), limit: int = 3):
+    return execute_search(q, limit)
+
+@app.post("/search")
+def search_post(req: SearchRequest):
+    text = req.query or req.q or ""
+    return execute_search(text, req.limit or 3)

@@ -362,12 +362,28 @@ public class UserResumeServiceImpl implements IUserResumeService {
         StringBuilder sb = new StringBuilder();
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(bytes))) {
             ZipEntry entry;
+            int entryCount = 0;
+            long totalUncompressedSize = 0;
+            // 限制最大解压体积：输入体积的100倍，且硬上限不超过 20MB
+            long maxAllowedSize = Math.min(Math.max((long) bytes.length * 100L, 10 * 1024 * 1024L), 20 * 1024 * 1024L);
             while ((entry = zis.getNextEntry()) != null) {
-                if ("word/document.xml".equalsIgnoreCase(entry.getName())) {
+                entryCount++;
+                if (entryCount > 1000) {
+                    throw new ServiceException("ZIP压缩包条目过多（超过1000条），可能存在解压炸弹攻击风险");
+                }
+                String entryName = entry.getName();
+                if (entryName != null && entryName.contains("..")) {
+                    continue; // 抵御 Zip Slip 路径穿越
+                }
+                if ("word/document.xml".equalsIgnoreCase(entryName)) {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     byte[] buffer = new byte[4096];
                     int len;
                     while ((len = zis.read(buffer)) != -1) {
+                        totalUncompressedSize += len;
+                        if (totalUncompressedSize > maxAllowedSize) {
+                            throw new ServiceException("文档解压后体积异常膨胀，拒绝处理以防内存耗尽（Zip Bomb）");
+                        }
                         baos.write(buffer, 0, len);
                     }
                     String xml = baos.toString(StandardCharsets.UTF_8);
@@ -387,6 +403,8 @@ public class UserResumeServiceImpl implements IUserResumeService {
                     break;
                 }
             }
+        } catch (ServiceException se) {
+            throw se;
         } catch (Exception ex) {
             log.warn("解析 Word document.xml 异常: {}", ex.getMessage());
         }
@@ -992,7 +1010,19 @@ public class UserResumeServiceImpl implements IUserResumeService {
     }
 
     private CustomerAiConfig effectiveAiConfig() {
-        CustomerAiConfig config = aiConfigMapper.selectById(CONFIG_ID);
+        CustomerAiConfig config = aiConfigMapper.selectOne(
+                new LambdaQueryWrapper<CustomerAiConfig>()
+                        .eq(CustomerAiConfig::getEnabled, 1)
+                        .orderByDesc(CustomerAiConfig::getUpdateTime)
+                        .last("LIMIT 1")
+        );
+        if (config == null) {
+            config = aiConfigMapper.selectOne(
+                    new LambdaQueryWrapper<CustomerAiConfig>()
+                            .orderByDesc(CustomerAiConfig::getUpdateTime)
+                            .last("LIMIT 1")
+            );
+        }
         if (config != null) {
             return config;
         }
@@ -1022,7 +1052,10 @@ public class UserResumeServiceImpl implements IUserResumeService {
 
     private Long currentUserId() {
         Long id = SecurityUtils.getUserId();
-        return id != null && id > 0 ? id : 1L;
+        if (id == null || id <= 0) {
+            throw new ServiceException("请先登录后再进行操作");
+        }
+        return id;
     }
 
     private String currentUserName() {

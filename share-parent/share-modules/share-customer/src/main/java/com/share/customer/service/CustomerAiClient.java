@@ -32,7 +32,6 @@ import org.springframework.web.client.RestTemplate;
 public class CustomerAiClient {
     private static final Logger log = LoggerFactory.getLogger(CustomerAiClient.class);
     private static final String SECRET_KEY = "customer:ai:secret";
-    private static final String ALLOWED_HOST = "api.ai-pixel.online";
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -340,13 +339,33 @@ public class CustomerAiClient {
         return normalized.isBlank() ? null : normalized;
     }
 
+    private boolean isHostAllowed(String host) {
+        if (host == null || host.isBlank()) {
+            return false;
+        }
+        String configured = properties.getAllowedHosts();
+        if (configured == null || configured.isBlank() || "*".equals(configured.trim())) {
+            return true;
+        }
+        for (String allowed : configured.split(",")) {
+            String trimmed = allowed.trim();
+            if (trimmed.equalsIgnoreCase(host) || host.endsWith("." + trimmed)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private String buildUrl(String baseUrl, String endpointPath) {
         try {
             URI base = URI.create(baseUrl == null ? "" : baseUrl.trim());
+            String scheme = base.getScheme();
+            if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme)) {
+                return null;
+            }
             String host = base.getHost();
-            if (!"https".equalsIgnoreCase(base.getScheme())
-                    || host == null
-                    || (!host.equalsIgnoreCase("ai-pixel.online") && !host.equalsIgnoreCase("api.ai-pixel.online"))) {
+            if (!isHostAllowed(host)) {
+                log.warn("AI 目标域名 {} 不在允许的白名单列表中: {}", host, properties.getAllowedHosts());
                 return null;
             }
             String path = endpointPath == null ? "" : endpointPath.trim();

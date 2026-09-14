@@ -25,6 +25,9 @@ import com.share.customer.mapper.InterviewReportMapper;
 import com.share.customer.mapper.InterviewSessionMapper;
 import com.share.customer.mapper.InterviewTurnMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -870,8 +873,18 @@ public class InterviewServiceImpl implements IInterviewService {
             return null;
         }
         try {
-            String url = EMBEDDING_SERVICE_URL + "?q={q}&limit={limit}";
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class, query.trim(), 1);
+            String cleanQuery = query.trim();
+            if (cleanQuery.length() > 500) {
+                cleanQuery = cleanQuery.substring(0, 500);
+            }
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            Map<String, Object> reqBody = new HashMap<>();
+            reqBody.put("query", cleanQuery);
+            reqBody.put("limit", 1);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(reqBody, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(EMBEDDING_SERVICE_URL, entity, String.class);
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 JsonNode root = objectMapper.readTree(response.getBody());
                 JsonNode hits = root.path("hits");
@@ -908,7 +921,19 @@ public class InterviewServiceImpl implements IInterviewService {
     }
 
     private CustomerAiConfig effectiveAiConfig() {
-        CustomerAiConfig config = aiConfigMapper.selectById(CONFIG_ID);
+        CustomerAiConfig config = aiConfigMapper.selectOne(
+                new LambdaQueryWrapper<CustomerAiConfig>()
+                        .eq(CustomerAiConfig::getEnabled, 1)
+                        .orderByDesc(CustomerAiConfig::getUpdateTime)
+                        .last("LIMIT 1")
+        );
+        if (config == null) {
+            config = aiConfigMapper.selectOne(
+                    new LambdaQueryWrapper<CustomerAiConfig>()
+                            .orderByDesc(CustomerAiConfig::getUpdateTime)
+                            .last("LIMIT 1")
+            );
+        }
         if (config != null) {
             return config;
         }
@@ -958,14 +983,17 @@ public class InterviewServiceImpl implements IInterviewService {
 
     private void assertOwner(InterviewSession session) {
         Long current = currentUserId();
-        if (current != null && session.getUserId() != null && !current.equals(session.getUserId())) {
+        if (session == null || session.getUserId() == null || !current.equals(session.getUserId())) {
             throw new ServiceException("无权访问该面试场次");
         }
     }
 
     private Long currentUserId() {
         Long id = SecurityUtils.getUserId();
-        return id != null && id > 0 ? id : 1L;
+        if (id == null || id <= 0) {
+            throw new ServiceException("请先登录后再进行操作");
+        }
+        return id;
     }
 
     private String currentUserName() {

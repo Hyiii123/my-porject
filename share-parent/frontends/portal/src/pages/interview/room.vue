@@ -389,7 +389,12 @@ const isCompleted = computed(() => sessionData.value.status === 2 || sessionData
 const isTerminated = computed(() => sessionData.value.status === 3)
 
 const goToReport = () => {
-  router.push({ name: 'interviewReport', params: { id: sessionId } })
+  const targetId = sessionId || (sessionData.value && sessionData.value.id)
+  if (!targetId) {
+    ElMessage.warning('面试场次信息缺失，无法跳转报告')
+    return
+  }
+  router.push(`/interview/report/${targetId}`)
 }
 
 const getPersonaMeta = computed(() => {
@@ -643,7 +648,7 @@ const handleFinishInterview = () => {
       const res = await finishInterview(sessionId)
       if (res && res.data) {
         ElMessage.success('终局报告已生成！')
-        router.push({ name: 'interviewReport', params: { id: sessionId } })
+        goToReport()
       }
     } catch (err) {
       ElMessage.error('交卷异常：' + (err.message || '网络错误'))

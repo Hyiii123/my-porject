@@ -51,6 +51,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.net.URLEncoder;
@@ -548,14 +551,16 @@ public class CustomerService {
     @Transactional
     public CustomerAiConfigView saveAiConfig(AiConfigRequest request) {
         validatePixelAddress(request.getBaseUrl(), request.getEndpointPath());
-        CustomerAiConfig config = aiConfigMapper.selectById(CONFIG_ID);
-        if (config == null) {
+        CustomerAiConfig config = effectiveAiConfig();
+        boolean isNew = false;
+        if (config == null || config.getId() == null || aiConfigMapper.selectById(config.getId()) == null) {
             config = new CustomerAiConfig();
             config.setId(CONFIG_ID);
             config.setProvider("pixel");
             config.setCreateTime(LocalDateTime.now());
             config.setCreateBy(currentUserId());
             config.setVersion(0);
+            isNew = true;
         }
         config.setProvider("pixel");
         config.setBaseUrl(request.getBaseUrl().trim());
@@ -577,7 +582,7 @@ public class CustomerService {
         if (config.getCreateTime() == null) {
             config.setCreateTime(LocalDateTime.now());
         }
-        if (config.getId().equals(CONFIG_ID) && aiConfigMapper.selectById(CONFIG_ID) == null) {
+        if (isNew) {
             aiConfigMapper.insert(config);
         } else {
             aiConfigMapper.updateById(config);
@@ -733,9 +738,19 @@ public class CustomerService {
             return null;
         }
         try {
-            String url = EMBEDDING_SERVICE_URL + "?q={q}&limit={limit}";
-            org.springframework.http.ResponseEntity<String> response = restTemplate.getForEntity(
-                    url, String.class, input.trim(), 1);
+            String cleanQuery = input.trim();
+            if (cleanQuery.length() > 500) {
+                cleanQuery = cleanQuery.substring(0, 500);
+            }
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            Map<String, Object> reqBody = new HashMap<>();
+            reqBody.put("query", cleanQuery);
+            reqBody.put("limit", 1);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(reqBody, headers);
+
+            org.springframework.http.ResponseEntity<String> response = restTemplate.postForEntity(
+                    EMBEDDING_SERVICE_URL, entity, String.class);
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 JsonNode root = objectMapper.readTree(response.getBody());
                 JsonNode hits = root.path("hits");
@@ -802,7 +817,19 @@ public class CustomerService {
     }
 
     private CustomerAiConfig effectiveAiConfig() {
-        CustomerAiConfig config = aiConfigMapper.selectById(CONFIG_ID);
+        CustomerAiConfig config = aiConfigMapper.selectOne(
+                new LambdaQueryWrapper<CustomerAiConfig>()
+                        .eq(CustomerAiConfig::getEnabled, 1)
+                        .orderByDesc(CustomerAiConfig::getUpdateTime)
+                        .last("LIMIT 1")
+        );
+        if (config == null) {
+            config = aiConfigMapper.selectOne(
+                    new LambdaQueryWrapper<CustomerAiConfig>()
+                            .orderByDesc(CustomerAiConfig::getUpdateTime)
+                            .last("LIMIT 1")
+            );
+        }
         if (config != null) {
             return config;
         }
@@ -830,7 +857,15 @@ public class CustomerService {
         }
         // 若 Redis 缓存为空，尝试从持久化数据库解密恢复
         try {
-            CustomerAiConfig config = aiConfigMapper.selectById(CONFIG_ID);
+            CustomerAiConfig config = aiConfigMapper.selectOne(
+                    new LambdaQueryWrapper<CustomerAiConfig>()
+                            .eq(CustomerAiConfig::getEnabled, 1)
+                            .orderByDesc(CustomerAiConfig::getUpdateTime)
+                            .last("LIMIT 1")
+            );
+            if (config == null) {
+                config = aiConfigMapper.selectById(CONFIG_ID);
+            }
             if (config != null && StringUtils.hasText(config.getApiKeyCiphertext())) {
                 String decrypted = AesCryptoUtil.decrypt(config.getApiKeyCiphertext());
                 if (StringUtils.hasText(decrypted)) {
@@ -878,13 +913,32 @@ public class CustomerService {
     }
 
     private void validatePixelAddress(String baseUrl, String endpointPath) {
+        if (!StringUtils.hasText(baseUrl)) {
+            throw new ServiceException("AI 地址不能为空");
+        }
         try {
             URI uri = URI.create(baseUrl.trim());
+            String scheme = uri.getScheme();
+            if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme)) {
+                throw new ServiceException("AI 地址必须使用 http 或 https 协议");
+            }
             String host = uri.getHost();
-            if (!"https".equalsIgnoreCase(uri.getScheme())
-                    || host == null
-                    || (!"ai-pixel.online".equalsIgnoreCase(host) && !"api.ai-pixel.online".equalsIgnoreCase(host))) {
-                throw new ServiceException("AI 地址必须使用 https://ai-pixel.online 第三方服务");
+            if (host == null || host.isBlank()) {
+                throw new ServiceException("AI 域名不能为空");
+            }
+            String allowed = aiProperties.getAllowedHosts();
+            if (allowed != null && !allowed.isBlank() && !"*".equals(allowed.trim())) {
+                boolean match = false;
+                for (String h : allowed.split(",")) {
+                    String trimmed = h.trim();
+                    if (trimmed.equalsIgnoreCase(host) || host.endsWith("." + trimmed)) {
+                        match = true;
+                        break;
+                    }
+                }
+                if (!match) {
+                    throw new ServiceException("AI 地址域名不在系统允许的白名单范围内: " + host);
+                }
             }
         } catch (IllegalArgumentException ex) {
             throw new ServiceException("AI 地址格式不正确");

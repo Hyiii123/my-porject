@@ -220,7 +220,7 @@ import { getInterviewDetail } from '@/api/interview.js'
 
 const route = useRoute()
 const router = useRouter()
-const sessionId = route.params.id
+const sessionId = route.params.id || route.query.id
 
 const loading = ref(true)
 const sessionData = ref({})

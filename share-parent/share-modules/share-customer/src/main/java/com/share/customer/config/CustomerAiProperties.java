@@ -25,5 +25,8 @@ public class CustomerAiProperties {
 
     private int maxRetries = 1;
 
+    /** 允许访问的 AI Host 白名单，多个用逗号隔开；若包含 * 或为空则放行所有合法 http/https 域名 */
+    private String allowedHosts = "ai-pixel.online,api.ai-pixel.online,api.openai.com,api.deepseek.com,dashscope.aliyuncs.com,api.moonshot.cn,zhiwen-llm,127.0.0.1,localhost";
+
     private String systemPrompt = "你是智问学伴的在线客服，请使用简洁、友好、准确的中文回答学习平台用户的问题；不确定时请明确说明，不要编造订单或账号信息。";
 }
