@@ -862,3 +862,50 @@
      - 本地 JDK 17 打包生成最新 `share-education.jar` 并热更新云端 `tianji-education` 容器；
      - 依据规则 8 严格执行定向范围测试：实测冷启动访客请求（134ms 响应）、认证学员 User 201（AI开发工程师，837ms 端到端全智能体执行完毕并精准召回 PySpark 与分布式机器学习流水线课程）、网关 `/cs/courses/recommendations/personalized?limit=6`（326ms）与学习路径规划大屏接口（199ms）；
      - 执行容灾逃生测试：人为关停 `tianji-recommend` 容器并清空缓存，Java 智能体集群 100% 毫秒级无感降级至本地混合特征引擎，返回 HTTP 200，随后无缝恢复容器，达成零宕机高可用保障。
+
+### 2026-09-14 18:15:00 - AI 全真模拟面试板块 38 项深层 Bug 系统性大排查与彻底修复：覆盖八股防重、代码沙箱自愈、并发防重、Snowflake 精度保全、Web Speech / TTS 弹性心跳与全维雷达图
+
+* **核心成果**：
+  1. **考题推进与状态机闭环治理 (Bug 1 - 9)**：
+     - **Bug 1 & 2**：`submitCode` 接口修复，代码题评测后自动触发状态机推进（`advanceTurnOrFinish`），并在 `currentTurn >= totalTurns` 时自动触发考场收卷生成终局报告，彻底杜绝代码题答完后考场悬挂、卡死无法交卷的缺陷；
+     - **Bug 3**：`submitAnswer` 引入原子级条件更新（`isNull(InterviewTurn::getUserAnswer)`），从底层阻断用户快速连击、网络抖动重发导致的重复答题与并发重复生成下一轮考题；
+     - **Bug 4 & 5**：`advanceTurnOrFinish` 中对 `currentTurnNum` 增加空指针防御；`startSession` 强制将总题数安全收敛在 `[5, 30]`（默认 20 题），防止极端传参导致状态机崩溃；
+     - **Bug 6**：`submitAnswer` 增加候选人答题文本非空校验与去除首尾空白，防空字符串污染评审；
+     - **Bug 7 & 8**：`finishSession` 对面试总耗时实施 `Math.max(0, Duration)` 非负数防御；折算比例从遗留的 6 题基数校准为计划总题数（默认 20 题）；
+     - **Bug 9**：`terminateSession` 主动终止面试时同步结算并写入实际考核耗时 `durationSeconds`。
+  2. **知识库联动、赛道模块与题库防重治理 (Bug 10 - 14, Bug 22 - 24)**：
+     - **Bug 10**：`listMySessions` 会话列表接口彻底消除 N+1 慢 SQL 查询，采用 `in(InterviewReport::getSessionId, sessionIds)` 批量关联报告数据；
+     - **Bug 11**：排查并消除了 C++、Go、测试赛道在 `resolveXiaolinCategory` 中重复声明同一核心模块名称的缺陷，确保八大技术赛道各自具备 10 个完全独立的专业模块；
+     - **Bug 12**：基础八股模块索引取模算法修正为 `((fundamentalIndex - 1) % 10) + 1`，彻底解决题数超过 10 题时索引溢出导致模块匹配失败的异常；
+     - **Bug 13**：`resolveXiaolinFundamentalQuestion` 建立全局考题去重机制，显式排除本场面试已考知识点 ID（`usedKnowledgeIds`）与历史题干（`usedQuestions`），彻底杜绝重复出题；
+     - **Bug 14**：项目深挖阶段对注入大模型 Prompt 的简历摘要实施 1500 字符安全截断，防止超长 Token 触发阿里云模型接口 8 秒读取超时；
+     - **Bug 22**：`submitAnswer` 在匹配参考答案时，优先锁定本轮预绑定的 `matchedKnowledgeId`，严禁使用学员回答的模糊检索结果覆盖八股权威标准答案；
+     - **Bug 23**：`advanceTurnOrFinish` 中项目深挖题序号改为动态计算 `Math.max(1, nextTurnNum - stage2End)`，消除 6 题或 10 题短会话中出现负数题号的隐患；
+     - **Bug 24**：`detectJobTrack` 赛道探测算法将 AI/LLM/算法关键字优先级前置，防止因简历中出现通用 `python` 单词被误判为后端开发。
+  3. **文本清洗、大模型解析与容灾兜底 (Bug 15 - 21)**：
+     - **Bug 15**：`extractJson` 算法升级，支持精准过滤大模型在 JSON 尾部附带的 Markdown 尾注与不闭合代码块；
+     - **Bug 16**：启发式评分算法升级，精准识别候选人“不知道、不会、跳过、pass”等弃权性短回答并判 0 分，同时杜绝误判含有“不会发生死锁”等真实技术阐述的长文本；
+     - **Bug 17**：`generateFinalReport` 增强对大模型返回的 `radarData` 与 `recommendedCourses` 的容错解析，兼容结构化 JSON 对象与二次转义字符串；
+     - **Bug 18**：`searchSemanticKnowledge` 独立配置专属快速超时（Connect 1500ms / Read 2000ms），避免知识库抖动拖死面试出题主线程；
+     - **Bug 19**：`cleanAiText` 全面清理 AI 输出文本中的中文首尾引号（`“”‘’`）以及 `面试官：`、`考官：`、`Q:` 等冗余前缀；
+     - **Bug 20 & 21**：引入 `safeTruncate` 工具方法，在落库前强制约束考题考核维度（`dimension <= 64` 字符）与题干文本（`question <= 1000` 字符），根治 MySQL Data truncation 异常。
+  4. **简历画像与智能打分基准治理 (Bug 25 - 26)**：
+     - **Bug 25**：`UserResumeServiceImpl` 根治零项目、零技术标签的空白/无关简历仍能获得 60 分及格虚高分数的缺陷，真实给予 30 分并亮红警示；
+     - **Bug 26**：`saveResume` 新建或保存简历时立即触发即时技术标签提取与基准打分，确保进入面试大厅后能即时读取匹配度，无需学员手动触发 AI 深度分析。
+  5. **前端交互、音视频流与浏览器内核深度适配 (Bug 27 - 38)**：
+     - **Bug 27**：`room.vue` 显式维护 `virtualAudioInterval`，并在 `onBeforeUnmount` 钩子中彻底清理虚拟音频模拟定时器；
+     - **Bug 28**：在组件卸载时主动调用 `candidateStream._stopVirtualAnimation?.()`，注销虚拟全息摄像头 canvas 动画渲染循环；
+     - **Bug 29**：Web Speech STT 在 `recognition.onend` 中增加 250ms 延时平滑重连机制，彻底根治 Chromium 内核下同步立即调用 `start()` 抛出的 `InvalidStateError`；
+     - **Bug 30**：移除 `handleSubmitAnswer` 中针对 `sessionId` 的 `Number()` 强转，直接以字符串传输，杜绝 JavaScript IEEE 754 浮点数截断 64-bit Snowflake 唯一雪花 ID；
+     - **Bug 31**：`toggleCamera` 在硬件无可用视频轨道时给出清晰的用户友好警告；
+     - **Bug 32**：针对 Chromium Web Speech API 朗读超长文本在 15 秒后静默暂停的内核 Bug，引入 10 秒心跳自动 `pause() / resume()` 维持管线活性；
+     - **Bug 33**：`loadSession` 保护学员考场正在累积的时钟秒数，严禁答题推进时被服务端的 0 或未落库时间重置学员倒计时；
+     - **Bug 34**：新增 `interimTranscript` 实时未定稿语音字幕直出渲染，学员在开口口述时即时看到字词反馈，体验大幅提升；
+     - **Bug 35**：`room.vue`、`report.vue`、`index.vue` 全面补全 `res && res.code === 200` 显式校验与 `ElMessage.error` 容灾提示；
+     - **Bug 36**：`report.vue` 雷达图分数计算（`radarScores`）引入多别名字段映射（`arch`、`systemDesign`、`db`、`dist`、`algorithm` 等），彻底防止模型字段微调导致雷达图回退为 0 或 NaN；
+     - **Bug 37**：`report.vue` 中对 STAR 答题话术示范文本实施字面量 `\n` 正则替换，确保段落格式清晰规范分行渲染；
+     - **Bug 38**：`index.vue` 在开启面试前针对虚拟全息摄像头环境强制写入 `interview_camera_simulation` 标记，确保考场无缝平滑连线免弹窗报错。
+  6. **云端生产极速热发布与全流程定向自动化回归验证**：
+     - 严格遵循发布铁律与云盘保护准则，本地打出 `share-customer.jar` 与 `portal/dist` 纯静态产物，通过 Workbench CLI 快速上传并在云端实施秒级热重载，达成服务器零构建、零云盘 IOPS 冲击；
+     - 执行 `.scratch/test_interview_flow.py` 定向测试，全流程验证 20 题考场建立、第一题自我介绍作答与评分、第二题小林八股深挖与知识库挂载、第三题下一独立模块平滑推进、交卷与多维专家报告生成（六维雷达图与 STAR 话术）、以及学生端 Portal UI（HTTP 200），100% 满分通过。
+

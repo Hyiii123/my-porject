@@ -360,9 +360,9 @@
             </div>
 
             <!-- 实时语音转录字幕流展区 -->
-            <div class="live-transcription-view" :class="{ empty: !currentAnswer.trim() }">
-              <span v-if="currentAnswer.trim()" class="transcript-text">
-                {{ currentAnswer }}
+            <div class="live-transcription-view" :class="{ empty: !currentAnswer.trim() && !interimTranscript.trim() }">
+              <span v-if="currentAnswer.trim() || interimTranscript.trim()" class="transcript-text">
+                {{ currentAnswer }}<span v-if="interimTranscript.trim()" class="interim-text"> {{ interimTranscript }}</span>
               </span>
               <span v-else class="transcript-placeholder">
                 {{ isRecording ? '请开口阐述您的回答，语音将在此实时呈现...' : '点击下方「🎙️ 开始口述作答」，对着麦克风阐述您的技术架构与实战经验...' }}
@@ -538,6 +538,7 @@ const currentAnswer = ref('')
 // 计时器
 const timerSeconds = ref(0)
 let timerInterval = null
+let virtualAudioInterval = null
 
 // 音视频与硬件设备状态
 const candidateVideoRef = ref(null)
@@ -552,10 +553,12 @@ const audioEnergy = ref(0)
 // AI 面试官数字人与发音 (TTS) 状态
 const isInterviewerSpeaking = ref(false)
 let currentUtterance = null
+let ttsHeartbeatInterval = null
 
 // 候选人语音识别 (STT) 状态
 const isRecording = ref(false)
 let speechRecognitionInstance = null
+const interimTranscript = ref('')
 
 const currentTurn = computed(() => {
   const turns = sessionData.value.turns || []
@@ -674,7 +677,10 @@ const initCandidateMedia = async () => {
       }
       // 模拟声浪律动
       let tick = 0
-      setInterval(() => {
+      if (virtualAudioInterval) {
+        clearInterval(virtualAudioInterval)
+      }
+      virtualAudioInterval = setInterval(() => {
         tick++
         audioEnergy.value = Math.round(20 + Math.sin(tick * 0.2) * 15 + Math.random() * 10)
       }, 100)
@@ -744,6 +750,8 @@ const toggleCamera = () => {
     videoTracks[0].enabled = !videoTracks[0].enabled
     cameraActive.value = videoTracks[0].enabled
     ElMessage.info(cameraActive.value ? '摄像头已开启' : '摄像头已关闭')
+  } else {
+    ElMessage.warning('当前设备未检测到可用的视频轨道')
   }
 }
 
@@ -766,6 +774,10 @@ const speakQuestionText = (text) => {
     console.warn('当前浏览器不支持 Web Speech 语音合成')
     return
   }
+  if (ttsHeartbeatInterval) {
+    clearInterval(ttsHeartbeatInterval)
+    ttsHeartbeatInterval = null
+  }
   window.speechSynthesis.cancel()
   if (!text) return
 
@@ -776,12 +788,33 @@ const speakQuestionText = (text) => {
 
   utterance.onstart = () => {
     isInterviewerSpeaking.value = true
+    // BUG-32: Chromium 15秒超长语音朗读静默暂停修复（周期性心跳触发 resume 维持合成管道活性）
+    if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
+    ttsHeartbeatInterval = setInterval(() => {
+      if (window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause()
+        window.speechSynthesis.resume()
+      } else {
+        if (ttsHeartbeatInterval) {
+          clearInterval(ttsHeartbeatInterval)
+          ttsHeartbeatInterval = null
+        }
+      }
+    }, 10000)
   }
   utterance.onend = () => {
     isInterviewerSpeaking.value = false
+    if (ttsHeartbeatInterval) {
+      clearInterval(ttsHeartbeatInterval)
+      ttsHeartbeatInterval = null
+    }
   }
   utterance.onerror = () => {
     isInterviewerSpeaking.value = false
+    if (ttsHeartbeatInterval) {
+      clearInterval(ttsHeartbeatInterval)
+      ttsHeartbeatInterval = null
+    }
   }
 
   currentUtterance = utterance
@@ -834,6 +867,7 @@ const startSpeechRecording = () => {
           interim += event.results[i][0].transcript
         }
       }
+      interimTranscript.value = interim
     }
 
     recognition.onerror = (event) => {
@@ -844,13 +878,17 @@ const startSpeechRecording = () => {
     }
 
     recognition.onend = () => {
-      // 若非主动终止，保持收音
+      // BUG-29: 若非主动终止，延时平滑重连避免 Chromium 立即 start 报 InvalidStateError
       if (isRecording.value) {
-        try {
-          recognition.start()
-        } catch (e) {
-          isRecording.value = false
-        }
+        setTimeout(() => {
+          if (isRecording.value) {
+            try {
+              recognition.start()
+            } catch (e) {
+              // 已经在启动状态则忽略
+            }
+          }
+        }, 250)
       }
     }
 
@@ -864,8 +902,11 @@ const startSpeechRecording = () => {
 
 const stopSpeechRecordingOnly = () => {
   isRecording.value = false
+  interimTranscript.value = ''
   if (speechRecognitionInstance) {
-    speechRecognitionInstance.stop()
+    try {
+      speechRecognitionInstance.stop()
+    } catch (e) {}
     speechRecognitionInstance = null
   }
   ElMessage.info('已暂停麦克风收音')
@@ -890,14 +931,16 @@ const handleSubmitAnswer = async () => {
 
   try {
     submittingAnswer.value = true
+    // BUG-30: 严禁对 64-bit Snowflake ID 使用 Number() 强转导致低位精度截断
     const res = await submitInterviewAnswer({
-      sessionId: Number(sessionId),
+      sessionId: String(sessionId),
       turnId: currentTurn.value.id,
       userAnswer: text
     })
-    if (res && res.data) {
+    if (res && res.code === 200 && res.data) {
       ElMessage.success('本轮口述作答已提交，AI 面试官已完成评分与追问组织！')
       currentAnswer.value = ''
+      interimTranscript.value = ''
       await loadSession()
 
       // 若考核已达成终局
@@ -921,6 +964,8 @@ const handleSubmitAnswer = async () => {
           }
         })
       }
+    } else {
+      ElMessage.error(res?.msg || '提交作答失败')
     }
   } catch (err) {
     ElMessage.error('提交作答失败：' + (err.message || '系统繁忙'))
@@ -937,9 +982,14 @@ const loadSession = async () => {
   try {
     loading.value = true
     const res = await getInterviewDetail(sessionId)
-    if (res && res.data) {
+    if (res && res.code === 200 && res.data) {
       sessionData.value = res.data
-      timerSeconds.value = res.data.durationSeconds || 0
+      // BUG-33: 仅在初次载入或已交卷时对齐耗时，严禁在答题过程中用 0 或未落库时间重置学员计时器
+      if (timerSeconds.value === 0 && res.data.durationSeconds) {
+        timerSeconds.value = res.data.durationSeconds
+      } else if (res.data.status === 2 || res.data.status === 3) {
+        timerSeconds.value = res.data.durationSeconds || timerSeconds.value
+      }
 
       // 如果当前题目未作答且未交卷，首次自动朗读提问
       if (res.data.status === 1 && currentTurn.value?.question && !currentTurn.value.userAnswer) {
@@ -951,6 +1001,8 @@ const loadSession = async () => {
       } else if (res.data.status === 2) {
         ElMessage.info('本场面试已交卷完成，可随时查看能力诊断报告')
       }
+    } else if (res && res.code !== 200) {
+      ElMessage.error(res.msg || '加载考场详情失败')
     }
   } catch (err) {
     ElMessage.error('加载考场详情异常：' + (err.message || '网络错误'))
@@ -983,9 +1035,11 @@ const handleFinishInterview = () => {
         window.speechSynthesis.cancel()
       }
       const res = await finishInterview(sessionId)
-      if (res && res.data) {
+      if (res && res.code === 200 && res.data) {
         ElMessage.success('终局报告已生成！')
         goToReport()
+      } else {
+        ElMessage.error(res?.msg || '交卷失败')
       }
     } catch (err) {
       ElMessage.error('交卷异常：' + (err.message || '网络错误'))
@@ -1007,12 +1061,18 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (timerInterval) clearInterval(timerInterval)
+  // BUG-27: 彻底清理虚拟音频模拟定时器
+  if (virtualAudioInterval) clearInterval(virtualAudioInterval)
+  // BUG-32: 清理 TTS 心跳计时器
+  if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
   if (animFrameId) cancelAnimationFrame(animFrameId)
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel()
   }
   if (speechRecognitionInstance) {
-    speechRecognitionInstance.stop()
+    try {
+      speechRecognitionInstance.stop()
+    } catch (e) {}
     speechRecognitionInstance = null
   }
   if (candidateAudioCtx && candidateAudioCtx.state !== 'closed') {
@@ -1022,6 +1082,10 @@ onBeforeUnmount(() => {
   }
   if (candidateStream) {
     try {
+      // BUG-28: 彻底销毁虚拟摄像头内部 canvas requestAnimationFrame 渲染循环
+      if (typeof candidateStream._stopVirtualAnimation === 'function') {
+        candidateStream._stopVirtualAnimation()
+      }
       candidateStream.getTracks().forEach(t => t.stop())
     } catch (e) {}
   }
@@ -1669,6 +1733,11 @@ onBeforeUnmount(() => {
 .transcript-text {
   color: #38bdf8;
   font-weight: 500;
+}
+
+.interim-text {
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .console-action-bar {

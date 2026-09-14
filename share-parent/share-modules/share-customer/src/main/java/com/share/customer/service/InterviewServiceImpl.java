@@ -27,8 +27,10 @@ import com.share.customer.mapper.InterviewTurnMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -37,6 +39,8 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 全真沉浸式 AI 模拟面试与职涯评测超级子系统核心业务实现。
@@ -95,9 +99,9 @@ public class InterviewServiceImpl implements IInterviewService {
         InterviewSession session = new InterviewSession();
         session.setUserId(userId);
         session.setUserName(userName);
-        session.setTargetJob(StringUtils.hasText(request.getTargetJob()) ? request.getTargetJob().trim() : "Java高级开发工程师");
-        session.setCompanyTarget(StringUtils.hasText(request.getCompanyTarget()) ? request.getCompanyTarget().trim() : "大厂通用");
-        session.setInterviewerStyle(StringUtils.hasText(request.getInterviewerStyle()) ? request.getInterviewerStyle().trim() : "p7_architect");
+        session.setTargetJob(safeTruncate(StringUtils.hasText(request.getTargetJob()) ? request.getTargetJob().trim() : "Java高级开发工程师", 64));
+        session.setCompanyTarget(safeTruncate(StringUtils.hasText(request.getCompanyTarget()) ? request.getCompanyTarget().trim() : "大厂通用", 64));
+        session.setInterviewerStyle(safeTruncate(StringUtils.hasText(request.getInterviewerStyle()) ? request.getInterviewerStyle().trim() : "p7_architect", 64));
         session.setStatus(1); // 进行中
         session.setCurrentTurn(1);
         int totalTurns = request.getTotalTurns() != null && request.getTotalTurns() >= 5 ? Math.min(request.getTotalTurns(), 30) : 20;
@@ -137,8 +141,8 @@ public class InterviewServiceImpl implements IInterviewService {
         InterviewTurn turn1 = new InterviewTurn();
         turn1.setSessionId(session.getId());
         turn1.setTurnNum(1);
-        turn1.setDimension("【环节一·自我介绍】职业背景与综合素质");
-        turn1.setQuestion(question);
+        turn1.setDimension(safeTruncate("【环节一·自我介绍】职业背景与综合素质", 64));
+        turn1.setQuestion(safeTruncate(question, 1000));
         turn1.setStandardReference(generateSelfIntroStandardRef(session));
         turn1.setDepthLevel(1); // 1-概念摸底
         turn1.setStage(1);
@@ -153,6 +157,9 @@ public class InterviewServiceImpl implements IInterviewService {
     @Override
     @Transactional
     public InterviewTurn submitAnswer(SubmitAnswerRequest request) {
+        if (request.getSessionId() == null || request.getTurnId() == null) {
+            throw new ServiceException("请求参数不完整");
+        }
         InterviewSession session = sessionMapper.selectById(request.getSessionId());
         if (session == null) {
             throw new ServiceException("面试场次不存在");
@@ -170,15 +177,32 @@ public class InterviewServiceImpl implements IInterviewService {
             throw new ServiceException("本轮问题已作答，请勿重复提交");
         }
 
+        String rawAnswer = request.getUserAnswer();
+        String answer = StringUtils.hasText(rawAnswer) ? rawAnswer.trim() : "";
+        if (!StringUtils.hasText(answer)) {
+            throw new ServiceException("作答内容不能为空");
+        }
+
         LocalDateTime now = LocalDateTime.now();
-        String answer = request.getUserAnswer().trim();
+
+        // 幂等防重并发护栏：乐观锁条件更新，防止网络抖动重复点击插入重复轮次 (BUG-3)
+        int updated = turnMapper.update(null, new LambdaUpdateWrapper<InterviewTurn>()
+                .set(InterviewTurn::getUserAnswer, answer)
+                .set(InterviewTurn::getAnswerTime, now)
+                .eq(InterviewTurn::getId, currentTurn.getId())
+                .isNull(InterviewTurn::getUserAnswer));
+        if (updated == 0) {
+            throw new ServiceException("本轮问题已在处理或已提交，请勿重复操作");
+        }
         currentTurn.setUserAnswer(answer);
         currentTurn.setAnswerTime(now);
 
-        // 1. Qdrant 影子语义检定：基于 10,000 条题库进行检索对比
+        // 1. Qdrant 影子语义检定：基于 10,000 条题库进行检索对比 (BUG-22: 保护已匹配的知识库ID)
         SemanticHit hit = searchSemanticKnowledge(currentTurn.getQuestion() + " " + answer);
         if (hit != null) {
-            currentTurn.setMatchedKnowledgeId(hit.id);
+            if (currentTurn.getMatchedKnowledgeId() == null) {
+                currentTurn.setMatchedKnowledgeId(hit.id);
+            }
             if (!StringUtils.hasText(currentTurn.getStandardReference())) {
                 currentTurn.setStandardReference(hit.answer);
             }
@@ -210,6 +234,9 @@ public class InterviewServiceImpl implements IInterviewService {
     @Override
     @Transactional
     public InterviewCodeSubmission submitCode(SubmitCodeRequest request) {
+        if (request.getSessionId() == null) {
+            throw new ServiceException("场次ID不能为空");
+        }
         InterviewSession session = sessionMapper.selectById(request.getSessionId());
         if (session == null) {
             throw new ServiceException("面试场次不存在");
@@ -222,16 +249,16 @@ public class InterviewServiceImpl implements IInterviewService {
         InterviewCodeSubmission submission = new InterviewCodeSubmission();
         submission.setSessionId(session.getId());
         submission.setTurnId(request.getTurnId());
-        submission.setProblemTitle(request.getProblemTitle().trim());
+        submission.setProblemTitle(safeTruncate(StringUtils.hasText(request.getProblemTitle()) ? request.getProblemTitle().trim() : "算法代码手撕", 128));
         submission.setLanguage(StringUtils.hasText(request.getLanguage()) ? request.getLanguage().trim().toLowerCase() : "java");
-        submission.setUserCode(request.getUserCode());
+        submission.setUserCode(request.getUserCode() != null ? request.getUserCode() : "");
         submission.setCreateTime(LocalDateTime.now());
 
         // 执行 AI 沙箱与架构异味审计
         auditCodeSubmission(submission);
         codeMapper.insert(submission);
 
-        // BUG-36, BUG-51: 真实回填当前轮次作答内容与沙箱实测成绩，推进轮次，消除提前交卷误判
+        // 回填当前轮次作答内容与沙箱实测成绩，推进轮次 (BUG-1, BUG-2)
         InterviewTurn turn = request.getTurnId() != null ? turnMapper.selectById(request.getTurnId()) : null;
         if (turn == null && session.getCurrentTurn() != null) {
             turn = turnMapper.selectOne(new LambdaQueryWrapper<InterviewTurn>()
@@ -250,14 +277,15 @@ public class InterviewServiceImpl implements IInterviewService {
                     + "；【代码异味建议】： " + submission.getCodeSmells());
             turn.setAnswerTime(LocalDateTime.now());
             turnMapper.updateById(turn);
-        }
 
-        // 推进当前轮次
-        int totalTurns = session.getTotalTurns() != null ? session.getTotalTurns() : 6;
-        if (session.getCurrentTurn() != null && session.getCurrentTurn() < totalTurns) {
-            session.setCurrentTurn(session.getCurrentTurn() + 1);
-            session.setUpdateTime(LocalDateTime.now());
-            sessionMapper.updateById(session);
+            // 推进下一题或直接完成 (BUG-1, BUG-2)
+            TurnEvaluation codeEval = new TurnEvaluation(codeScore, turn.getAiFeedback(), turn.getStandardReference());
+            advanceTurnOrFinish(session, turn, codeEval);
+        } else {
+            int totalTurns = session.getTotalTurns() != null ? session.getTotalTurns() : 20;
+            if (session.getCurrentTurn() != null && session.getCurrentTurn() >= totalTurns) {
+                finishSession(session.getId());
+            }
         }
 
         return submission;
@@ -282,7 +310,7 @@ public class InterviewServiceImpl implements IInterviewService {
         LocalDateTime now = LocalDateTime.now();
         session.setStatus(2); // 已完成
         if (session.getCreateTime() != null) {
-            session.setDurationSeconds((int) Duration.between(session.getCreateTime(), now).getSeconds());
+            session.setDurationSeconds((int) Math.max(0, Duration.between(session.getCreateTime(), now).getSeconds()));
         }
         session.setUpdateTime(now);
 
@@ -331,8 +359,8 @@ public class InterviewServiceImpl implements IInterviewService {
         if (answeredCount == 0) {
             finalScore = 0; // 全场未作答 / 零分快速交卷
         } else {
-            // 若提前交卷（未完成全部轮次），未作答轮次按 0 分折算完成度综合计算
-            int plannedTurns = Math.max(1, session.getTotalTurns() != null ? session.getTotalTurns() : 6);
+            // 若提前交卷（未完成全部轮次），未作答轮次按 0 分折算完成度综合计算 (BUG-8: 严谨默认为20题)
+            int plannedTurns = Math.max(1, session.getTotalTurns() != null ? session.getTotalTurns() : 20);
             double avgAnswered = sum / answeredCount;
             if (answeredCount < plannedTurns) {
                 finalScore = (int) Math.round(avgAnswered * ((double) answeredCount / plannedTurns));
@@ -393,10 +421,19 @@ public class InterviewServiceImpl implements IInterviewService {
                 .eq(InterviewSession::getUserId, userId)
                 .orderByDesc(InterviewSession::getCreateTime);
         IPage<InterviewSession> result = sessionMapper.selectPage(page, wrapper);
-        for (InterviewSession s : result.getRecords()) {
-            InterviewReport rep = reportMapper.selectOne(new LambdaQueryWrapper<InterviewReport>()
-                    .eq(InterviewReport::getSessionId, s.getId()));
-            s.setReport(rep);
+        List<InterviewSession> records = result.getRecords();
+        if (records != null && !records.isEmpty()) {
+            List<Long> sessionIds = records.stream().map(InterviewSession::getId).filter(Objects::nonNull).toList();
+            if (!sessionIds.isEmpty()) {
+                // 批量查询杜绝 N+1 性能退化 (BUG-10)
+                List<InterviewReport> reports = reportMapper.selectList(new LambdaQueryWrapper<InterviewReport>()
+                        .in(InterviewReport::getSessionId, sessionIds));
+                Map<Long, InterviewReport> reportMap = reports.stream()
+                        .collect(Collectors.toMap(InterviewReport::getSessionId, Function.identity(), (a, b) -> a));
+                for (InterviewSession s : records) {
+                    s.setReport(reportMap.get(s.getId()));
+                }
+            }
         }
         return result;
     }
@@ -409,8 +446,12 @@ public class InterviewServiceImpl implements IInterviewService {
             throw new ServiceException("面试场次不存在");
         }
         assertOwner(session);
+        LocalDateTime now = LocalDateTime.now();
         session.setStatus(3); // 已终止
-        session.setUpdateTime(LocalDateTime.now());
+        if (session.getCreateTime() != null) {
+            session.setDurationSeconds((int) Math.max(0, Duration.between(session.getCreateTime(), now).getSeconds()));
+        }
+        session.setUpdateTime(now);
         sessionMapper.updateById(session);
     }
 
@@ -474,8 +515,9 @@ public class InterviewServiceImpl implements IInterviewService {
      * 遵循原则：题目绝不预先定死，严格根据候选人的回答与技术深度动态演进、剥洋葱连环深挖。
      */
     private void advanceTurnOrFinish(InterviewSession session, InterviewTurn currentTurn, TurnEvaluation evaluation) {
-        int nextTurnNum = currentTurn.getTurnNum() + 1;
-        int totalTurns = session.getTotalTurns() != null ? session.getTotalTurns() : 20;
+        int currentTurnNum = (currentTurn != null && currentTurn.getTurnNum() != null) ? currentTurn.getTurnNum() : 1;
+        int nextTurnNum = currentTurnNum + 1;
+        int totalTurns = (session.getTotalTurns() != null && session.getTotalTurns() >= 5) ? session.getTotalTurns() : 20;
         if (nextTurnNum > totalTurns) {
             // 已达最大轮次，自动完成面试并生成报告
             finishSession(session.getId());
@@ -490,8 +532,10 @@ public class InterviewServiceImpl implements IInterviewService {
         Long matchedKnowledgeId = null;
         int nextDepth = 1;
 
+        int stage2End = totalTurns <= 10 ? Math.max(2, totalTurns / 2) : 11;
+
         if (nextStage == 2) {
-            // 环节二：基础八股文 (Turn 2 .. 11)
+            // 环节二：基础八股文 (Turn 2 .. stage2End)
             // 选自 xiaolincoding.com 知识库，严格跨 10 大独立模块分散选拔（绝不重复模块），并根据前序答题深度动态演进！
             int fundamentalIndex = nextTurnNum - 1; // 1 to 10
             XiaolinQuestionResult xq = resolveXiaolinFundamentalQuestion(session, track, fundamentalIndex, currentTurn, evaluation);
@@ -501,8 +545,8 @@ public class InterviewServiceImpl implements IInterviewService {
             matchedKnowledgeId = xq.knowledgeId;
             nextDepth = xq.depthLevel;
         } else {
-            // 环节三：简历项目追问 (Turn 12 .. 20)
-            int projectIndex = nextTurnNum - 11; // 1 to 9 (assuming 20 total)
+            // 环节三：简历项目追问 (stage2End+1 .. totalTurns) (BUG-23: 解决总轮次不同导致的负数索引)
+            int projectIndex = Math.max(1, nextTurnNum - stage2End);
             if (nextTurnNum == totalTurns) {
                 nextDimension = "【环节三·终局挑战】算法设计与工程手撕";
                 nextDepth = 3;
@@ -520,8 +564,8 @@ public class InterviewServiceImpl implements IInterviewService {
         InterviewTurn nextTurn = new InterviewTurn();
         nextTurn.setSessionId(session.getId());
         nextTurn.setTurnNum(nextTurnNum);
-        nextTurn.setDimension(nextDimension);
-        nextTurn.setQuestion(nextQuestion);
+        nextTurn.setDimension(safeTruncate(nextDimension, 64)); // BUG-20: 截断至数据库列长度 64
+        nextTurn.setQuestion(safeTruncate(nextQuestion, 1000));   // BUG-21: 截断至数据库列长度 1000
         nextTurn.setStandardReference(nextStandardReference);
         nextTurn.setMatchedKnowledgeId(matchedKnowledgeId);
         nextTurn.setDepthLevel(nextDepth);
@@ -579,13 +623,15 @@ public class InterviewServiceImpl implements IInterviewService {
     }
 
     private String resolveXiaolinCategory(JobTrack track, int fundamentalIndex, String resumeSummary) {
+        int idx = ((Math.max(1, fundamentalIndex) - 1) % 10) + 1; // 1 to 10 循环安全映射 (BUG-12)
         String lowerResume = StringUtils.hasText(resumeSummary) ? resumeSummary.toLowerCase() : "";
         boolean isCpp = lowerResume.contains("c++") || track == JobTrack.SYSTEMS_HIGH_PERF;
         boolean isGo = lowerResume.contains("go") || lowerResume.contains("golang");
         boolean isQa = track == JobTrack.QA_SECURITY || lowerResume.contains("测试");
 
+        // BUG-11: 确保 10 大模块绝对分散独立，互不重叠重复
         if (isCpp) {
-            return switch (fundamentalIndex) {
+            return switch (idx) {
                 case 1 -> "计算机网络与协议";
                 case 2 -> "Linux操作系统与运维";
                 case 3 -> "C++底层高性能";
@@ -594,11 +640,11 @@ public class InterviewServiceImpl implements IInterviewService {
                 case 6 -> "Redis与高性能缓存";
                 case 7 -> "架构与设计模式";
                 case 8 -> "软件工程与架构规范";
-                case 9 -> "Linux操作系统与运维";
-                default -> "C++底层高性能";
+                case 9 -> "消息队列与中间件";
+                default -> "JVM虚拟机与调优";
             };
         } else if (isGo) {
-            return switch (fundamentalIndex) {
+            return switch (idx) {
                 case 1 -> "计算机网络与协议";
                 case 2 -> "Linux操作系统与运维";
                 case 3 -> "Go语言与微服务";
@@ -608,23 +654,23 @@ public class InterviewServiceImpl implements IInterviewService {
                 case 7 -> "数据结构与算法";
                 case 8 -> "消息队列与中间件";
                 case 9 -> "架构与设计模式";
-                default -> "Go语言与微服务";
+                default -> "软件工程与架构规范";
             };
         } else if (isQa) {
-            return switch (fundamentalIndex) {
+            return switch (idx) {
                 case 1 -> "自动化测试与质量";
                 case 2 -> "计算机网络与协议";
                 case 3 -> "Linux操作系统与运维";
                 case 4 -> "MySQL与数据存储";
                 case 5 -> "Redis与高性能缓存";
                 case 6 -> "Java核心与并发";
-                case 7 -> "自动化测试与质量";
+                case 7 -> "软件工程与架构规范";
                 case 8 -> "消息队列与中间件";
                 case 9 -> "数据结构与算法";
                 default -> "架构与设计模式";
             };
         } else {
-            return switch (fundamentalIndex) {
+            return switch (idx) {
                 case 1 -> "计算机网络与协议";
                 case 2 -> "Linux操作系统与运维";
                 case 3 -> "MySQL与数据存储";
@@ -639,23 +685,25 @@ public class InterviewServiceImpl implements IInterviewService {
         }
     }
 
-    private CustomerKnowledge filterXiaolinQuestionByResume(List<CustomerKnowledge> list, String resumeSummary, TurnEvaluation evaluation) {
+    private CustomerKnowledge filterXiaolinQuestionByResume(List<CustomerKnowledge> list, String resumeSummary, TurnEvaluation evaluation, Set<String> usedQuestions) {
         if (list == null || list.isEmpty()) {
             return null;
-        }
-        if (list.size() == 1) {
-            return list.get(0);
         }
 
         String lowerResume = StringUtils.hasText(resumeSummary) ? resumeSummary.toLowerCase() : "";
         boolean requireDeep = evaluation != null && evaluation.score >= 80;
 
-        CustomerKnowledge best = list.get(0);
+        CustomerKnowledge best = null;
         int bestScore = -1;
 
         for (CustomerKnowledge item : list) {
+            String q = item.getQuestion() != null ? item.getQuestion().trim() : "";
+            if (usedQuestions != null && usedQuestions.contains(q)) {
+                continue; // BUG-13: 严格过滤同场已问过的重复题目
+            }
+
             int score = 0;
-            String q = item.getQuestion() != null ? item.getQuestion().toLowerCase() : "";
+            String qLower = q.toLowerCase();
             String kw = item.getKeywords() != null ? item.getKeywords().toLowerCase() : "";
 
             if (StringUtils.hasText(lowerResume)) {
@@ -663,13 +711,13 @@ public class InterviewServiceImpl implements IInterviewService {
                         "dubbo", "netty", "docker", "k8s", "linux", "分库分表", "分布式锁", "缓存", "索引", "线程池", "aqs",
                         "gc", "三次握手", "四次挥手", "tcp", "http", "mvcc", "跳表", "微服务"};
                 for (String token : techTokens) {
-                    if (lowerResume.contains(token) && (q.contains(token) || kw.contains(token))) {
+                    if (lowerResume.contains(token) && (qLower.contains(token) || kw.contains(token))) {
                         score += 15;
                     }
                 }
             }
 
-            boolean isHard = q.contains("原理") || q.contains("底层") || q.contains("源码") || q.contains("调优") || q.contains("排查") || q.contains("机制");
+            boolean isHard = qLower.contains("原理") || qLower.contains("底层") || qLower.contains("源码") || qLower.contains("调优") || qLower.contains("排查") || qLower.contains("机制");
             if (requireDeep && isHard) {
                 score += 10;
             } else if (!requireDeep && !isHard) {
@@ -686,20 +734,39 @@ public class InterviewServiceImpl implements IInterviewService {
             }
         }
 
-        return best;
+        return (best != null) ? best : list.get(0);
     }
 
     private XiaolinQuestionResult resolveXiaolinFundamentalQuestion(InterviewSession session, JobTrack track, int fundamentalIndex, InterviewTurn previousTurn, TurnEvaluation evaluation) {
         String category = resolveXiaolinCategory(track, fundamentalIndex, session.getResumeSummary());
         try {
+            // 获取本场面试已经使用的知识库ID与问题文本，防止同一场面试重复出相同题目 (BUG-13)
+            List<InterviewTurn> existTurns = turnMapper.selectList(new LambdaQueryWrapper<InterviewTurn>()
+                    .eq(InterviewTurn::getSessionId, session.getId()));
+            Set<Long> usedKnowledgeIds = new HashSet<>();
+            Set<String> usedQuestions = new HashSet<>();
+            if (existTurns != null) {
+                for (InterviewTurn et : existTurns) {
+                    if (et.getMatchedKnowledgeId() != null) {
+                        usedKnowledgeIds.add(et.getMatchedKnowledgeId());
+                    }
+                    if (StringUtils.hasText(et.getQuestion())) {
+                        usedQuestions.add(et.getQuestion().trim());
+                    }
+                }
+            }
+
             LambdaQueryWrapper<CustomerKnowledge> wrapper = new LambdaQueryWrapper<CustomerKnowledge>()
                     .likeRight(CustomerKnowledge::getLegacyId, "xl-")
                     .eq(CustomerKnowledge::getCategory, category)
                     .eq(CustomerKnowledge::getStatus, 1);
+            if (!usedKnowledgeIds.isEmpty()) {
+                wrapper.notIn(CustomerKnowledge::getId, usedKnowledgeIds);
+            }
             List<CustomerKnowledge> candidateList = knowledgeMapper.selectList(wrapper);
 
             if (candidateList != null && !candidateList.isEmpty()) {
-                CustomerKnowledge selected = filterXiaolinQuestionByResume(candidateList, session.getResumeSummary(), evaluation);
+                CustomerKnowledge selected = filterXiaolinQuestionByResume(candidateList, session.getResumeSummary(), evaluation, usedQuestions);
                 if (selected != null) {
                     String prefix = (fundamentalIndex == 1)
                             ? "很好，对你的背景有了初步了解。接下来我们进入第二环节【核心基础八股与底层技术考查】。首先深入聊聊："
@@ -708,7 +775,7 @@ public class InterviewServiceImpl implements IInterviewService {
                     String stdRef = "【小林coding官方高分示范答案】\n" + selected.getAnswer();
                     int depth = (selected.getAnswer() != null && selected.getAnswer().length() > 500) ? 2 : 1;
                     String dimension = "【环节二·" + category + "】" + (selected.getKeywords() != null ? selected.getKeywords() : category);
-                    return new XiaolinQuestionResult(dimension, question, stdRef, selected.getId(), depth);
+                    return new XiaolinQuestionResult(safeTruncate(dimension, 64), safeTruncate(question, 1000), stdRef, selected.getId(), depth);
                 }
             }
         } catch (Exception ex) {
@@ -720,7 +787,7 @@ public class InterviewServiceImpl implements IInterviewService {
             fallbackQ = "很好，对你的背景有了初步了解。接下来我们进入第二环节【核心基础八股与底层技术考查】。首先：" + fallbackQ;
         }
         String stdRef = resolveFundamentalFallbackRef(track, fundamentalIndex);
-        return new XiaolinQuestionResult("【环节二·" + category + "】核心八股考查", fallbackQ, stdRef, null, 2);
+        return new XiaolinQuestionResult(safeTruncate("【环节二·" + category + "】核心八股考查", 64), safeTruncate(fallbackQ, 1000), stdRef, null, 2);
     }
 
     private String resolveFundamentalDimension(JobTrack track, int index) {
@@ -971,7 +1038,9 @@ public class InterviewServiceImpl implements IInterviewService {
 
         String resumeSummary = session.getResumeSummary();
         if (StringUtils.hasText(resumeSummary)) {
-            sb.append("【候选人绑定的真实简历信息（项目经历/技术栈/薄弱点）】：\n").append(resumeSummary).append("\n\n");
+            // BUG-14: 截断超长简历内容至 1500 字以内，防止 Token 爆炸或 AI API 8秒超时
+            String trimmedResume = resumeSummary.length() > 1500 ? resumeSummary.substring(0, 1500) + "..." : resumeSummary;
+            sb.append("【候选人绑定的真实简历信息（项目经历/技术栈/薄弱点）】：\n").append(trimmedResume).append("\n\n");
         } else {
             sb.append("【候选人目标岗位核心技术栈】：").append(session.getTargetJob()).append("。请结合千万级高并发真实生产业务场景出题。\n\n");
         }
@@ -1014,7 +1083,7 @@ public class InterviewServiceImpl implements IInterviewService {
                     if (!StringUtils.hasText(ref)) {
                         ref = generateDefaultProjectRef(session, dim, q);
                     }
-                    return new ProjectDrillResult(dim, cleanAiText(q), ref);
+                    return new ProjectDrillResult(safeTruncate(dim, 64), safeTruncate(cleanAiText(q), 1000), ref);
                 }
             } catch (Exception ex) {
                 log.warn("解析项目深挖出题 JSON 失败，启用启发式保底: {}", ex.getMessage());
@@ -1210,7 +1279,9 @@ public class InterviewServiceImpl implements IInterviewService {
         // 启发式兜底评估
         String rawAnswer = turn.getUserAnswer() != null ? turn.getUserAnswer().trim() : "";
         int length = rawAnswer.length();
-        boolean isNegative = rawAnswer.matches("(?i)^(不知道|不会|没了解过|pass|跳过|略|不清楚|不了解|未掌握|没用过|无|暂无|没做过).*$") || length < 5;
+        // BUG-16: 准确识别直接认输/跳过关键字（必须是短字数认输或完全匹配，严禁误判以“不会发生死锁/不知道其他人怎么看”开头的真实技术阐述！）
+        boolean isNegative = (length < 6 && rawAnswer.matches("(?i)^(不知道|不会|没了解过|pass|跳过|略|不清楚|不了解|未掌握|没用过|无|暂无|没做过|放弃).*$"))
+                || rawAnswer.matches("(?i)^(不知道|不会|没了解过|pass|跳过|略|不清楚|不了解|未掌握|没用过|无|暂无|没做过|放弃)[。！!？? ]*$");
         int score;
         String feedback;
         if (isNegative) {
@@ -1359,12 +1430,37 @@ public class InterviewServiceImpl implements IInterviewService {
                 InterviewReport report = new InterviewReport();
                 report.setOfferDecision(root.path("offerDecision").asText(determineOffer(avgScore)));
                 report.setLevelMatch(root.path("levelMatch").asText(determineLevel(avgScore)));
-                report.setRadarData(root.path("radarData").toString());
+                
+                // BUG-17: 容错解析雷达图数据，避免二次字符串逃逸或对象不兼容
+                JsonNode radarNode = root.path("radarData");
+                if (radarNode.isObject()) {
+                    report.setRadarData(radarNode.toString());
+                } else if (radarNode.isTextual() && radarNode.asText().startsWith("{")) {
+                    report.setRadarData(radarNode.asText());
+                } else {
+                    int c = Math.max(15, Math.min(avgScore + 3, 95));
+                    int a = Math.max(15, Math.min(avgScore - 4, 92));
+                    int s = Math.max(15, Math.min(avgScore + 1, 95));
+                    int d = Math.max(15, Math.min(avgScore - 6, 90));
+                    int cd = Math.max(15, Math.min(avgScore + 2, 95));
+                    int cm = Math.max(20, Math.min(avgScore + 5, 90));
+                    report.setRadarData(String.format("{\"core\":%d,\"architecture\":%d,\"storage\":%d,\"distributed\":%d,\"coding\":%d,\"communication\":%d}",
+                            c, a, s, d, cd, cm));
+                }
+
                 report.setOverallSummary(root.path("overallSummary").asText("学员在核心技术领域具备良好潜质，建议持续深耕线上实战与系统高可用设计。"));
                 report.setCoreStrengths(root.path("coreStrengths").asText("1. 基础概念清晰；2. 学习吸收能力强；3. 思维敏捷。"));
                 report.setCriticalWeaknesses(root.path("criticalWeaknesses").asText("1. 极限高并发实战经验需补充；2. 排障工具链熟练度待提升。"));
                 report.setSpeechRefactoring(root.path("speechRefactoring").asText("建议采用 STAR 法则，以指标量化（如 RT 下降、QPS 提升）重塑答题话术。"));
-                report.setRecommendedCourses(root.path("recommendedCourses").toString());
+                
+                JsonNode coursesNode = root.path("recommendedCourses");
+                if (coursesNode.isArray() && coursesNode.size() > 0) {
+                    report.setRecommendedCourses(coursesNode.toString());
+                } else if (coursesNode.isTextual() && coursesNode.asText().startsWith("[")) {
+                    report.setRecommendedCourses(coursesNode.asText());
+                } else {
+                    report.setRecommendedCourses(defaultCourses);
+                }
                 return report;
             } catch (Exception ex) {
                 log.warn("解析终局报告 JSON 失败: {}", ex.getMessage());
@@ -1469,6 +1565,7 @@ public class InterviewServiceImpl implements IInterviewService {
 
     /**
      * 影子语义检索：通过 Qdrant + FastEmbed 检索高匹配题库。
+     * 配置 1.5s 快速超时，防止外部容器卡顿阻塞工作线程 (BUG-18)
      */
     private SemanticHit searchSemanticKnowledge(String query) {
         if (!StringUtils.hasText(query) || query.trim().length() < 2) {
@@ -1486,7 +1583,12 @@ public class InterviewServiceImpl implements IInterviewService {
             reqBody.put("limit", 1);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(reqBody, headers);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(EMBEDDING_SERVICE_URL, entity, String.class);
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(1500);
+            factory.setReadTimeout(2000);
+            RestTemplate fastRt = new RestTemplate(factory);
+
+            ResponseEntity<String> response = fastRt.postForEntity(EMBEDDING_SERVICE_URL, entity, String.class);
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 JsonNode root = objectMapper.readTree(response.getBody());
                 JsonNode hits = root.path("hits");
@@ -1568,19 +1670,43 @@ public class InterviewServiceImpl implements IInterviewService {
         if (!StringUtils.hasText(text)) {
             return "";
         }
-        return text.replaceAll("^[\"']|[\"']$", "").trim();
+        // BUG-19: 清除中英文引号以及“面试官：/考官：/Q:/问题：”等多余前缀
+        String s = text.replaceAll("^[\"'“‘]|[\"'”’]$", "").trim();
+        s = s.replaceAll("^(面试官|考官|Q|提问|问题)[:：]\\s*", "").trim();
+        return s.replaceAll("^[\"'“‘]|[\"'”’]$", "").trim();
     }
 
     private String extractJson(String text) {
         if (!StringUtils.hasText(text)) {
             return "{}";
         }
-        int start = text.indexOf('{');
-        int end = text.lastIndexOf('}');
-        if (start >= 0 && end > start) {
-            return text.substring(start, end + 1);
+        // BUG-15: 处理外围 markdown 代码块及首尾注释
+        String s = text.trim();
+        if (s.startsWith("```")) {
+            int firstLine = s.indexOf('\n');
+            if (firstLine != -1) {
+                s = s.substring(firstLine + 1);
+            }
+            int lastFence = s.lastIndexOf("```");
+            if (lastFence != -1) {
+                s = s.substring(0, lastFence);
+            }
+            s = s.trim();
         }
-        return text.trim();
+        int start = s.indexOf('{');
+        int end = s.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            return s.substring(start, end + 1);
+        }
+        return s.trim();
+    }
+
+    public static String safeTruncate(String str, int maxLen) {
+        if (str == null) {
+            return "";
+        }
+        String t = str.trim();
+        return t.length() > maxLen ? t.substring(0, maxLen) : t;
     }
 
     private void assertOwner(InterviewSession session) {
@@ -1619,13 +1745,8 @@ public class InterviewServiceImpl implements IInterviewService {
             return JobTrack.BACKEND_JAVA;
         }
         String s = job.toLowerCase();
-        if (s.contains("go") || s.contains("c++") || s.contains("rust") || s.contains("python") || s.contains("底层系统")) {
-            return JobTrack.SYSTEMS_HIGH_PERF;
-        }
-        if (s.contains("前端") || s.contains("vue") || s.contains("react") || s.contains("全栈") || s.contains("ios") || s.contains("android")) {
-            return JobTrack.FRONTEND_MOBILE;
-        }
-        if (s.contains("大模型") || s.contains("llm") || s.contains("rag") || s.contains("agent") || s.contains("nlp") || s.contains("算法") || s.contains("视觉") || s.contains("cv") || s.contains("推荐系统")) {
+        // BUG-24: 优先识别 AI/算法/LLM 专有领域，防止“Python AI算法工程师”被错误分流至底层高性能系统
+        if (s.contains("大模型") || s.contains("llm") || s.contains("rag") || s.contains("agent") || s.contains("nlp") || s.contains("算法") || s.contains("视觉") || s.contains("cv") || s.contains("深度学习") || s.contains("推荐系统")) {
             return JobTrack.AI_LLM;
         }
         if (s.contains("大数据") || s.contains("spark") || s.contains("hadoop") || s.contains("flink") || s.contains("数据仓库") || s.contains("湖仓一体")) {
@@ -1637,8 +1758,14 @@ public class InterviewServiceImpl implements IInterviewService {
         if (s.contains("kubernetes") || s.contains("k8s") || s.contains("云原生") || s.contains("devops") || s.contains("sre") || s.contains("稳定性")) {
             return JobTrack.CLOUD_NATIVE_SRE;
         }
+        if (s.contains("前端") || s.contains("vue") || s.contains("react") || s.contains("全栈") || s.contains("ios") || s.contains("android")) {
+            return JobTrack.FRONTEND_MOBILE;
+        }
         if (s.contains("测试") || s.contains("sdet") || s.contains("压测") || s.contains("安全") || s.contains("渗透")) {
             return JobTrack.QA_SECURITY;
+        }
+        if (s.contains("go") || s.contains("c++") || s.contains("rust") || s.contains("python") || s.contains("底层系统")) {
+            return JobTrack.SYSTEMS_HIGH_PERF;
         }
         return JobTrack.BACKEND_JAVA;
     }

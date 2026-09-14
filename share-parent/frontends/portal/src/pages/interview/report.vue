@@ -141,7 +141,7 @@
           </div>
         </template>
         <div class="speech-body">
-          <pre class="speech-content">{{ reportData.speechRefactoring }}</pre>
+          <pre class="speech-content">{{ formattedSpeechRefactoring }}</pre>
         </div>
       </el-card>
 
@@ -295,14 +295,40 @@ const radarScores = computed(() => {
   if (!reportData.value || !reportData.value.radarData) {
     return { core: 85, architecture: 78, storage: 82, distributed: 75, coding: 88, communication: 80 }
   }
+  let raw = {}
   try {
     if (typeof reportData.value.radarData === 'string') {
-      return JSON.parse(reportData.value.radarData)
+      raw = JSON.parse(reportData.value.radarData)
+    } else {
+      raw = reportData.value.radarData || {}
     }
-    return reportData.value.radarData
   } catch (e) {
-    return { core: 80, architecture: 75, storage: 80, distributed: 70, coding: 85, communication: 80 }
+    raw = {}
   }
+  // BUG-36: 容错映射大模型可能输出的替代字段名，防止雷达图失真显示为 0 或 NaN
+  const getVal = (...keys) => {
+    for (const k of keys) {
+      if (raw[k] !== undefined && raw[k] !== null) {
+        const num = Number(raw[k])
+        if (!isNaN(num)) return Math.max(10, Math.min(100, Math.round(num)))
+      }
+    }
+    return 75
+  }
+  return {
+    core: getVal('core', 'javaCore', 'coreTech', 'fundamental'),
+    architecture: getVal('architecture', 'arch', 'systemDesign', 'design'),
+    storage: getVal('storage', 'db', 'database', 'io'),
+    distributed: getVal('distributed', 'dist', 'highConcurrency', 'cluster'),
+    coding: getVal('coding', 'algorithm', 'code', 'problemSolving'),
+    communication: getVal('communication', 'comm', 'expression', 'softSkill')
+  }
+})
+
+// BUG-37: 转义字面量 \n 字符以保证 STAR 示范话术正常换行呈现
+const formattedSpeechRefactoring = computed(() => {
+  const text = reportData.value?.speechRefactoring || ''
+  return text.replace(/\\n/g, '\n')
 })
 
 // 计算 SVG 顶点
@@ -349,16 +375,22 @@ const getLabelCoord = (index) => {
 
 const parsedCourses = computed(() => {
   if (!reportData.value || !reportData.value.recommendedCourses) {
-    return ['《亿级流量架构实战》', '《深入理解 Java 虚拟机》', '《MySQL 实战 45 讲》']
+    return ['《高并发分布式系统实战》', '《深入理解 Java 虚拟机》', '《MySQL 实战 45 讲》']
   }
   try {
-    if (typeof reportData.value.recommendedCourses === 'string') {
-      return JSON.parse(reportData.value.recommendedCourses)
+    let courses = reportData.value.recommendedCourses
+    if (typeof courses === 'string') {
+      courses = JSON.parse(courses)
     }
-    return reportData.value.recommendedCourses
+    if (Array.isArray(courses) && courses.length > 0) {
+      return courses.map(c => String(c).trim())
+    }
   } catch (e) {
-    return ['《高并发分布式系统实战》', '《JVM 深度剖析与调优》']
+    const rawStr = String(reportData.value.recommendedCourses)
+    const list = rawStr.split(/[\n,，]+/).map(s => s.trim()).filter(s => s.length > 1)
+    if (list.length > 0) return list
   }
+  return ['《高并发分布式系统实战》', '《JVM 深度剖析与调优》']
 })
 
 const getOfferClass = (decision) => {
@@ -380,9 +412,14 @@ const loadData = async () => {
   try {
     loading.value = true
     const res = await getInterviewDetail(sessionId)
-    if (res && res.data) {
+    if (res && res.code === 200 && res.data) {
       sessionData.value = res.data
       reportData.value = res.data.report
+      if (!res.data.report && res.data.status === 2) {
+        ElMessage.info('大厂委员会正在终局核验报告，请稍候刷新...')
+      }
+    } else if (res && res.code !== 200) {
+      ElMessage.error(res.msg || '加载诊断报告失败')
     }
   } catch (err) {
     ElMessage.error('加载诊断报告失败：' + (err.message || '网络错误'))

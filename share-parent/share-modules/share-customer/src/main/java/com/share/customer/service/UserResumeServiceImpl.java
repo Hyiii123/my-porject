@@ -126,6 +126,22 @@ public class UserResumeServiceImpl implements IUserResumeService {
         if (StringUtils.hasText(request.getTargetCompany())) {
             resume.setTargetCompany(request.getTargetCompany());
         }
+
+        // BUG-26: 保存简历时立即萃取技术标签与启发式初评，确保面试时无需手动分析即可感知技能标签与分数
+        List<String> tags = extractTechTags(request.getRawContent());
+        if (!tags.isEmpty()) {
+            try {
+                resume.setTechTags(objectMapper.writeValueAsString(tags));
+            } catch (Exception ignore) {}
+        }
+        if (resume.getMatchScore() == null || resume.getMatchScore() == 0) {
+            ResumeAnalysisRequest analysisReq = new ResumeAnalysisRequest();
+            analysisReq.setResumeContent(request.getRawContent());
+            analysisReq.setTargetJob(resume.getTargetJob());
+            analysisReq.setCompanyTarget(resume.getTargetCompany());
+            applyHeuristicAnalysis(resume, analysisReq);
+        }
+
         resume.setUpdateTime(now);
 
         if (resume.getId() == null) {
@@ -246,8 +262,9 @@ public class UserResumeServiceImpl implements IUserResumeService {
                 List<String> realTags = extractTechTags(request.getResumeContent());
                 List<String> realProjects = extractProjects(request.getResumeContent());
                 if (realTags.isEmpty() && realProjects.isEmpty()) {
-                    resume.setMatchScore(60);
-                    resume.setMatchLevel("初阶成长型，亟待丰富项目与产出");
+                    // BUG-25: 零项目且零技术栈时给予真实的未达标分数（30分），拒绝虚假及格
+                    resume.setMatchScore(30);
+                    resume.setMatchLevel("严重未达标 (缺乏对口技术栈与项目经历)");
                     resume.setTechTags("[]");
                     resume.setProjectHighlights(objectMapper.writeValueAsString(List.of(
                             "【无对口技术亮点】：简历未检测到与【" + request.getTargetJob() + "】相关的对口工程项目或核心技术栈，实战积累严重不足",
@@ -479,16 +496,19 @@ public class UserResumeServiceImpl implements IUserResumeService {
         List<String> detectedProjects = extractProjects(text);
         List<String> detectedMetrics = extractMetrics(text);
 
-        // 基础分严格设定为 60 分准入门槛，结合五大核心工程维度综合量化
-        int baseScore = 60;
-        int d1 = calcTechStackScore(detectedTags);
-        int d2 = calcProjectScore(detectedProjects, text);
-        int d3 = calcMetricsScore(detectedMetrics, text);
-        int d4 = calcEngineeringScore(text);
-        int d5 = calcFitScore(targetJob, targetCompany, detectedTags, text);
-
-        int score = baseScore + d1 + d2 + d3 + d4 + d5;
-        score = Math.max(60, Math.min(score, 100));
+        int score;
+        if (detectedProjects.isEmpty() && detectedTags.isEmpty()) {
+            // BUG-25: 零技术栈且零项目直接定级为 30 分未达标
+            score = 30;
+        } else {
+            int baseScore = 50;
+            int d1 = calcTechStackScore(detectedTags);
+            int d2 = calcProjectScore(detectedProjects, text);
+            int d3 = calcMetricsScore(detectedMetrics, text);
+            int d4 = calcEngineeringScore(text);
+            int d5 = calcFitScore(targetJob, targetCompany, detectedTags, text);
+            score = Math.max(35, Math.min(baseScore + d1 + d2 + d3 + d4 + d5, 100));
+        }
 
         String level;
         if (score >= 92) {
@@ -497,10 +517,10 @@ public class UserResumeServiceImpl implements IUserResumeService {
             level = "阿里P6+/字节2-1 骨干级研发标杆";
         } else if (score >= 75) {
             level = "大厂标准中高级工程师";
-        } else if (score >= 65) {
+        } else if (score >= 60) {
             level = "技术扎实准入级开发者";
         } else {
-            level = "初阶成长型，亟待丰富项目与产出";
+            level = "初阶成长型 / 亟待丰富实战项目";
         }
 
         // 1. 生成基于候选人真实项目和技能的高光亮点（求真务实，没有就直言没有）

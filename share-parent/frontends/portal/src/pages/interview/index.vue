@@ -647,6 +647,10 @@ const handleEnterWithSimulation = () => {
 
 // 确认设备正常并接入面试考场
 const handleConfirmAndStart = () => {
+  // BUG-38: 若当前环境为虚拟全息摄像头或物理摄像头不可用，必须向 sessionStorage 写入 simulation 标记以确保考场免重复报错
+  if (isVirtualCamera.value || !cameraGranted.value) {
+    sessionStorage.setItem('interview_camera_simulation', '1')
+  }
   cleanupMediaStream()
   deviceDialogVisible.value = false
   handleStartInterview()
@@ -663,7 +667,7 @@ const handleStartInterview = async () => {
       resumeId: hasLinkedResume.value && form.enableResumeCustomization ? linkedResume.value.id : null,
       enableResumeCustomization: form.enableResumeCustomization
     })
-    if (res && res.data && res.data.id) {
+    if (res && res.code === 200 && res.data && res.data.id) {
       ElMessage.success(
         hasLinkedResume.value && form.enableResumeCustomization
           ? '视频考场已建立！AI 面试官已锁定您的简历，准备进行全真连线！'
@@ -671,7 +675,7 @@ const handleStartInterview = async () => {
       )
       router.push({ name: 'interviewRoom', params: { id: res.data.id } })
     } else {
-      ElMessage.error(res.msg || '开启面试失败，请重试')
+      ElMessage.error(res?.msg || '开启面试失败，请重试')
     }
   } catch (err) {
     ElMessage.error('开启面试异常：' + (err.message || '网络连接失败'))
