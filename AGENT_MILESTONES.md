@@ -14,6 +14,15 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-14 18:30:00 - 多智能体推荐集群架构精简演进：ActiveProbingAgent 与 UserProfileAgent 深度合并交付 (Consolidation of Active Probing & User Profile Agents into Unified Learner Profiling Agent)
+
+* **演进主题**：智能体职责高度内聚、拓扑解耦与消除跨类循环委派
+* **核心成果**：
+  1. **智能体生命周期自然归一**：将冷启动数据稀疏期的主动探针诊断（$P_c < 0.40$ 自适应触发、3 项结构化问卷生成、先验基线校准）与成熟期的 50 维画像建模全量内聚入 [`UserProfileAgent.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-education/src/main/java/com/share/education/ai/agent/UserProfileAgent.java)，实现“冷启动主动探查 ➔ 动态行为追踪 ➔ 深度认知画像”单智能体全生命周期闭环；
+  2. **编排中枢解耦瘦身**：在 [`MultiAgentRecommendOrchestrator.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-education/src/main/java/com/share/education/ai/orchestrator/MultiAgentRecommendOrchestrator.java) 中彻底移除对 `ActiveProbingAgent` 的独立注入，减少 Spring 容器 Bean 数量，消除了跨类委派与同线程池调度耦合；
+  3. **代码库精简与物理消除冗余**：物理删除 `ActiveProbingAgent.java`（-271 行冗余代码），对外 HTTP 接口与 SSE 推理流（`PROBE_CHECK` ➔ `PROFILE_BUILT`）100% 保持向前兼容；
+  4. **全链路靶向验证闭环**：本地离线编译、云端热部署更新 `zhiwen-education`、探针接口与 SSE 流靶向验证全部通过（Commit: `7c738414`）。
+
 ### 2026-09-14 17:30:00 - 智问学伴全系统 49 项高危漏洞与业务缺陷全面清零清剿战役全量告捷 (Complete Eradication of 49 Systemic Vulnerabilities & Faults Across 7 Batches): 覆盖微服务网关越权防线、交易金融强一致与分布式锁防护、教育核心业务与幂等防御、AI 模拟面试与大模型安全治理、底层基础设施白名单与路径穿越防御、多智能体协同稳定性与算法除零保护、用户端全站交互体验与价格归一化体系全面闭环
 
 * **核心成果**：
