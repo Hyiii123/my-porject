@@ -71,6 +71,10 @@ class DragModelHolder:
         intended_role = str(payload.get("intendedRole") or "")
         top_skills = payload.get("topSkills") or []
         top_k = max(1, min(int(payload.get("topK") or 12), 30))
+        preferred_difficulty = int(payload.get("preferredDifficulty") or 2)
+        skill_weights = payload.get("skillWeights") or {}
+        skill_gaps = [str(g) for g in (payload.get("skillGaps") or []) if str(g).strip()]
+        enrolled_course_ids = {int(eid) for eid in (payload.get("enrolledCourseIds") or []) if str(eid).isdigit()}
 
         # 1. Map business history into dataset IDs
         dataset_history: List[str] = []
@@ -81,7 +85,7 @@ class DragModelHolder:
 
         # Cold-start fallback if history is empty
         if not dataset_history:
-            seed_kw = " ".join(top_skills + [intended_role])
+            seed_kw = " ".join(top_skills + skill_gaps + [intended_role])
             seed_did = self.adapter.to_dataset_id(None, keywords=seed_kw)
             dataset_history = [seed_did]
 
@@ -107,17 +111,20 @@ class DragModelHolder:
         )
 
         # 4. Prerequisite path extraction
-        path_evidences = self.retriever.path_evidence(dataset_history, top_k=5, use_frontier=True)
+        path_evidences = self.retriever.path_evidence(dataset_history, top_k=10, use_frontier=True)
         evidence_paths_text = [p.text for p in path_evidences]
 
         # 5. Format results compatible with Java AlgorithmCandidateDTO
         results: List[Dict[str, Any]] = []
-        seen_bus_ids = set()
+        # BUG-46: 显式过滤用户已选课程，防止重复推荐
+        seen_bus_ids = set(enrolled_course_ids)
 
         for offset, evidence in enumerate(raw_candidates):
             bus_id = self.adapter.to_business_id(
                 evidence.doc_id, candidate_offset=offset, exclude_ids=seen_bus_ids
             )
+            if bus_id in enrolled_course_ids:
+                continue
             seen_bus_ids.add(bus_id)
 
             align_info = self.adapter.get_alignment_info(bus_id)
@@ -129,6 +136,14 @@ class DragModelHolder:
 
             tag = "知识前沿突破" if offset < 3 else ("先修核心进阶" if offset < 7 else "图谱综合推荐")
 
+            # BUG-33: 专属拓扑证据链匹配，避免全局 evidence_paths 粗暴复制
+            candidate_paths = [
+                p for p in evidence_paths_text
+                if evidence.doc_id in p or any(c in p for c in top_frontier[:3])
+            ]
+            if not candidate_paths and evidence_paths_text:
+                candidate_paths = [evidence_paths_text[offset % len(evidence_paths_text)]]
+
             features = {
                 "rawCourseCode": evidence.doc_id,
                 "algorithmScore": norm_score,
@@ -136,7 +151,7 @@ class DragModelHolder:
                 "evidenceText": evidence.text[:120] if evidence.text else "",
                 "masteredConcepts": top_mastered[:5],
                 "frontierConcepts": top_frontier[:5],
-                "evidencePaths": evidence_paths_text[:3],
+                "evidencePaths": candidate_paths[:2],
                 "alignmentConfidence": align_confidence,
             }
 

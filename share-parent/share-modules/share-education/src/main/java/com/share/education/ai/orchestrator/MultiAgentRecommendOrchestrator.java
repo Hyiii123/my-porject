@@ -389,31 +389,27 @@ public class MultiAgentRecommendOrchestrator {
                     return;
                 }
 
-                // 并发执行：1. 画像构建 2. 候选课程多路初筛 (Fork-Join)
+                // 1. 学员画像构建建模
                 long tProfileStart = System.currentTimeMillis();
-                CompletableFuture<UserProfileContext> profileFuture = CompletableFuture.supplyAsync(() -> {
-                    UserProfileContext p = userProfileAgent.buildProfile(userId, Collections.emptyMap());
-                    if (targetRole != null && !targetRole.isBlank()) {
-                        p = UserProfileContext.builder()
-                                .userId(p.getUserId())
-                                .intendedRole(targetRole.trim())
-                                .preferredDifficulty(p.getPreferredDifficulty())
-                                .skillWeights(p.getSkillWeights())
-                                .topSkills(p.getTopSkills())
-                                .skillGaps(p.getSkillGaps())
-                                .disciplineScore(p.getDisciplineScore())
-                                .userTags(p.getUserTags())
-                                .enrolledCourseIds(p.getEnrolledCourseIds())
-                                .completedHours(p.getCompletedHours())
-                                .cognitiveLevel(p.getCognitiveLevel())
-                                .chronologicalCourseIds(p.getChronologicalCourseIds())
-                                .courseProgressMap(p.getCourseProgressMap())
-                                .build();
-                    }
-                    return p;
-                }, agentThreadPool);
-
-                UserProfileContext profile = profileFuture.join();
+                UserProfileContext p = userProfileAgent.buildProfile(userId, Collections.emptyMap());
+                if (targetRole != null && !targetRole.isBlank()) {
+                    p = UserProfileContext.builder()
+                            .userId(p.getUserId())
+                            .intendedRole(targetRole.trim())
+                            .preferredDifficulty(p.getPreferredDifficulty())
+                            .skillWeights(p.getSkillWeights())
+                            .topSkills(p.getTopSkills())
+                            .skillGaps(p.getSkillGaps())
+                            .disciplineScore(p.getDisciplineScore())
+                            .userTags(p.getUserTags())
+                            .enrolledCourseIds(p.getEnrolledCourseIds())
+                            .completedHours(p.getCompletedHours())
+                            .cognitiveLevel(p.getCognitiveLevel())
+                            .chronologicalCourseIds(p.getChronologicalCourseIds())
+                            .courseProgressMap(p.getCourseProgressMap())
+                            .build();
+                }
+                UserProfileContext profile = p;
                 long profileLatency = System.currentTimeMillis() - tProfileStart;
 
                 // 发射画像建模完成事件

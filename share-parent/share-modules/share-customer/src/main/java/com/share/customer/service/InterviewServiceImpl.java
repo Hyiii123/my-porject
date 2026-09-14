@@ -217,8 +217,37 @@ public class InterviewServiceImpl implements IInterviewService {
 
         // 执行 AI 沙箱与架构异味审计
         auditCodeSubmission(submission);
-
         codeMapper.insert(submission);
+
+        // BUG-36, BUG-51: 真实回填当前轮次作答内容与沙箱实测成绩，推进轮次，消除提前交卷误判
+        InterviewTurn turn = request.getTurnId() != null ? turnMapper.selectById(request.getTurnId()) : null;
+        if (turn == null && session.getCurrentTurn() != null) {
+            turn = turnMapper.selectOne(new LambdaQueryWrapper<InterviewTurn>()
+                    .eq(InterviewTurn::getSessionId, session.getId())
+                    .eq(InterviewTurn::getTurnNum, session.getCurrentTurn()));
+        }
+        if (turn != null) {
+            turn.setUserAnswer(request.getUserCode());
+            int total = submission.getTotalTestCases() != null ? submission.getTotalTestCases() : 10;
+            int passed = submission.getPassedTestCases() != null ? submission.getPassedTestCases() : 0;
+            int codeScore = total > 0 ? (int) Math.round((double) passed / total * 100) : 80;
+            turn.setTurnScore(codeScore);
+            turn.setAiFeedback("【沙箱状态】： " + submission.getExecutionStatus() + "；【复杂度】：时间 " 
+                    + submission.getTimeComplexity() + "，空间 " + submission.getSpaceComplexity() 
+                    + "；【通过用例】： " + passed + "/" + total 
+                    + "；【代码异味建议】： " + submission.getCodeSmells());
+            turn.setAnswerTime(LocalDateTime.now());
+            turnMapper.updateById(turn);
+        }
+
+        // 推进当前轮次
+        int totalTurns = session.getTotalTurns() != null ? session.getTotalTurns() : 6;
+        if (session.getCurrentTurn() != null && session.getCurrentTurn() < totalTurns) {
+            session.setCurrentTurn(session.getCurrentTurn() + 1);
+            session.setUpdateTime(LocalDateTime.now());
+            sessionMapper.updateById(session);
+        }
+
         return submission;
     }
 
@@ -251,6 +280,30 @@ public class InterviewServiceImpl implements IInterviewService {
                 .orderByAsc(InterviewTurn::getTurnNum));
         List<InterviewCodeSubmission> codes = codeMapper.selectList(new LambdaQueryWrapper<InterviewCodeSubmission>()
                 .eq(InterviewCodeSubmission::getSessionId, session.getId()));
+
+        // BUG-36, BUG-51: 确保若有代码沙箱实测提交，但对应轮次未记录作答时，自动回填至算法手撕轮次
+        if (codes != null && !codes.isEmpty()) {
+            for (InterviewCodeSubmission c : codes) {
+                for (InterviewTurn t : turns) {
+                    if ((t.getTurnNum() != null && t.getTurnNum().equals(session.getTotalTurns()))
+                            || (t.getDimension() != null && t.getDimension().contains("算法"))) {
+                        if (!StringUtils.hasText(t.getUserAnswer())) {
+                            t.setUserAnswer(c.getUserCode());
+                            int total = c.getTotalTestCases() != null ? c.getTotalTestCases() : 10;
+                            int passed = c.getPassedTestCases() != null ? c.getPassedTestCases() : 0;
+                            int codeScore = total > 0 ? (int) Math.round((double) passed / total * 100) : 80;
+                            t.setTurnScore(codeScore);
+                            t.setAiFeedback("【沙箱状态】： " + c.getExecutionStatus() + "；【复杂度】：时间 " 
+                                    + c.getTimeComplexity() + "，空间 " + c.getSpaceComplexity() 
+                                    + "；【通过用例】： " + passed + "/" + total);
+                            t.setAnswerTime(now);
+                            turnMapper.updateById(t);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
 
         // 计算总得分：必须严格结合实质答题率与各轮得分
         int answeredCount = 0;
@@ -374,11 +427,20 @@ public class InterviewServiceImpl implements IInterviewService {
             nextDimension = currentTurn.getDimension();
             nextQuestion = generateDrillQuestion(session, currentTurn, 3);
         } else {
-            // 切换到下一个核心维度
+            // 切换到下一个核心维度 (BUG-35: 依据已考查维度计数而非轮次数，确保第4轮不会跳过第2、3维度)
             nextDepth = 1;
             JobTrack track = detectJobTrack(session.getTargetJob());
-            nextDimension = resolveNextDimension(track, nextTurnNum, session.getTotalTurns());
-            if ("算法设计与工程手撕".equals(nextDimension)) {
+            List<InterviewTurn> previousTurns = turnMapper.selectList(new LambdaQueryWrapper<InterviewTurn>()
+                    .eq(InterviewTurn::getSessionId, session.getId()));
+            long coveredDimensions = previousTurns.stream()
+                    .map(InterviewTurn::getDimension)
+                    .filter(StringUtils::hasText)
+                    .distinct()
+                    .count();
+            int nextDimIndex = (int) coveredDimensions + 1;
+            nextDimension = resolveNextDimension(track, nextDimIndex, session.getTotalTurns());
+            if ("算法设计与工程手撕".equals(nextDimension) || nextTurnNum == session.getTotalTurns()) {
+                nextDimension = "算法设计与工程手撕";
                 nextQuestion = resolveCodingProblem(track);
             } else {
                 nextQuestion = generateDimensionOpeningQuestion(session, nextDimension, track);
@@ -725,6 +787,23 @@ public class InterviewServiceImpl implements IInterviewService {
             transcript.append("点评：").append(t.getAiFeedback() != null ? t.getAiFeedback() : "").append("\n\n");
         }
 
+        // BUG-36, BUG-51: 将代码沙箱提交、执行状态及架构异味完整注入到评审实录中
+        if (codes != null && !codes.isEmpty()) {
+            transcript.append("【算法设计与代码沙箱实测记录】：\n");
+            for (InterviewCodeSubmission c : codes) {
+                transcript.append("题名：").append(c.getProblemTitle()).append(" (语言: ").append(c.getLanguage()).append(")\n");
+                transcript.append("沙箱执行状态：").append(c.getExecutionStatus())
+                        .append("，通过测试用例：").append(c.getPassedTestCases()).append("/").append(c.getTotalTestCases())
+                        .append("，时间复杂度：").append(c.getTimeComplexity())
+                        .append("，空间复杂度：").append(c.getSpaceComplexity()).append("\n");
+                transcript.append("提交源码：\n").append(c.getUserCode()).append("\n");
+                if (StringUtils.hasText(c.getCodeSmells())) {
+                    transcript.append("架构异味与重构建议：").append(c.getCodeSmells()).append("\n");
+                }
+                transcript.append("\n");
+            }
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.append("你现在是阿里巴巴与字节跳动联合高级技术评审委员会。请根据以下完整的模拟面试答题记录，生成全维度的终局职涯诊断报告：\n");
         sb.append("【目标岗位】：").append(session.getTargetJob()).append("\n");
@@ -740,11 +819,11 @@ public class InterviewServiceImpl implements IInterviewService {
         sb.append("  \"offerDecision\": \"Hire\",\n");
         sb.append("  \"levelMatch\": \"对标阿里P6+ / 字节2-1\",\n");
         sb.append("  \"radarData\": {\"core\": 85, \"architecture\": 78, \"storage\": 82, \"distributed\": 75, \"coding\": 88, \"communication\": 80},\n");
-        sb.append("  \"overallSummary\": \"综合技术基础扎实，对 Java 核心机制与并发锁原理掌握较好...\",\n");
+        sb.append("  \"overallSummary\": \"综合技术基础扎实，对技术核心机制与并发原理掌握较好...\",\n");
         sb.append("  \"coreStrengths\": \"1. 并发底层原理理解深刻；2. 具有良好的系统抽象意识；3. 代码风格规范。\",\n");
-        sb.append("  \"criticalWeaknesses\": \"1. 面对 10 万 QPS 线上大促极限故障时的排障经验稍显欠缺；2. 分布式事务一致性选型缺乏实战权衡细节。\",\n");
+        sb.append("  \"criticalWeaknesses\": \"1. 面对线上大促极限故障时的排障经验稍显欠缺；2. 分布式高可用选型缺乏实战权衡细节。\",\n");
         sb.append("  \"speechRefactoring\": \"【原版回答缺陷】：语言偏口语化，未突出量化业务成果。\\n【大厂STAR重塑示范】：在XX项目中（Situation），面对QPS飙升3倍挑战（Task），通过引入本地缓存与分库分表重构（Action），将RT降低65%（Result）。\",\n");
-        sb.append("  \"recommendedCourses\": [\"《亿级流量高并发系统架构实战》\", \"《JVM性能调优与线上排障实战》\", \"《MySQL深潜与千万级慢SQL剖析》\"]\n");
+        sb.append("  \"recommendedCourses\": ").append(defaultCourses).append("\n");
         sb.append("}");
         String prompt = sb.toString();
 

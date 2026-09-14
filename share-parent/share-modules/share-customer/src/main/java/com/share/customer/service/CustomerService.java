@@ -161,7 +161,6 @@ public class CustomerService {
         return listMessages(session.getId());
     }
 
-    @Transactional
     public CustomerChatResult sendMessage(Long sessionId, String content) {
         return sendMessage(sessionId, content, null, null);
     }
@@ -169,8 +168,8 @@ public class CustomerService {
     /**
      * 发送客服消息。用户端可传入当前会话临时使用的第三方 Pixel Key，
      * 服务端只在本次调用中使用该 Key，不写入任何存储。
+     * 注意：本方法严禁加 @Transactional，防止耗时数秒到数十秒的外部大模型 HTTP 调用持续占用数据库连接池导致死锁。
      */
-    @Transactional
     public CustomerChatResult sendMessage(Long sessionId, String content, String requestApiKey,
             String requestModel) {
         CustomerSession session = getMySession(sessionId);
@@ -903,10 +902,16 @@ public class CustomerService {
 
     private void evictFaqCache() {
         try {
-            Collection<String> keys = redisService.keys(FAQ_CACHE_PREFIX + "*");
-            if (keys != null && !keys.isEmpty()) {
-                redisService.deleteObject(keys);
-            }
+            // 精确清除常用 limit 缓存键，避免在 Redis 单线程中执行全库阻塞式的 KEYS 命令
+            List<String> cacheKeys = List.of(
+                    FAQ_CACHE_PREFIX + "5",
+                    FAQ_CACHE_PREFIX + "10",
+                    FAQ_CACHE_PREFIX + "15",
+                    FAQ_CACHE_PREFIX + "20",
+                    FAQ_CACHE_PREFIX + "30",
+                    FAQ_CACHE_PREFIX + "50"
+            );
+            redisService.deleteObject(cacheKeys);
         } catch (RuntimeException ignored) {
             // 缓存失效失败不会影响 FAQ 数据已经写入 MySQL 的结果。
         }

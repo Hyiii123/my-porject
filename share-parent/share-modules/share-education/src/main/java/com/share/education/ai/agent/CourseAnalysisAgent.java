@@ -58,7 +58,7 @@ public class CourseAnalysisAgent {
         for (CandidateCourseDTO c : candidates) {
             List<EduCourseCatalog> catalogs = catalogMap.getOrDefault(c.getCourseId(), Collections.emptyList());
 
-            // 1. 提取先修知识依赖
+            // 1. 提取先修知识依赖 (聚合所有匹配的前置依赖规则)
             List<String> prerequisites = extractPrerequisites(c);
 
             // 2. 提取核心攻坚知识点与大纲速览
@@ -67,7 +67,9 @@ public class CourseAnalysisAgent {
             int practicalCount = 0;
 
             for (EduCourseCatalog cat : catalogs) {
-                String title = cat.getCatalogTitle();
+                String rawTitle = cat.getCatalogTitle();
+                if (!StringUtils.hasText(rawTitle)) continue;
+                String title = cleanCatalogTitle(rawTitle);
                 if (!StringUtils.hasText(title)) continue;
 
                 if (cat.getCatalogType() != null && cat.getCatalogType() == 1) {
@@ -75,14 +77,19 @@ public class CourseAnalysisAgent {
                     syllabusSummary.append(title);
                 }
 
-                if (isPracticalKeyword(title)) {
+                if (isPracticalKeyword(rawTitle)) {
                     practicalCount++;
                     knowledgePoints.add(title);
                 }
             }
 
             if (knowledgePoints.isEmpty() && StringUtils.hasText(c.getSkills())) {
-                knowledgePoints.addAll(Arrays.asList(c.getSkills().split("[,，、 ]+")));
+                for (String sk : c.getSkills().split("[,，、 ]+")) {
+                    String clean = cleanCatalogTitle(sk);
+                    if (StringUtils.hasText(clean)) {
+                        knowledgePoints.add(clean);
+                    }
+                }
             }
 
             // 3. 计算实战工程化占比
@@ -170,6 +177,14 @@ public class CourseAnalysisAgent {
             || lower.contains("pipeline") || lower.contains("设计");
     }
 
+    private String cleanCatalogTitle(String title) {
+        if (!StringUtils.hasText(title)) return "";
+        return title.replaceAll("(?i)^第[0-9一二三四五六七八九十百]+[章节讲回篇课集卷部][\\s:：、._-]*", "")
+                    .replaceAll("^[0-9]+(\\.[0-9]+)*[\\s:：、._-]*", "")
+                    .replaceAll("^[0-9]+[、. ]\\s*", "")
+                    .trim();
+    }
+
     private static final List<Map.Entry<List<String>, List<String>>> PREREQ_RULES = List.of(
         Map.entry(List.of("springcloud", "微服务", "dubbo"), List.of("Java 核心语法", "SpringBoot 基础")),
         Map.entry(List.of("k8s", "kubernetes", "istio"), List.of("Linux 基础操作", "Docker 容器基础")),
@@ -182,11 +197,13 @@ public class CourseAnalysisAgent {
 
     private List<String> extractPrerequisites(CandidateCourseDTO c) {
         String text = (c.getCourseName() + " " + (c.getSkills() != null ? c.getSkills() : "")).toLowerCase();
-        return PREREQ_RULES.stream()
+        List<String> matched = PREREQ_RULES.stream()
             .filter(r -> r.getKey().stream().anyMatch(text::contains))
-            .map(Map.Entry::getValue)
-            .findFirst()
-            .orElseGet(() -> List.of("计算机基础知识"));
+            .flatMap(r -> r.getValue().stream())
+            .distinct()
+            .limit(4)
+            .toList();
+        return matched.isEmpty() ? List.of("计算机基础知识") : matched;
     }
 
     private record BloomInfo(String level, String name) {}
@@ -195,15 +212,16 @@ public class CourseAnalysisAgent {
         String name = c.getCourseName() != null ? c.getCourseName().toLowerCase() : "";
         int diff = c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2;
 
-        if (name.contains("底层") || name.contains("源码") || name.contains("内核")) {
-            return new BloomInfo("ANALYZE", "底层剖析级");
-        } else if (name.contains("调优") || name.contains("架构") || name.contains("高并发") || diff >= 3) {
-            return new BloomInfo("EVALUATE", "架构调优级");
-        } else if (name.contains("自研") || name.contains("手写") || name.contains("平台")) {
+        // 布鲁姆认知层级递进：CREATE(系统创新) > EVALUATE(架构调优) > ANALYZE(底层剖析) > APPLY(工程应用) > UNDERSTAND(原理理解) > REMEMBER(核心识记)
+        if (name.contains("自研") || name.contains("手写") || name.contains("架构自研") || name.contains("从零构建")) {
             return new BloomInfo("CREATE", "系统创新级");
-        } else if (name.contains("实战") || name.contains("开发") || name.contains("应用") || diff == 2) {
+        } else if (name.contains("调优") || name.contains("性能") || name.contains("全链路") || diff >= 4) {
+            return new BloomInfo("EVALUATE", "架构调优级");
+        } else if (name.contains("底层") || name.contains("源码") || name.contains("内核") || name.contains("剖析") || diff == 3) {
+            return new BloomInfo("ANALYZE", "底层剖析级");
+        } else if (name.contains("实战") || name.contains("开发") || name.contains("应用") || name.contains("项目") || diff == 2) {
             return new BloomInfo("APPLY", "工程应用级");
-        } else if (name.contains("原理") || name.contains("机制") || name.contains("网络")) {
+        } else if (name.contains("原理") || name.contains("机制") || name.contains("网络") || name.contains("入门")) {
             return new BloomInfo("UNDERSTAND", "原理理解级");
         } else {
             return new BloomInfo("REMEMBER", "核心识记级");

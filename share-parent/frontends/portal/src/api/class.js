@@ -384,34 +384,43 @@ export const fetchReasoningStream = async ({ targetRole, onEvent, onError, onDon
 		const decoder = new TextDecoder('utf-8')
 		let buffer = ''
 
+		const processEventBlock = (block) => {
+			const lines = block.split(/\r?\n/)
+			const dataLines = []
+			for (const line of lines) {
+				const trimmed = line.trim()
+				if (trimmed.startsWith('data:')) {
+					dataLines.push(trimmed.replace(/^data:\s*/, ''))
+				}
+			}
+			if (dataLines.length > 0) {
+				const fullData = dataLines.join('\n')
+				try {
+					const eventObj = JSON.parse(fullData)
+					if (onEvent) onEvent(eventObj)
+				} catch (e) {
+					console.warn('SSE 数据块解析警告:', e, fullData)
+				}
+			}
+		}
+
 		while (true) {
 			const { done, value } = await reader.read()
 			if (done) break
 
 			buffer += decoder.decode(value, { stream: true })
-			const lines = buffer.split('\n')
-			buffer = lines.pop() || ''
+			const blocks = buffer.split(/\r?\n\r?\n/)
+			buffer = blocks.pop() || ''
 
-			for (const line of lines) {
-				const trimmed = line.trim()
-				if (trimmed.startsWith('data:')) {
-					const dataStr = trimmed.replace(/^data:\s*/, '')
-					try {
-						const eventObj = JSON.parse(dataStr)
-						if (onEvent) onEvent(eventObj)
-					} catch (e) {
-						// ignore unparsed chunk
-					}
+			for (const block of blocks) {
+				if (block.trim()) {
+					processEventBlock(block)
 				}
 			}
 		}
 
-		if (buffer && buffer.trim().startsWith('data:')) {
-			const dataStr = buffer.trim().replace(/^data:\s*/, '')
-			try {
-				const eventObj = JSON.parse(dataStr)
-				if (onEvent) onEvent(eventObj)
-			} catch (e) {}
+		if (buffer && buffer.trim()) {
+			processEventBlock(buffer)
 		}
 
 		if (onDone) onDone()

@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -183,22 +184,53 @@ public class CustomerAiClient {
             String userMessage) {
         String endpoint = config.getEndpointPath() == null ? "" : config.getEndpointPath().toLowerCase();
         List<Map<String, String>> messages = new ArrayList<>();
-        if (history != null) {
-            history.stream().skip(Math.max(0, history.size() - 12L)).forEach(message -> {
-                String role = message.getMessageType() != null && message.getMessageType() == 1
-                        ? "user" : "assistant";
+
+        // BUG-47: 倒序检查历史消息字符预算（上限 6000 字符），防止长上下文导致 HTTP 400 失败
+        if (history != null && !history.isEmpty()) {
+            int charBudget = 6000;
+            int currentChars = 0;
+            List<CustomerMessage> recent = history.stream()
+                    .skip(Math.max(0, history.size() - 12L))
+                    .toList();
+            List<Map<String, String>> budgetMessages = new ArrayList<>();
+            for (int i = recent.size() - 1; i >= 0; i--) {
+                CustomerMessage m = recent.get(i);
+                String text = m.getContent() == null ? "" : m.getContent().trim();
+                if (text.isEmpty()) continue;
+                if (currentChars + text.length() > charBudget) {
+                    int remaining = charBudget - currentChars;
+                    if (remaining > 100) {
+                        Map<String, String> item = new LinkedHashMap<>();
+                        item.put("role", m.getMessageType() != null && m.getMessageType() == 1 ? "user" : "assistant");
+                        item.put("content", text.substring(text.length() - remaining));
+                        budgetMessages.add(0, item);
+                    }
+                    break;
+                }
+                currentChars += text.length();
                 Map<String, String> item = new LinkedHashMap<>();
-                item.put("role", role);
-                item.put("content", message.getContent());
-                messages.add(item);
-            });
+                item.put("role", m.getMessageType() != null && m.getMessageType() == 1 ? "user" : "assistant");
+                item.put("content", text);
+                budgetMessages.add(0, item);
+            }
+            messages.addAll(budgetMessages);
         }
-        // 当前问题必须放进发送给第三方的上下文中。此前 Responses 分支先把 input
-        // 放入 body、再追加当前问题，导致首条咨询实际没有提交给 AI。
+
+        // 限制单条用户输入最大长度，防止单次请求过大直接触发网关拦截
+        String safeUserMessage = userMessage != null && userMessage.length() > 3000
+                ? userMessage.substring(0, 3000) : (userMessage != null ? userMessage.trim() : "");
         Map<String, String> current = new LinkedHashMap<>();
         current.put("role", "user");
-        current.put("content", userMessage);
+        current.put("content", safeUserMessage);
         messages.add(current);
+
+        // BUG-34: OpenAI /v1/chat/completions 标准协议必须将 systemPrompt 放入 messages 的首位
+        if (endpoint.contains("chat/completions") && StringUtils.hasText(config.getSystemPrompt())) {
+            Map<String, String> sysMsg = new LinkedHashMap<>();
+            sysMsg.put("role", "system");
+            sysMsg.put("content", config.getSystemPrompt().trim());
+            messages.add(0, sysMsg);
+        }
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", config.getModel());
@@ -233,6 +265,19 @@ public class CustomerAiClient {
     }
 
     private String firstText(JsonNode root) {
+        if (root == null || root.isNull()) {
+            return null;
+        }
+        // 防御：若返回根节点包含明确的 error 报错标识，绝不可将错误提示信息提取为 AI 答案
+        if (root.has("error") || root.has("errcode")) {
+            log.warn("第三方 AI 返回错误报文: {}", root);
+            return null;
+        }
+        if (root.has("code") && root.get("code").asInt(0) != 200 && root.get("code").asInt(0) != 0) {
+            log.warn("第三方 AI 返回非正常业务状态码: {}", root);
+            return null;
+        }
+
         String direct = textValue(root, "output_text");
         if (direct != null) {
             return direct;

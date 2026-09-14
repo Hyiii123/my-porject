@@ -100,24 +100,28 @@ class CourseMappingAdapter:
             logger.warning("未找到语义对齐文件: %s，回退至基础映射", alignment_path)
 
     def to_dataset_id(self, raw_id: Any, keywords: str = "") -> str:
-        """基于双塔混合语义对齐表，将业务课程 ID 映射为 MOOCCubeX 数据集 ID"""
-        # 1. 优先查真实语义对齐索引
-        if raw_id is not None:
-            s = str(raw_id).strip()
-            if s in self.forward_map:
-                mapped_id = self.forward_map[s].get("dataset_id")
-                if mapped_id and mapped_id in self.course_to_idx:
-                    return mapped_id
-
-            # 已是数据集原生 C_ 编号
-            if s.startswith("C_") and s in self.course_to_idx:
-                return s
-
-        # 2. 关键词领域锚定匹配
+        """基于双塔混合语义对齐表与领域硬锚点，将业务课程 ID 映射为 MOOCCubeX 数据集 ID"""
+        # 1. 优先关键词领域锚定匹配（强语义对齐，防止被粗暴字面重合误导）
         if keywords:
             for kw in re.split(r"[,，\s]+", keywords.lower()):
                 if (did := DOMAIN_ANCHORS.get(kw)) and did in self.course_to_idx:
                     return did
+
+        # 2. 查真实语义对齐索引
+        if raw_id is not None:
+            s = str(raw_id).strip()
+            # 已是数据集原生 C_ 编号
+            if s.startswith("C_") and s in self.course_to_idx:
+                return s
+
+            if s in self.forward_map:
+                b_name = (self.forward_map[s].get("business_name") or "").lower()
+                mapped_id = self.forward_map[s].get("dataset_id")
+                # BUG-49: 纠偏：若业务名称包含前端开发（Vue/React/TypeScript/前端），严禁对齐到桌面 VC++ MFC Windows 编程
+                if any(w in b_name for w in ["vue", "react", "typescript", "前端", "javascript"]) and mapped_id == "C_680892":
+                    return DOMAIN_ANCHORS.get("vue3", "C_680745")
+                if mapped_id and mapped_id in self.course_to_idx:
+                    return mapped_id
 
         # 3. 兜底保护
         if raw_id is None:

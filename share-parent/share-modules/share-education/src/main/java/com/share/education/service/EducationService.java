@@ -84,6 +84,7 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -95,6 +96,7 @@ import org.springframework.util.StringUtils;
  * portal DTO 保留 title、cover、lessons、learners 等旧字段，因此迁移过程中页面
  * 不需要重写业务逻辑。</p>
  */
+@Slf4j
 @Service
 public class EducationService {
     private static final int ENABLED = 1;
@@ -1813,7 +1815,27 @@ public class EducationService {
             learningMapper.updateById(summary);
         }
 
-        return old != null ? old : summary;
+        // BUG-44: 联动更新学员对应课程学习计划 (EduLearningPlan) 的进度与状态
+        try {
+            List<EduLearningPlan> plans = planMapper.selectList(new LambdaQueryWrapper<EduLearningPlan>()
+                    .eq(EduLearningPlan::getUserId, userId)
+                    .eq(EduLearningPlan::getCourseId, value.getCourseId()));
+            for (EduLearningPlan plan : plans) {
+                plan.setProgressPercent(overallPercent);
+                if (overallPercent.compareTo(BigDecimal.valueOf(100)) >= 0) {
+                    plan.setStatus(2); // 已完成
+                } else if (overallPercent.compareTo(BigDecimal.ZERO) > 0) {
+                    plan.setStatus(1); // 进行中
+                }
+                plan.setUpdateTime(now);
+                planMapper.updateById(plan);
+            }
+        } catch (Exception ex) {
+            log.warn("联动更新学习计划异常: {}", ex.getMessage());
+        }
+
+        // BUG-43: 必须返回代表整门课程全局进度的 summary 记录，杜绝返回局部小节导致前端课程进度归零
+        return summary;
     }
 
     /** 题库旧接口和社区问答共用 /questions/page，带题型/分类参数时按题库查询。 */

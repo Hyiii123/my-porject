@@ -164,6 +164,12 @@ class SequenceRanker(nn.Module):
         pos = torch.arange(seqlen, device=histories.device).unsqueeze(0)
         x = x + self.position(pos)
         pad_mask = histories.eq(self.pad_id)
+        # BUG-41: 若存在整行全为 padding 的冷启动序列，src_key_padding_mask 全 True 会导致 Softmax 产生 NaN
+        all_padded = pad_mask.all(dim=1)
+        if all_padded.any():
+            pad_mask = pad_mask.clone()
+            pad_mask[all_padded, 0] = False
+
         if self.kind == "gru":
             encoded, _ = self.encoder(x)
             idx = (lengths - 1).clamp(min=0, max=seqlen - 1)
@@ -242,7 +248,8 @@ class _PairwiseMaskT5Attention(nn.Module):
                 dtype=hidden_states.dtype,
             )
             blocked = (1.0 - pairwise).unsqueeze(1)
-            pairwise_bias = blocked * torch.finfo(hidden_states.dtype).min
+            # BUG-42: 替换 finfo.min 为数值安全的常量 -1e4，防止 float16/float32 叠加溢出 NaN
+            pairwise_bias = blocked * -1e4
             mask = mask + pairwise_bias
         return self.attention(hidden_states, mask, *args, **kwargs)
 

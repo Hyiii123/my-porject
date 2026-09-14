@@ -148,10 +148,21 @@ public class ExplanationGenerationAgent {
         List<String> topSkills = profile != null ? profile.getTopSkills() : null;
         String mainSkill = (topSkills != null && !topSkills.isEmpty() && StringUtils.hasText(topSkills.get(0))) ? topSkills.get(0) : "现有技术";
 
-        // 优先采纳 DRAG-KP4SR 算法推演出的显式先修知识路径作为解释锚点
+        // 优先采纳 DRAG-KP4SR 算法推演出的显式先修知识路径作为解释锚点（前提是路径必须真正与当前课程相关）
         if (ac != null && ac.getEvidencePaths() != null && !ac.getEvidencePaths().isEmpty()) {
-            String firstPath = ac.getEvidencePaths().get(0);
-            return String.format("前沿知识攻坚：基于先修拓扑链路（%s），助力平滑跃升攻克 %s 核心难点。", firstPath, courseName);
+            String courseNorm = courseName.toLowerCase();
+            for (String path : ac.getEvidencePaths()) {
+                if (!StringUtils.hasText(path)) continue;
+                String pathLower = path.toLowerCase();
+                boolean matchesCourse = pathLower.contains(courseNorm);
+                if (!matchesCourse && ac.getCoreKnowledgePoints() != null) {
+                    matchesCourse = ac.getCoreKnowledgePoints().stream()
+                            .anyMatch(kp -> StringUtils.hasText(kp) && pathLower.contains(kp.toLowerCase()));
+                }
+                if (matchesCourse) {
+                    return String.format("前沿知识攻坚：基于先修拓扑链路（%s），助力平滑跃升攻克 %s 核心难点。", path, courseName);
+                }
+            }
         }
 
         int stageIndex = (stage != null && stage.getStageIndex() != null) ? stage.getStageIndex() : 1;

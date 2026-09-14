@@ -227,15 +227,55 @@ const sessionData = ref({})
 const reportData = ref(null)
 const activeTurns = ref([1])
 
-// 六维雷达参数
-const axes = [
-  { key: 'core', name: 'Java核心并发' },
-  { key: 'architecture', name: '系统设计架构' },
-  { key: 'storage', name: '存储与数据库' },
-  { key: 'distributed', name: '分布式高并发' },
-  { key: 'coding', name: '算法代码工程' },
-  { key: 'communication', name: '沟通与表达' }
-]
+// 六维雷达参数：根据目标岗位赛道自适应维度名称 (BUG-53)
+const axes = computed(() => {
+  const job = (sessionData.value?.targetJob || '').toLowerCase()
+  let coreName = 'Java核心并发'
+  let archName = '系统设计架构'
+  let storageName = '存储与数据库'
+  let distName = '分布式高并发'
+
+  if (job.includes('前端') || job.includes('web') || job.includes('vue') || job.includes('react')) {
+    coreName = 'Web前端核心'
+    archName = '前端工程架构'
+    storageName = '浏览器存储管线'
+    distName = '跨端与离线方案'
+  } else if (job.includes('go') || job.includes('golang') || job.includes('c++') || job.includes('系统') || job.includes('高性能')) {
+    coreName = '系统并发与调度'
+    archName = '高性能系统设计'
+    storageName = '存储引擎与I/O'
+    distName = '分布式共识网络'
+  } else if (job.includes('ai') || job.includes('算法') || job.includes('大模型') || job.includes('llm') || job.includes('python')) {
+    coreName = 'Transformer机制'
+    archName = '大模型架构设计'
+    storageName = '向量检索与RAG'
+    distName = '分布式训练推理'
+  } else if (job.includes('数仓') || job.includes('数据') || job.includes('flink') || job.includes('spark')) {
+    coreName = '流批一体计算'
+    archName = '数据架构治理'
+    storageName = '湖仓一体与存储'
+    distName = '海量分布式调度'
+  } else if (job.includes('sre') || job.includes('运维') || job.includes('云原生') || job.includes('k8s')) {
+    coreName = 'Linux与容器底层'
+    archName = '云原生微服务'
+    storageName = '持久化存储卷'
+    distName = '集群治理可观测'
+  } else if (job.includes('测试') || job.includes('qa') || job.includes('安全')) {
+    coreName = '自动化与质量门禁'
+    archName = '全链路压测设计'
+    storageName = '数据Mock与注入'
+    distName = '安全攻防与混沌'
+  }
+
+  return [
+    { key: 'core', name: coreName },
+    { key: 'architecture', name: archName },
+    { key: 'storage', name: storageName },
+    { key: 'distributed', name: distName },
+    { key: 'coding', name: '算法代码工程' },
+    { key: 'communication', name: '沟通与表达' }
+  ]
+})
 
 const radarScores = computed(() => {
   if (!reportData.value || !reportData.value.radarData) {
@@ -257,7 +297,7 @@ const centerY = 175
 const radius = 110
 
 const getVertex = (index, scale) => {
-  const angle = (Math.PI * 2 / axes.length) * index - Math.PI / 2
+  const angle = (Math.PI * 2 / axes.value.length) * index - Math.PI / 2
   const r = radius * scale
   return {
     x: centerX + r * Math.cos(angle),
@@ -266,14 +306,14 @@ const getVertex = (index, scale) => {
 }
 
 const getWebPoints = (level) => {
-  return axes.map((_, i) => {
+  return axes.value.map((_, i) => {
     const pt = getVertex(i, level)
     return `${pt.x},${pt.y}`
   }).join(' ')
 }
 
 const radarDataCoords = computed(() => {
-  return axes.map((axis, i) => {
+  return axes.value.map((axis, i) => {
     const val = radarScores.value[axis.key] ?? 75
     const scale = Math.max(0.1, Math.min(val / 100, 1.0))
     return getVertex(i, scale)
@@ -285,7 +325,7 @@ const radarPoints = computed(() => {
 })
 
 const getLabelCoord = (index) => {
-  const angle = (Math.PI * 2 / axes.length) * index - Math.PI / 2
+  const angle = (Math.PI * 2 / axes.value.length) * index - Math.PI / 2
   const r = radius + 24
   return {
     x: centerX + r * Math.cos(angle),

@@ -877,6 +877,73 @@ public class UserResumeServiceImpl implements IUserResumeService {
         int d4 = calcEngineeringScore(text);
         int d5 = calcFitScore(resume.getTargetJob(), resume.getTargetCompany(), tags, text);
 
+        // BUG-50: 将各维度得分与总评分数严格对齐（基准分60 + 动态维度权重归一化，确保子项之和 100% 等于展示的总分 matchScore）
+        int targetScore = resume.getMatchScore() != null ? resume.getMatchScore() : 60;
+        targetScore = Math.max(60, Math.min(targetScore, 100));
+        int targetBonus = targetScore - 60; // 0 ~ 40
+
+        int[] caps = {10, 10, 10, 5, 5};
+        int[] raw = {d1, d2, d3, d4, d5};
+        int rawSum = d1 + d2 + d3 + d4 + d5;
+
+        int[] adjusted = new int[5];
+        if (targetBonus == 0) {
+            Arrays.fill(adjusted, 0);
+        } else if (rawSum == 0) {
+            int tempBonus = targetBonus;
+            for (int i = 0; i < 5 && tempBonus > 0; i++) {
+                int allocate = Math.min(tempBonus, caps[i] * targetBonus / 40);
+                adjusted[i] = allocate;
+                tempBonus -= allocate;
+            }
+            int idx = 0;
+            while (tempBonus > 0) {
+                if (adjusted[idx % 5] < caps[idx % 5]) {
+                    adjusted[idx % 5]++;
+                    tempBonus--;
+                }
+                idx++;
+            }
+        } else {
+            double factor = (double) targetBonus / rawSum;
+            int curSum = 0;
+            for (int i = 0; i < 5; i++) {
+                adjusted[i] = Math.min(caps[i], Math.max(0, (int) Math.round(raw[i] * factor)));
+                curSum += adjusted[i];
+            }
+            // 微调残差，确保子项之和严格等于 targetBonus
+            while (curSum < targetBonus) {
+                boolean added = false;
+                for (int i = 0; i < 5; i++) {
+                    if (adjusted[i] < caps[i]) {
+                        adjusted[i]++;
+                        curSum++;
+                        added = true;
+                        if (curSum == targetBonus) break;
+                    }
+                }
+                if (!added) break;
+            }
+            while (curSum > targetBonus) {
+                boolean subtracted = false;
+                for (int i = 4; i >= 0; i--) {
+                    if (adjusted[i] > 0) {
+                        adjusted[i]--;
+                        curSum--;
+                        subtracted = true;
+                        if (curSum == targetBonus) break;
+                    }
+                }
+                if (!subtracted) break;
+            }
+        }
+
+        d1 = adjusted[0];
+        d2 = adjusted[1];
+        d3 = adjusted[2];
+        d4 = adjusted[3];
+        d5 = adjusted[4];
+
         List<ResumeAnalysisVO.ScoreDimensionItem> list = new ArrayList<>();
         list.add(new ResumeAnalysisVO.ScoreDimensionItem(
                 "基准及格门槛",

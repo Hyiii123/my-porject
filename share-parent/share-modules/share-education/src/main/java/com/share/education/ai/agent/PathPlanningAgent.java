@@ -145,11 +145,17 @@ public class PathPlanningAgent {
 
         boolean skipBasic = directives != null && (Boolean.TRUE.equals(directives.get("skipBasicPhase"))
             || "true".equalsIgnoreCase(String.valueOf(directives.get("skipBasicPhase"))));
-        boolean needMoreBeginner = directives != null && Boolean.TRUE.equals(directives.get("needMoreBeginnerCourses"));
+        boolean needMoreBeginner = directives != null && (Boolean.TRUE.equals(directives.get("needMoreBeginnerCourses"))
+            || "true".equalsIgnoreCase(String.valueOf(directives.get("needMoreBeginnerCourses"))));
+        boolean fixPrereqInversion = directives != null && (Boolean.TRUE.equals(directives.get("fixPrerequisiteInversion"))
+            || "true".equalsIgnoreCase(String.valueOf(directives.get("fixPrerequisiteInversion"))));
+        boolean smoothTransition = directives != null && (Boolean.TRUE.equals(directives.get("smoothDifficultyTransition"))
+            || "true".equalsIgnoreCase(String.valueOf(directives.get("smoothDifficultyTransition"))));
 
         for (AnalyzedCourseVO c : sortedCourses) {
             int diff = c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2;
-            if (!skipBasic && (diff == 1 || needMoreBeginner) && stage1Courses.size() < 3) {
+            // 修复：若指令要求更多筑基课程，仅允许难度<=2的课程进入阶段1，杜绝高难度课被误塞进阶段1
+            if (!skipBasic && (diff == 1 || (needMoreBeginner && diff <= 2)) && stage1Courses.size() < 3) {
                 stage1Courses.add(c);
             } else if (diff <= 2 && stage2Courses.size() < 3) {
                 stage2Courses.add(c);
@@ -179,6 +185,16 @@ public class PathPlanningAgent {
             } else if (!stage4Courses.isEmpty()) {
                 stage2Courses.add(stage4Courses.remove(0));
             }
+        }
+
+        // 响应 Critic 的 fixPrerequisiteInversion 指令：若后续阶段包含前置阶段依赖的课程，自动前移
+        if (fixPrereqInversion) {
+            adjustPrerequisiteInversions(stage1Courses, stage2Courses, stage3Courses, stage4Courses);
+        }
+
+        // 响应 Critic 的 smoothDifficultyTransition 指令：确保各阶段难度单调平滑递增
+        if (smoothTransition) {
+            smoothStageTransitions(stage1Courses, stage2Courses, stage3Courses, stage4Courses);
         }
 
         // 数据驱动构建阶段定义
@@ -216,6 +232,42 @@ public class PathPlanningAgent {
             .build();
     }
 
+    private void adjustPrerequisiteInversions(List<AnalyzedCourseVO> s1,
+                                              List<AnalyzedCourseVO> s2,
+                                              List<AnalyzedCourseVO> s3,
+                                              List<AnalyzedCourseVO> s4) {
+        List<List<AnalyzedCourseVO>> allStages = List.of(s1, s2, s3, s4);
+        for (int i = 0; i < allStages.size(); i++) {
+            List<AnalyzedCourseVO> currentStage = allStages.get(i);
+            for (AnalyzedCourseVO currCourse : new ArrayList<>(currentStage)) {
+                // 检查后续阶段是否有 currCourse 的先修课
+                for (int j = i + 1; j < allStages.size(); j++) {
+                    List<AnalyzedCourseVO> laterStage = allStages.get(j);
+                    for (int k = 0; k < laterStage.size(); k++) {
+                        AnalyzedCourseVO laterCourse = laterStage.get(k);
+                        if (isPrerequisite(laterCourse, currCourse)) {
+                            // 将先修课程前移至当前阶段
+                            laterStage.remove(k);
+                            currentStage.add(0, laterCourse);
+                            k--;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void smoothStageTransitions(List<AnalyzedCourseVO> s1,
+                                        List<AnalyzedCourseVO> s2,
+                                        List<AnalyzedCourseVO> s3,
+                                        List<AnalyzedCourseVO> s4) {
+        Comparator<AnalyzedCourseVO> diffAsc = Comparator.comparingInt(c -> c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2);
+        s1.sort(diffAsc);
+        s2.sort(diffAsc);
+        s3.sort(diffAsc);
+        s4.sort(diffAsc);
+    }
+
     private boolean isPrerequisite(AnalyzedCourseVO c1, AnalyzedCourseVO c2) {
         if (c1 == null || c2 == null || c1.getCourseId().equals(c2.getCourseId())) {
             return false;
@@ -230,7 +282,20 @@ public class PathPlanningAgent {
         List<String> prereqs = c2.getPrerequisiteSkills();
         if (prereqs != null) {
             for (String req : prereqs) {
-                if (StringUtils.hasText(req) && (c1Name.contains(req.toLowerCase()) || req.toLowerCase().contains(c1Name))) {
+                if (!StringUtils.hasText(req)) continue;
+                String reqNorm = req.toLowerCase().trim();
+                if (reqNorm.length() < 2 || "计算机基础知识".equals(reqNorm)) {
+                    continue;
+                }
+                boolean matched = false;
+                if (c1Name.equals(reqNorm)) {
+                    matched = true;
+                } else if (reqNorm.length() <= 4) {
+                    matched = c1Name.matches(".*(?i)(\\b|[ (（\\[_-])" + java.util.regex.Pattern.quote(reqNorm) + "(\\b|[ )）\\]_-]).*");
+                } else {
+                    matched = c1Name.contains(reqNorm);
+                }
+                if (matched) {
                     return true;
                 }
             }
@@ -241,9 +306,12 @@ public class PathPlanningAgent {
                 String[] parts = path.split("--PREREQUISITE-->|->");
                 if (parts.length >= 2) {
                     String source = parts[0].trim().toLowerCase();
-                    if (StringUtils.hasText(source) && (c1Name.contains(source) || (c1.getCoreKnowledgePoints() != null 
-                        && c1.getCoreKnowledgePoints().stream().anyMatch(kp -> kp.toLowerCase().contains(source))))) {
-                        return true;
+                    if (StringUtils.hasText(source) && source.length() >= 2 && !source.equals("计算机基础知识")) {
+                        boolean matchSource = c1Name.contains(source) || (c1.getCoreKnowledgePoints() != null 
+                            && c1.getCoreKnowledgePoints().stream().anyMatch(kp -> kp.toLowerCase().contains(source)));
+                        if (matchSource) {
+                            return true;
+                        }
                     }
                 }
             }

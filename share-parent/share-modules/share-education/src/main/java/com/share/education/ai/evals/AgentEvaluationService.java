@@ -190,8 +190,13 @@ public class AgentEvaluationService {
             }
         }
 
-        double ratio = (double) matched / Math.min(recs.size(), gaps.size());
-        return Math.min(100.0, Math.max(75.0, 75.0 + ratio * 25.0));
+        int denom = Math.min(recs.size(), gaps.size());
+        if (denom <= 0) {
+            return 85.0;
+        }
+        double ratio = (double) matched / denom;
+        // BUG-56: 移除 75.0 人工保底分，按真实匹配比率线性映射 (0.0 ~ 100.0)
+        return Math.min(100.0, Math.max(0.0, Math.round(ratio * 100.0 * 10.0) / 10.0));
     }
 
     private double calculateFaithfulness(AgentWorkflowContext ctx) {
