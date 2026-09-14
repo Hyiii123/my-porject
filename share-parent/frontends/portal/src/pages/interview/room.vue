@@ -17,33 +17,51 @@
       </div>
 
       <div class="hud-center">
+        <!-- 三大环节进度 HUD -->
+        <div class="stage-hud">
+          <div class="stage-step" :class="{ active: currentStage >= 1, current: currentStage === 1 }">
+            <span class="step-badge">1</span>
+            <span class="step-text">自我介绍</span>
+          </div>
+          <span class="stage-arrow">&rarr;</span>
+          <div class="stage-step" :class="{ active: currentStage >= 2, current: currentStage === 2 }">
+            <span class="step-badge">2</span>
+            <span class="step-text">基础八股</span>
+          </div>
+          <span class="stage-arrow">&rarr;</span>
+          <div class="stage-step" :class="{ active: currentStage >= 3, current: currentStage === 3 }">
+            <span class="step-badge">3</span>
+            <span class="step-text">项目深挖</span>
+          </div>
+        </div>
+
         <!-- 剥洋葱深度等级 HUD -->
         <div class="depth-hud">
           <span class="depth-label">追问深度：</span>
           <div class="depth-step" :class="{ active: currentDepth >= 1 }">
             <span class="dot"></span>
-            <span>L1 概念摸底</span>
+            <span>L1 选型摸底</span>
           </div>
           <span class="arrow">&rarr;</span>
           <div class="depth-step" :class="{ active: currentDepth >= 2 }">
             <span class="dot"></span>
-            <span>L2 底层原理</span>
+            <span>L2 底层机制</span>
           </div>
           <span class="arrow">&rarr;</span>
           <div class="depth-step" :class="{ active: currentDepth >= 3 }">
             <span class="dot"></span>
-            <span>L3 线上排障</span>
+            <span>L3 生产抗峰</span>
           </div>
         </div>
       </div>
 
       <div class="hud-right">
-        <div class="hud-timer">
+        <div class="hud-timer" :class="{ 'warning-timer': remainingSeconds < 300 }">
           <span class="timer-icon">⏱️</span>
-          <span>{{ formatTimer(timerSeconds) }}</span>
+          <span>{{ formatTimer(timerSeconds) }} / 60:00</span>
         </div>
         <div class="turn-progress">
-          轮次：<b>{{ currentTurnNum }}/{{ sessionData.totalTurns || 6 }}</b>
+          考题：<b>{{ currentTurnNum }}/{{ sessionData.totalTurns || 20 }}</b>
         </div>
         <!-- 往轮记录抽屉开关 -->
         <el-button
@@ -550,6 +568,17 @@ const currentTurn = computed(() => {
 const currentTurnNum = computed(() => currentTurn.value?.turnNum || 1)
 const currentDepth = computed(() => currentTurn.value?.depthLevel || 1)
 const currentDimension = computed(() => currentTurn.value?.dimension || '核心技术架构')
+
+const currentStage = computed(() => {
+  if (currentTurn.value?.stage) return currentTurn.value.stage
+  const num = currentTurnNum.value
+  const total = sessionData.value?.totalTurns || 20
+  if (num === 1) return 1
+  if (num <= Math.min(11, Math.floor(total * 0.55))) return 2
+  return 3
+})
+
+const remainingSeconds = computed(() => Math.max(0, 3600 - timerSeconds.value))
 const isCompleted = computed(() => sessionData.value.status === 2 || sessionData.value.status === 3)
 const isTerminated = computed(() => sessionData.value.status === 3)
 
@@ -1068,6 +1097,64 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 
+.hud-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stage-hud {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  background: rgba(15, 23, 42, 0.45);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stage-step {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #64748b;
+  transition: all 0.3s;
+}
+
+.stage-step .step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(100, 116, 139, 0.3);
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.stage-step.active {
+  color: #93c5fd;
+}
+
+.stage-step.current {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.stage-step.current .step-badge {
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+}
+
+.stage-arrow {
+  color: #475569;
+  font-size: 11px;
+}
+
 .depth-hud {
   display: flex;
   align-items: center;
@@ -1126,6 +1213,18 @@ onBeforeUnmount(() => {
   padding: 3px 8px;
   border-radius: 6px;
   border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.hud-timer.warning-timer {
+  color: #f43f5e;
+  border-color: rgba(244, 63, 94, 0.4);
+  background: rgba(244, 63, 94, 0.15);
+  animation: timerPulse 1s infinite alternate;
+}
+
+@keyframes timerPulse {
+  from { opacity: 0.8; }
+  to { opacity: 1; transform: scale(1.03); }
 }
 
 .turn-progress {

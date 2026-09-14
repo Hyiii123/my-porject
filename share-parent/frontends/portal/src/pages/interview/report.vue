@@ -186,7 +186,8 @@
           >
             <template #title>
               <div class="turn-title-row">
-                <el-tag size="small" type="primary">第 {{ turn.turnNum }} 轮</el-tag>
+                <el-tag size="small" :type="getStageTagType(turn.stage)">{{ turn.stageName || ('第 ' + turn.turnNum + ' 题') }}</el-tag>
+                <el-tag v-if="turn.depthLevel" size="small" effect="plain" type="info">L{{ turn.depthLevel }}</el-tag>
                 <span class="turn-dimension">{{ turn.dimension }}</span>
                 <span class="turn-score">得分：<b>{{ turn.turnScore || 0 }} 分</b></span>
               </div>
@@ -203,6 +204,12 @@
               <div v-if="turn.aiFeedback" class="row feedback-row">
                 <span class="label">评：</span>
                 <span class="text f">{{ turn.aiFeedback }}</span>
+              </div>
+              <div v-if="turn.standardReference" class="row standard-ref-row">
+                <span class="label ref-label">📖 标杆示范满分答案：</span>
+                <div class="text standard-ref-content">
+                  <pre>{{ turn.standardReference }}</pre>
+                </div>
               </div>
             </div>
           </el-collapse-item>
@@ -226,6 +233,13 @@ const loading = ref(true)
 const sessionData = ref({})
 const reportData = ref(null)
 const activeTurns = ref([1])
+
+const getStageTagType = (stage) => {
+  if (stage === 1) return 'info'
+  if (stage === 2) return 'primary'
+  if (stage === 3) return 'warning'
+  return 'primary'
+}
 
 // 六维雷达参数：根据目标岗位赛道自适应维度名称 (BUG-53)
 const axes = computed(() => {
@@ -745,4 +759,28 @@ onMounted(() => {
 .turn-detail-box .text.q { color: #0f172a; font-weight: 500; }
 .turn-detail-box .text.a { color: #2563eb; }
 .turn-detail-box .text.f { color: #475569; background: #fff; padding: 8px 12px; border-radius: 6px; border: 1px dashed #cbd5e1; }
+
+.turn-detail-box .standard-ref-row {
+  margin-top: 6px;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.turn-detail-box .ref-label {
+  color: #059669;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.standard-ref-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #065f46;
+}
 </style>

@@ -125,11 +125,11 @@
             </div>
           </el-form-item>
 
-          <el-form-item label="答题轮次规划">
+          <el-form-item label="答题环节与题量规划">
             <el-radio-group v-model="form.totalTurns">
-              <el-radio-button :label="3">3 轮（极速摸底）</el-radio-button>
-              <el-radio-button :label="6">6 轮（标准大厂全流程）</el-radio-button>
-              <el-radio-button :label="8">8 轮（深度架构连环追问）</el-radio-button>
+              <el-radio-button :label="20">20 题（全真标准大厂三环节 · 60分钟限时）</el-radio-button>
+              <el-radio-button :label="10">10 题（精简三环节冲刺 · 30分钟）</el-radio-button>
+              <el-radio-button :label="6">6 题（快速技能摸底 · 15分钟）</el-radio-button>
             </el-radio-group>
           </el-form-item>
 
@@ -417,7 +417,7 @@ const form = reactive({
   targetJob: 'Java 高级开发工程师',
   companyTarget: '阿里巴巴',
   interviewerStyle: 'p7_architect',
-  totalTurns: 6,
+  totalTurns: 20,
   enableResumeCustomization: true
 })
 

@@ -37,4 +37,10 @@ public class InterviewTurn implements Serializable {
     private Integer turnScore;
     private LocalDateTime createTime;
     private LocalDateTime answerTime;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Integer stage; // 1-自我介绍, 2-基础八股文, 3-简历项目追问
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String stageName; // 环节一：自我介绍 / 环节二：基础八股文 / 环节三：简历项目追问
 }
