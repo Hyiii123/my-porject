@@ -139,7 +139,7 @@
               size="large"
               class="start-btn"
               :loading="starting"
-              @click="handleStartInterview"
+              @click="openDeviceCheckDialog"
             >
               🚀 立即进入模拟面试考场
             </el-button>
@@ -193,11 +193,121 @@
         </div>
       </el-card>
     </div>
+
+    <!-- 考前音视频设备与权限检定弹窗 -->
+    <el-dialog
+      v-model="deviceDialogVisible"
+      title="🎙️ 考前音视频设备与权限检定"
+      width="620px"
+      class="device-check-dialog"
+      :close-on-click-modal="false"
+      :before-close="handleCloseDeviceDialog"
+    >
+      <div class="device-modal-body">
+        <div class="device-instruction">
+          <div class="inst-icon">🛡️</div>
+          <div class="inst-text">
+            <div class="inst-title">面试考场采用全真远程视频与语音连线</div>
+            <div class="inst-desc">
+              系统需请求调用您的<b>麦克风</b>与<b>摄像头</b>权限。AI 面试官将通过视频核验应试状态，并实时通过麦克风收音转写您的口述作答。
+            </div>
+          </div>
+        </div>
+
+        <!-- 摄像头预览与状态区 -->
+        <div class="preview-stage-box">
+          <div class="video-container">
+            <video
+              ref="previewVideoRef"
+              autoplay
+              playsinline
+              muted
+              class="preview-video"
+              :class="{ 'video-active': cameraGranted }"
+            ></video>
+            <div v-if="!cameraGranted" class="video-placeholder">
+              <span class="placeholder-icon">📷</span>
+              <span class="placeholder-text">{{ detectingDevice ? '正在检测摄像头权限...' : '摄像头尚未开启或权限未允许' }}</span>
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                :loading="detectingDevice"
+                class="req-perm-btn"
+                @click="requestMediaPermissions"
+              >
+                授权并开启摄像头
+              </el-button>
+            </div>
+            <div v-else class="video-hud-overlay">
+              <span class="hud-live-tag">● 实时画面正常 (720P)</span>
+            </div>
+          </div>
+
+          <!-- 麦克风音量能量条 (VU-Meter) -->
+          <div class="mic-status-row">
+            <div class="mic-label">
+              <span class="mic-icon">🎙️</span>
+              <span>麦克风收音：</span>
+              <el-tag :type="micGranted ? 'success' : 'info'" size="small">
+                {{ micGranted ? '已就绪' : '未授权' }}
+              </el-tag>
+            </div>
+            <div class="vu-meter-container">
+              <div class="vu-meter-bar" :style="{ width: audioVolumeLevel + '%' }"></div>
+            </div>
+            <span class="vu-val">{{ audioVolumeLevel }}%</span>
+          </div>
+        </div>
+
+        <!-- 检测清单 -->
+        <div class="check-list-card">
+          <div class="check-item" :class="{ ok: cameraGranted }">
+            <span class="chk-icon">{{ cameraGranted ? '✅' : '⏳' }}</span>
+            <span class="chk-text">高清摄像头：{{ cameraGranted ? '画面流接入成功' : '等待浏览器授权允许' }}</span>
+          </div>
+          <div class="check-item" :class="{ ok: micGranted }">
+            <span class="chk-icon">{{ micGranted ? '✅' : '⏳' }}</span>
+            <span class="chk-text">高清麦克风：{{ micGranted ? '声压传感器信号正常' : '等待浏览器授权允许' }}</span>
+          </div>
+          <div class="check-item ok">
+            <span class="chk-icon">✅</span>
+            <span class="chk-text">AI 面试官：数字人形象与大厂真题库就绪</span>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer-actions">
+          <el-button
+            link
+            type="info"
+            size="small"
+            class="mock-mode-btn"
+            @click="handleEnterWithSimulation"
+          >
+            无摄像头/模拟演示模式进入 ➔
+          </el-button>
+          <div class="main-actions">
+            <el-button @click="handleCloseDeviceDialog">取消</el-button>
+            <el-button
+              type="primary"
+              size="default"
+              :disabled="!cameraGranted && !micGranted"
+              :loading="starting"
+              @click="handleConfirmAndStart"
+            >
+              ✅ 设备正常，接入考场连线 ➔
+            </el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { startInterview, getMyInterviews, getMyResume } from '@/api/interview.js'
@@ -350,6 +460,141 @@ const goToMyResume = () => {
   router.push('/personal/main/myResume')
 }
 
+// 考前音视频设备与权限检定相关状态
+const deviceDialogVisible = ref(false)
+const detectingDevice = ref(false)
+const cameraGranted = ref(false)
+const micGranted = ref(false)
+const audioVolumeLevel = ref(0)
+const previewVideoRef = ref(null)
+let mediaStreamInstance = null
+let audioContextInstance = null
+let analyserInstance = null
+let animFrameId = null
+
+const cleanupMediaStream = () => {
+  if (animFrameId) {
+    cancelAnimationFrame(animFrameId)
+    animFrameId = null
+  }
+  if (audioContextInstance && audioContextInstance.state !== 'closed') {
+    try {
+      audioContextInstance.close()
+    } catch (e) {
+      console.warn('AudioContext close error:', e)
+    }
+    audioContextInstance = null
+    analyserInstance = null
+  }
+  if (mediaStreamInstance) {
+    try {
+      mediaStreamInstance.getTracks().forEach(track => track.stop())
+    } catch (e) {
+      console.warn('MediaStream stop error:', e)
+    }
+    mediaStreamInstance = null
+  }
+  if (previewVideoRef.value) {
+    previewVideoRef.value.srcObject = null
+  }
+  audioVolumeLevel.value = 0
+}
+
+const openDeviceCheckDialog = () => {
+  deviceDialogVisible.value = true
+  // 自动发起权限获取
+  requestMediaPermissions()
+}
+
+const handleCloseDeviceDialog = () => {
+  cleanupMediaStream()
+  deviceDialogVisible.value = false
+}
+
+const requestMediaPermissions = async () => {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    ElMessage.warning('当前环境不支持 WebRTC 媒体流采集，可选择演示模式入场')
+    return
+  }
+  try {
+    detectingDevice.value = true
+    cleanupMediaStream()
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: true
+    })
+    mediaStreamInstance = stream
+
+    // 检查视频与音频轨道
+    const videoTracks = stream.getVideoTracks()
+    const audioTracks = stream.getAudioTracks()
+    cameraGranted.value = videoTracks.length > 0 && videoTracks[0].readyState === 'live'
+    micGranted.value = audioTracks.length > 0 && audioTracks[0].readyState === 'live'
+
+    if (previewVideoRef.value) {
+      previewVideoRef.value.srcObject = stream
+    }
+
+    // 绑定 Web Audio API 分析麦克风音量能量 (VU-Meter)
+    if (micGranted.value) {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext
+        audioContextInstance = new AudioCtx()
+        const source = audioContextInstance.createMediaStreamSource(stream)
+        analyserInstance = audioContextInstance.createAnalyser()
+        analyserInstance.fftSize = 256
+        source.connect(analyserInstance)
+
+        const bufferLength = analyserInstance.frequencyBinCount
+        const dataArray = new Uint8Array(bufferLength)
+
+        const updateMeter = () => {
+          if (!analyserInstance) return
+          analyserInstance.getByteFrequencyData(dataArray)
+          let sum = 0
+          for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i]
+          }
+          const average = sum / bufferLength
+          // 映射到 0~100 百分比
+          audioVolumeLevel.value = Math.min(100, Math.round((average / 128) * 100))
+          animFrameId = requestAnimationFrame(updateMeter)
+        }
+        updateMeter()
+      } catch (err) {
+        console.warn('初始化麦克风音频分析器失败:', err)
+      }
+    }
+
+    ElMessage.success('摄像头与麦克风设备检测成功！')
+  } catch (err) {
+    console.warn('获取音视频权限失败:', err)
+    cameraGranted.value = false
+    micGranted.value = false
+    ElMessage.error('无法接入音视频设备：' + (err.message || '用户已拒绝或无外设连接'))
+  } finally {
+    detectingDevice.value = false
+  }
+}
+
+// 模拟免外设模式进入（针对沙箱或无物理摄像头的开发环境）
+const handleEnterWithSimulation = () => {
+  cleanupMediaStream()
+  deviceDialogVisible.value = false
+  sessionStorage.setItem('interview_camera_simulation', '1')
+  ElMessage.info('已开启模拟演示模式进入视频考场')
+  handleStartInterview()
+}
+
+// 确认设备正常并接入面试考场
+const handleConfirmAndStart = () => {
+  cleanupMediaStream()
+  deviceDialogVisible.value = false
+  sessionStorage.removeItem('interview_camera_simulation')
+  handleStartInterview()
+}
+
 const handleStartInterview = async () => {
   try {
     starting.value = true
@@ -364,8 +609,8 @@ const handleStartInterview = async () => {
     if (res && res.data && res.data.id) {
       ElMessage.success(
         hasLinkedResume.value && form.enableResumeCustomization
-          ? '考场已生成！AI 面试官已锁定您的简历，将深度结合实际项目出题！'
-          : '面试考场已生成，AI 面试官已就绪！'
+          ? '视频考场已建立！AI 面试官已锁定您的简历，准备进行全真连线！'
+          : '视频考场已建立，AI 面试官正在接入！'
       )
       router.push({ name: 'interviewRoom', params: { id: res.data.id } })
     } else {
@@ -407,6 +652,10 @@ onMounted(() => {
   }
   fetchLinkedResume()
   loadMyHistory()
+})
+
+onBeforeUnmount(() => {
+  cleanupMediaStream()
 })
 </script>
 
@@ -692,5 +941,217 @@ onMounted(() => {
   color: #a0aec0;
   border-top: 1px dashed #edf2f7;
   padding-top: 8px;
+}
+
+/* 考前音视频设备检定弹窗样式 */
+:deep(.device-check-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+:deep(.device-check-dialog .el-dialog__header) {
+  margin-right: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #edf2f7;
+  background: #f8fafc;
+}
+
+:deep(.device-check-dialog .el-dialog__title) {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.device-modal-body {
+  padding: 4px 0;
+}
+
+.device-instruction {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.inst-icon {
+  font-size: 24px;
+}
+
+.inst-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e40af;
+  margin-bottom: 4px;
+}
+
+.inst-desc {
+  font-size: 12px;
+  color: #3b82f6;
+  line-height: 1.5;
+}
+
+.preview-stage-box {
+  background: #0f172a;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  background: #020617;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* 镜像画面 */
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.preview-video.video-active {
+  opacity: 1;
+}
+
+.video-placeholder {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+}
+
+.placeholder-icon {
+  font-size: 36px;
+}
+
+.placeholder-text {
+  font-size: 13px;
+}
+
+.req-perm-btn {
+  margin-top: 6px;
+}
+
+.video-hud-overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+}
+
+.hud-live-tag {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  color: #10b981;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+.mic-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  background: rgba(30, 41, 59, 0.7);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mic-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.vu-meter-container {
+  flex: 1;
+  height: 10px;
+  background: #1e293b;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid #334155;
+}
+
+.vu-meter-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #3b82f6 70%, #ef4444 100%);
+  border-radius: 5px;
+  transition: width 0.08s ease-out;
+}
+
+.vu-val {
+  font-size: 12px;
+  font-family: monospace;
+  font-weight: 600;
+  color: #38bdf8;
+  width: 38px;
+  text-align: right;
+}
+
+.check-list-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+  transition: color 0.2s;
+}
+
+.check-item.ok {
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.dialog-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.mock-mode-btn {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.mock-mode-btn:hover {
+  color: #3b82f6;
+}
+
+.main-actions {
+  display: flex;
+  gap: 10px;
 }
 </style>
