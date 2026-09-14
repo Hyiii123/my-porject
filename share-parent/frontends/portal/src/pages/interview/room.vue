@@ -76,9 +76,9 @@
       </div>
     </div>
 
-    <!-- 考场双栏核心区域 -->
+    <!-- 考场问答核心工作区 -->
     <div class="room-workspace">
-      <!-- 左栏：问答对话链路 -->
+      <!-- 问答对话链路 -->
       <div class="dialogue-panel">
         <div class="panel-header">
           <div class="header-title">
@@ -181,7 +181,7 @@
             <span class="banner-icon">{{ isTerminated ? '🛑' : '🎉' }}</span>
             <div class="banner-texts">
               <div class="title">{{ isTerminated ? '本场模拟面试已终止' : '本次模拟面试已圆满完成！' }}</div>
-              <div class="desc">{{ isTerminated ? '您可在此回顾问答记录与已提交代码，如需重新挑战请返回大厅开启新场次。' : '大厂面试官评审委员会已完成终局职级裁决与六维能力雷达图评定。' }}</div>
+              <div class="desc">{{ isTerminated ? '您可在此回顾问答记录与考官深度诊断，如需重新挑战请返回大厅开启新场次。' : '大厂面试官评审委员会已完成终局职级裁决与六维能力雷达图评定。' }}</div>
             </div>
           </div>
           <el-button v-if="sessionData.status === 2" type="primary" size="default" @click="goToReport">
@@ -231,88 +231,6 @@
           </div>
         </div>
       </div>
-
-      <!-- 右栏：算法手撕沙箱与架构审计 -->
-      <div class="sandbox-panel">
-        <div class="panel-header">
-          <div class="header-title">
-            <span class="code-icon">⚡</span>
-            <span>算法手撕沙箱 & 代码异味审计</span>
-          </div>
-          <div class="header-tools">
-            <el-select v-model="codeLanguage" size="small" class="lang-select">
-              <el-option label="Java (JDK 17)" value="java" />
-              <el-option label="Go 1.21" value="go" />
-              <el-option label="C++ 20" value="cpp" />
-              <el-option label="Python 3" value="python" />
-              <el-option label="TypeScript / JS" value="javascript" />
-              <el-option label="Rust 1.75" value="rust" />
-            </el-select>
-            <el-button size="small" @click="handleResetCode">重置模板</el-button>
-          </div>
-        </div>
-
-        <div class="sandbox-body">
-          <div class="problem-bar">
-            <span class="problem-tag">现场手撕题</span>
-            <span class="problem-title">{{ currentProblemTitle }}</span>
-          </div>
-
-          <!-- 代码编辑区域 -->
-          <div class="code-editor-wrapper">
-            <textarea
-              v-model="userCode"
-              class="code-editor"
-              spellcheck="false"
-              placeholder="// 在此编写您的算法实现代码..."
-            ></textarea>
-          </div>
-
-          <div class="sandbox-actions">
-            <el-button
-              type="success"
-              size="default"
-              :loading="evaluatingCode"
-              @click="handleSubmitCode"
-            >
-              ▶ 运行沙箱评测 & 审计架构异味
-            </el-button>
-          </div>
-
-          <!-- 评测结果控制台 -->
-          <div v-if="lastCodeSubmission" class="eval-console">
-            <div class="console-header">
-              <span class="status-tag" :class="lastCodeSubmission.executionStatus">
-                {{ lastCodeSubmission.executionStatus.toUpperCase() }}
-              </span>
-              <span class="case-info">
-                测试用例通过率：{{ lastCodeSubmission.passedTestCases }}/{{ lastCodeSubmission.totalTestCases }}
-              </span>
-            </div>
-
-            <div class="complexity-row">
-              <div class="comp-box">
-                <span class="label">推演时间复杂度：</span>
-                <span class="val">{{ lastCodeSubmission.timeComplexity || 'O(n)' }}</span>
-              </div>
-              <div class="comp-box">
-                <span class="label">推演空间复杂度：</span>
-                <span class="val">{{ lastCodeSubmission.spaceComplexity || 'O(1)' }}</span>
-              </div>
-            </div>
-
-            <div v-if="lastCodeSubmission.codeSmells" class="smell-box">
-              <div class="box-title">🔍 代码异味与缺陷审计：</div>
-              <div class="box-content">{{ lastCodeSubmission.codeSmells }}</div>
-            </div>
-
-            <div v-if="lastCodeSubmission.refactoredCode" class="refactor-box">
-              <div class="box-title">✨ AI 重构标杆范式（大厂生产级）：</div>
-              <pre class="refactor-code"><code>{{ lastCodeSubmission.refactoredCode }}</code></pre>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -324,7 +242,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getInterviewDetail,
   submitInterviewAnswer,
-  submitInterviewCode,
   finishInterview
 } from '@/api/interview.js'
 
@@ -334,42 +251,14 @@ const sessionId = route.params.id
 
 const loading = ref(true)
 const submittingAnswer = ref(false)
-const evaluatingCode = ref(false)
 const finishing = ref(false)
 const dialogueScrollRef = ref(null)
 
 const sessionData = ref({
-  turns: [],
-  codeSubmissions: []
+  turns: []
 })
 
 const currentAnswer = ref('')
-const codeLanguage = ref('java')
-const currentProblemTitle = ref('高并发滑动窗口限流器 / 线程安全缓存容器')
-const userCode = ref(`public class RateLimiter {
-    private final int maxRequests;
-    private final long windowSizeMillis;
-    private final java.util.concurrent.ConcurrentLinkedQueue<Long> timestamps = new java.util.concurrent.ConcurrentLinkedQueue<>();
-
-    public RateLimiter(int maxRequests, long windowSizeMillis) {
-        this.maxRequests = maxRequests;
-        this.windowSizeMillis = windowSizeMillis;
-    }
-
-    public synchronized boolean tryAcquire() {
-        long now = System.currentTimeMillis();
-        while (!timestamps.isEmpty() && now - timestamps.peek() > windowSizeMillis) {
-            timestamps.poll();
-        }
-        if (timestamps.size() < maxRequests) {
-            timestamps.offer(now);
-            return true;
-        }
-        return false;
-    }
-}`)
-
-const lastCodeSubmission = ref(null)
 
 // 计时器
 const timerSeconds = ref(0)
@@ -449,9 +338,6 @@ const loadSession = async () => {
     if (res && res.data) {
       sessionData.value = res.data
       timerSeconds.value = res.data.durationSeconds || 0
-      if (res.data.codeSubmissions && res.data.codeSubmissions.length > 0) {
-        lastCodeSubmission.value = res.data.codeSubmissions[0]
-      }
       if (res.data.status === 2) {
         ElMessage.info('本场面试已交卷完成，可查看能力诊断报告')
       }
@@ -493,48 +379,6 @@ const handleSubmitAnswer = async () => {
     ElMessage.error('提交回答失败：' + (err.message || '系统繁忙'))
   } finally {
     submittingAnswer.value = false
-  }
-}
-
-const handleSubmitCode = async () => {
-  if (!userCode.value.trim()) {
-    ElMessage.warning('代码内容不能为空')
-    return
-  }
-  try {
-    evaluatingCode.value = true
-    const res = await submitInterviewCode({
-      sessionId: Number(sessionId),
-      turnId: currentTurn.value?.id,
-      problemTitle: currentProblemTitle.value,
-      language: codeLanguage.value,
-      userCode: userCode.value
-    })
-    if (res && res.data) {
-      lastCodeSubmission.value = res.data
-      ElMessage.success('代码沙箱评测与异味审计已完成！')
-    }
-  } catch (err) {
-    ElMessage.error('评测失败：' + (err.message || '沙箱异常'))
-  } finally {
-    evaluatingCode.value = false
-  }
-}
-
-const handleResetCode = () => {
-  const lang = codeLanguage.value
-  if (lang === 'go') {
-    userCode.value = `package main\n\nimport "fmt"\n\n// 请在此实现核心高并发或算法逻辑\nfunc solve() {\n    \n}`
-  } else if (lang === 'cpp') {
-    userCode.value = `#include <iostream>\n#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    void solve() {\n        \n    }\n};`
-  } else if (lang === 'python') {
-    userCode.value = `# 请在此实现核心算法逻辑\nclass Solution:\n    def solve(self):\n        pass`
-  } else if (lang === 'javascript') {
-    userCode.value = `// 请在此实现核心算法或前端工程逻辑\nfunction solve() {\n    \n}`
-  } else if (lang === 'rust') {
-    userCode.value = `// 请在此实现核心系统算法\npub fn solve() {\n    \n}`
-  } else {
-    userCode.value = `// 请在此实现核心算法逻辑\nclass Solution {\n    public void solve() {\n        \n    }\n}`
   }
 }
 
@@ -804,21 +648,27 @@ onBeforeUnmount(() => {
   color: #f8fafc;
 }
 
-/* 双栏工作区 */
+/* 工作区布局 */
 .room-workspace {
   flex: 1;
-  display: grid;
-  grid-template-columns: 55% 45%;
+  display: flex;
+  justify-content: center;
   overflow: hidden;
+  background: #f1f5f9;
 }
 
-/* 左栏：问答面板 */
+/* 核心问答面板 */
 .dialogue-panel {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   background: #fff;
+  border-left: 1px solid #e2e8f0;
   border-right: 1px solid #e2e8f0;
   overflow: hidden;
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05);
 }
 
 .panel-header {
@@ -1121,178 +971,5 @@ onBeforeUnmount(() => {
 .char-count {
   font-size: 12px;
   color: #94a3b8;
-}
-
-/* 右栏：沙箱面板 */
-.sandbox-panel {
-  display: flex;
-  flex-direction: column;
-  background: #1e293b;
-  color: #f8fafc;
-  overflow: hidden;
-}
-
-.sandbox-panel .panel-header {
-  background: #0f172a;
-  border-bottom: 1px solid #334155;
-}
-
-.sandbox-panel .header-title {
-  color: #f8fafc;
-}
-
-.header-tools {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.lang-select {
-  width: 120px;
-}
-
-.sandbox-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  overflow-y: auto;
-  gap: 14px;
-}
-
-.problem-bar {
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.problem-tag {
-  background: #e11d48;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.problem-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: #e2e8f0;
-}
-
-.code-editor-wrapper {
-  flex: 1;
-  min-height: 240px;
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.code-editor {
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  color: #38bdf8;
-  border: none;
-  padding: 14px;
-  font-family: 'Fira Code', Consolas, Monaco, monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  outline: none;
-  resize: none;
-}
-
-.sandbox-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* 评测控制台 */
-.eval-console {
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.console-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.status-tag {
-  font-weight: 700;
-  font-size: 12px;
-  padding: 3px 8px;
-  border-radius: 4px;
-}
-
-.status-tag.accepted {
-  background: #16a34a;
-  color: #fff;
-}
-
-.case-info {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.complexity-row {
-  display: flex;
-  gap: 20px;
-  font-size: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px dashed #334155;
-}
-
-.comp-box .label {
-  color: #94a3b8;
-}
-
-.comp-box .val {
-  color: #38bdf8;
-  font-weight: 700;
-  font-family: monospace;
-}
-
-.smell-box, .refactor-box {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.box-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #fbbf24;
-}
-
-.box-content {
-  font-size: 12px;
-  color: #cbd5e1;
-  line-height: 1.5;
-}
-
-.refactor-code {
-  background: #020617;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
-  padding: 10px;
-  font-family: monospace;
-  font-size: 12px;
-  color: #a7f3d0;
-  overflow-x: auto;
-  max-height: 180px;
-  margin: 0;
 }
 </style>
