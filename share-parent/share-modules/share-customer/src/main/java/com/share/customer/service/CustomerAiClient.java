@@ -156,9 +156,20 @@ public class CustomerAiClient {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
         int retryCount = Math.min(Math.max(config.getMaxRetries() == null ? 0 : config.getMaxRetries(), 0), 2);
+
+        // 让 DB cs_ai_config.timeout_ms 真正生效：创建 per-request RestTemplate
+        RestTemplate rt = this.restTemplate;
+        if (config.getTimeoutMs() != null && config.getTimeoutMs() > 0) {
+            org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+                    new org.springframework.http.client.SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(Math.min(config.getTimeoutMs(), 10000));
+            factory.setReadTimeout(config.getTimeoutMs());
+            rt = new RestTemplate(factory);
+        }
+
         for (int attempt = 0; attempt <= retryCount; attempt++) {
             try {
-                ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+                ResponseEntity<String> response = rt.postForEntity(url, entity, String.class);
                 if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                     AiReply reply = parseReply(response.getBody(), config.getModel());
                     if (reply != null && reply.getContent() != null && !reply.getContent().isBlank()) {
