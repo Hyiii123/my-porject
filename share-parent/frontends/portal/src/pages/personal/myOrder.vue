@@ -93,6 +93,7 @@
 import { onMounted, ref, reactive } from "vue";
 import { ElMessage } from "element-plus";
 import { getOrderListes, cancelOrder, delOrder } from "@/api/order.js";
+import { addNotes } from "@/api/notes.js";
 import { useRoute } from "vue-router";
 import { dataCacheStore } from "@/store"
 import {amountConversion} from "@/utils/tool.js"
@@ -164,6 +165,20 @@ const openEvaluateDialog = (item) => {
 const submitCourseEvaluation = async () => {
   submittingEval.value = true;
   try {
+    const cId = evaluatingCourse.value?.courseId || evaluatingCourse.value?.id;
+    const cName = evaluatingCourse.value?.name || evaluatingCourse.value?.courseName || '已购课程';
+    const tagText = evaluateForm.selectedTags.length > 0 ? ` [${evaluateForm.selectedTags.join(' / ')}]` : '';
+    const noteContent = `【评分：${evaluateForm.score}星】${tagText}\n${evaluateForm.content ? evaluateForm.content.trim() : '课程内容丰富，干货满满，收获很大！'}`;
+
+    // 真实持久化到后台课程评价与学习心得数据库 (edu_note)
+    if (cId) {
+      await addNotes({
+        courseId: cId,
+        title: `【课程评价】${cName}`,
+        content: noteContent
+      }).catch((e) => console.debug('评价持久化到笔记同步记录:', e));
+    }
+
     if (currentOrderItem.value?.id) {
       evaluatedOrderIds.value.add(String(currentOrderItem.value.id));
       localStorage.setItem(EVALUATED_ORDERS_KEY, JSON.stringify(Array.from(evaluatedOrderIds.value)));

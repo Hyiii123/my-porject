@@ -170,16 +170,9 @@ const handleImgError = (e) => {
 }
 
 const normalizeCourse = (course = {}) => {
-  let price = Number(course.price || 0)
-  let originalPrice = Number(course.originalPrice ?? course.price ?? 0)
-  // 金额单位归一化保护：全站统一以分（cents）为标准单位。
-  // 若接口返回大于 0 且小于 1000 的元单位数值（如 199 元），防御性自动换算为分（19900 分）
-  if (price > 0 && price < 1000) {
-    price = Math.round(price * 100)
-  }
-  if (originalPrice > 0 && originalPrice < 1000) {
-    originalPrice = Math.round(originalPrice * 100)
-  }
+  // 全站后端课程价格均以分（cents）为标准单位，前端展示统一按 / 100 格式化，严禁对小于 1000 的数值再次乘以 100
+  const price = Number(course.price || 0)
+  const originalPrice = Number(course.originalPrice ?? course.price ?? 0)
   return {
     ...course,
     id: course.id,

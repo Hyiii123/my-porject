@@ -439,6 +439,17 @@ const loadCourse = async () => {
       currentSection.value = chapters.flatMap(chapter => chapter.sections || [])[0] || {}
     }
 
+    // 初始化首小节或上次学习小节的媒资签名，避免页面初次载入时黑屏或显示“暂无可播放媒资”
+    if (currentSection.value?.mediaId && !currentSection.value.mediaUrl) {
+      try {
+        const sigRes = await getMediasSignature({ id: currentSection.value.mediaId })
+        const sigData = sigRes?.data || {}
+        currentSection.value.mediaUrl = sigData.fileUrl || sigData.url || sigData.playUrl || ''
+      } catch (err) {
+        console.warn('首小节媒资签名拉取失败:', err)
+      }
+    }
+
     if (questionResponse.status === 'fulfilled' && questionResponse.value?.code === 200) {
       const questions = listFrom(questionResponse.value.data)
       const rows = await Promise.all(questions.map(async (question) => {

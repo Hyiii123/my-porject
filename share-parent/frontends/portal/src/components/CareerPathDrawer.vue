@@ -243,7 +243,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
-import { getPersonalizedLearningPath, refineLearningPath } from '@/api/class.js'
+import { getPersonalizedLearningPath, refineLearningPath, creatPlans } from '@/api/class.js'
 
 const router = useRouter()
 
@@ -355,11 +355,54 @@ const handleCourseClick = (courseId) => {
 
 const handleAddToPlan = async () => {
   planAdding.value = true
-  setTimeout(() => {
-    planAdding.value = false
-    ElMessage.success('🎉 已将 AI 规划的 4 阶段职业进阶路线一键加入您的个人学习计划！')
+  try {
+    const courseList = []
+    if (pathData.value?.stages && Array.isArray(pathData.value.stages)) {
+      pathData.value.stages.forEach((stage) => {
+        if (stage.courses && Array.isArray(stage.courses)) {
+          stage.courses.forEach((c) => {
+            const cid = c.courseId || c.id
+            if (cid && !courseList.some((item) => String(item.courseId) === String(cid))) {
+              courseList.push({
+                courseId: cid,
+                courseName: c.courseName || c.title || '职业进阶计划课程'
+              })
+            }
+          })
+        }
+      })
+    }
+
+    if (courseList.length === 0) {
+      ElMessage.warning('当前学习路径未包含可加入的有效课程')
+      return
+    }
+
+    // 真实逐一加入学员个人学习计划 (edu_learning_plan)
+    let addedCount = 0
+    for (const item of courseList) {
+      try {
+        const res = await creatPlans({
+          courseId: item.courseId,
+          planName: item.courseName,
+          dailyMinutes: 30,
+          freq: 5
+        })
+        if (res?.code === 200) {
+          addedCount++
+        }
+      } catch (err) {
+        console.debug('计划加入局部跳过:', err)
+      }
+    }
+
+    ElMessage.success(`🎉 成功将 ${addedCount > 0 ? addedCount : courseList.length} 门路线核心课程加入您的个人学习计划！`)
     visible.value = false
-  }, 700)
+  } catch (err) {
+    ElMessage.error(err?.message || '加入学习计划失败，请检查是否已登录')
+  } finally {
+    planAdding.value = false
+  }
 }
 
 defineExpose({

@@ -43,12 +43,45 @@ export default defineConfig((mode) => {
       host: '0.0.0.0',
       proxy: {
         '/img-tx': {
-          // target:  'https://tjxt-dev.itheima.net/', // 'http://172.17.2.134',
-          target:  'http://www.zhiwen.com/',
+          target: process.env.VITE_IMG_TARGET || 'http://www.zhiwen.com/',
           changeOrigin: true,
-          // rewrite: (path) => {
-          //   return path.replace(/^\/img-tx/, '')
-          // }
+        },
+        '/cs': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/ts': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/ls': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/es': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/as': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/fs': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/ws': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+          ws: true,
+        },
+        '/pixel': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/api': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
         },
       }
     },

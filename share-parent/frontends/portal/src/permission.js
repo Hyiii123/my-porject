@@ -14,11 +14,14 @@ NProgress.configure({ showSpinner: false });
 
 const { whiteListRouters } = permissionStore;
 
+const PUBLIC_PATHS = ['/', '/login', '/main', '/search', '/details', '/customer-service', '/points', '/result', '/askDetails'];
+const isPublicRoute = (path) => PUBLIC_PATHS.some((p) => path === p || path.startsWith(p === '/' ? '///' : p + '/'));
+
 // 登录状态效验
 router.beforeEach(async (to, from, next) => {
   NProgress.start();
   const { token } = userStore;
-  
+
   if (token) {
     if (to.path === '/login') {
       userStore.logout();
@@ -26,44 +29,15 @@ router.beforeEach(async (to, from, next) => {
       next();
       return;
     }
-    if (to.path !== '/login'){
-      next();
-    }
-    // token 存在 进入下一页
-    // const { roles } = userStore;
-
-    // if (roles && roles.length > 0) {
-    //   next();
-    // } else {
-    //   try {
-    //     await userStore.getUserInfo();
-
-    //     const { roles } = userStore;
-
-    //     await permissionStore.initRoutes(roles);
-
-    //     if (router.hasRoute(to.name)) {
-    //       next();
-    //     } else {
-    //       next(`/`);
-    //     }
-    //   } catch (error) {
-    //     // MessagePlugin.error(error);
-    //     next(`/login?redirect=${to.path}`);
-    //     NProgress.done();
-    //   }
-    // }
+    next();
   } else {
-    // '无登录信息，跳转到登录页面'
-    // console.log('无登录信息，跳转到登录页面');
-    // if (whiteListRouters.indexOf(to.path) !== -1) {
-    //   next();
-    // } else {
-    //   next(`/login?redirect=${to.path}`);
-    // }
-    // NProgress.done();
-    // 学成项目 不登录也可以流量 
-    next()
+    // 未登录用户仅允许访问公开白名单路由，避免非白名单受限页面产生级联 401 风暴
+    if (isPublicRoute(to.path)) {
+      next();
+    } else {
+      next(`/login?redirect=${encodeURIComponent(to.fullPath)}`);
+      NProgress.done();
+    }
   }
 });
 
