@@ -161,8 +161,24 @@ public class PathPlanningAgent {
         }
 
         // 兜底保障：若未跳过基础且 stage1 依然为空但有其他课程，借调一门最低难度的课程至 stage1 夯实底座
-        if (!skipBasic && stage1Courses.isEmpty() && !stage2Courses.isEmpty()) {
-            stage1Courses.add(stage2Courses.remove(0));
+        if (!skipBasic && stage1Courses.isEmpty()) {
+            if (!stage2Courses.isEmpty()) {
+                stage1Courses.add(stage2Courses.remove(0));
+            } else if (!stage3Courses.isEmpty()) {
+                stage1Courses.add(stage3Courses.remove(0));
+            } else if (!stage4Courses.isEmpty()) {
+                stage1Courses.add(stage4Courses.remove(0));
+            }
+        }
+        // 同样保障 stage2 在有充裕课程时不出现断层饥饿
+        if (stage2Courses.isEmpty()) {
+            if (stage1Courses.size() > 1) {
+                stage2Courses.add(stage1Courses.remove(stage1Courses.size() - 1));
+            } else if (!stage3Courses.isEmpty()) {
+                stage2Courses.add(stage3Courses.remove(0));
+            } else if (!stage4Courses.isEmpty()) {
+                stage2Courses.add(stage4Courses.remove(0));
+            }
         }
 
         // 数据驱动构建阶段定义

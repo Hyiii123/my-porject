@@ -76,11 +76,38 @@ public class EducationKnowledgeRAG {
             .orElse("【专业技术工程师标准】聚焦核心技术实战，夯实先修基石，遵循标准工程化链路完成知识迭代与职业破局。");
     }
 
+    private static String normalize(String text) {
+        if (text == null) return "";
+        return text.replaceAll("[\\s\\-_/]+", "").toLowerCase();
+    }
+
     private int scoreChunk(KnowledgeChunk chunk, String role, List<String> skills) {
-        int score = (StringUtils.hasText(role) && (chunk.roleName.contains(role) || role.contains(chunk.roleName))) ? 10 : 0;
+        int score = 0;
+        String normRole = normalize(role);
+        String normChunkRole = normalize(chunk.roleName);
+        if (StringUtils.hasText(normRole)) {
+            if (normChunkRole.contains(normRole) || normRole.contains(normChunkRole)) {
+                score += 10;
+            } else {
+                // 拆解核心关键词模糊匹配
+                for (String kw : chunk.keywords) {
+                    String normKw = normalize(kw);
+                    if (StringUtils.hasText(normKw) && normRole.contains(normKw)) {
+                        score += 5;
+                        break;
+                    }
+                }
+            }
+        }
         if (skills != null) {
             for (String s : skills) {
-                if (chunk.keywords.stream().anyMatch(kw -> kw.equalsIgnoreCase(s) || kw.contains(s) || s.contains(kw))) {
+                String normS = normalize(s);
+                if (!StringUtils.hasText(normS)) continue;
+                boolean matched = chunk.keywords.stream().anyMatch(kw -> {
+                    String normKw = normalize(kw);
+                    return normKw.equals(normS) || normKw.contains(normS) || normS.contains(normKw);
+                });
+                if (matched) {
                     score += 2;
                 }
             }

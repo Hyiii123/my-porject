@@ -210,18 +210,31 @@ public class AgentEvaluationService {
         for (PersonalizedRecommendVO r : recs) {
             AnalyzedCourseVO ac = analyzedMap.get(r.getId());
             if (ac == null || !StringUtils.hasText(r.getRecommendReason())) {
-                groundCount++;
                 continue;
             }
 
-            // 检查推荐理由中出现的关键词是否在大纲或知识点真实存在
-            boolean grounded = true;
+            // 检查推荐理由中出现的关键词是否在大纲、知识点或证据链路中真实存在
+            String reason = r.getRecommendReason();
+            String title = r.getTitle() != null ? r.getTitle() : "";
+            boolean grounded = false;
+
             if (ac.getCoreKnowledgePoints() != null && !ac.getCoreKnowledgePoints().isEmpty()) {
-                String reason = r.getRecommendReason();
-                boolean anyMatch = ac.getCoreKnowledgePoints().stream().anyMatch(kp -> reason.contains(kp) || r.getTitle().contains(kp));
-                if (anyMatch) grounded = true;
+                grounded = ac.getCoreKnowledgePoints().stream()
+                        .filter(StringUtils::hasText)
+                        .anyMatch(kp -> reason.contains(kp) || title.contains(kp));
             }
-            if (grounded) groundCount++;
+            if (!grounded && ac.getEvidencePaths() != null && !ac.getEvidencePaths().isEmpty()) {
+                grounded = ac.getEvidencePaths().stream()
+                        .filter(StringUtils::hasText)
+                        .anyMatch(ep -> reason.contains(ep));
+            }
+            if (!grounded && StringUtils.hasText(ac.getCourseName())) {
+                grounded = reason.contains(ac.getCourseName());
+            }
+
+            if (grounded) {
+                groundCount++;
+            }
         }
 
         return Math.round(((double) groundCount / recs.size()) * 1000.0) / 10.0;

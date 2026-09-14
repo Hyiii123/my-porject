@@ -143,18 +143,18 @@ public class ExplanationGenerationAgent {
     }
 
     private String buildRuleBasedReason(AnalyzedCourseVO ac, UserProfileContext profile, PathStageVO stage) {
-        String courseName = ac.getCourseName();
-        String role = StringUtils.hasText(profile.getIntendedRole()) ? profile.getIntendedRole() : "技术工程师";
-        List<String> topSkills = profile.getTopSkills();
-        String mainSkill = (!topSkills.isEmpty()) ? topSkills.get(0) : "现有技术";
+        String courseName = (ac != null && StringUtils.hasText(ac.getCourseName())) ? ac.getCourseName() : "该课程";
+        String role = (profile != null && StringUtils.hasText(profile.getIntendedRole())) ? profile.getIntendedRole() : "技术工程师";
+        List<String> topSkills = profile != null ? profile.getTopSkills() : null;
+        String mainSkill = (topSkills != null && !topSkills.isEmpty() && StringUtils.hasText(topSkills.get(0))) ? topSkills.get(0) : "现有技术";
 
         // 优先采纳 DRAG-KP4SR 算法推演出的显式先修知识路径作为解释锚点
-        if (ac.getEvidencePaths() != null && !ac.getEvidencePaths().isEmpty()) {
+        if (ac != null && ac.getEvidencePaths() != null && !ac.getEvidencePaths().isEmpty()) {
             String firstPath = ac.getEvidencePaths().get(0);
             return String.format("前沿知识攻坚：基于先修拓扑链路（%s），助力平滑跃升攻克 %s 核心难点。", firstPath, courseName);
         }
 
-        int stageIndex = stage.getStageIndex() != null ? stage.getStageIndex() : 1;
+        int stageIndex = (stage != null && stage.getStageIndex() != null) ? stage.getStageIndex() : 1;
         if (stageIndex == 1) {
             return String.format("筑基先修保障：巩固《%s》核心概念，为深入掌握 %s 筑牢底层代码设计与架构底座。", courseName, role);
         } else if (stageIndex == 2) {
@@ -166,7 +166,7 @@ public class ExplanationGenerationAgent {
 
     private String buildMatchTag(PathStageVO stage, int matchScore) {
         if (matchScore >= 95) return "极度契合";
-        int stageIndex = stage.getStageIndex() != null ? stage.getStageIndex() : 1;
+        int stageIndex = (stage != null && stage.getStageIndex() != null) ? stage.getStageIndex() : 1;
         if (stageIndex == 1) return "筑基必备";
         if (stageIndex == 2) return "核心进阶";
         return "前沿突破";

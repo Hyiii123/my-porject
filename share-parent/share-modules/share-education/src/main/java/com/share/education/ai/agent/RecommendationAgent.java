@@ -65,7 +65,7 @@ public class RecommendationAgent {
         List<EduCourse> courses = courseMapper.selectBatchIds(courseIds);
         Map<Long, EduCourse> courseMap = courses.stream()
             .filter(c -> c.getStatus() != null && c.getStatus() == 1)
-            .collect(Collectors.toMap(EduCourse::getId, c -> c));
+            .collect(Collectors.toMap(EduCourse::getId, c -> c, (c1, c2) -> c1));
 
         // 3. 批量拉取分类信息
         Set<Long> categoryIds = courses.stream()
@@ -75,7 +75,7 @@ public class RecommendationAgent {
 
         Map<Long, String> categoryMap = categoryIds.isEmpty() ? Collections.emptyMap() :
             categoryMapper.selectBatchIds(categoryIds).stream()
-                .collect(Collectors.toMap(EduCategory::getId, EduCategory::getCategoryName));
+                .collect(Collectors.toMap(EduCategory::getId, EduCategory::getCategoryName, (cat1, cat2) -> cat1));
 
         // 4. 多样性控制与重排组装 (每个分类至多保留 3 门)
         List<CandidateCourseDTO> result = new ArrayList<>();

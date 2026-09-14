@@ -477,8 +477,8 @@ class HybridRetriever:
         lo = min(values.values())
         hi = max(values.values())
         if hi - lo < 1e-12:
-            return {key: 1.0 for key in values}
-        return {key: (value - lo) / (hi - lo) for key, value in values.items()}
+            return {key: (1.0 if hi > 1e-12 else 0.0) for key in values}
+        return {key: max(0.0, (value - lo) / (hi - lo)) for key, value in values.items()}
 
     def search(
         self,

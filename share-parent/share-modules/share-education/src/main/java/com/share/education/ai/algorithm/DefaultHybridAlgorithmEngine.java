@@ -166,6 +166,19 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
         return "DefaultHybridBaseline-50D-Cosine-Graph";
     }
 
+    private static boolean containsFeature(String text, String feature) {
+        if (!StringUtils.hasText(text) || !StringUtils.hasText(feature)) {
+            return false;
+        }
+        boolean isChinese = feature.chars().anyMatch(ch -> Character.UnicodeScript.of(ch) == Character.UnicodeScript.HAN);
+        if (isChinese) {
+            return text.toLowerCase().contains(feature.toLowerCase());
+        }
+        String escaped = java.util.regex.Pattern.quote(feature.toLowerCase());
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(?<![a-zA-Z0-9_])" + escaped + "(?![a-zA-Z0-9_])");
+        return pattern.matcher(text.toLowerCase()).find();
+    }
+
     private double[] buildFeatureVector(Map<String, Integer> skills) {
         double[] vec = new double[TECH_FEATURES.length];
         if (skills == null || skills.isEmpty()) {
@@ -174,7 +187,8 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
         for (int i = 0; i < TECH_FEATURES.length; i++) {
             String f = TECH_FEATURES[i];
             for (Map.Entry<String, Integer> entry : skills.entrySet()) {
-                if (entry.getKey().equalsIgnoreCase(f) || entry.getKey().contains(f) || f.contains(entry.getKey())) {
+                String skillKey = entry.getKey();
+                if (skillKey.equalsIgnoreCase(f) || containsFeature(skillKey, f)) {
                     vec[i] = Math.max(vec[i], entry.getValue() / 100.0);
                 }
             }
@@ -184,10 +198,13 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
 
     private double[] buildCourseVector(EduCourse c) {
         double[] vec = new double[TECH_FEATURES.length];
-        String combined = (c.getCourseName() + " " + c.getSkills() + " " + c.getTargetRole() + " " + c.getDescription()).toLowerCase();
+        String combined = ((c.getCourseName() != null ? c.getCourseName() : "") + " "
+                + (c.getSkills() != null ? c.getSkills() : "") + " "
+                + (c.getTargetRole() != null ? c.getTargetRole() : "") + " "
+                + (c.getDescription() != null ? c.getDescription() : ""));
         for (int i = 0; i < TECH_FEATURES.length; i++) {
-            String f = TECH_FEATURES[i].toLowerCase();
-            if (combined.contains(f)) {
+            String f = TECH_FEATURES[i];
+            if (containsFeature(combined, f)) {
                 vec[i] = 1.0;
             }
         }
