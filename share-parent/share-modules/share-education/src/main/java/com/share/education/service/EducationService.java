@@ -631,9 +631,22 @@ public class EducationService {
             } catch (Exception ignored) {
             }
         }
-        boolean isAdmin = "true".equalsIgnoreCase(String.valueOf(params.get("admin")))
+        boolean requestedAdmin = "true".equalsIgnoreCase(String.valueOf(params.get("admin")))
                 || "admin".equalsIgnoreCase(String.valueOf(params.get("role")))
                 || Boolean.TRUE.equals(params.get("admin"));
+        boolean isAdmin = false;
+        if (requestedAdmin || status != null) {
+            try {
+                Long uid = SecurityUtils.getUserId();
+                isAdmin = SecurityUtils.isAdmin(uid) || com.share.common.security.auth.AuthUtil.hasRole("admin")
+                        || com.share.common.security.auth.AuthUtil.hasRole("teacher");
+            } catch (Exception ignored) {
+                isAdmin = false;
+            }
+        }
+        if (!isAdmin) {
+            status = ENABLED;
+        }
 
         Page<EduCourse> page = new Page<>(safePage(pageNo), safeSize(pageSize));
         LambdaQueryWrapper<EduCourse> wrapper = new LambdaQueryWrapper<EduCourse>()
@@ -1543,6 +1556,21 @@ public class EducationService {
     }
 
     /**
+     * 撤销指定课程的学习记录（退款时调用）。
+     */
+    @Transactional
+    public Map<String, Object> revokeCourse(Long courseId) {
+        Long userId = currentUserId();
+        if (userId == null || courseId == null) {
+            return Map.of();
+        }
+        learningMapper.delete(new LambdaQueryWrapper<EduLearningRecord>()
+                .eq(EduLearningRecord::getUserId, userId)
+                .eq(EduLearningRecord::getCourseId, courseId));
+        return Map.of("revoked", true, "courseId", courseId, "userId", userId);
+    }
+
+    /**
      * 重新开始指定课程。
      *
      * <p>一个课程可能同时存在课程汇总记录（catalog_id 为空）和小节记录，
@@ -1735,21 +1763,24 @@ public class EducationService {
                 .last("limit 1"));
 
         int totalLessons = courseLessonCount(value.getCourseId());
-        if (totalLessons <= 0) totalLessons = 1;
-
         long completedCount = learningMapper.selectCount(new LambdaQueryWrapper<EduLearningRecord>()
                 .eq(EduLearningRecord::getUserId, userId)
                 .eq(EduLearningRecord::getCourseId, value.getCourseId())
                 .isNotNull(EduLearningRecord::getCatalogId)
                 .and(w -> w.ge(EduLearningRecord::getProgressPercent, 90).or().eq(EduLearningRecord::getStatus, 2)));
-
-        BigDecimal overallPercent = BigDecimal.valueOf(completedCount * 100.0 / totalLessons)
-                .setScale(2, RoundingMode.HALF_UP);
-        if (overallPercent.compareTo(BigDecimal.valueOf(100)) > 0) {
-            overallPercent = BigDecimal.valueOf(100);
-        }
-        if (completedCount == 0 && value.getProgressPercent() != null && totalLessons == 1) {
-            overallPercent = value.getProgressPercent();
+        BigDecimal overallPercent;
+        if (totalLessons <= 0) {
+            overallPercent = value.getProgressPercent() != null ? value.getProgressPercent() : BigDecimal.ZERO;
+            totalLessons = Math.max(1, (int) completedCount);
+        } else {
+            overallPercent = BigDecimal.valueOf(completedCount * 100.0 / totalLessons)
+                    .setScale(2, RoundingMode.HALF_UP);
+            if (overallPercent.compareTo(BigDecimal.valueOf(100)) > 0) {
+                overallPercent = BigDecimal.valueOf(100);
+            }
+            if (completedCount == 0 && value.getProgressPercent() != null) {
+                overallPercent = value.getProgressPercent().divide(BigDecimal.valueOf(totalLessons), 2, RoundingMode.HALF_UP);
+            }
         }
 
         if (summary == null) {
@@ -2329,7 +2360,7 @@ public class EducationService {
         List<Long> questionIds = relations.stream().map(EduExamQuestion::getQuestionId).toList();
         List<EduExamQuestionBank> questions = questionIds.isEmpty()
                 ? questionBankMapper.selectList(new LambdaQueryWrapper<EduExamQuestionBank>()
-                        .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId))
+                        .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId).last("limit 20"))
                 : questionIds.stream().map(questionBankMapper::selectById).filter(Objects::nonNull).toList();
         // /es/exams 是旧用户端答题页使用的接口，必须返回数字题型和数组选项。
         // 同时保留 questionBankQuestions 供新客户端使用规范化题库字段。
@@ -2351,7 +2382,7 @@ public class EducationService {
         if (value != null) return exam(value.getId());
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("questions", questionBankMapper.selectList(new LambdaQueryWrapper<EduExamQuestionBank>()
-                .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId)).stream()
+                .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId).last("limit 20")).stream()
                 .map(this::legacyQuestionView).toList());
         return result;
     }
@@ -2406,7 +2437,7 @@ public class EducationService {
         List<EduExamQuestionBank> examQuestions = hasExplicitQuestions
                 ? relationByQuestion.keySet().stream().map(questionBankMapper::selectById).filter(Objects::nonNull).toList()
                 : questionBankMapper.selectList(new LambdaQueryWrapper<EduExamQuestionBank>()
-                        .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId));
+                        .eq(EduExamQuestionBank::getStatus, ENABLED).orderByAsc(EduExamQuestionBank::getId).last("limit 20"));
 
         // 已提交记录重复请求直接返回原结果与完整解析，避免违反 uk_exam_answer 唯一索引或重复累计分数
         if (!Integer.valueOf(0).equals(record.getStatus())) {
@@ -2512,30 +2543,37 @@ public class EducationService {
     public Map<String, Object> sign() {
         Long userId = currentUserId();
         LocalDate today = LocalDate.now();
-        EduSignRecord old = signMapper.selectOne(new LambdaQueryWrapper<EduSignRecord>()
-                .eq(EduSignRecord::getUserId, userId).eq(EduSignRecord::getSignDate, today));
-        if (old != null) return pointsToday();
-        EduSignRecord previous = signMapper.selectOne(new LambdaQueryWrapper<EduSignRecord>()
-                .eq(EduSignRecord::getUserId, userId).orderByDesc(EduSignRecord::getSignDate).last("limit 1"));
-        int continuous = previous != null && today.minusDays(1).equals(previous.getSignDate())
-                ? defaultValue(previous.getContinuousDays(), 0) + 1 : 1;
-        EduSignRecord record = new EduSignRecord();
-        record.setId(newId()); record.setUserId(userId); record.setSignDate(today); record.setPoints(SIGN_POINTS);
-        record.setContinuousDays(continuous); record.setCreateTime(LocalDateTime.now());
-        signMapper.insert(record);
-        int balance = totalPoints(userId) + SIGN_POINTS;
-        EduPointsLedger ledger = new EduPointsLedger();
-        ledger.setId(newId()); ledger.setUserId(userId); ledger.setChangeAmount(SIGN_POINTS); ledger.setBalanceAfter(balance);
-        ledger.setSourceType("sign"); ledger.setBizId(today.toString()); ledger.setRemark("每日签到"); ledger.setCreateTime(LocalDateTime.now());
-        pointsMapper.insert(ledger);
-        return pointsToday();
+        String lockKey = "education:sign:lock:" + userId + ":" + today;
+        boolean acquired = Boolean.TRUE.equals(redisService.setCacheObjectIfAbsent(lockKey, "1", 10L, java.util.concurrent.TimeUnit.SECONDS));
+        if (!acquired) {
+            return pointsToday();
+        }
+        try {
+            EduSignRecord old = signMapper.selectOne(new LambdaQueryWrapper<EduSignRecord>()
+                    .eq(EduSignRecord::getUserId, userId).eq(EduSignRecord::getSignDate, today));
+            if (old != null) return pointsToday();
+            EduSignRecord previous = signMapper.selectOne(new LambdaQueryWrapper<EduSignRecord>()
+                    .eq(EduSignRecord::getUserId, userId).orderByDesc(EduSignRecord::getSignDate).last("limit 1"));
+            int continuous = previous != null && today.minusDays(1).equals(previous.getSignDate())
+                    ? defaultValue(previous.getContinuousDays(), 0) + 1 : 1;
+            EduSignRecord record = new EduSignRecord();
+            record.setId(newId()); record.setUserId(userId); record.setSignDate(today); record.setPoints(SIGN_POINTS);
+            record.setContinuousDays(continuous); record.setCreateTime(LocalDateTime.now());
+            signMapper.insert(record);
+            int balance = totalPoints(userId) + SIGN_POINTS;
+            EduPointsLedger ledger = new EduPointsLedger();
+            ledger.setId(newId()); ledger.setUserId(userId); ledger.setChangeAmount(SIGN_POINTS); ledger.setBalanceAfter(balance);
+            ledger.setSourceType("sign"); ledger.setBizId(today.toString()); ledger.setRemark("每日签到"); ledger.setCreateTime(LocalDateTime.now());
+            pointsMapper.insert(ledger);
+            return pointsToday();
+        } finally {
+            redisService.deleteObject(lockKey);
+        }
     }
 
     public Map<String, Object> pointsToday() {
         Long userId = currentUserId();
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("todayPoints", signMapper.selectOne(new LambdaQueryWrapper<EduSignRecord>()
-                .eq(EduSignRecord::getUserId, userId).eq(EduSignRecord::getSignDate, LocalDate.now())));
         EduSignRecord today = signMapper.selectOne(new LambdaQueryWrapper<EduSignRecord>()
                 .eq(EduSignRecord::getUserId, userId).eq(EduSignRecord::getSignDate, LocalDate.now()));
         result.put("todayPoints", today == null ? 0 : today.getPoints());
@@ -2545,17 +2583,26 @@ public class EducationService {
     }
 
     public List<Map<String, Object>> pointsBoard(Map<String, ?> params) {
-        Map<Long, Integer> totals = latestPointsByUser();
+        List<Map<String, Object>> rows = pointsMapper.selectPointsLeaderboard(50);
         List<Map<String, Object>> result = new ArrayList<>();
-        totals.entrySet().stream().sorted(Map.Entry.<Long, Integer>comparingByValue().reversed()
-                .thenComparing(Map.Entry.comparingByKey())).limit(50).forEach(item -> {
+        int rank = 1;
+        for (Map<String, Object> item : rows) {
+            Long uid = longValue(item.get("userId"));
+            int points = intValue(item.get("points"), 0);
             Map<String, Object> row = new LinkedHashMap<>();
-            row.put("userId", item.getKey()); row.put("userName", item.getKey().equals(currentUserId()) ? currentUserName() : "学习者" + item.getKey());
-            row.put("points", item.getValue()); row.put("rank", result.size() + 1); result.add(row);
-        });
+            row.put("userId", uid);
+            row.put("userName", uid != null && uid.equals(currentUserId()) ? currentUserName() : "学习者" + uid);
+            row.put("points", points);
+            row.put("rank", rank++);
+            result.add(row);
+        }
         if (result.isEmpty()) {
-            Map<String, Object> row = new LinkedHashMap<>(); row.put("userId", currentUserId()); row.put("userName", currentUserName());
-            row.put("points", totalPoints(currentUserId())); row.put("rank", 1); result.add(row);
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("userId", currentUserId());
+            row.put("userName", currentUserName());
+            row.put("points", totalPoints(currentUserId()));
+            row.put("rank", 1);
+            result.add(row);
         }
         return result;
     }
@@ -2898,22 +2945,34 @@ public class EducationService {
     private long newId() { return IdWorker.getId(); }
     private Long currentUserId() { Long value = SecurityUtils.getUserId(); return value == null || value < 1 ? 1L : value; }
     private String currentUserName() { return StringUtils.hasText(SecurityUtils.getUsername()) ? SecurityUtils.getUsername() : "学习者"; }
-    private int courseLessonCount(Long courseId) { return Optional.ofNullable(courseMapper.selectById(courseId)).map(EduCourse::getLessonCount).orElse(0); }
+    private int courseLessonCount(Long courseId) {
+        if (courseId == null) return 0;
+        int count = Optional.ofNullable(courseMapper.selectById(courseId)).map(EduCourse::getLessonCount).orElse(0);
+        if (count <= 0) {
+            Long catalogCount = catalogMapper.selectCount(new LambdaQueryWrapper<EduCourseCatalog>()
+                    .eq(EduCourseCatalog::getCourseId, courseId)
+                    .eq(EduCourseCatalog::getStatus, ENABLED)
+                    .ne(EduCourseCatalog::getParentId, 0L));
+            if (catalogCount != null && catalogCount > 0) {
+                count = catalogCount.intValue();
+            }
+        }
+        return count;
+    }
     private String courseName(Long courseId) { return Optional.ofNullable(courseId).map(courseMapper::selectById).map(EduCourse::getCourseName).orElse(""); }
-    private int examQuestionCount(Long examId) { int count = examQuestionMapper.selectCount(new LambdaQueryWrapper<EduExamQuestion>().eq(EduExamQuestion::getExamId, examId)).intValue(); return count > 0 ? count : questionBankMapper.selectCount(new LambdaQueryWrapper<EduExamQuestionBank>().eq(EduExamQuestionBank::getStatus, ENABLED)).intValue(); }
-    private int totalPoints(Long userId) { return pointsMapper.selectList(new LambdaQueryWrapper<EduPointsLedger>().eq(EduPointsLedger::getUserId, userId)).stream().mapToInt(item -> defaultValue(item.getChangeAmount(), 0)).sum(); }
-    /** 每个用户只取按发生时间排序后的最新流水，避免历史最高余额被误当成当前余额。 */
-    private Map<Long, Integer> latestPointsByUser() {
-        Map<Long, Integer> result = new LinkedHashMap<>();
-        pointsMapper.selectList(new LambdaQueryWrapper<EduPointsLedger>()
-                .orderByDesc(EduPointsLedger::getCreateTime).orderByDesc(EduPointsLedger::getId))
-                .forEach(item -> result.putIfAbsent(item.getUserId(), defaultValue(item.getBalanceAfter(), 0)));
-        return result;
+    private int examQuestionCount(Long examId) {
+        int count = examQuestionMapper.selectCount(new LambdaQueryWrapper<EduExamQuestion>().eq(EduExamQuestion::getExamId, examId)).intValue();
+        return count > 0 ? count : Math.min(20, questionBankMapper.selectCount(new LambdaQueryWrapper<EduExamQuestionBank>().eq(EduExamQuestionBank::getStatus, ENABLED)).intValue());
+    }
+    private int totalPoints(Long userId) {
+        if (userId == null) return 0;
+        Integer pts = pointsMapper.selectTotalPointsByUserId(userId);
+        return pts == null ? 0 : pts;
     }
     private int pointsRank(Long userId) {
-        Map<Long, Integer> totals = latestPointsByUser();
-        int current = totals.getOrDefault(userId, totalPoints(userId));
-        return 1 + (int) totals.values().stream().filter(value -> value > current).count();
+        if (userId == null) return 1;
+        Integer rank = pointsMapper.selectUserRank(userId);
+        return rank == null ? 1 : rank;
     }
     private boolean sameAnswer(String expected, String actual, String questionType) {
         if (!StringUtils.hasText(expected) || !StringUtils.hasText(actual)) return false;

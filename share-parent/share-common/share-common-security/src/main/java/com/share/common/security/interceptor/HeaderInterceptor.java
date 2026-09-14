@@ -31,6 +31,15 @@ public class HeaderInterceptor implements AsyncHandlerInterceptor
         String fromSource = ServletUtils.getHeader(request, SecurityConstants.FROM_SOURCE);
         boolean isInner = SecurityConstants.INNER.equals(fromSource);
 
+        try
+        {
+            org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                    new org.springframework.web.context.request.ServletRequestAttributes(request), true);
+        }
+        catch (Exception ignored)
+        {
+        }
+
         String token = SecurityUtils.getToken();
         if (StringUtils.isNotEmpty(token))
         {
@@ -42,6 +51,7 @@ public class HeaderInterceptor implements AsyncHandlerInterceptor
                 SecurityContextHolder.setUserId(loginUser.getUserid() != null ? loginUser.getUserid().toString() : null);
                 SecurityContextHolder.setUserName(loginUser.getUsername());
                 SecurityContextHolder.setUserKey(loginUser.getToken());
+                SecurityContextHolder.set(SecurityConstants.AUTHORIZATION_HEADER, ServletUtils.getHeader(request, SecurityConstants.AUTHORIZATION_HEADER));
             }
         }
         else if (isInner)
@@ -50,6 +60,7 @@ public class HeaderInterceptor implements AsyncHandlerInterceptor
             SecurityContextHolder.setUserId(ServletUtils.getHeader(request, SecurityConstants.DETAILS_USER_ID));
             SecurityContextHolder.setUserName(ServletUtils.getHeader(request, SecurityConstants.DETAILS_USERNAME));
             SecurityContextHolder.setUserKey(ServletUtils.getHeader(request, SecurityConstants.USER_KEY));
+            SecurityContextHolder.set(SecurityConstants.AUTHORIZATION_HEADER, ServletUtils.getHeader(request, SecurityConstants.AUTHORIZATION_HEADER));
         }
         return true;
     }
