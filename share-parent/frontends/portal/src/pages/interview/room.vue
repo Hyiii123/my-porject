@@ -246,6 +246,10 @@
                 <span class="sub-dim">【考核核心】：{{ currentDimension }}</span>
               </div>
               <div class="tts-ctrl">
+                <el-tag size="small" effect="plain" class="voice-badge" :type="isXiaoxiaoReady ? 'success' : 'info'">
+                  <span class="pulse-dot" v-if="isInterviewerSpeaking"></span>
+                  🎙️ {{ ttsVoiceLabel }}
+                </el-tag>
                 <el-button
                   size="small"
                   type="primary"
@@ -256,6 +260,16 @@
                 >
                   <span v-if="isInterviewerSpeaking">⏹️ 暂停朗读</span>
                   <span v-else>🔊 考官重新朗读</span>
+                </el-button>
+                <el-button
+                  size="small"
+                  link
+                  type="primary"
+                  class="preview-voice-btn"
+                  @click="previewXiaoxiaoVoice"
+                  title="试听晓晓问候音"
+                >
+                  👋 试听音色
                 </el-button>
               </div>
             </div>
@@ -768,7 +782,81 @@ const toggleMic = () => {
   }
 }
 
-// Web Speech API - AI 面试官语音朗读 (TTS)
+// ==================== 微软晓晓 (Xiaoxiao Neural TTS) 智能语音引擎 ====================
+const ttsVoiceLabel = ref('微软晓晓 (载入中...)')
+const isXiaoxiaoReady = ref(false)
+let currentXiaoxiaoVoice = null
+
+// 智能检测并优先绑定微软晓晓音色
+const initXiaoxiaoVoice = () => {
+  if (!('speechSynthesis' in window)) {
+    ttsVoiceLabel.value = '未支持语音合成'
+    return
+  }
+
+  const findBestVoice = () => {
+    const voices = window.speechSynthesis.getVoices()
+    if (!voices || voices.length === 0) return false
+
+    // 1. 最高优先级：精准匹配微软晓晓（包括 Edge 在线自然语音与 Windows 本地自然语音包）
+    // 识别常见标识：'Microsoft Xiaoxiao Online (Natural) - Chinese (Mainland)', 'Microsoft Xiaoxiao - Chinese (Simplified, PRC)'
+    const xiaoxiao = voices.find(v =>
+      (v.name.includes('Xiaoxiao') || v.name.includes('晓晓') || (v.voiceURI && v.voiceURI.includes('Xiaoxiao'))) &&
+      (v.lang.includes('zh') || v.lang.includes('CN'))
+    ) || voices.find(v =>
+      v.name.includes('Xiaoxiao') || v.name.includes('晓晓')
+    )
+
+    if (xiaoxiao) {
+      currentXiaoxiaoVoice = xiaoxiao
+      isXiaoxiaoReady.value = true
+      ttsVoiceLabel.value = '微软晓晓 (Neural 自然女声)'
+      return true
+    }
+
+    // 2. 次高优先级：微软其他自然神经语音（如晓伊 Xiaoyi / 云希 Yunxi / Natural / Online）
+    const naturalZh = voices.find(v =>
+      (v.name.includes('Natural') || v.name.includes('Online')) &&
+      (v.lang.includes('zh') || v.lang.includes('CN'))
+    ) || voices.find(v =>
+      (v.name.includes('Yunxi') || v.name.includes('云希') || v.name.includes('Xiaoyi') || v.name.includes('晓伊')) &&
+      (v.lang.includes('zh') || v.lang.includes('CN'))
+    )
+
+    if (naturalZh) {
+      currentXiaoxiaoVoice = naturalZh
+      isXiaoxiaoReady.value = true
+      ttsVoiceLabel.value = `${naturalZh.name} (自然语音)`
+      return true
+    }
+
+    // 3. 兼容兜底：高品质中文语音（Google 普通话、系统原生 zh-CN 语音）
+    const fallbackZh = voices.find(v =>
+      v.name.includes('Google') && (v.lang.includes('zh') || v.lang.includes('CN'))
+    ) || voices.find(v =>
+      v.lang === 'zh-CN' || v.lang === 'zh_CN' || (v.lang && v.lang.startsWith('zh'))
+    )
+
+    if (fallbackZh) {
+      currentXiaoxiaoVoice = fallbackZh
+      isXiaoxiaoReady.value = false
+      ttsVoiceLabel.value = `系统中文 (${fallbackZh.name})`
+      return true
+    }
+
+    return false
+  }
+
+  // 尝试立即获取
+  if (!findBestVoice()) {
+    // Chromium 异步加载声音钩子
+    window.speechSynthesis.onvoiceschanged = () => {
+      findBestVoice()
+    }
+  }
+}
+
+// Web Speech API - AI 面试官语音朗读 (TTS 微软晓晓)
 const speakQuestionText = (text) => {
   if (!('speechSynthesis' in window)) {
     console.warn('当前浏览器不支持 Web Speech 语音合成')
@@ -781,10 +869,23 @@ const speakQuestionText = (text) => {
   window.speechSynthesis.cancel()
   if (!text) return
 
+  // 确保音色已就绪
+  if (!currentXiaoxiaoVoice) {
+    initXiaoxiaoVoice()
+  }
+
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.lang = 'zh-CN'
-  utterance.rate = 1.05
-  utterance.pitch = 1.0
+
+  if (currentXiaoxiaoVoice) {
+    utterance.voice = currentXiaoxiaoVoice
+  }
+
+  // 晓晓音色面试官专用工程级声学调优：
+  // rate: 1.02（利落从容，不拖沓）
+  // pitch: 1.05（亲切干练的大厂女考官基频）
+  utterance.rate = 1.02
+  utterance.pitch = 1.05
 
   utterance.onstart = () => {
     isInterviewerSpeaking.value = true
@@ -809,7 +910,8 @@ const speakQuestionText = (text) => {
       ttsHeartbeatInterval = null
     }
   }
-  utterance.onerror = () => {
+  utterance.onerror = (e) => {
+    console.warn('TTS 语音合成提示:', e)
     isInterviewerSpeaking.value = false
     if (ttsHeartbeatInterval) {
       clearInterval(ttsHeartbeatInterval)
@@ -828,6 +930,11 @@ const toggleTtsCurrentQuestion = () => {
   } else if (currentTurn.value?.question) {
     speakQuestionText(currentTurn.value.question)
   }
+}
+
+// 试听晓晓问候音
+const previewXiaoxiaoVoice = () => {
+  speakQuestionText('同学你好，我是今天的AI主考官晓晓。很高兴与你连线，请放轻松，祝你在接下来的模拟面试中发挥出最佳水平！')
 }
 
 // Web Speech API - 候选人实时语音识别 (STT)
@@ -1052,6 +1159,7 @@ const handleFinishInterview = () => {
 onMounted(() => {
   loadSession()
   initCandidateMedia()
+  initXiaoxiaoVoice()
   timerInterval = setInterval(() => {
     if (!isCompleted.value) {
       timerSeconds.value++
@@ -1541,6 +1649,53 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: #94a3b8;
   margin-left: 8px;
+}
+
+.tts-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  font-weight: 500;
+}
+
+.voice-badge.el-tag--info {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399;
+  animation: pulse-green 1s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.3); }
+}
+
+.preview-voice-btn {
+  font-size: 12px;
+  color: #38bdf8;
+  padding: 0 4px;
+}
+
+.preview-voice-btn:hover {
+  color: #7dd3fc;
 }
 
 .speak-ctrl-btn {

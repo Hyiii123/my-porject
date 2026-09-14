@@ -291,6 +291,15 @@
             <span class="chk-icon">✅</span>
             <span class="chk-text">AI 面试官：数字人形象与 10,000 大厂真题库就绪</span>
           </div>
+          <div class="check-item ok voice-check-item">
+            <span class="chk-icon">🎙️</span>
+            <span class="chk-text">
+              考官音色：{{ isXiaoxiaoAvailable ? '微软晓晓 (Neural 自然女声已装载)' : '系统中文自然语音已装载' }}
+            </span>
+            <el-button size="small" link type="primary" class="preview-btn" @click="previewXiaoxiaoInLobby">
+              🔊 试听问候
+            </el-button>
+          </div>
         </div>
       </div>
 
@@ -706,6 +715,53 @@ const handleOpenSession = (item) => {
   }
 }
 
+// ==================== 考前音色检定 (微软晓晓) ====================
+const isXiaoxiaoAvailable = ref(false)
+let cachedLobbyVoice = null
+
+const initLobbyVoiceCheck = () => {
+  if (!('speechSynthesis' in window)) return
+  const checkVoices = () => {
+    const voices = window.speechSynthesis.getVoices()
+    if (!voices || voices.length === 0) return
+    const xiaoxiao = voices.find(v =>
+      (v.name.includes('Xiaoxiao') || v.name.includes('晓晓') || (v.voiceURI && v.voiceURI.includes('Xiaoxiao'))) &&
+      (v.lang.includes('zh') || v.lang.includes('CN'))
+    ) || voices.find(v =>
+      v.name.includes('Xiaoxiao') || v.name.includes('晓晓')
+    )
+    if (xiaoxiao) {
+      isXiaoxiaoAvailable.value = true
+      cachedLobbyVoice = xiaoxiao
+    } else {
+      const fallback = voices.find(v =>
+        (v.name.includes('Natural') || v.name.includes('Online')) && (v.lang.includes('zh') || v.lang.includes('CN'))
+      ) || voices.find(v => v.lang === 'zh-CN' || v.lang === 'zh_CN' || (v.lang && v.lang.startsWith('zh')))
+      cachedLobbyVoice = fallback || null
+      isXiaoxiaoAvailable.value = false
+    }
+  }
+  checkVoices()
+  window.speechSynthesis.onvoiceschanged = checkVoices
+}
+
+const previewXiaoxiaoInLobby = () => {
+  if (!('speechSynthesis' in window)) {
+    ElMessage.warning('当前浏览器不支持语音合成')
+    return
+  }
+  window.speechSynthesis.cancel()
+  const u = new SpeechSynthesisUtterance('同学你好，欢迎来到全真AI模拟面试考场。我是主考官晓晓，很高兴为你主持今天的评测，祝你发挥顺利！')
+  u.lang = 'zh-CN'
+  if (cachedLobbyVoice) {
+    u.voice = cachedLobbyVoice
+  }
+  u.rate = 1.02
+  u.pitch = 1.05
+  window.speechSynthesis.speak(u)
+  ElMessage.success('正在播放晓晓考官开场问候试听...')
+}
+
 onMounted(() => {
   if (route.query.fromResume === '1') {
     if (route.query.job) form.targetJob = route.query.job
@@ -713,9 +769,13 @@ onMounted(() => {
   }
   fetchLinkedResume()
   loadMyHistory()
+  initLobbyVoiceCheck()
 })
 
 onBeforeUnmount(() => {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
   cleanupMediaStream()
 })
 </script>
@@ -1250,6 +1310,19 @@ onBeforeUnmount(() => {
 .check-item.ok {
   color: #0f172a;
   font-weight: 500;
+}
+
+.voice-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-check-item .preview-btn {
+  margin-left: auto;
+  font-size: 12px;
+  color: #0284c7;
+  font-weight: 600;
 }
 
 .dialog-footer-actions {
