@@ -127,15 +127,45 @@ public class ScheduleUtils
      */
     public static boolean whiteList(String invokeTarget)
     {
-        String packageName = StringUtils.substringBefore(invokeTarget, "(");
-        int count = StringUtils.countMatches(packageName, ".");
-        if (count > 1)
+        if (StringUtils.isEmpty(invokeTarget))
         {
-            return StringUtils.containsAnyIgnoreCase(invokeTarget, Constants.JOB_WHITELIST_STR);
+            return false;
         }
-        Object obj = SpringUtils.getBean(StringUtils.split(invokeTarget, ".")[0]);
-        String beanPackageName = obj.getClass().getPackage().getName();
-        return StringUtils.containsAnyIgnoreCase(beanPackageName, Constants.JOB_WHITELIST_STR)
-                && !StringUtils.containsAnyIgnoreCase(beanPackageName, Constants.JOB_ERROR_STR);
+        // 禁止任意恶意控制字符与伪造注释拼接绕过
+        if (StringUtils.containsAny(invokeTarget, "#", ";", "&", "|", "`", "\n", "\r"))
+        {
+            return false;
+        }
+        // 全文禁止命中已知的危险类或黑名单调用
+        if (StringUtils.containsAnyIgnoreCase(invokeTarget, Constants.JOB_ERROR_STR))
+        {
+            return false;
+        }
+        String beanName = JobInvokeUtil.getBeanName(invokeTarget);
+        if (StringUtils.isEmpty(beanName))
+        {
+            return false;
+        }
+        int count = StringUtils.countMatches(beanName, ".");
+        if (count > 0)
+        {
+            // 作为完整类名调用时，必须严格以白名单包前缀开头
+            return StringUtils.startsWithAny(beanName, Constants.JOB_WHITELIST_STR);
+        }
+        try
+        {
+            Object obj = SpringUtils.getBean(beanName);
+            if (obj == null)
+            {
+                return false;
+            }
+            String beanPackageName = obj.getClass().getPackage().getName();
+            return StringUtils.startsWithAny(beanPackageName, Constants.JOB_WHITELIST_STR)
+                    && !StringUtils.containsAnyIgnoreCase(beanPackageName, Constants.JOB_ERROR_STR);
+        }
+        catch (Exception e)
+        {
+            return false;
+        }
     }
 }

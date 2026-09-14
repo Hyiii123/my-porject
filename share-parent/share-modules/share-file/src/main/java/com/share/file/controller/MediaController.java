@@ -1,6 +1,7 @@
 package com.share.file.controller;
 
 import com.share.common.core.domain.R;
+import com.share.common.security.annotation.RequiresPermissions;
 import com.share.file.service.FileMediaService;
 import java.util.Arrays;
 import java.util.Map;
@@ -50,12 +51,14 @@ public class MediaController {
         return R.ok(mediaService.save(payload));
     }
 
+    @RequiresPermissions("file:media:remove")
     @DeleteMapping("/{ids}")
     public R<Void> delete(@PathVariable Long[] ids) {
         mediaService.remove(Arrays.asList(ids));
         return R.ok();
     }
 
+    @RequiresPermissions("file:media:remove")
     @DeleteMapping
     public R<Void> deleteBatch(@RequestParam("ids") Long[] ids) {
         mediaService.remove(Arrays.asList(ids));

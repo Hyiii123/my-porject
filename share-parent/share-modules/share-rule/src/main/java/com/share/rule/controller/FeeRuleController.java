@@ -56,9 +56,7 @@ public class FeeRuleController extends BaseController {
     @PutMapping
     public AjaxResult edit(@RequestBody FeeRule feeRule)
     {
-        //return toAjax(feeRuleService.updateById(feeRule));
-        System.out.println(JSON.toJSONString(feeRule));
-        return toAjax(1);
+        return toAjax(iFeeRuleService.updateById(feeRule));
     }
 
     /**

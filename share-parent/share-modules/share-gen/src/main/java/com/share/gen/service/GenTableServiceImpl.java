@@ -426,6 +426,13 @@ public class GenTableServiceImpl implements IGenTableService
                 }
             }
         }
+        if (StringUtils.isNotEmpty(genTable.getGenPath()))
+        {
+            if (StringUtils.contains(genTable.getGenPath(), ".."))
+            {
+                throw new ServiceException("生成路径不允许包含跨级目录 ..");
+            }
+        }
     }
 
     /**
@@ -512,10 +519,30 @@ public class GenTableServiceImpl implements IGenTableService
     public static String getGenPath(GenTable table, String template)
     {
         String genPath = table.getGenPath();
-        if (StringUtils.equals(genPath, "/"))
+        if (StringUtils.equals(genPath, "/") || StringUtils.isEmpty(genPath))
         {
             return System.getProperty("user.dir") + File.separator + "src" + File.separator + VelocityUtils.getFileName(template, table);
         }
-        return genPath + File.separator + VelocityUtils.getFileName(template, table);
+        if (StringUtils.contains(genPath, ".."))
+        {
+            throw new ServiceException("生成路径不允许包含跨级目录 ..");
+        }
+        File baseDir = new File(System.getProperty("user.dir"));
+        File targetFile = new File(genPath, VelocityUtils.getFileName(template, table));
+        try
+        {
+            String canonicalTarget = targetFile.getCanonicalPath();
+            String canonicalBase = baseDir.getCanonicalPath();
+            String canonicalTmp = new File(System.getProperty("java.io.tmpdir")).getCanonicalPath();
+            if (!canonicalTarget.startsWith(canonicalBase) && !canonicalTarget.startsWith(canonicalTmp))
+            {
+                throw new ServiceException("生成路径不允许超出当前项目根目录或系统临时目录");
+            }
+        }
+        catch (IOException e)
+        {
+            throw new ServiceException("非法生成路径: " + e.getMessage());
+        }
+        return targetFile.getAbsolutePath();
     }
 }

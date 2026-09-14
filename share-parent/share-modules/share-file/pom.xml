@@ -58,6 +58,7 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+
         <!-- FastDFS -->
         <dependency>
             <groupId>com.github.tobato</groupId>
@@ -75,6 +76,12 @@
         <dependency>
             <groupId>com.share</groupId>
             <artifactId>share-api-system</artifactId>
+        </dependency>
+
+        <!-- RuoYi Common Security -->
+        <dependency>
+            <groupId>com.share</groupId>
+            <artifactId>share-common-security</artifactId>
         </dependency>
 
     </dependencies>

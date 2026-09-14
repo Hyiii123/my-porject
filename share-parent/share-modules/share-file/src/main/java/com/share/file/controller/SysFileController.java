@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.share.common.core.domain.R;
 import com.share.common.core.utils.file.FileUtils;
+import com.share.common.security.annotation.RequiresLogin;
 import com.share.file.service.ISysFileService;
 import com.share.system.api.domain.SysFile;
 
@@ -27,6 +28,7 @@ public class SysFileController
     /**
      * 文件上传请求
      */
+    @RequiresLogin
     @PostMapping({"upload", "files"})
     public R<SysFile> upload(MultipartFile file)
     {
