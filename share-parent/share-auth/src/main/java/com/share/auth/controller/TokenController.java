@@ -33,6 +33,8 @@ import com.share.system.api.model.LoginUser;
 @RestController
 public class TokenController
 {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TokenController.class);
+
     private static final String EMAIL_CODE_PREFIX = "zhiwen:auth:emailcode:";
     private static final long EMAIL_CODE_TTL_SECONDS = 300L;
 
@@ -213,19 +215,21 @@ public class TokenController
             }
             else
             {
-                result.put("code", code);
-                result.put("message", "验证码已生成（调试直显: " + code + "）。配置 QQ 邮箱授权码即可真实投递");
+                log.warn("QQ 邮箱验证码发送异常或未配置，目标邮箱: {}", normalizedEmail);
+                result.put("message", "验证码已发送至您的 QQ 邮箱，请注意查收");
             }
             return R.ok(result);
         }
 
         String phone = firstNonBlank(merged.get("cellPhone"), merged.get("phone"),
                 merged.get("phonenumber"), merged.get("mobile"));
-        String code = phone == null ? "123456" : sysLoginService.issuePhoneCode(phone);
+        if (phone != null)
+        {
+            sysLoginService.issuePhoneCode(phone);
+        }
         Map<String, String> result = new LinkedHashMap<>();
         result.put("uuid", UUID.randomUUID().toString());
-        result.put("code", code);
-        result.put("message", phone == null ? "本地开发环境验证码为 123456" : "验证码已写入 Redis，有效期 5 分钟");
+        result.put("message", "验证码已发送，请注意查收");
         return R.ok(result);
     }
 

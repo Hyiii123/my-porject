@@ -243,8 +243,20 @@ public class LegacyZhiwenUserController extends BaseController {
     }
 
     @RequiresLogin
+    @PostMapping("/users/checkPasswd")
+    public AjaxResult checkPasswordPost(@RequestBody(required = false) Map<String, String> body,
+            @RequestParam(required = false) String oldPassword) {
+        String pwd = body != null && body.containsKey("oldPassword") ? body.get("oldPassword") : oldPassword;
+        return doCheckPassword(pwd);
+    }
+
+    @RequiresLogin
     @GetMapping("/users/checkPasswd/{oldPassword}")
     public AjaxResult checkPassword(@PathVariable String oldPassword) {
+        return doCheckPassword(oldPassword);
+    }
+
+    private AjaxResult doCheckPassword(String oldPassword) {
         Long currentUserId = SecurityUtils.getUserId();
         SysUser currentUser = currentUserId == null ? null : userService.selectUserById(currentUserId);
         if (currentUser == null || currentUser.getPassword() == null) {

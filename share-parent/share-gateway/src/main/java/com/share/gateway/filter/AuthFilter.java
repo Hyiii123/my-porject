@@ -45,11 +45,17 @@ public class AuthFilter implements GlobalFilter, Ordered
         ServerHttpRequest request = exchange.getRequest();
         ServerHttpRequest.Builder mutate = request.mutate();
 
+        // 关键安全防线：无条件清除所有外部传入的内部请求头与伪造的用户身份标识
+        removeHeader(mutate, SecurityConstants.FROM_SOURCE);
+        removeHeader(mutate, SecurityConstants.DETAILS_USER_ID);
+        removeHeader(mutate, SecurityConstants.DETAILS_USERNAME);
+        removeHeader(mutate, SecurityConstants.USER_KEY);
+
         String url = request.getURI().getPath();
         // 跳过不需要验证的路径
         if (StringUtils.matches(url, ignoreWhite.getWhites()))
         {
-            return chain.filter(exchange);
+            return chain.filter(exchange.mutate().request(mutate.build()).build());
         }
         String token = getToken(request);
         if (StringUtils.isEmpty(token))
@@ -78,7 +84,7 @@ public class AuthFilter implements GlobalFilter, Ordered
         addHeader(mutate, SecurityConstants.USER_KEY, userkey);
         addHeader(mutate, SecurityConstants.DETAILS_USER_ID, userid);
         addHeader(mutate, SecurityConstants.DETAILS_USERNAME, username);
-        // 内部请求来源参数清除
+        // 内部请求来源参数再次确保清除
         removeHeader(mutate, SecurityConstants.FROM_SOURCE);
         return chain.filter(exchange.mutate().request(mutate.build()).build());
     }
@@ -96,7 +102,7 @@ public class AuthFilter implements GlobalFilter, Ordered
 
     private void removeHeader(ServerHttpRequest.Builder mutate, String name)
     {
-        mutate.headers(httpHeaders -> httpHeaders.remove(name)).build();
+        mutate.headers(httpHeaders -> httpHeaders.remove(name));
     }
 
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String msg)

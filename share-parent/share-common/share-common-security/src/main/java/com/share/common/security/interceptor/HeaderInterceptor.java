@@ -28,9 +28,8 @@ public class HeaderInterceptor implements AsyncHandlerInterceptor
             return true;
         }
 
-        SecurityContextHolder.setUserId(ServletUtils.getHeader(request, SecurityConstants.DETAILS_USER_ID));
-        SecurityContextHolder.setUserName(ServletUtils.getHeader(request, SecurityConstants.DETAILS_USERNAME));
-        SecurityContextHolder.setUserKey(ServletUtils.getHeader(request, SecurityConstants.USER_KEY));
+        String fromSource = ServletUtils.getHeader(request, SecurityConstants.FROM_SOURCE);
+        boolean isInner = SecurityConstants.INNER.equals(fromSource);
 
         String token = SecurityUtils.getToken();
         if (StringUtils.isNotEmpty(token))
@@ -40,8 +39,17 @@ public class HeaderInterceptor implements AsyncHandlerInterceptor
             {
                 AuthUtil.verifyLoginUserExpire(loginUser);
                 SecurityContextHolder.set(SecurityConstants.LOGIN_USER, loginUser);
-                SecurityContextHolder.setUserId(loginUser.getUserid().toString());
+                SecurityContextHolder.setUserId(loginUser.getUserid() != null ? loginUser.getUserid().toString() : null);
+                SecurityContextHolder.setUserName(loginUser.getUsername());
+                SecurityContextHolder.setUserKey(loginUser.getToken());
             }
+        }
+        else if (isInner)
+        {
+            // 仅对受信任的内部微服务 Feign 调用读取 Header 传递的用户身份
+            SecurityContextHolder.setUserId(ServletUtils.getHeader(request, SecurityConstants.DETAILS_USER_ID));
+            SecurityContextHolder.setUserName(ServletUtils.getHeader(request, SecurityConstants.DETAILS_USERNAME));
+            SecurityContextHolder.setUserKey(ServletUtils.getHeader(request, SecurityConstants.USER_KEY));
         }
         return true;
     }

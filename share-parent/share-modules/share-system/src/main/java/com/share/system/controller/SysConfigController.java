@@ -1,6 +1,7 @@
 package com.share.system.controller;
 
 import java.util.List;
+import java.util.Set;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -18,6 +19,7 @@ import com.share.common.core.web.domain.AjaxResult;
 import com.share.common.core.web.page.TableDataInfo;
 import com.share.common.log.annotation.Log;
 import com.share.common.log.enums.BusinessType;
+import com.share.common.security.annotation.RequiresLogin;
 import com.share.common.security.annotation.RequiresPermissions;
 import com.share.common.security.utils.SecurityUtils;
 import com.share.system.domain.SysConfig;
@@ -57,9 +59,14 @@ public class SysConfigController extends BaseController
         util.exportExcel(response, list, "参数数据");
     }
 
+    private static final Set<String> SENSITIVE_CONFIG_KEYS = Set.of(
+            "sys.user.initpassword"
+    );
+
     /**
      * 根据参数编号获取详细信息
      */
+    @RequiresPermissions("system:config:query")
     @GetMapping(value = "/{configId}")
     public AjaxResult getInfo(@PathVariable Long configId)
     {
@@ -69,9 +76,23 @@ public class SysConfigController extends BaseController
     /**
      * 根据参数键名查询参数值
      */
+    @RequiresLogin
     @GetMapping(value = "/configKey/{configKey}")
     public AjaxResult getConfigKey(@PathVariable String configKey)
     {
+        if (configKey == null)
+        {
+            return error("参数键名不能为空");
+        }
+        String lowerKey = configKey.toLowerCase();
+        if (SENSITIVE_CONFIG_KEYS.contains(lowerKey) || lowerKey.contains("password") || lowerKey.contains("secret"))
+        {
+            Long userId = SecurityUtils.getUserId();
+            if (userId == null || !SecurityUtils.isAdmin(userId))
+            {
+                return error("无权访问敏感配置信息");
+            }
+        }
         return success(configService.selectConfigByKey(configKey));
     }
 

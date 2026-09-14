@@ -21,8 +21,9 @@ request({
   params,
 });
 // 校验密码是否与原密码一致
-export const CheckPassword = (id) =>
+export const CheckPassword = (oldPassword) =>
 request({
-  url: `/us/users/checkPasswd/${id}`,
-  method: "get",
+  url: `/us/users/checkPasswd`,
+  method: "post",
+  data: { oldPassword },
 });
