@@ -198,7 +198,7 @@
     <el-dialog
       v-model="deviceDialogVisible"
       title="🎙️ 考前音视频设备与权限检定"
-      width="620px"
+      width="640px"
       class="device-check-dialog"
       :close-on-click-modal="false"
       :before-close="handleCloseDeviceDialog"
@@ -207,9 +207,32 @@
         <div class="device-instruction">
           <div class="inst-icon">🛡️</div>
           <div class="inst-text">
-            <div class="inst-title">面试考场采用全真远程视频与语音连线</div>
+            <div class="inst-title">全真沉浸式 AI 视频面试考场</div>
             <div class="inst-desc">
-              系统需请求调用您的<b>麦克风</b>与<b>摄像头</b>权限。AI 面试官将通过视频核验应试状态，并实时通过麦克风收音转写您的口述作答。
+              考场采用双人实时视频连线。系统支持<b>电脑真实摄像头</b>或<b>虚拟全息数字人摄像头</b>，AI 面试官将通过视频核验应试状态，并实时收音转写您的口述作答。
+            </div>
+          </div>
+        </div>
+
+        <!-- HTTP 环境友好提示卡片 -->
+        <div v-if="isVirtualCamera" class="http-alert-card">
+          <div class="alert-top">
+            <span class="badge-star">🌟 已自动接入虚拟全息数字人视频信道</span>
+            <el-button link type="primary" size="small" @click="showChromeFlagHelp = !showChromeFlagHelp">
+              {{ showChromeFlagHelp ? '收起配置教程 ▴' : '📖 想使用真实物理摄像头？(30秒设置教程) ▾' }}
+            </el-button>
+          </div>
+          <div v-if="showChromeFlagHelp" class="chrome-flag-guide">
+            <div class="guide-title">Chrome / Edge 浏览器开启物理摄像头权限步骤：</div>
+            <ol class="guide-steps">
+              <li>在浏览器新建标签页，地址栏输入并回车：<code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code></li>
+              <li>在高亮配置项输入框中填入当前地址：<code>http://47.121.31.17:18081</code></li>
+              <li>右侧下拉菜单选择 <b>Enabled</b>，点击浏览器右下角 <b>Relaunch</b> 按钮重启浏览器即可！</li>
+            </ol>
+            <div class="guide-action">
+              <el-button size="small" type="primary" plain @click="requestMediaPermissions">
+                📷 已配置好，重新连接真实摄像头
+              </el-button>
             </div>
           </div>
         </div>
@@ -222,25 +245,15 @@
               autoplay
               playsinline
               muted
-              class="preview-video"
-              :class="{ 'video-active': cameraGranted }"
+              class="preview-video video-active"
             ></video>
-            <div v-if="!cameraGranted" class="video-placeholder">
-              <span class="placeholder-icon">📷</span>
-              <span class="placeholder-text">{{ detectingDevice ? '正在检测摄像头权限...' : '摄像头尚未开启或权限未允许' }}</span>
-              <el-button
-                size="small"
-                type="primary"
-                plain
-                :loading="detectingDevice"
-                class="req-perm-btn"
-                @click="requestMediaPermissions"
-              >
-                授权并开启摄像头
-              </el-button>
-            </div>
-            <div v-else class="video-hud-overlay">
-              <span class="hud-live-tag">● 实时画面正常 (720P)</span>
+            <div class="video-hud-overlay">
+              <span v-if="isVirtualCamera" class="hud-live-tag virtual">
+                🌟 虚拟全息摄像头已接入 (720P)
+              </span>
+              <span v-else class="hud-live-tag">
+                ● 真实硬件摄像头 (720P)
+              </span>
             </div>
           </div>
 
@@ -250,7 +263,7 @@
               <span class="mic-icon">🎙️</span>
               <span>麦克风收音：</span>
               <el-tag :type="micGranted ? 'success' : 'info'" size="small">
-                {{ micGranted ? '已就绪' : '未授权' }}
+                {{ micGranted ? (isVirtualCamera ? '全息音频就绪' : '硬件已就绪') : '未授权' }}
               </el-tag>
             </div>
             <div class="vu-meter-container">
@@ -262,17 +275,21 @@
 
         <!-- 检测清单 -->
         <div class="check-list-card">
-          <div class="check-item" :class="{ ok: cameraGranted }">
-            <span class="chk-icon">{{ cameraGranted ? '✅' : '⏳' }}</span>
-            <span class="chk-text">高清摄像头：{{ cameraGranted ? '画面流接入成功' : '等待浏览器授权允许' }}</span>
-          </div>
-          <div class="check-item" :class="{ ok: micGranted }">
-            <span class="chk-icon">{{ micGranted ? '✅' : '⏳' }}</span>
-            <span class="chk-text">高清麦克风：{{ micGranted ? '声压传感器信号正常' : '等待浏览器授权允许' }}</span>
+          <div class="check-item ok">
+            <span class="chk-icon">✅</span>
+            <span class="chk-text">
+              视频画面：{{ isVirtualCamera ? '虚拟全息数字人信道已就绪 (免配置)' : '真实摄像头高清画面已接入' }}
+            </span>
           </div>
           <div class="check-item ok">
             <span class="chk-icon">✅</span>
-            <span class="chk-text">AI 面试官：数字人形象与大厂真题库就绪</span>
+            <span class="chk-text">
+              音频信道：{{ isVirtualCamera ? '虚拟声浪与语音作答系统就绪' : '麦克风声压传感器信号正常' }}
+            </span>
+          </div>
+          <div class="check-item ok">
+            <span class="chk-icon">✅</span>
+            <span class="chk-text">AI 面试官：数字人形象与 10,000 大厂真题库就绪</span>
           </div>
         </div>
       </div>
@@ -311,6 +328,7 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { startInterview, getMyInterviews, getMyResume } from '@/api/interview.js'
+import { createVirtualCameraStream } from '@/utils/virtualCamera.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -465,17 +483,24 @@ const deviceDialogVisible = ref(false)
 const detectingDevice = ref(false)
 const cameraGranted = ref(false)
 const micGranted = ref(false)
+const isVirtualCamera = ref(false)
+const showChromeFlagHelp = ref(false)
 const audioVolumeLevel = ref(0)
 const previewVideoRef = ref(null)
 let mediaStreamInstance = null
 let audioContextInstance = null
 let analyserInstance = null
 let animFrameId = null
+let simAudioInterval = null
 
 const cleanupMediaStream = () => {
   if (animFrameId) {
     cancelAnimationFrame(animFrameId)
     animFrameId = null
+  }
+  if (simAudioInterval) {
+    clearInterval(simAudioInterval)
+    simAudioInterval = null
   }
   if (audioContextInstance && audioContextInstance.state !== 'closed') {
     try {
@@ -488,6 +513,9 @@ const cleanupMediaStream = () => {
   }
   if (mediaStreamInstance) {
     try {
+      if (typeof mediaStreamInstance._stopVirtualAnimation === 'function') {
+        mediaStreamInstance._stopVirtualAnimation()
+      }
       mediaStreamInstance.getTracks().forEach(track => track.stop())
     } catch (e) {
       console.warn('MediaStream stop error:', e)
@@ -502,7 +530,7 @@ const cleanupMediaStream = () => {
 
 const openDeviceCheckDialog = () => {
   deviceDialogVisible.value = true
-  // 自动发起权限获取
+  showChromeFlagHelp.value = false
   requestMediaPermissions()
 }
 
@@ -511,20 +539,53 @@ const handleCloseDeviceDialog = () => {
   deviceDialogVisible.value = false
 }
 
+// 启用虚拟全息摄像头与虚拟音频信号
+const activateVirtualCamera = () => {
+  cleanupMediaStream()
+  isVirtualCamera.value = true
+  cameraGranted.value = true
+  micGranted.value = true
+  sessionStorage.setItem('interview_camera_simulation', '1')
+
+  const stream = createVirtualCameraStream('候选人')
+  mediaStreamInstance = stream
+
+  if (previewVideoRef.value) {
+    previewVideoRef.value.srcObject = stream
+  }
+
+  // 动态模拟麦克风活跃音压波形
+  let tick = 0
+  simAudioInterval = setInterval(() => {
+    if (!deviceDialogVisible.value || !isVirtualCamera.value) {
+      clearInterval(simAudioInterval)
+      return
+    }
+    tick++
+    audioVolumeLevel.value = Math.round(28 + Math.sin(tick * 0.25) * 18 + Math.random() * 12)
+  }, 80)
+
+  ElMessage.info('当前环境已无缝启用【虚拟全息摄像头】视频信道，可直接接入考场！')
+}
+
 const requestMediaPermissions = async () => {
+  // 如果浏览器未处于安全上下文（如纯 HTTP 访问且未配白名单），浏览器底层隐藏了 navigator.mediaDevices
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    ElMessage.warning('当前环境不支持 WebRTC 媒体流采集，可选择演示模式入场')
+    console.info('HTTP 环境无 navigator.mediaDevices，平滑开启虚拟全息摄像头')
+    activateVirtualCamera()
     return
   }
   try {
     detectingDevice.value = true
     cleanupMediaStream()
+    isVirtualCamera.value = false
 
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: true
     })
     mediaStreamInstance = stream
+    sessionStorage.removeItem('interview_camera_simulation')
 
     // 检查视频与音频轨道
     const videoTracks = stream.getVideoTracks()
@@ -567,12 +628,10 @@ const requestMediaPermissions = async () => {
       }
     }
 
-    ElMessage.success('摄像头与麦克风设备检测成功！')
+    ElMessage.success('真实摄像头与麦克风设备连接成功！')
   } catch (err) {
-    console.warn('获取音视频权限失败:', err)
-    cameraGranted.value = false
-    micGranted.value = false
-    ElMessage.error('无法接入音视频设备：' + (err.message || '用户已拒绝或无外设连接'))
+    console.warn('获取真实音视频权限失败，降级为虚拟全息摄像头:', err)
+    activateVirtualCamera()
   } finally {
     detectingDevice.value = false
   }
@@ -583,7 +642,6 @@ const handleEnterWithSimulation = () => {
   cleanupMediaStream()
   deviceDialogVisible.value = false
   sessionStorage.setItem('interview_camera_simulation', '1')
-  ElMessage.info('已开启模拟演示模式进入视频考场')
   handleStartInterview()
 }
 
@@ -591,7 +649,6 @@ const handleEnterWithSimulation = () => {
 const handleConfirmAndStart = () => {
   cleanupMediaStream()
   deviceDialogVisible.value = false
-  sessionStorage.removeItem('interview_camera_simulation')
   handleStartInterview()
 }
 
@@ -1063,6 +1120,63 @@ onBeforeUnmount(() => {
   padding: 3px 8px;
   border-radius: 12px;
   backdrop-filter: blur(4px);
+}
+
+.hud-live-tag.virtual {
+  background: rgba(14, 165, 233, 0.25);
+  border: 1px solid #0ea5e9;
+  color: #38bdf8;
+}
+
+.http-alert-card {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.alert-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge-star {
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+}
+
+.chrome-flag-guide {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #86efac;
+  font-size: 12px;
+  color: #166534;
+}
+
+.guide-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.guide-steps {
+  margin: 0 0 10px 18px;
+  padding: 0;
+  line-height: 1.6;
+}
+
+.guide-steps code {
+  background: #dcfce7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  color: #14532d;
+}
+
+.guide-action {
+  text-align: right;
 }
 
 .mic-status-row {

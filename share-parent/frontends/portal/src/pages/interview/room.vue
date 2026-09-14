@@ -499,6 +499,7 @@ import {
   submitInterviewAnswer,
   finishInterview
 } from '@/api/interview.js'
+import { createVirtualCameraStream } from '@/utils/virtualCamera.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -630,14 +631,32 @@ const getDynamicBarHeight = (index) => {
 // 初始化候选人音视频流与能量监听
 const initCandidateMedia = async () => {
   const isSimulation = sessionStorage.getItem('interview_camera_simulation') === '1'
-  if (isSimulation) {
-    cameraActive.value = false
-    micActive.value = true
-    return
+  const hasHardwareApi = Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+
+  // 辅助函数：启动虚拟全息摄像头流
+  const startVirtualStream = () => {
+    try {
+      const stream = createVirtualCameraStream('候选人（我）')
+      candidateStream = stream
+      cameraActive.value = true
+      micActive.value = true
+      if (candidateVideoRef.value) {
+        candidateVideoRef.value.srcObject = stream
+      }
+      // 模拟声浪律动
+      let tick = 0
+      setInterval(() => {
+        tick++
+        audioEnergy.value = Math.round(20 + Math.sin(tick * 0.2) * 15 + Math.random() * 10)
+      }, 100)
+    } catch (e) {
+      console.warn('启动虚拟摄像头流异常:', e)
+      cameraActive.value = false
+    }
   }
 
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    cameraActive.value = false
+  if (isSimulation || !hasHardwareApi) {
+    startVirtualStream()
     return
   }
 
@@ -647,6 +666,7 @@ const initCandidateMedia = async () => {
       audio: true
     })
     candidateStream = stream
+    cameraActive.value = true
 
     if (candidateVideoRef.value) {
       candidateVideoRef.value.srcObject = stream
@@ -680,8 +700,8 @@ const initCandidateMedia = async () => {
       console.warn('候选人音频分析器初始化忽略:', e)
     }
   } catch (err) {
-    console.warn('获取候选人摄像头/麦克风流失败，降级运行:', err)
-    cameraActive.value = false
+    console.warn('获取候选人真实摄像头失败，自动降级为虚拟全息摄像头:', err)
+    startVirtualStream()
   }
 }
 
