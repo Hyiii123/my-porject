@@ -25,9 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <pre>
  *   学员/访客
  *      ↓
- *   主动探针 Agent (ActiveProbingAgent, 完备度 < 0.4 时自适应探针)
- *      ↓
- *   用户画像 Agent (UserProfileAgent, 50维画像建模)
+ *   学员画像与主动探针智能体 (UserProfileAgent, 50维画像建模与冷启动自适应主动探针)
  *      ↓
  *   推荐匹配 Agent (RecommendationAgent, 算法SPI初排多路打散)
  *      ↓
@@ -58,7 +56,6 @@ public class MultiAgentRecommendOrchestrator {
     private final PathPlanningAgent pathPlanningAgent;
     private final PathCriticAgent pathCriticAgent;
     private final ExplanationGenerationAgent explanationGenerationAgent;
-    private final ActiveProbingAgent probingAgent;
     private final AgentEvaluationService evalService;
     private final RedisService redisService;
     private final AiRecommendProperties properties;
@@ -86,7 +83,6 @@ public class MultiAgentRecommendOrchestrator {
                                           PathPlanningAgent pathPlanningAgent,
                                           PathCriticAgent pathCriticAgent,
                                           ExplanationGenerationAgent explanationGenerationAgent,
-                                          ActiveProbingAgent probingAgent,
                                           AgentEvaluationService evalService,
                                           RedisService redisService,
                                           AiRecommendProperties properties) {
@@ -96,7 +92,6 @@ public class MultiAgentRecommendOrchestrator {
         this.pathPlanningAgent = pathPlanningAgent;
         this.pathCriticAgent = pathCriticAgent;
         this.explanationGenerationAgent = explanationGenerationAgent;
-        this.probingAgent = probingAgent;
         this.evalService = evalService;
         this.redisService = redisService;
         this.properties = properties;
@@ -303,8 +298,8 @@ public class MultiAgentRecommendOrchestrator {
      */
     public List<ActiveProbeQuestion> getProbingQuestions(Long userId) {
         UserProfileContext profile = userProfileAgent.buildProfile(userId);
-        if (probingAgent.needsProbing(profile)) {
-            return probingAgent.generateDiagnosticProbes(profile);
+        if (userProfileAgent.needsProbing(profile)) {
+            return userProfileAgent.generateDiagnosticProbes(profile);
         }
         return Collections.emptyList();
     }
@@ -383,8 +378,8 @@ public class MultiAgentRecommendOrchestrator {
                 if (isCompleted.get()) return;
                 long pipelineStart = System.currentTimeMillis();
 
-                // STEP 1: 冷启动主动探针检测
-                if (!sendEventSafely(emitter, AgentReasoningEvent.of("PROBE_CHECK", "ActiveProbingAgent", 1,
+                // STEP 1: 冷启动主动探针与画像完备度检测
+                if (!sendEventSafely(emitter, AgentReasoningEvent.of("PROBE_CHECK", "UserProfileAgent", 1,
                         "正在检测学员画像完备度并评估冷启动意图基线...", null, 1L), isCompleted)) {
                     return;
                 }

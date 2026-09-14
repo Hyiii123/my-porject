@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 冷启动主动探针交互问卷模型 (ActiveProbingAgent 产出)。
+ * 冷启动主动探针交互问卷模型 (UserProfileAgent 产出)。
  * 用于在学员无数据或画像缺失时主动发起 1-Turn 结构化探针，极速建立精准学情基线。
  */
 @Data
