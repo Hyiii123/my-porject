@@ -25,6 +25,11 @@ public class RemoteEducationFallbackFactory implements FallbackFactory<RemoteEdu
             public AjaxResult enroll(Long courseId) {
                 return AjaxResult.error("教育服务暂不可用");
             }
+
+            @Override
+            public AjaxResult revokeEnrollment(Long courseId) {
+                return AjaxResult.error("教育服务暂不可用");
+            }
         };
     }
 }

@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,11 +62,12 @@ public class TradeService {
     private final TrRefundApplyMapper refundMapper;
     private final RemoteEducationService educationService;
     private final RedisService redisService;
+    private final Environment environment;
 
     public TradeService(MktCouponMapper couponMapper, MktCouponCodeMapper couponCodeMapper, MktUserCouponMapper userCouponMapper,
             TrCartMapper cartMapper, TrOrderMapper orderMapper, TrOrderItemMapper itemMapper,
             TrPaymentOrderMapper paymentMapper, TrRefundApplyMapper refundMapper,
-            RemoteEducationService educationService, RedisService redisService) {
+            RemoteEducationService educationService, RedisService redisService, Environment environment) {
         this.couponMapper = couponMapper;
         this.couponCodeMapper = couponCodeMapper;
         this.userCouponMapper = userCouponMapper;
@@ -75,6 +78,7 @@ public class TradeService {
         this.refundMapper = refundMapper;
         this.educationService = educationService;
         this.redisService = redisService;
+        this.environment = environment;
     }
 
     public List<Map<String, Object>> collectableCoupons() {
@@ -456,14 +460,14 @@ public class TradeService {
         for (Map<String, ?> source : sourceItems) {
             Long courseId = longValue(source.get("courseId")); require(courseId != null, "订单课程编号不能为空");
             Map<String, Object> snapshot = courseSnapshot(courseId);
-            Object sourceName = source.get("courseName");
-            boolean forceFree = bool(source.get("free")) || bool(source.get("isFree"))
-                    || (source.containsKey("price") && number(source, "price", -1) == 0
-                    && sourceName != null && String.valueOf(sourceName).startsWith("免费课程"));
-            long cents = forceFree ? 0 : number(snapshot, "price", number(source, "price", defaultPriceCents(courseId)));
+            boolean isInternalSeckill = bool(source.get("isInternalSeckill"));
+            boolean isCourseFree = isInternalSeckill || bool(snapshot.get("free")) || bool(snapshot.get("isFree"))
+                    || (snapshot.containsKey("price") && number(snapshot, "price", -1) == 0);
+            long cents = isCourseFree ? 0 : number(snapshot, "price", defaultPriceCents(courseId));
             BigDecimal amount = BigDecimal.valueOf(cents).movePointLeft(2);
-            String courseName = forceFree ? defaultText(source.get("courseName"), "免费课程 " + courseId)
-                    : defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), defaultText(source.get("courseName"), defaultText(source.get("title"), "课程 " + courseId))));
+            String courseName = isInternalSeckill ? defaultText(source.get("courseName"), "⚡限时秒杀 " + courseId)
+                    : isCourseFree ? defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), "免费课程 " + courseId))
+                    : defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), "课程 " + courseId));
             String cover = defaultText(snapshot.get("cover"), defaultText(snapshot.get("coverUrl"), defaultText(source.get("cover"), null)));
             TrOrderItem item = new TrOrderItem(); item.setId(newId()); item.setCourseId(courseId); item.setCourseName(courseName); item.setCourseCoverUrl(cover); item.setUnitPrice(amount); item.setQuantity(Math.max(1, (int) number(source, "quantity", 1))); item.setDiscountAmount(BigDecimal.ZERO); item.setPayableAmount(amount.multiply(BigDecimal.valueOf(item.getQuantity()))); item.setCreateTime(LocalDateTime.now()); items.add(item); total = total.add(item.getPayableAmount());
         }
@@ -471,8 +475,9 @@ public class TradeService {
         Long couponParam = longValue(body == null ? null : body.get("couponId"));
         MktUserCoupon targetUserCoupon = null;
         MktCoupon coupon = null;
+        LocalDateTime now = LocalDateTime.now();
         if (couponParam != null) {
-            // 优先匹配用户优惠券主键 ID
+            // 严格按当前用户匹配已领取的待使用优惠券，杜绝水平越权
             targetUserCoupon = userCouponMapper.selectOne(new LambdaQueryWrapper<MktUserCoupon>()
                     .eq(MktUserCoupon::getId, couponParam)
                     .eq(MktUserCoupon::getUserId, currentUserId())
@@ -480,7 +485,6 @@ public class TradeService {
             if (targetUserCoupon != null) {
                 coupon = couponMapper.selectById(targetUserCoupon.getCouponId());
             } else {
-                // 其次尝试匹配 couponId
                 targetUserCoupon = userCouponMapper.selectOne(new LambdaQueryWrapper<MktUserCoupon>()
                         .eq(MktUserCoupon::getCouponId, couponParam)
                         .eq(MktUserCoupon::getUserId, currentUserId())
@@ -489,17 +493,22 @@ public class TradeService {
                 if (targetUserCoupon != null) {
                     coupon = couponMapper.selectById(targetUserCoupon.getCouponId());
                 } else {
-                    coupon = couponMapper.selectById(couponParam);
+                    // 若选用公共优惠券，校验其状态与有效期
+                    MktCoupon publicCoupon = couponMapper.selectById(couponParam);
+                    if (publicCoupon != null && Integer.valueOf(1).equals(publicCoupon.getStatus())
+                            && (publicCoupon.getStartTime() == null || !now.isBefore(publicCoupon.getStartTime()))
+                            && (publicCoupon.getEndTime() == null || !now.isAfter(publicCoupon.getEndTime()))) {
+                        coupon = publicCoupon;
+                    }
                 }
             }
         }
 
         BigDecimal discount = discount(total, coupon);
         BigDecimal payable = total.subtract(discount).max(BigDecimal.ZERO);
-        LocalDateTime now = LocalDateTime.now();
         TrOrder order = new TrOrder();
         order.setId(newId());
-        order.setOrderNo("TJ" + now.toString().replaceAll("[-:T]", "").substring(0, 14) + String.format("%04d", orderMapper.selectCount(new LambdaQueryWrapper<>()) + 1));
+        order.setOrderNo("TJ" + now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + String.format("%04d", Math.abs(IdWorker.getId() % 10000)));
         order.setUserId(currentUserId());
         order.setTotalAmount(total);
         order.setDiscountAmount(discount);
@@ -559,9 +568,22 @@ public class TradeService {
     @Transactional
     public Map<String, Object> freeCourse(Long courseId) {
         require(courseId != null, "课程编号不能为空");
-        Map<String, Object> body = new LinkedHashMap<>(); body.put("courseId", courseId); body.put("price", 0); body.put("free", true); body.put("courseName", "免费课程 " + courseId);
+        Map<String, Object> snapshot = courseSnapshot(courseId);
+        boolean isFree = bool(snapshot.get("free")) || bool(snapshot.get("isFree"))
+                || (snapshot.containsKey("price") && number(snapshot, "price", -1) == 0);
+        require(isFree, "该课程不是免费课程，请通过正常流程结算下单");
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("courseId", courseId);
         Map<String, Object> result = placeOrder(body);
-        TrOrder order = findOrder(longValue(result.get("id"))); order.setOrderStatus(1); order.setPaymentStatus(1); order.setPaidAmount(BigDecimal.ZERO); order.setPaidTime(LocalDateTime.now()); order.setUpdateTime(LocalDateTime.now()); orderMapper.updateById(order); enrollPurchasedCourses(order); return orderView(order);
+        TrOrder order = findOrder(longValue(result.get("id")));
+        order.setOrderStatus(1);
+        order.setPaymentStatus(1);
+        order.setPaidAmount(BigDecimal.ZERO);
+        order.setPaidTime(LocalDateTime.now());
+        order.setUpdateTime(LocalDateTime.now());
+        orderMapper.updateById(order);
+        enrollPurchasedCourses(order);
+        return orderView(order);
     }
 
     /**
@@ -596,8 +618,7 @@ public class TradeService {
             // 3. 生成秒杀订单并直接激活权益
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("courseId", courseId);
-            body.put("price", 0);
-            body.put("free", true);
+            body.put("isInternalSeckill", true);
             body.put("courseName", "⚡限时秒杀 " + courseId);
             Map<String, Object> result = placeOrder(body);
             TrOrder order = findOrder(longValue(result.get("id")));
@@ -640,10 +661,14 @@ public class TradeService {
     public void deleteOrder(Long id) {
         TrOrder order = findOrder(id);
         require(Objects.equals(order.getUserId(), currentUserId()) || SecurityUtils.isAdmin(currentUserId()), "无权删除订单");
+        require(order.getOrderStatus() == 0 || order.getOrderStatus() == 4, "已支付或核算中的订单不可删除");
         if (order.getOrderStatus() == 0) {
             restoreOrderCoupon(order);
+            order.setOrderStatus(4);
         }
-        orderMapper.deleteById(id);
+        order.setDelFlag(1);
+        order.setUpdateTime(LocalDateTime.now());
+        orderMapper.updateById(order);
     }
 
     public List<Map<String, Object>> paymentChannels() {
@@ -666,8 +691,14 @@ public class TradeService {
     /** 本地演示支付回调：不连接真实支付渠道，但完整更新支付单、订单和学习记录。 */
     @Transactional
     public Map<String, Object> simulatePayment(Long orderId) {
+        // B42: 生产环境拦截模拟支付后门
+        if (environment != null && environment.acceptsProfiles(Profiles.of("prod", "production"))) {
+            if (!SecurityUtils.isAdmin(currentUserId())) {
+                throw new ServiceException("生产环境严禁使用模拟支付通道，请使用正式渠道完成支付");
+            }
+        }
         TrOrder order = findOrder(orderId);
-        require(Objects.equals(order.getUserId(), currentUserId()), "无权支付该订单");
+        require(Objects.equals(order.getUserId(), currentUserId()) || SecurityUtils.isAdmin(currentUserId()), "无权支付该订单");
         require(order.getOrderStatus() == 0, "订单当前状态不可支付" + (order.getOrderStatus() == 4 ? "（订单已超时关闭）" : order.getOrderStatus() == 1 ? "（订单已支付）" : ""));
         LocalDateTime now = LocalDateTime.now();
         TrPaymentOrder payment = paymentMapper.selectOne(new LambdaQueryWrapper<TrPaymentOrder>()
@@ -680,8 +711,26 @@ public class TradeService {
         }
         payment.setStatus(1); payment.setThirdPartyNo("DEMO-" + payment.getPaymentNo()); payment.setPaidTime(now); payment.setUpdateTime(now);
         if (paymentMapper.selectById(payment.getId()) == null) paymentMapper.insert(payment); else paymentMapper.updateById(payment);
-        order.setPaymentStatus(1); order.setOrderStatus(1); order.setPaidAmount(order.getPayableAmount()); order.setPaidTime(now);
-        order.setPaymentChannel(payment.getPaymentChannel()); order.setUpdateTime(now); orderMapper.updateById(order);
+
+        // B10: CAS 原子防重校验，防止并发重复支付
+        boolean updated = orderMapper.update(null, new LambdaUpdateWrapper<TrOrder>()
+                .set(TrOrder::getPaymentStatus, 1)
+                .set(TrOrder::getOrderStatus, 1)
+                .set(TrOrder::getPaidAmount, order.getPayableAmount())
+                .set(TrOrder::getPaidTime, now)
+                .set(TrOrder::getPaymentChannel, payment.getPaymentChannel())
+                .set(TrOrder::getUpdateTime, now)
+                .eq(TrOrder::getId, order.getId())
+                .eq(TrOrder::getOrderStatus, 0)) > 0;
+        if (!updated) {
+            throw new ServiceException("订单已被处理或支付状态已变更，请勿重复支付");
+        }
+        order.setPaymentStatus(1);
+        order.setOrderStatus(1);
+        order.setPaidAmount(order.getPayableAmount());
+        order.setPaidTime(now);
+        order.setPaymentChannel(payment.getPaymentChannel());
+        order.setUpdateTime(now);
         enrollPurchasedCourses(order);
         return orderView(order);
     }
@@ -812,6 +861,7 @@ public class TradeService {
                 order.setOrderStatus(3); order.setPaymentStatus(3); order.setRefundTime(LocalDateTime.now());
                 order.setRefundReason(value.getReason()); order.setUpdateTime(LocalDateTime.now()); orderMapper.updateById(order);
                 restoreOrderCoupon(order);
+                revokePurchasedCourses(order);
             }
         }
         return legacyRefundView(value);
@@ -820,7 +870,8 @@ public class TradeService {
     public Map<String, Object> nextRefund() {
         TrRefundApply value = refundMapper.selectOne(new LambdaQueryWrapper<TrRefundApply>()
                 .eq(TrRefundApply::getStatus, 0).orderByAsc(TrRefundApply::getCreateTime).last("limit 1"));
-        return value == null ? Map.of() : legacyRefundView(value);
+        if (value == null) return Map.of();
+        return legacyRefundView(value);
     }
 
     public Map<String, Object> legacyRefundViewForApi(Long id) {
@@ -830,23 +881,28 @@ public class TradeService {
     }
 
     public Map<String, Object> statistics() {
-        List<TrOrder> orders = orderMapper.selectList(new LambdaQueryWrapper<>());
-        BigDecimal totalAmount = orders.stream().map(TrOrder::getTotalAmount).filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal pendingAmount = orders.stream().filter(item -> Integer.valueOf(0).equals(item.getOrderStatus()))
-                .map(item -> defaultValue(item.getPayableAmount(), BigDecimal.ZERO)).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal paidAmount = orders.stream().filter(item -> Integer.valueOf(1).equals(item.getPaymentStatus()))
-                .map(item -> defaultValue(item.getPaidAmount(), BigDecimal.ZERO)).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal refundAmount = refundMapper.selectList(new LambdaQueryWrapper<TrRefundApply>()).stream()
-                .filter(item -> Integer.valueOf(1).equals(item.getStatus()) || Integer.valueOf(3).equals(item.getStatus()))
-                .map(item -> defaultValue(item.getRefundAmount(), BigDecimal.ZERO)).reduce(BigDecimal.ZERO, BigDecimal::add);
+        Map<String, Object> stats = orderMapper.selectOrderStats();
+        if (stats == null) stats = Map.of();
+        BigDecimal totalRefundAmount = refundMapper.selectTotalRefundAmount();
+        if (totalRefundAmount == null) totalRefundAmount = BigDecimal.ZERO;
+
+        BigDecimal totalAmount = stats.get("totalAmount") != null ? new BigDecimal(stats.get("totalAmount").toString()) : BigDecimal.ZERO;
+        BigDecimal pendingAmount = stats.get("pendingAmount") != null ? new BigDecimal(stats.get("pendingAmount").toString()) : BigDecimal.ZERO;
+        BigDecimal paidAmount = stats.get("paidAmount") != null ? new BigDecimal(stats.get("paidAmount").toString()) : BigDecimal.ZERO;
+        long totalOrders = stats.get("totalOrders") != null ? Long.parseLong(stats.get("totalOrders").toString()) : 0L;
+        long pendingOrders = stats.get("pendingOrders") != null ? Long.parseLong(stats.get("pendingOrders").toString()) : 0L;
+        long paidOrders = stats.get("paidOrders") != null ? Long.parseLong(stats.get("paidOrders").toString()) : 0L;
+
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("totalOrders", orders.size());
-        result.put("pendingOrders", orders.stream().filter(item -> Integer.valueOf(0).equals(item.getOrderStatus())).count());
-        result.put("paidOrders", orders.stream().filter(item -> Integer.valueOf(1).equals(item.getPaymentStatus())).count());
-        result.put("totalAmount", totalAmount); result.put("pendingAmount", pendingAmount);
-        result.put("paidAmount", paidAmount); result.put("refundAmount", refundAmount);
-        result.put("totalRevenue", paidAmount); result.put("totalCoupons", couponMapper.selectCount(new LambdaQueryWrapper<>()));
+        result.put("totalOrders", totalOrders);
+        result.put("pendingOrders", pendingOrders);
+        result.put("paidOrders", paidOrders);
+        result.put("totalAmount", totalAmount);
+        result.put("pendingAmount", pendingAmount);
+        result.put("paidAmount", paidAmount);
+        result.put("refundAmount", totalRefundAmount);
+        result.put("totalRevenue", paidAmount);
+        result.put("totalCoupons", couponMapper.selectCount(new LambdaQueryWrapper<>()));
         result.put("refunds", refundMapper.selectCount(new LambdaQueryWrapper<>()));
         return result;
     }
@@ -1024,13 +1080,27 @@ public class TradeService {
                 .eq(MktUserCoupon::getUsedOrderId, order.getId()));
         LocalDateTime now = LocalDateTime.now();
         for (MktUserCoupon uc : usedCoupons) {
-            int restoredStatus = (uc.getExpireAt() != null && now.isAfter(uc.getExpireAt())) ? 2 : 0;
-            uc.setStatus(restoredStatus);
-            uc.setUsedAt(null);
-            uc.setUsedOrderId(null);
-            uc.setUpdateTime(now);
-            userCouponMapper.updateById(uc);
+            if (uc.getStatus() != null && uc.getStatus() == 1) {
+                if ("direct_order".equals(uc.getSourceType())) {
+                    uc.setStatus(2); // 临时公共券核销后作废，避免产生未领取的孤儿个人券
+                } else {
+                    int restoredStatus = (uc.getExpireAt() != null && now.isAfter(uc.getExpireAt())) ? 2 : 0;
+                    uc.setStatus(restoredStatus);
+                }
+                uc.setUsedAt(null);
+                uc.setUsedOrderId(null);
+                uc.setUpdateTime(now);
+                userCouponMapper.updateById(uc);
+            }
         }
+    }
+
+    private void revokePurchasedCourses(TrOrder order) {
+        if (order == null || educationService == null) return;
+        itemMapper.selectList(new LambdaQueryWrapper<TrOrderItem>().eq(TrOrderItem::getOrderId, order.getId()))
+                .stream().map(TrOrderItem::getCourseId).filter(Objects::nonNull).distinct().forEach(courseId -> {
+                    try { educationService.revokeEnrollment(courseId); } catch (Exception ignored) { /* 降级或稍后补偿 */ }
+                });
     }
 
     private void checkAndExpireOrder(TrOrder order) {

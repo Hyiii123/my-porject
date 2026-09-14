@@ -25,4 +25,8 @@ public interface RemoteEducationService {
     /** 为当前登录用户创建或补齐课程学习记录。 */
     @PostMapping("/internal/enrollments/{courseId}")
     AjaxResult enroll(@PathVariable("courseId") Long courseId);
+
+    /** 撤销当前登录用户的课程学习权限（退款时调用）。 */
+    @PostMapping("/internal/enrollments/{courseId}/revoke")
+    AjaxResult revokeEnrollment(@PathVariable("courseId") Long courseId);
 }
