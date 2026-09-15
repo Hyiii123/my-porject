@@ -246,6 +246,9 @@ public class LegacyZhiwenUserController extends BaseController {
         if (user == null) {
             return error("当前用户不存在或已注销");
         }
+        if ("admin".equalsIgnoreCase(user.getUserName()) || "00".equals(user.getUserType()) || user.isAdmin()) {
+            return error("系统管理员账户受平台底层安全保护，严禁注销！");
+        }
         String password = text(body, "password", null);
         if (StringUtils.isEmpty(password)) {
             return error("请输入当前账号登录密码进行安全验证");

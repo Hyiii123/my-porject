@@ -1167,10 +1167,21 @@ public class CustomerService {
         return sb.toString();
     }
 
+    private static final java.util.regex.Pattern CROSS_USER_RECON_PATTERN = java.util.regex.Pattern.compile(
+            "(?:查|看|调取|修改|删除|查查|查下|查询|获取).*(?:用户|学员|账号)\\s*(?:id|编号)?\\s*[:：=]?\\s*\\d+",
+            java.util.regex.Pattern.CASE_INSENSITIVE
+    );
+
     private boolean isCrossUserAttempt(String lower) {
-        return lower.contains("其他人") || lower.contains("别的用户") || lower.contains("其他用户")
-                || lower.contains("别的人") || lower.contains("查张三") || lower.contains("查李四")
-                || (lower.contains("用户") && (lower.contains("id") || lower.contains("2") || lower.contains("3") || lower.contains("4") || lower.contains("5") || lower.contains("10")));
+        if (lower.contains("我的") || lower.contains("我自己的") || lower.contains("本人")) {
+            return false;
+        }
+        if (lower.contains("其他人") || lower.contains("别的用户") || lower.contains("其他用户")
+                || lower.contains("别的人") || lower.contains("他人的") || lower.contains("别人的")
+                || lower.contains("查张三") || lower.contains("查李四") || lower.contains("查王五")) {
+            return true;
+        }
+        return CROSS_USER_RECON_PATTERN.matcher(lower).find();
     }
 
     private String tryDispatchAgentAction(String content) {
@@ -1326,8 +1337,9 @@ public class CustomerService {
         }
         return lower.contains("买课") || lower.contains("买课程") || lower.contains("购课")
                 || lower.contains("我要买") || lower.contains("想买") || lower.contains("购买")
-                || lower.contains("加购") || lower.contains("购物车") || lower.contains("报名")
-                || (lower.contains("课程") && (lower.contains("买") || lower.contains("购") || lower.contains("学") || lower.contains("要") || lower.contains("帮我")));
+                || lower.contains("加购") || lower.contains("加购物车") || lower.contains("加入购物车")
+                || lower.contains("报名") || lower.contains("选购课程")
+                || (lower.contains("课程") && (lower.contains("买") || lower.contains("购") || lower.contains("加") || lower.contains("下单")));
     }
 
     private String extractCourseKeyword(String content) {
@@ -1609,6 +1621,10 @@ public class CustomerService {
     }
 
     private boolean isCartViewIntent(String lower) {
+        String withoutCart = lower.replace("购物车", "").replace("购物车里", "").replace("购物车内", "");
+        if (withoutCart.contains("加") || withoutCart.contains("进") || withoutCart.contains("放") || withoutCart.contains("买") || withoutCart.contains("购")) {
+            return false;
+        }
         return lower.contains("购物车") || lower.contains("车里有") || lower.contains("查看购物车") || lower.contains("清空购物车");
     }
 
@@ -1668,6 +1684,13 @@ public class CustomerService {
                 noteText = content.substring(content.indexOf("：") + 1).trim();
             } else if (content.contains(":")) {
                 noteText = content.substring(content.indexOf(":") + 1).trim();
+            } else {
+                for (String prefix : new String[]{"记一条笔记", "帮我记笔记", "做笔记", "记笔记", "写笔记"}) {
+                    if (content.contains(prefix)) {
+                        noteText = content.substring(content.indexOf(prefix) + prefix.length()).trim();
+                        break;
+                    }
+                }
             }
 
             Map<String, Object> card = new HashMap<>();
@@ -1691,10 +1714,15 @@ public class CustomerService {
     }
 
     private boolean isPointsRankingIntent(String lower) {
+        if (lower.contains("微积分") || lower.contains("定积分") || lower.contains("不定积分")
+                || lower.contains("重积分") || lower.contains("积分方程") || lower.contains("蒙特卡洛")) {
+            return false;
+        }
         return lower.contains("学霸") || lower.contains("天梯") || lower.contains("排行榜")
                 || lower.contains("学霸榜") || lower.contains("天梯榜") || lower.contains("积分榜")
                 || lower.contains("积分排行") || lower.contains("积分明细") || lower.contains("我的积分")
-                || lower.contains("多少积分") || lower.contains("积分中心") || lower.contains("积分");
+                || lower.contains("多少积分") || lower.contains("积分中心") || lower.contains("查积分")
+                || lower.contains("学分") || lower.contains("领积分");
     }
 
     private String handlePointsRankingAction() {
@@ -1742,9 +1770,18 @@ public class CustomerService {
     }
 
     private boolean isPageNavigatorIntent(String lower) {
-        return lower.contains("设置") || lower.contains("修改密码") || lower.contains("个人中心")
-                || lower.contains("去首页") || lower.contains("回首页") || lower.contains("问答社区")
-                || lower.contains("提问") || lower.contains("带我去") || lower.contains("打开页面");
+        boolean hasNavVerb = lower.contains("去") || lower.contains("前往") || lower.contains("跳转")
+                || lower.contains("打开") || lower.contains("进入") || lower.contains("导航") || lower.contains("带我去") || lower.contains("回");
+
+        if (hasNavVerb) {
+            if (lower.contains("设置") || lower.contains("密码") || lower.contains("个人中心")
+                    || lower.contains("首页") || lower.contains("主页") || lower.contains("社区")
+                    || lower.contains("问答") || lower.contains("搜索") || lower.contains("找课")) {
+                return true;
+            }
+        }
+        return lower.contains("去首页") || lower.contains("回首页") || lower.contains("打开页面")
+                || lower.contains("个人设置页面") || lower.contains("修改密码");
     }
 
     private String handlePageNavigatorAction(String lower) {

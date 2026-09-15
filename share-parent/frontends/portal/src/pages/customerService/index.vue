@@ -1021,7 +1021,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, ChatDotRound, ChatLineRound, CircleCheck, Clock, Coin, Compass, Delete, Document, Expand, Fold, Folder, FolderOpened, Headset, Medal, Notebook, Plus, Promotion, QuestionFilled, Reading, Refresh, Service, ShoppingCart, Tickets, Trophy, User, Wallet } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -1047,14 +1047,14 @@ function extractActionRole(content) {
 }
 
 function hasAgentActionCard(content) {
-  return /\[AGENT_ACTION_CARD:(\{.+?\})\]/.test(content || '')
+  return /\[AGENT_ACTION_CARD:([\s\S]+?)\]/.test(content || '')
 }
 
 function extractAgentActionCard(content) {
-  const match = (content || '').match(/\[AGENT_ACTION_CARD:(\{.+?\})\]/)
+  const match = (content || '').match(/\[AGENT_ACTION_CARD:([\s\S]+?)\]/)
   if (!match) return null
   try {
-    return JSON.parse(match[1])
+    return JSON.parse(match[1].trim())
   } catch (e) {
     console.error('Failed to parse agent action card:', e)
     return null
@@ -1063,8 +1063,8 @@ function extractAgentActionCard(content) {
 
 function cleanMessageContent(content) {
   return (content || '')
-    .replace(/\[ACTION_VIEW_PATH:.+?\]/g, '')
-    .replace(/\[AGENT_ACTION_CARD:\{.+?\}\]/g, '')
+    .replace(/\[ACTION_VIEW_PATH:[\s\S]+?\]/g, '')
+    .replace(/\[AGENT_ACTION_CARD:[\s\S]+?\]/g, '')
     .trim()
 }
 
@@ -1259,6 +1259,10 @@ async function loadMySessions() {
 }
 
 async function handleSwitchSession(session) {
+  if (isTyping.value) {
+    ElMessage.warning('AI正在回答中，请稍候再切换会话')
+    return
+  }
   if (String(session.id) === String(sessionId.value)) return
   try {
     const res = await getServiceSession(session.id)
@@ -1273,7 +1277,10 @@ async function handleSwitchSession(session) {
 }
 
 async function handleCreateNewSession() {
-  if (isTyping.value) return
+  if (isTyping.value) {
+    ElMessage.warning('AI正在回答中，请稍候再新建会话')
+    return
+  }
   try {
     const user = userInfo()
     const res = await createServiceSession({ userName: user.nickname || user.username || '访客用户' })
@@ -1289,6 +1296,10 @@ async function handleCreateNewSession() {
 }
 
 async function handleArchiveSession(session, archive) {
+  if (isTyping.value) {
+    ElMessage.warning('AI正在回答中，请稍候再操作')
+    return
+  }
   try {
     const res = await archiveServiceSession(session.id, archive)
     if (res && res.code === 200) {
@@ -1303,6 +1314,10 @@ async function handleArchiveSession(session, archive) {
 }
 
 async function handleDeleteSession(session) {
+  if (isTyping.value) {
+    ElMessage.warning('AI正在回答中，请稍候再操作')
+    return
+  }
   try {
     const res = await deleteServiceSession(session.id)
     if (res && res.code === 200) {
@@ -1322,8 +1337,8 @@ async function handleDeleteSession(session) {
 
 function getSessionTitle(item) {
   if (item.lastMessage) {
-    const clean = item.lastMessage.replace(/\[ACTION_VIEW_PATH:.+?\]/g, '')
-      .replace(/\[AGENT_ACTION_CARD:\{.+?\}\]/g, '')
+    const clean = item.lastMessage.replace(/\[ACTION_VIEW_PATH:[\s\S]+?\]/g, '')
+      .replace(/\[AGENT_ACTION_CARD:[\s\S]+?\]/g, '')
       .replace(/[#*`_>]/g, '')
       .trim()
     if (clean) return clean.length > 18 ? clean.substring(0, 18) + '...' : clean
@@ -1556,6 +1571,13 @@ onMounted(async () => {
     // 接口失败时仍保留页面的基础问候语和输入能力。
   }
   scrollToBottom()
+})
+
+onBeforeUnmount(() => {
+  if (executingTimer) {
+    clearInterval(executingTimer)
+    executingTimer = null
+  }
 })
 </script>
 
