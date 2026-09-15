@@ -385,6 +385,351 @@
                         </el-button>
                       </div>
                     </div>
+
+                    <!-- 7. 历史模拟面试复盘卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'interview_report'"
+                      class="agent-interactive-card interview-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge interview-badge">📊 面试复盘 · 成绩单</span>
+                        <span class="sub-badge score-badge">综合得分 {{ extractAgentActionCard(message.content)?.score || 82 }} 分</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box interview-icon">
+                          <el-icon :size="26"><Trophy /></el-icon>
+                        </div>
+                        <div class="interview-meta">
+                          <div class="interview-title">【{{ extractAgentActionCard(message.content)?.company || '大厂通用' }}】{{ extractAgentActionCard(message.content)?.targetJob || '技术开发工程师' }}</div>
+                          <div class="interview-desc">场次 #{{ extractAgentActionCard(message.content)?.sessionId }} ｜ {{ extractAgentActionCard(message.content)?.status === 2 ? '考核已完成' : '考核进行中' }} ｜ STAR 评价已就绪</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          round
+                          @click="router.push(`/interview/report/${extractAgentActionCard(message.content)?.sessionId}`)"
+                        >
+                          📈 查看完整复盘大屏
+                        </el-button>
+                        <el-button
+                          type="danger"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/interview')"
+                        >
+                          🎯 进入面试大厅
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 8. 个人订单管理卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'order_manage'"
+                      class="agent-interactive-card order-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge order-badge">📦 订单与交易中枢</span>
+                        <span class="sub-badge">数据专属隔离</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box order-icon">
+                          <el-icon :size="26"><Wallet /></el-icon>
+                        </div>
+                        <div class="order-meta">
+                          <div class="order-title">我的课程订单与售后管理</div>
+                          <div class="order-desc">已严格绑定当前账户，可极速处理待支付订单或发起退款申请</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          round
+                          @click="router.push('/personal/main/myOrder')"
+                        >
+                          📦 查看我的全部订单
+                        </el-button>
+                        <el-button
+                          type="warning"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/pay/carts')"
+                        >
+                          🛒 前往购物车
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 9. 优惠券中心卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'coupon_center'"
+                      class="agent-interactive-card coupon-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge coupon-badge">🎟️ 优惠券与专属福利</span>
+                        <span class="sub-badge">立减大额好券</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box coupon-icon">
+                          <el-icon :size="26"><Tickets /></el-icon>
+                        </div>
+                        <div class="coupon-meta">
+                          <div class="coupon-title">平台新人减免与限时折扣券</div>
+                          <div class="coupon-desc">领券后自动进入个人卡券包，购课结算时一键抵扣现金</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="danger"
+                          size="small"
+                          round
+                          @click="router.push('/main/coupon')"
+                        >
+                          🎁 立即前往领券中心
+                        </el-button>
+                        <el-button
+                          type="info"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/personal/main/myCoupon')"
+                        >
+                          🎟️ 我的卡券包
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 10. 购物车资产卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'cart_view'"
+                      class="agent-interactive-card cart-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge cart-badge">🛒 我的购物车清单</span>
+                        <span class="sub-badge">私密资产保护</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box cart-icon">
+                          <el-icon :size="26"><ShoppingCart /></el-icon>
+                        </div>
+                        <div class="cart-meta">
+                          <div class="cart-title">待结算课程与抢购通道</div>
+                          <div class="cart-desc">支持勾选合并结算或一键下单报名，支持积分抵扣</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          round
+                          @click="router.push('/pay/carts')"
+                        >
+                          🛒 查看我的购物车
+                        </el-button>
+                        <el-button
+                          type="success"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/pay/settlement')"
+                        >
+                          💳 前往结算台
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 11. 考试考核与测验中心卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'exam_query'"
+                      class="agent-interactive-card exam-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge exam-badge">📝 学情考试与测验</span>
+                        <span class="sub-badge">错题解析</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box exam-icon">
+                          <el-icon :size="26"><Document /></el-icon>
+                        </div>
+                        <div class="exam-meta">
+                          <div class="exam-title">期末考核、随堂小测与实战答卷</div>
+                          <div class="exam-desc">查阅专属考试成绩单与深度错题解析，夯实理论盲区</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          round
+                          @click="router.push('/personal/main/myExam')"
+                        >
+                          📝 我的考试中心
+                        </el-button>
+                        <el-button
+                          type="warning"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/points/index')"
+                        >
+                          🏆 学霸天梯榜
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 12. 随堂笔记与知识库卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'note_quick'"
+                      class="agent-interactive-card note-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge note-badge">📒 随堂速记与知识库</span>
+                        <span class="sub-badge">个人私密空间</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box note-icon">
+                          <el-icon :size="26"><Notebook /></el-icon>
+                        </div>
+                        <div class="note-meta">
+                          <div class="note-title">{{ extractAgentActionCard(message.content)?.noteContent || '个人随堂技术笔记本' }}</div>
+                          <div class="note-desc">记录技术要点、高并发攻坚总结与架构心得，支持随时查阅与编辑</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          v-if="extractAgentActionCard(message.content)?.noteContent"
+                          type="primary"
+                          size="small"
+                          round
+                          :loading="actionLoading[message.id + '_note']"
+                          :disabled="actionDone[message.id + '_note']"
+                          @click="handleActionSaveNote(extractAgentActionCard(message.content), message.id)"
+                        >
+                          {{ actionDone[message.id + '_note'] ? '✅ 已存入笔记本' : '💾 一键存入我的笔记' }}
+                        </el-button>
+                        <el-button
+                          type="info"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/notes/index')"
+                        >
+                          📖 打开笔记本大厅
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 13. 赛季学霸榜与积分资产卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'points_ranking'"
+                      class="agent-interactive-card points-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge points-badge">🏆 赛季天梯榜 · 积分资产</span>
+                        <span class="sub-badge">每日打卡奖励</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box points-icon">
+                          <el-icon :size="26"><Medal /></el-icon>
+                        </div>
+                        <div class="points-meta">
+                          <div class="points-title">学霸天梯竞技榜与个人学分</div>
+                          <div class="points-desc">查看赛季积分段位排行，打卡赚取积分并在购课时直接抵现</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="warning"
+                          size="small"
+                          round
+                          @click="router.push('/points/index')"
+                        >
+                          🏆 查看学霸天梯榜
+                        </el-button>
+                        <el-button
+                          type="primary"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/personal/main/myIntegral')"
+                        >
+                          🌟 我的积分明细
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 14. 学员学习画像与技能雷达卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'learning_portrait'"
+                      class="agent-interactive-card portrait-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge portrait-badge">📊 学员画像 · 技能雷达</span>
+                        <span class="sub-badge">六维动态推演</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box portrait-icon">
+                          <el-icon :size="26"><Reading /></el-icon>
+                        </div>
+                        <div class="portrait-meta">
+                          <div class="portrait-title">多维能力模型与知识图谱</div>
+                          <div class="portrait-desc">根据日常学习实训、真题测评与面试评级实时自适应校准</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          round
+                          @click="router.push('/personal/main/overview')"
+                        >
+                          📊 查看完整能力画像
+                        </el-button>
+                        <el-button
+                          type="success"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/')"
+                        >
+                          🚀 查看多智能体进阶路线
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 15. 智能页面穿梭卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'page_navigator'"
+                      class="agent-interactive-card nav-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge nav-badge">🧭 智能页面穿梭通道</span>
+                        <span class="sub-badge">一键直达目标功能</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box nav-icon">
+                          <el-icon :size="26"><Compass /></el-icon>
+                        </div>
+                        <div class="nav-meta">
+                          <div class="nav-title">目标页面：{{ extractAgentActionCard(message.content)?.pageTitle || '系统功能' }}</div>
+                          <div class="nav-desc">对话中即可无缝穿梭全端任意页面，体验极致高效控制</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          round
+                          @click="router.push(extractAgentActionCard(message.content)?.targetRoute || '/main/index')"
+                        >
+                          🧭 立即前往【{{ extractAgentActionCard(message.content)?.pageTitle || '功能页' }}】
+                        </el-button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -467,12 +812,13 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, ChatDotRound, CircleCheck, Clock, Document, Headset, Promotion, QuestionFilled, Reading, Refresh, Service, ShoppingCart, Trophy, User, Wallet } from '@element-plus/icons-vue'
+import { ArrowRight, ChatDotRound, CircleCheck, Clock, Coin, Compass, Document, Headset, Medal, Notebook, Promotion, QuestionFilled, Reading, Refresh, Service, ShoppingCart, Tickets, Trophy, User, Wallet } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getPixelApiKey, getPixelModel } from '@/api/pixelApi'
 import { createServiceSession, evaluateService, getServiceFaqs, getServiceSession, sendServiceMessage } from '@/api/customerService'
 import { putCarts, enrolledFreeCourse } from '@/api/order.js'
 import { pointsSign } from '@/api/class.js'
+import { addNotes } from '@/api/notes.js'
 import defaultCover from '@/assets/images/courses/default-cover.svg'
 
 const router = useRouter()
@@ -604,6 +950,30 @@ function goToAgentPath(targetRole) {
     path: '/',
     query: targetRole ? { targetRole } : {}
   })
+}
+
+async function handleActionSaveNote(card, msgId) {
+  if (!card?.noteContent) {
+    router.push('/notes/index')
+    return
+  }
+  actionLoading.value[msgId + '_note'] = true
+  try {
+    const res = await addNotes({
+      title: 'AI客服随堂速记',
+      content: card.noteContent
+    })
+    if (res?.code === 200 || res?.code === 0) {
+      actionDone.value[msgId + '_note'] = true
+      ElMessage.success('🎉 笔记已成功存入您的个人笔记本！')
+    } else {
+      ElMessage.warning(res?.msg || '保存笔记失败')
+    }
+  } catch (err) {
+    ElMessage.error(err?.message || '保存笔记请求异常')
+  } finally {
+    actionLoading.value[msgId + '_note'] = false
+  }
 }
 
 const SESSION_KEY = 'customer_service_session_id'
@@ -1368,6 +1738,38 @@ onMounted(async () => {
         background: #f5f3ff;
         color: #7c3aed;
       }
+      &.order-badge {
+        background: #fff7ed;
+        color: #ea580c;
+      }
+      &.coupon-badge {
+        background: #fef2f2;
+        color: #ef4444;
+      }
+      &.cart-badge {
+        background: #f0fdfa;
+        color: #0d9488;
+      }
+      &.exam-badge {
+        background: #f1f5f9;
+        color: #475569;
+      }
+      &.note-badge {
+        background: #fefce8;
+        color: #b45309;
+      }
+      &.points-badge {
+        background: #fffbeb;
+        color: #d97706;
+      }
+      &.portrait-badge {
+        background: #eef2ff;
+        color: #4f46e5;
+      }
+      &.nav-badge {
+        background: #f3f4f6;
+        color: #374151;
+      }
     }
 
     .sub-badge {
@@ -1500,32 +1902,94 @@ onMounted(async () => {
         background: #f5f3ff;
         color: #7c3aed;
       }
+      &.order-icon {
+        background: #ffedd5;
+        color: #ea580c;
+      }
+      &.coupon-icon {
+        background: #fee2e2;
+        color: #ef4444;
+      }
+      &.cart-icon {
+        background: #ccfbf1;
+        color: #0d9488;
+      }
+      &.exam-icon {
+        background: #f1f5f9;
+        color: #475569;
+      }
+      &.note-icon {
+        background: #fef3c7;
+        color: #d97706;
+      }
+      &.points-icon {
+        background: #fef3c7;
+        color: #b45309;
+      }
+      &.portrait-icon {
+        background: #e0e7ff;
+        color: #4338ca;
+      }
+      &.nav-icon {
+        background: #f3f4f6;
+        color: #374151;
+      }
     }
 
     .interview-meta,
     .signin-meta,
     .resume-meta,
-    .learning-meta {
+    .learning-meta,
+    .order-meta,
+    .coupon-meta,
+    .cart-meta,
+    .exam-meta,
+    .note-meta,
+    .points-meta,
+    .portrait-meta,
+    .nav-meta {
       flex: 1;
       min-width: 0;
 
       .job-title,
       .signin-title,
       .resume-title,
-      .learning-title {
+      .learning-title,
+      .interview-title,
+      .order-title,
+      .coupon-title,
+      .cart-title,
+      .exam-title,
+      .note-title,
+      .points-title,
+      .portrait-title,
+      .nav-title {
         font-size: 13px;
         font-weight: 700;
         color: #0f172a;
         margin-bottom: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .company-tag,
       .signin-desc,
       .resume-desc,
-      .learning-desc {
+      .learning-desc,
+      .interview-desc,
+      .order-desc,
+      .coupon-desc,
+      .cart-desc,
+      .exam-desc,
+      .note-desc,
+      .points-desc,
+      .portrait-desc,
+      .nav-desc {
         font-size: 11px;
         color: #475569;
         margin-bottom: 2px;
+        line-height: 1.4;
       }
 
       .status-tip {

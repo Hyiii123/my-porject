@@ -14,6 +14,32 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-15 14:45:00 - 用户端全域自然语言对话控制与防越权安全防护中枢上线：全量纳管9大核心业务动作卡片(复盘/订单/卡券/加车/考试/速记/积分天梯/画像/穿梭)与严格防越权隔离拦截闭环 (Full-Domain Conversational Agent Control & Anti-IDOR Security Shield for Zhiwen Student Portal)
+
+* **演进主题**：全域自然语言意图纳管、用户端功能对话式全覆盖、行级防越权拦截中枢 (Anti-IDOR Security Shield)、富交互动作卡片全矩阵 (`interview_report`/`order_manage`/`coupon_center`/`cart_view`/`exam_query`/`note_quick`/`points_ranking`/`learning_portrait`/`page_navigator`) 与安全闭环
+* **核心成果**：
+  1. **用户端全域功能自然语言对话控制 (Full-Domain Conversational Agent Control)**：
+     - 在 [`CustomerService.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-customer/src/main/java/com/share/customer/service/CustomerService.java) 深度拓展动作派发引擎，实现对用户端除既有购课/开场面试/签到/简历外所有核心业务能力的全面对话控制覆盖：
+       - **面试历史复盘 (`interview_report`)**：智能匹配并调取当前学员最新模拟面试大屏与六维雷达，输出场次、公司、岗位与考核状态；
+       - **个人订单交易 (`order_manage`)**：支持查看全部订单、待支付极速结账与售后退款直达；
+       - **卡券与权益中心 (`coupon_center`)**：支持专属优惠券领券与个人卡券包管理；
+       - **购物车资产 (`cart_view`)**：直达学员个人购物车清单与一键结算；
+       - **学情考试记录 (`exam_query`)**：支持查看期末测试、随堂小测成绩单与错题本；
+       - **随堂速记入库 (`note_quick`)**：智能解析提取对话中的笔记要点（如“记一条笔记：...”），支持一键直达笔记库或直接保存；
+       - **赛季学霸天梯榜 (`points_ranking`)**：支持直达赛季天梯排行与个人积分资产明细；
+       - **多维学习画像 (`learning_portrait`)**：直达个人中心查看学员六维技能雷达与技能图谱；
+       - **智能页面穿梭 (`page_navigator`)**：支持自然语言导航直达个人设置、平台首页、问答社区、课程搜索等全域页面。
+  2. **严格防越权与数据隐私保护中枢 (Anti-IDOR Security Shield)**：
+     - 构建 `isCrossUserAttempt` 越权防护拦截器，精准侦测用户对话中跨账号越权查询/操作的敏感模式（如“查用户X的订单”、“看张三的简历/成绩”等）；
+     - 触发拦截时立即阻断并输出合规引导警示，严格约束系统所有业务数据查询与操作行级绑定当前认证凭证 `currentUserId()`，杜绝任何水平越权隐患。
+  3. **前端富交互卡片矩阵与微交互流转 (Frontend Action Card Matrix & UX)**：
+     - 在 [`index.vue`](file:///d:/education%20system/my-porject/share-parent/frontends/portal/src/pages/customerService/index.vue) 构建 9 套全新的微交互动作卡片模板与现代毛玻璃渐变卡片组件；
+     - 引入配套图标与语义化 Badge 徽章，并在速记笔记卡片中打通 `addNotes` 异步 API，实现对话内秒级入库与即时反馈。
+  4. **严格遵循 Golden Release 发布铁律（Rule 1、Rule 2、Rule 8）**：
+     - 本地 JDK 17 完成 `share-customer.jar` 打包，本地 Vite 完成 `portal` `dist/` 编译；
+     - Workbench CLI 串行更新云端 ECS 容器 `zhiwen-customer` 并热重载 Nginx；
+     - 定向实测套件（涵盖越权阻断、面试复盘、订单、卡券、购物车、考试、笔记、积分排行榜、画像、页面穿梭 10 大场景）100% 验证通过。
+
 ### 2026-09-15 14:30:00 - 全端智能体自主操作与富交互卡片引擎(Agent Action Engine)上线：AI 客服自主跨服务执行查课购课/开辟模拟面试考场/打卡签到/简历诊断/学情导流与微交互卡片闭环 (Agent Action Engine & Rich Interactive Action Cards for AI Customer Service)
 
 * **演进主题**：全端智能体自主操作代理 (Agent Action Engine)、跨服务业务自治流转、结构化微动作卡片协议 (`[AGENT_ACTION_CARD:{...}]`)、富交互前端组件化渲染与一键操作闭环

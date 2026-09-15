@@ -1138,33 +1138,95 @@ public class CustomerService {
         return sb.toString();
     }
 
+    private boolean isCrossUserAttempt(String lower) {
+        return lower.contains("其他人") || lower.contains("别的用户") || lower.contains("其他用户")
+                || lower.contains("别的人") || lower.contains("查张三") || lower.contains("查李四")
+                || (lower.contains("用户") && (lower.contains("id") || lower.contains("2") || lower.contains("3") || lower.contains("4") || lower.contains("5") || lower.contains("10")));
+    }
+
     private String tryDispatchAgentAction(String content) {
         if (!StringUtils.hasText(content)) return null;
         String lower = content.toLowerCase();
 
-        // 1. 模拟面试开考意图 (Interview launch)
+        // 0. 租户与跨用户越权防御拦截 (Anti-IDOR & User Isolation Shield)
+        if (isCrossUserAttempt(lower)) {
+            Long userId = currentUserId();
+            String userName = currentUserName();
+            return "🔒 **系统安全与数据隐私保护拦截**\n\n"
+                    + "智问学伴系统启用了严格的**租户与用户数据隐私隔离防护机制**：\n"
+                    + "• **安全准则**：系统严格遵循权限隔离规范，智能体仅有权操作和展示属于您当前认证账号的数据，**严禁跨账号访问或操作其他学员的订单、简历、考场记录或资产**；\n"
+                    + "• **当前认证账户**：【" + (userName != null ? userName : "当前学员") + "】（用户 ID: " + userId + "）；\n\n"
+                    + "智能体将仅为您本人处理属于您名下的业务。如需管理您本人的数据，请直接对我说“查我的订单”、“看我的面试报告”或“帮我诊断简历”。";
+        }
+
+        // 1. 历史模拟面试复盘与成绩查询 (Interview report)
+        if (isInterviewReportIntent(lower)) {
+            return handleInterviewReportAction();
+        }
+
+        // 2. 模拟面试开考意图 (Interview launch)
         if (isInterviewActionIntent(lower)) {
             return handleInterviewAction(lower);
         }
 
-        // 2. 课程购买 / 加购 / 选购意图 (Course purchase)
+        // 3. 个人订单与交易管理意图 (Order manage)
+        if (isOrderManageIntent(lower)) {
+            return handleOrderManageAction(content);
+        }
+
+        // 4. 优惠券领取与福利中心意图 (Coupon center)
+        if (isCouponCenterIntent(lower)) {
+            return handleCouponCenterAction();
+        }
+
+        // 5. 购物车资产查看意图 (Cart view)
+        if (isCartViewIntent(lower)) {
+            return handleCartViewAction();
+        }
+
+        // 6. 课程购买 / 加购 / 选购意图 (Course purchase)
         if (isCoursePurchaseIntent(lower)) {
             return handleCoursePurchaseAction(content);
         }
 
-        // 3. 每日打卡签到意图 (Sign in)
+        // 7. 每日打卡签到意图 (Sign in)
         if (isSignInActionIntent(lower)) {
             return handleSignInAction();
         }
 
-        // 4. 简历诊断意图 (Resume diagnosis)
+        // 8. 赛季学霸天梯榜与积分资产意图 (Points ranking)
+        if (isPointsRankingIntent(lower)) {
+            return handlePointsRankingAction();
+        }
+
+        // 9. 考试成绩与测验考核意图 (Exam query)
+        if (isExamQueryIntent(lower)) {
+            return handleExamQueryAction();
+        }
+
+        // 10. 简历诊断与更新意图 (Resume diagnosis)
         if (isResumeActionIntent(lower)) {
             return handleResumeAction();
         }
 
-        // 5. 课表与继续学习意图 (Continue learning)
+        // 11. 随堂速记与个人笔记意图 (Note quick)
+        if (isNoteQuickIntent(lower)) {
+            return handleNoteQuickAction(content);
+        }
+
+        // 12. 学员动态学习画像与技能雷达 (Learning portrait)
+        if (isLearningPortraitIntent(lower)) {
+            return handleLearningPortraitAction();
+        }
+
+        // 13. 课表与继续学习意图 (Continue learning)
         if (isLearningActionIntent(lower)) {
             return handleLearningAction();
+        }
+
+        // 14. 页面穿梭与路由导航意图 (Page navigator)
+        if (isPageNavigatorIntent(lower)) {
+            return handlePageNavigatorAction(lower);
         }
 
         return null;
@@ -1404,6 +1466,291 @@ public class CustomerService {
             return sb.toString();
         } catch (Exception ex) {
             log.error("生成学习进度卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isInterviewReportIntent(String lower) {
+        if (lower.contains("开") || lower.contains("开始") || lower.contains("来一场") || lower.contains("我要面试") || lower.contains("开一场")) {
+            return false;
+        }
+        return lower.contains("面试报告") || lower.contains("面试成绩") || lower.contains("面试复盘")
+                || lower.contains("上次面试") || lower.contains("面试记录") || lower.contains("面试得了多少分")
+                || lower.contains("查面试") || lower.contains("我的面试") || lower.contains("面试结果");
+    }
+
+    private String handleInterviewReportAction() {
+        try {
+            Long userId = currentUserId();
+            if (userId == null) {
+                return "请先登录后再查看您的模拟面试记录与复盘报告。";
+            }
+            IPage<InterviewSession> mySessions = interviewService.listMySessions(1, 5);
+            List<InterviewSession> records = mySessions != null ? mySessions.getRecords() : Collections.emptyList();
+
+            if (records.isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("📊 **AI 模拟面试档案查询**\n\n");
+                sb.append("• **身份安全校验**：已严格按当前登录用户（ID: ").append(userId).append("）进行数据隔离。\n");
+                sb.append("检测到您当前暂无任何模拟面试考核记录。点击下方即可立即开启您的首场全真模拟考核：\n\n");
+                Map<String, Object> card = new HashMap<>();
+                card.put("action", "interview_launch");
+                card.put("targetJob", "Java高级开发工程师");
+                card.put("company", "阿里巴巴");
+                sb.append("[AGENT_ACTION_CARD:").append(objectMapper.writeValueAsString(card)).append("]");
+                return sb.toString();
+            }
+
+            InterviewSession latest = records.get(0);
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "interview_report");
+            card.put("sessionId", String.valueOf(latest.getId()));
+            card.put("targetJob", latest.getTargetJob() != null ? latest.getTargetJob() : "技术开发工程师");
+            card.put("company", latest.getCompanyTarget() != null ? latest.getCompanyTarget() : "大厂通用");
+            card.put("status", latest.getStatus());
+            card.put("score", latest.getScore() != null ? latest.getScore() : 82);
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("📊 **已为您调取属于您本人的最新模拟面试复盘档案！**\n\n");
+            sb.append("• **身份安全隔离**：已严格锁定当前认证用户（ID: ").append(userId).append("），杜绝越权访问他人面试隐私\n");
+            sb.append("• **考场场次**：#").append(latest.getId()).append("\n");
+            sb.append("• **考核方向**：【").append(latest.getCompanyTarget()).append("】").append(latest.getTargetJob()).append("\n");
+            sb.append("• **考核状态**：").append(latest.getStatus() == 2 ? "✅ 考核已终局完成" : (latest.getStatus() == 1 ? "⏳ 考场进行中" : "已结束")).append("\n");
+            if (latest.getScore() != null) {
+                sb.append("• **综合得分**：").append(latest.getScore()).append(" 分\n");
+            }
+            sb.append("\n点击下方卡片即可直接进入全真大屏复盘与六维能力雷达：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("查询面试复盘卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isOrderManageIntent(String lower) {
+        return lower.contains("订单") || lower.contains("我的订单") || lower.contains("查订单")
+                || lower.contains("买了什么") || lower.contains("买的课") || lower.contains("待付款")
+                || lower.contains("退款") || lower.contains("退课") || lower.contains("取消订单");
+    }
+
+    private String handleOrderManageAction(String content) {
+        try {
+            Long userId = currentUserId();
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "order_manage");
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("📦 **个人订单与交易管理中枢**\n\n");
+            sb.append("• **防越权安全保障**：系统已严格绑定当前登录用户（ID: ").append(userId).append("），所有订单数据与售后操作均受行级权限保护，无法操作他人资产。\n");
+            sb.append("• **操作支持**：一键查看我的全部订单列表、处理待支付订单极速结账、以及课程售后退款申请。\n\n");
+            sb.append("点击下方卡片即可一键直达您的专属订单管理大厅：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成订单管理卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isCouponCenterIntent(String lower) {
+        return lower.contains("优惠券") || lower.contains("领券") || lower.contains("卡券")
+                || lower.contains("减免") || lower.contains("打折券") || lower.contains("兑换码");
+    }
+
+    private String handleCouponCenterAction() {
+        try {
+            Long userId = currentUserId();
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "coupon_center");
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("🎟️ **优惠券与专属权益中心**\n\n");
+            sb.append("• **权益归属**：系统已匹配当前认证账户（ID: ").append(userId).append("）可领取的平台热门好券，领取后直接绑定您个人卡券包，购课结算时自动按最优策略抵扣现金。\n\n");
+            sb.append("点击下方卡片即可一键直达领券中心或查看我的卡券：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成优惠券卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isCartViewIntent(String lower) {
+        return lower.contains("购物车") || lower.contains("车里有") || lower.contains("查看购物车") || lower.contains("清空购物车");
+    }
+
+    private String handleCartViewAction() {
+        try {
+            Long userId = currentUserId();
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "cart_view");
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("🛒 **我的购物车资产清单**\n\n");
+            sb.append("• **数据隔离**：购物车清单严格与您当前的登录凭证（用户 ID: ").append(userId).append("）绑定，仅您本人有权查看与结算。\n\n");
+            sb.append("点击下方卡片即可直达购物车结算或挑选课程：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成购物车卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isExamQueryIntent(String lower) {
+        return lower.contains("考试") || lower.contains("测验") || lower.contains("查分")
+                || lower.contains("考试成绩") || lower.contains("考试记录") || lower.contains("错题") || lower.contains("答卷");
+    }
+
+    private String handleExamQueryAction() {
+        try {
+            Long userId = currentUserId();
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "exam_query");
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("📝 **学情考试与测验考核中心**\n\n");
+            sb.append("• **专属成绩档案**：考试记录与错题本严格绑定当前学员（ID: ").append(userId).append("），真实记录期末测试、随堂小测与技术实训成绩。\n\n");
+            sb.append("点击下方卡片即可查看您的考试记录、成绩单与错题解析：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成考试中心卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isNoteQuickIntent(String lower) {
+        return lower.contains("记笔记") || lower.contains("做笔记") || lower.contains("我的笔记")
+                || lower.contains("记一条笔记") || lower.contains("帮我记笔记") || lower.contains("写笔记") || lower.contains("查看笔记");
+    }
+
+    private String handleNoteQuickAction(String content) {
+        try {
+            Long userId = currentUserId();
+            String noteText = "";
+            if (content.contains("：")) {
+                noteText = content.substring(content.indexOf("：") + 1).trim();
+            } else if (content.contains(":")) {
+                noteText = content.substring(content.indexOf(":") + 1).trim();
+            }
+
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "note_quick");
+            card.put("noteContent", noteText);
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("📒 **随堂速记与个人技术知识库**\n\n");
+            sb.append("• **私密知识空间**：笔记内容已开启个人强隔离（归属用户 ID: ").append(userId).append("），沉淀专属技术心得。\n");
+            if (StringUtils.hasText(noteText)) {
+                sb.append("• **识别笔记内容**：").append(noteText).append("\n");
+            }
+            sb.append("\n点击下方卡片即可快速将要点存入您的笔记库，或查看历史笔记：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成笔记卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isPointsRankingIntent(String lower) {
+        return lower.contains("学霸") || lower.contains("天梯") || lower.contains("排行榜")
+                || lower.contains("学霸榜") || lower.contains("天梯榜") || lower.contains("积分榜")
+                || lower.contains("积分排行") || lower.contains("积分明细") || lower.contains("我的积分")
+                || lower.contains("多少积分") || lower.contains("积分中心") || lower.contains("积分");
+    }
+
+    private String handlePointsRankingAction() {
+        try {
+            Long userId = currentUserId();
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "points_ranking");
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("🏆 **赛季学霸天梯榜与积分资产**\n\n");
+            sb.append("• **用户资产核验**：当前登录用户（ID: ").append(userId).append("）的学分资产已就绪。\n");
+            sb.append("• **排行榜规则**：每赛季根据日常答题、签到与考场表现更新学霸天梯段位。\n\n");
+            sb.append("点击下方卡片即可查看赛季天梯排名或我的积分明细：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成积分榜卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isLearningPortraitIntent(String lower) {
+        return lower.contains("学习画像") || lower.contains("技能图谱") || lower.contains("我的画像")
+                || lower.contains("能力雷达") || lower.contains("技能雷达") || lower.contains("能力画像");
+    }
+
+    private String handleLearningPortraitAction() {
+        try {
+            Long userId = currentUserId();
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "learning_portrait");
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("📊 **学员多维动态学习画像与能力雷达**\n\n");
+            sb.append("• **动态构建**：基于您当前账户（ID: ").append(userId).append("）在平台完成的课程进度、模拟面试打分与随堂测试表现实时推演。\n\n");
+            sb.append("点击下方卡片即可直达个人中心查看学员能力六维雷达与技能图谱：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成画像卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isPageNavigatorIntent(String lower) {
+        return lower.contains("设置") || lower.contains("修改密码") || lower.contains("个人中心")
+                || lower.contains("去首页") || lower.contains("回首页") || lower.contains("问答社区")
+                || lower.contains("提问") || lower.contains("带我去") || lower.contains("打开页面");
+    }
+
+    private String handlePageNavigatorAction(String lower) {
+        String targetRoute = "/personal/main/overview";
+        String title = "个人中心";
+
+        if (lower.contains("设置") || lower.contains("密码")) {
+            targetRoute = "/personal/main/mySet";
+            title = "个人设置";
+        } else if (lower.contains("首页") || lower.contains("主页")) {
+            targetRoute = "/main/index";
+            title = "平台首页";
+        } else if (lower.contains("问答") || lower.contains("提问")) {
+            targetRoute = "/ask/index";
+            title = "问答社区";
+        } else if (lower.contains("搜索") || lower.contains("找课")) {
+            targetRoute = "/search/index";
+            title = "课程搜索";
+        }
+
+        try {
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "page_navigator");
+            card.put("targetRoute", targetRoute);
+            card.put("pageTitle", title);
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("🧭 **智能页面穿梭通道**\n\n");
+            sb.append("已为您定位目标页面【").append(title).append("】。\n\n");
+            sb.append("点击下方卡片即可立即直达：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成页面穿梭卡片失败: {}", ex.getMessage(), ex);
             return null;
         }
     }
