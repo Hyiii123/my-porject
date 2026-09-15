@@ -70,6 +70,13 @@
         <div><span>绑定邮箱</span> 已绑定邮箱：{{ userInfo.email || '未绑定邮箱' }}</div>
         <span class="font-bt" @click="openEmailModal">修改</span>
       </div>
+      <div class="line fx-sb line-danger">
+        <div>
+          <span class="danger-title">注销账号</span>
+          <span class="danger-tip">注销后无法恢复，所有学习资产、课程与个人数据将被永久清空</span>
+        </div>
+        <span class="font-bt bt-danger" @click="openCancelAccountModal">申请注销</span>
+      </div>
     </div>
 
     <!-- 修改密码弹窗 -->
@@ -116,14 +123,62 @@
         <el-button type="primary" :loading="emailSubmitting" @click="handleUpdateEmail">确定保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 注销账户安全确认弹窗 -->
+    <el-dialog v-model="cancelDialogVisible" title="注销账户安全确认" width="480px" destroy-on-close>
+      <div class="cancel-dialog-content">
+        <el-alert
+          title="重要风险提示：账号注销操作不可逆！"
+          type="error"
+          :closable="false"
+          show-icon
+        >
+          <template #default>
+            <div style="font-size: 13px; line-height: 1.6; margin-top: 6px;">
+              <div>1. 注销后，账号名下的<strong>学习进度、已购课程、考试答卷与个人资产</strong>将被永久清除。</div>
+              <div>2. 系统管理员（admin）等关键安全账户<strong>受底层安全机制保护严禁注销</strong>。</div>
+              <div>3. 账号一旦注销无法找回，请再次确认是否继续。</div>
+            </div>
+          </template>
+        </el-alert>
+        <el-form label-position="top" :model="cancelForm" style="margin-top: 18px;">
+          <el-form-item label="当前登录密码（安全验证）" required>
+            <el-input
+              v-model="cancelForm.password"
+              type="password"
+              show-password
+              placeholder="请输入当前登录密码以核验身份"
+            />
+          </el-form-item>
+          <el-form-item label="防误触校验：请输入「确认注销」" required>
+            <el-input
+              v-model="cancelForm.confirmText"
+              placeholder="请输入 确认注销"
+            />
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <el-button @click="cancelDialogVisible = false">放弃注销</el-button>
+        <el-button
+          type="danger"
+          :loading="cancelSubmitting"
+          :disabled="!cancelForm.password || cancelForm.confirmText !== '确认注销'"
+          @click="handleCancelAccount"
+        >
+          确认注销
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 /** 数据导入 **/
 import { ref, reactive, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { updateUserInfo, updateStudentPassword, getUserInfo } from "@/api/user.js";
+import { updateUserInfo, updateStudentPassword, getUserInfo, cancelStudentAccount } from "@/api/user.js";
 import { useUserStore } from "@/store";
 import defaultAvatar from "@/assets/icon_touxiang.png";
 
@@ -132,6 +187,7 @@ import CardsTitle from "./components/CardsTitle.vue";
 import TableSwitchBar from "@/components/TableSwitchBar.vue";
 
 const store = useUserStore();
+const router = useRouter();
 const rawUser = store.getUserInfo || JSON.parse(sessionStorage.getItem('userInfo') || '{}') || {};
 const userInfo = ref(rawUser);
 
@@ -347,6 +403,60 @@ const handleUpdateEmail = async () => {
     ElMessage.error(err?.msg || err?.message || '绑定失败，请重试');
   } finally {
     emailSubmitting.value = false;
+  }
+};
+
+// 注销账号状态与操作
+const cancelDialogVisible = ref(false);
+const cancelSubmitting = ref(false);
+const cancelForm = reactive({
+  password: '',
+  confirmText: ''
+});
+
+const openCancelAccountModal = () => {
+  const currentName = userInfo.value.username || userInfo.value.userName;
+  const currentId = userInfo.value.id || userInfo.value.userId;
+  if (currentName === 'admin' || currentId === 1 || currentId === '1') {
+    ElMessage.error('系统管理员账户（admin）受平台底层安全保护，严禁注销！');
+    return;
+  }
+  cancelForm.password = '';
+  cancelForm.confirmText = '';
+  cancelDialogVisible.value = true;
+};
+
+const handleCancelAccount = async () => {
+  if (!cancelForm.password) {
+    ElMessage.warning('请输入当前账号登录密码进行安全验证');
+    return;
+  }
+  if (cancelForm.confirmText !== '确认注销') {
+    ElMessage.warning('请输入「确认注销」以确认操作');
+    return;
+  }
+  cancelSubmitting.value = true;
+  try {
+    const res = await cancelStudentAccount({ password: cancelForm.password });
+    if (res?.code === 200) {
+      ElMessage.success(res.msg || '账号已成功注销');
+      cancelDialogVisible.value = false;
+      try {
+        await store.logout();
+      } catch (e) {}
+      sessionStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('userInfo');
+      setTimeout(() => {
+        router.push('/login');
+      }, 1200);
+    } else {
+      ElMessage.error(res?.msg || '注销账号失败');
+    }
+  } catch (err) {
+    ElMessage.error(err?.msg || err?.message || '注销请求失败，请核对密码');
+  } finally {
+    cancelSubmitting.value = false;
   }
 };
 

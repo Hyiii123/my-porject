@@ -15,9 +15,11 @@ import com.share.customer.domain.dto.SendMessageRequest;
 import com.share.customer.service.CustomerService;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,8 +44,23 @@ public class CustomerSessionController extends BaseController {
     @RequiresLogin
     @GetMapping("/my")
     public TableDataInfo mySessions(@RequestParam(defaultValue = "1") long pageNum,
-            @RequestParam(defaultValue = "10") long pageSize) {
-        return page(customerService.listMySessions(pageNum, pageSize));
+            @RequestParam(defaultValue = "50") long pageSize,
+            @RequestParam(required = false) Integer status) {
+        return page(customerService.listMySessions(pageNum, pageSize, status));
+    }
+
+    @RequiresLogin
+    @DeleteMapping("/{sessionId}")
+    public AjaxResult deleteSession(@PathVariable Long sessionId) {
+        customerService.deleteMySession(sessionId);
+        return success("删除会话成功");
+    }
+
+    @RequiresLogin
+    @PutMapping("/{sessionId}/archive")
+    public AjaxResult archiveSession(@PathVariable Long sessionId,
+            @RequestParam(defaultValue = "true") boolean archive) {
+        return success(customerService.archiveMySession(sessionId, archive));
     }
 
     @RequiresLogin

@@ -9,80 +9,176 @@
         </div>
       </section>
 
-      <section class="service-layout">
-        <aside class="service-sidebar">
-          <div class="sidebar-card service-intro-card">
-            <div class="intro-icon"><el-icon :size="26"><Headset /></el-icon></div>
-            <div>
-              <h2>智问学伴客服</h2>
-              <p>{{ statusText }}</p>
-            </div>
-            <span class="online-mark" />
-            <div class="intro-divider" />
-            <div class="service-feature">
-              <el-icon><Clock /></el-icon>
-              <span><strong>AI 智能客服</strong><small>全天候在线响应</small></span>
-            </div>
-            <div class="service-feature">
-              <el-icon><CircleCheck /></el-icon>
-              <span><strong>服务评价</strong><small>每次咨询都可反馈</small></span>
-            </div>
-          </div>
-
-          <div class="sidebar-card faq-card">
-            <div class="card-title-row">
-              <div>
-                <h3>常见问题</h3>
-                <p>点击问题即可快速咨询</p>
+      <section class="service-layout" :class="{ 'history-collapsed': isHistorySidebarCollapsed }">
+        <!-- 1. 客服左侧：长方形框架可折叠菜单栏 -->
+        <aside class="history-sidebar" :class="{ collapsed: isHistorySidebarCollapsed }">
+          <!-- 展开状态 -->
+          <div v-if="!isHistorySidebarCollapsed" class="history-sidebar-inner">
+            <div class="history-header">
+              <div class="history-title">
+                <el-icon><ChatLineRound /></el-icon>
+                <span>会话列表</span>
               </div>
-              <el-icon><QuestionFilled /></el-icon>
-            </div>
-            <div v-if="faqCategories.length" class="faq-categories">
-              <button
-                v-for="category in faqCategories"
-                :key="category"
-                type="button"
-                :class="{ active: activeFaqCategory === category }"
-                @click="activeFaqCategory = category"
+              <el-button
+                circle
+                size="small"
+                class="collapse-toggle-btn"
+                title="收起菜单栏"
+                @click="toggleHistorySidebar"
               >
-                {{ category }}
+                <el-icon><Fold /></el-icon>
+              </el-button>
+            </div>
+
+            <el-button
+              type="primary"
+              class="new-chat-btn"
+              round
+              @click="handleCreateNewSession"
+            >
+              <el-icon><Plus /></el-icon>
+              <span>新建对话</span>
+            </el-button>
+
+            <div class="session-tabs">
+              <button
+                type="button"
+                :class="{ active: sessionTab === 'active' }"
+                @click="sessionTab = 'active'"
+              >
+                活跃会话 ({{ activeSessions.length }})
+              </button>
+              <button
+                type="button"
+                :class="{ active: sessionTab === 'archived' }"
+                @click="sessionTab = 'archived'"
+              >
+                已归档 ({{ archivedSessions.length }})
               </button>
             </div>
-            <div v-if="filteredFaqs.length" class="faq-list">
-              <button
-                v-for="faq in filteredFaqs"
-                :key="faq.id"
-                type="button"
-                class="faq-item"
-                :disabled="isTyping || serviceStatus !== 'ai'"
-                @click="sendQuickQuestion(faq.question)"
+
+            <div class="session-list-wrap" v-loading="loadingSessions">
+              <div v-if="currentTabSessions.length === 0" class="empty-sessions">
+                <el-empty :image-size="40" :description="sessionTab === 'active' ? '暂无活跃会话' : '暂无归档会话'" />
+              </div>
+              <div
+                v-for="item in currentTabSessions"
+                :key="item.id"
+                class="session-item-card"
+                :class="{ active: String(item.id) === String(sessionId) }"
+                @click="handleSwitchSession(item)"
               >
-                <span>{{ faq.question }}</span>
-                <el-icon><ArrowRight /></el-icon>
-              </button>
+                <div class="session-card-content">
+                  <div class="session-card-title">
+                    <span class="session-indicator" />
+                    <span class="title-text">{{ getSessionTitle(item) }}</span>
+                  </div>
+                  <div class="session-card-meta">
+                    <span class="session-time">{{ formatSessionDate(item.updatedAt || item.createTime) }}</span>
+                  </div>
+                </div>
+
+                <div class="session-item-actions" @click.stop>
+                  <!-- 归档 / 取消归档按钮 -->
+                  <el-button
+                    link
+                    size="small"
+                    class="action-btn archive-btn"
+                    :title="item.status === 4 ? '恢复至活跃会话' : '归档对话'"
+                    @click.stop="handleArchiveSession(item, item.status !== 4)"
+                  >
+                    <el-icon v-if="item.status === 4"><FolderOpened /></el-icon>
+                    <el-icon v-else><Folder /></el-icon>
+                  </el-button>
+
+                  <!-- 删除按钮 (带确认防误删) -->
+                  <el-popconfirm
+                    title="确定删除此对话记录吗？"
+                    confirm-button-text="删除"
+                    cancel-button-text="取消"
+                    confirm-button-type="danger"
+                    @confirm="handleDeleteSession(item)"
+                  >
+                    <template #reference>
+                      <el-button
+                        link
+                        size="small"
+                        class="action-btn delete-btn"
+                        title="删除对话"
+                        @click.stop
+                      >
+                        <el-icon><Delete /></el-icon>
+                      </el-button>
+                    </template>
+                  </el-popconfirm>
+                </div>
+              </div>
             </div>
-            <el-empty v-else :image-size="48" description="暂无常见问题" />
           </div>
 
-          <div class="sidebar-card help-card">
-            <div class="help-icon"><el-icon><Document /></el-icon></div>
-            <div>
-              <h3>服务小贴士</h3>
-              <p>描述问题时提供课程名称或订单信息，能帮助我们更快定位问题。</p>
+          <!-- 折叠状态 (极简立柱) -->
+          <div v-else class="history-sidebar-collapsed-inner">
+            <el-button
+              circle
+              size="small"
+              class="expand-toggle-btn"
+              title="展开菜单栏"
+              @click="toggleHistorySidebar"
+            >
+              <el-icon><Expand /></el-icon>
+            </el-button>
+
+            <el-tooltip content="新建对话" placement="right">
+              <el-button
+                type="primary"
+                circle
+                class="mini-new-btn"
+                @click="handleCreateNewSession"
+              >
+                <el-icon><Plus /></el-icon>
+              </el-button>
+            </el-tooltip>
+
+            <div class="mini-session-icons">
+              <el-tooltip
+                v-for="item in activeSessions.slice(0, 6)"
+                :key="item.id"
+                :content="getSessionTitle(item)"
+                placement="right"
+              >
+                <div
+                  class="mini-session-dot"
+                  :class="{ active: String(item.id) === String(sessionId) }"
+                  @click="handleSwitchSession(item)"
+                >
+                  <el-icon><ChatLineRound /></el-icon>
+                </div>
+              </el-tooltip>
             </div>
           </div>
         </aside>
 
+        <!-- 2. 中间：主聊天面板 -->
         <section class="chat-panel">
           <div class="chat-panel-header">
             <div class="chat-title">
+              <el-button
+                v-if="isHistorySidebarCollapsed"
+                circle
+                size="small"
+                class="header-expand-btn"
+                title="展开会话菜单栏"
+                @click="toggleHistorySidebar"
+              >
+                <el-icon><Expand /></el-icon>
+              </el-button>
               <div class="chat-avatar"><el-icon :size="24"><ChatDotRound /></el-icon></div>
               <div>
                 <h2>在线咨询</h2>
                 <span><i class="mini-status-dot" /> {{ statusText }}</span>
               </div>
             </div>
-            <el-button class="new-session-button" text @click="resetSession">
+            <el-button class="new-session-button" text @click="handleCreateNewSession">
               <el-icon><Refresh /></el-icon>
               新会话
             </el-button>
@@ -102,6 +198,9 @@
                 <div class="message-meta">
                   <span>{{ message.type === 'user' ? '我' : (message.senderName || 'AI客服') }}</span>
                   <time>{{ formatMessageTime(message.time) }}</time>
+                  <span v-if="message.costSeconds" class="meta-cost-badge">
+                    ⚡ 耗时 {{ message.costSeconds }}s
+                  </span>
                 </div>
                 <div class="message-bubble">
                   <div class="bubble-text">{{ cleanMessageContent(message.content) }}</div>
@@ -731,17 +830,65 @@
                       </div>
                     </div>
                   </div>
+
+                  <!-- 智能体执行已完成耗时徽章 -->
+                  <div v-if="message.costSeconds" class="execution-done-badge">
+                    <span class="done-check">✓</span>
+                    <span class="done-text">智能体执行已完成</span>
+                    <span class="done-sep">·</span>
+                    <span class="done-time">耗时 <strong>{{ message.costSeconds }}</strong> 秒</span>
+                  </div>
                 </div>
               </div>
               <div v-if="message.type === 'user'" class="message-avatar user-avatar">
                 <el-icon :size="17"><User /></el-icon>
               </div>
             </div>
-            <div v-if="isTyping" class="message service-message">
-              <div class="message-avatar service-avatar"><el-icon :size="17"><Service /></el-icon></div>
+
+            <!-- 智能体执行中状态微卡片 (实时秒表 + 4 阶段动态推进流水) -->
+            <div v-if="isTyping" class="message service-message executing-message">
+              <div class="message-avatar service-avatar pulse-avatar">
+                <el-icon :size="17"><Service /></el-icon>
+              </div>
               <div class="message-content">
-                <div class="message-meta"><span>AI客服</span></div>
-                <div class="message-bubble typing-bubble"><i /><i /><i /></div>
+                <div class="message-meta">
+                  <span>AI客服</span>
+                  <span class="live-exec-tag">
+                    <span class="live-pulse-dot" />
+                    多智能体协同执行中
+                  </span>
+                </div>
+                <div class="message-bubble executing-bubble">
+                  <div class="exec-header">
+                    <div class="exec-title-row">
+                      <span class="exec-spinner-ring" />
+                      <span class="exec-title">智问学伴算力集群深度推演中</span>
+                    </div>
+                    <div class="exec-timer-badge">
+                      <el-icon class="timer-icon"><Clock /></el-icon>
+                      <span>已执行 <strong class="timer-number">{{ executingSeconds.toFixed(1) }}</strong> 秒</span>
+                    </div>
+                  </div>
+
+                  <!-- 动态微阶段步骤指示 -->
+                  <div class="exec-stage-card">
+                    <div class="stage-info-row">
+                      <span class="stage-icon">{{ executingStage.icon }}</span>
+                      <div class="stage-texts">
+                        <span class="stage-name">{{ executingStage.label }}</span>
+                        <span class="stage-desc">{{ executingStage.desc }}</span>
+                      </div>
+                    </div>
+                    <div class="exec-progress-track">
+                      <div class="exec-progress-fill" :style="{ width: executingProgress + '%' }" />
+                    </div>
+                  </div>
+
+                  <div class="exec-footer-hint">
+                    <span class="heartbeat-wave"><i /><i /><i /><i /></span>
+                    <span>算力集群正在全力运算，绝无卡顿，请稍候...</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -803,6 +950,70 @@
             <span class="input-tip">按 Enter 发送</span>
           </div>
         </section>
+
+        <!-- 3. 右侧：常见问题与客服小贴士 -->
+        <aside class="service-sidebar">
+          <div class="sidebar-card service-intro-card">
+            <div class="intro-icon"><el-icon :size="26"><Headset /></el-icon></div>
+            <div>
+              <h2>智问学伴客服</h2>
+              <p>{{ statusText }}</p>
+            </div>
+            <span class="online-mark" />
+            <div class="intro-divider" />
+            <div class="service-feature">
+              <el-icon><Clock /></el-icon>
+              <span><strong>AI 智能客服</strong><small>全天候在线响应</small></span>
+            </div>
+            <div class="service-feature">
+              <el-icon><CircleCheck /></el-icon>
+              <span><strong>服务评价</strong><small>每次咨询都可反馈</small></span>
+            </div>
+          </div>
+
+          <div class="sidebar-card faq-card">
+            <div class="card-title-row">
+              <div>
+                <h3>常见问题</h3>
+                <p>点击问题即可快速咨询</p>
+              </div>
+              <el-icon><QuestionFilled /></el-icon>
+            </div>
+            <div v-if="faqCategories.length" class="faq-categories">
+              <button
+                v-for="category in faqCategories"
+                :key="category"
+                type="button"
+                :class="{ active: activeFaqCategory === category }"
+                @click="activeFaqCategory = category"
+              >
+                {{ category }}
+              </button>
+            </div>
+            <div v-if="filteredFaqs.length" class="faq-list">
+              <button
+                v-for="faq in filteredFaqs"
+                :key="faq.id"
+                type="button"
+                class="faq-item"
+                :disabled="isTyping || serviceStatus !== 'ai'"
+                @click="sendQuickQuestion(faq.question)"
+              >
+                <span>{{ faq.question }}</span>
+                <el-icon><ArrowRight /></el-icon>
+              </button>
+            </div>
+            <el-empty v-else :image-size="48" description="暂无常见问题" />
+          </div>
+
+          <div class="sidebar-card help-card">
+            <div class="help-icon"><el-icon><Document /></el-icon></div>
+            <div>
+              <h3>服务小贴士</h3>
+              <p>描述问题时提供课程名称或订单信息，能帮助我们更快定位问题。</p>
+            </div>
+          </div>
+        </aside>
       </section>
 
     </div>
@@ -812,10 +1023,10 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, ChatDotRound, CircleCheck, Clock, Coin, Compass, Document, Headset, Medal, Notebook, Promotion, QuestionFilled, Reading, Refresh, Service, ShoppingCart, Tickets, Trophy, User, Wallet } from '@element-plus/icons-vue'
+import { ArrowRight, ChatDotRound, ChatLineRound, CircleCheck, Clock, Coin, Compass, Delete, Document, Expand, Fold, Folder, FolderOpened, Headset, Medal, Notebook, Plus, Promotion, QuestionFilled, Reading, Refresh, Service, ShoppingCart, Tickets, Trophy, User, Wallet } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getPixelApiKey, getPixelModel } from '@/api/pixelApi'
-import { createServiceSession, evaluateService, getServiceFaqs, getServiceSession, sendServiceMessage } from '@/api/customerService'
+import { createServiceSession, evaluateService, getServiceFaqs, getServiceSession, sendServiceMessage, getMyServiceSessions, deleteServiceSession, archiveServiceSession } from '@/api/customerService'
 import { putCarts, enrolledFreeCourse } from '@/api/order.js'
 import { pointsSign } from '@/api/class.js'
 import { addNotes } from '@/api/notes.js'
@@ -995,6 +1206,144 @@ const pixelModel = ref(getPixelModel())
 
 const pixelApiEnabled = computed(() => Boolean(pixelApiKey.value.trim()))
 
+const isHistorySidebarCollapsed = ref(false)
+const sessionTab = ref('active')
+const mySessions = ref([])
+const loadingSessions = ref(false)
+
+const activeSessions = computed(() => mySessions.value.filter((s) => s.status !== 4))
+const archivedSessions = computed(() => mySessions.value.filter((s) => s.status === 4))
+const currentTabSessions = computed(() => sessionTab.value === 'active' ? activeSessions.value : archivedSessions.value)
+
+// 智能体执行状态与实时秒表
+const executingSeconds = ref(0)
+let executingTimer = null
+
+const executingStage = computed(() => {
+  const s = executingSeconds.value
+  if (s < 1.2) {
+    return { icon: '🔍', label: '意图语义解析', desc: '深度解析自然语言指令与实体提取...' }
+  } else if (s < 2.8) {
+    return { icon: '🛡️', label: '安全防越权核验', desc: '严格验证当前登录权限与数据隔离准则...' }
+  } else if (s < 5.0) {
+    return { icon: '🤖', label: '智能体协同推演', desc: '跨微服务检索业务数据与调度动作引擎...' }
+  } else {
+    return { icon: '⚡', label: '动态动作卡片装配', desc: '正在组装富交互卡片并执行自省排版...' }
+  }
+})
+
+const executingProgress = computed(() => {
+  const s = executingSeconds.value
+  if (s <= 1.2) return Math.round(15 + (s / 1.2) * 25)
+  if (s <= 2.8) return Math.round(40 + ((s - 1.2) / 1.6) * 25)
+  if (s <= 5.0) return Math.round(65 + ((s - 2.8) / 2.2) * 20)
+  return Math.min(95, Math.round(85 + Math.min(s - 5.0, 10) * 1.0))
+})
+
+function toggleHistorySidebar() {
+  isHistorySidebarCollapsed.value = !isHistorySidebarCollapsed.value
+}
+
+async function loadMySessions() {
+  try {
+    loadingSessions.value = true
+    const res = await getMyServiceSessions({ pageNum: 1, pageSize: 50 })
+    if (res && res.code === 200 && res.rows) {
+      mySessions.value = res.rows
+    }
+  } catch (e) {
+    console.warn('获取历史会话列表异常:', e)
+  } finally {
+    loadingSessions.value = false
+  }
+}
+
+async function handleSwitchSession(session) {
+  if (String(session.id) === String(sessionId.value)) return
+  try {
+    const res = await getServiceSession(session.id)
+    if (res && res.code === 200 && res.data) {
+      applySession(res.data)
+      scrollToBottom()
+      ElMessage.success(`已切换至会话【${getSessionTitle(session)}】`)
+    }
+  } catch (e) {
+    ElMessage.error('加载会话失败：' + (e.message || '未知错误'))
+  }
+}
+
+async function handleCreateNewSession() {
+  if (isTyping.value) return
+  try {
+    const user = userInfo()
+    const res = await createServiceSession({ userName: user.nickname || user.username || '访客用户' })
+    if (res && res.code === 200 && res.data) {
+      applySession(res.data)
+      messages.value = [welcomeMessage()]
+      ElMessage.success('已为您开启全新会话')
+      await loadMySessions()
+    }
+  } catch (e) {
+    resetSession()
+  }
+}
+
+async function handleArchiveSession(session, archive) {
+  try {
+    const res = await archiveServiceSession(session.id, archive)
+    if (res && res.code === 200) {
+      ElMessage.success(archive ? '会话已成功归档' : '会话已恢复至活跃列表')
+      await loadMySessions()
+    } else {
+      ElMessage.error(res?.msg || '操作失败')
+    }
+  } catch (e) {
+    ElMessage.error('归档操作失败：' + (e.message || '网络异常'))
+  }
+}
+
+async function handleDeleteSession(session) {
+  try {
+    const res = await deleteServiceSession(session.id)
+    if (res && res.code === 200) {
+      ElMessage.success('会话已成功删除')
+      if (String(session.id) === String(sessionId.value)) {
+        await handleCreateNewSession()
+      } else {
+        await loadMySessions()
+      }
+    } else {
+      ElMessage.error(res?.msg || '删除失败')
+    }
+  } catch (e) {
+    ElMessage.error('删除会话失败：' + (e.message || '网络异常'))
+  }
+}
+
+function getSessionTitle(item) {
+  if (item.lastMessage) {
+    const clean = item.lastMessage.replace(/\[ACTION_VIEW_PATH:.+?\]/g, '')
+      .replace(/\[AGENT_ACTION_CARD:\{.+?\}\]/g, '')
+      .replace(/[#*`_>]/g, '')
+      .trim()
+    if (clean) return clean.length > 18 ? clean.substring(0, 18) + '...' : clean
+  }
+  return `咨询会话 #${String(item.id).slice(-4)}`
+}
+
+function formatSessionDate(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return String(dateStr).slice(0, 10)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const h = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return isToday ? `今天 ${h}:${min}` : `${m}-${day} ${h}:${min}`
+}
+
 const statusText = computed(() => ({
   ai: 'AI客服在线',
   closed: '服务已结束',
@@ -1041,13 +1390,14 @@ function scrollToBottom() {
   })
 }
 
-function addLocalMessage(type, content, senderName) {
+function addLocalMessage(type, content, senderName, costSeconds = null) {
   messages.value.push({
     id: `${type}-${Date.now()}-${Math.random()}`,
     type,
     senderName: senderName || (type === 'user' ? '我' : 'AI客服'),
     content,
     time: getTime(),
+    costSeconds,
   })
   scrollToBottom()
 }
@@ -1066,6 +1416,7 @@ function normalizeMessage(message) {
     content: message.content || '',
     isFallback: Number(message.isFallback) === 1,
     time: message.time || message.createTime || getTime(),
+    costSeconds: message.costSeconds || null,
   }
 }
 
@@ -1099,26 +1450,43 @@ async function sendMessage() {
   addLocalMessage('user', question, user.nickname || user.username || '我')
   inputMessage.value = ''
   isTyping.value = true
+
+  const startTs = performance.now()
+  executingSeconds.value = 0
+  if (executingTimer) clearInterval(executingTimer)
+  executingTimer = setInterval(() => {
+    executingSeconds.value = Math.max(0, (performance.now() - startTs) / 1000)
+  }, 100)
+
+  let costSec = null
   try {
     const currentSessionId = await ensureSession(user)
     const response = await sendServiceMessage(currentSessionId, {
       content: question,
-      // Key 只在本次对话请求中传给本站客服服务，不会写入 Redis/MySQL。
       apiKey: pixelApiEnabled.value ? pixelApiKey.value : undefined,
       model: pixelApiEnabled.value ? pixelModel.value : undefined,
     })
     if (response.code !== 200 || !response.data) throw new Error(response.msg || response.message || '客服暂时不可用')
+    costSec = ((performance.now() - startTs) / 1000).toFixed(1)
     applySession(response.data.session)
     const reply = normalizeMessage(response.data.message)
+    if (reply) reply.costSeconds = costSec
+
     const sessionMessages = response.data.session?.messages || []
     const replyAlreadyIncluded = reply && sessionMessages.some((message) => String(message.id) === String(reply.id))
     if (reply && !replyAlreadyIncluded) {
       const content = reply.isFallback && pixelApiEnabled.value
         ? `智能服务繁忙，已为您切换知识库回答：\n${reply.content}`
         : reply.content
-      addLocalMessage(reply.type, content, reply.senderName)
+      addLocalMessage(reply.type, content, reply.senderName, costSec)
+    } else if (messages.value.length > 0) {
+      const lastMsg = messages.value[messages.value.length - 1]
+      if (lastMsg.type === 'ai') {
+        lastMsg.costSeconds = costSec
+      }
     }
   } catch (error) {
+    costSec = ((performance.now() - startTs) / 1000).toFixed(1)
     const rawError = String(error.message || '')
     const isInvalidApiKey = /invalid api key|incorrect api key|无效.*key|401|403/i.test(rawError)
     const errorMessage = isInvalidApiKey
@@ -1126,9 +1494,14 @@ async function sendMessage() {
       : pixelApiEnabled.value
         ? `智能客服接口响应异常：${rawError || '请检查网络连接或稍后重试。'}`
         : '抱歉，客服服务暂时不可用，请稍后再试。'
-    addLocalMessage('ai', errorMessage)
+    addLocalMessage('ai', errorMessage, 'AI客服', costSec)
   } finally {
+    if (executingTimer) {
+      clearInterval(executingTimer)
+      executingTimer = null
+    }
     isTyping.value = false
+    loadMySessions()
   }
 }
 
@@ -1169,6 +1542,7 @@ function resetSession() {
 
 onMounted(async () => {
   try {
+    loadMySessions()
     const faqResponse = await getServiceFaqs({ enabled: 1 })
     if (faqResponse.code === 200) faqList.value = faqResponse.data || []
 
@@ -1193,7 +1567,8 @@ onMounted(async () => {
 }
 
 .service-container {
-  width: 1200px;
+  max-width: 1380px;
+  width: 96%;
   margin: 0 auto;
 }
 
@@ -1236,9 +1611,546 @@ onMounted(async () => {
 
 .service-layout {
   display: grid;
-  grid-template-columns: 316px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr) 280px;
   align-items: start;
-  gap: 20px;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+.service-layout.history-collapsed {
+  grid-template-columns: 60px minmax(0, 1fr) 280px;
+}
+
+@media (max-width: 1200px) {
+  .service-layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  .service-layout.history-collapsed {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+  .service-sidebar {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 1. 左侧长方形框架可折叠菜单栏 */
+.history-sidebar {
+  background: #fff;
+  border: 1px solid #edf0f6;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(45, 58, 93, 0.04);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.history-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 690px;
+  padding: 16px;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.history-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.collapse-toggle-btn {
+  color: #64748b;
+  background: #f1f5f9;
+  border: 0;
+
+  &:hover {
+    color: #2563eb;
+    background: #e2e8f0;
+  }
+}
+
+.new-chat-btn {
+  width: 100%;
+  height: 38px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  border: 0;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+
+  &:hover {
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  }
+}
+
+.session-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 3px;
+  background: #f1f5f9;
+  border-radius: 8px;
+
+  button {
+    flex: 1;
+    padding: 6px 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.active {
+      color: #2563eb;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      font-weight: 600;
+    }
+  }
+}
+
+.session-list-wrap {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+}
+
+.session-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+
+    .session-item-actions {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  &.active {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+
+    .session-indicator {
+      background: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .title-text {
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+  }
+}
+
+.session-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+
+.title-text {
+  font-size: 13px;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-card-meta {
+  margin-top: 3px;
+  padding-left: 14px;
+}
+
+.session-time {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.session-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+
+  .action-btn {
+    padding: 4px;
+    font-size: 14px;
+    color: #64748b;
+    border-radius: 4px;
+
+    &.archive-btn:hover {
+      color: #f59e0b;
+      background: #fef3c7;
+    }
+
+    &.delete-btn:hover {
+      color: #ef4444;
+      background: #fee2e2;
+    }
+  }
+}
+
+/* 折叠极简状态 */
+.history-sidebar-collapsed-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 690px;
+  padding: 14px 6px;
+  gap: 14px;
+
+  .expand-toggle-btn {
+    color: #64748b;
+    background: #f1f5f9;
+    border: 0;
+
+    &:hover {
+      color: #2563eb;
+      background: #e2e8f0;
+    }
+  }
+
+  .mini-new-btn {
+    background: #2563eb;
+    border: 0;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+  }
+
+  .mini-session-icons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .mini-session-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #e2e8f0;
+      color: #2563eb;
+    }
+
+    &.active {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+  }
+}
+
+.header-expand-btn {
+  margin-right: 6px;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 0;
+
+  &:hover {
+    color: #2563eb;
+    background: #e2e8f0;
+  }
+}
+
+/* 2. 智能体执行中状态微卡片 */
+.executing-message {
+  .service-avatar.pulse-avatar {
+    animation: avatarPulse 2s infinite ease-in-out;
+  }
+}
+
+@keyframes avatarPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0);
+  }
+}
+
+.live-exec-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  font-size: 11px;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid #dbeafe;
+
+  .live-pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #2563eb;
+    animation: dotBlink 1.2s infinite;
+  }
+}
+
+@keyframes dotBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.7); }
+}
+
+.executing-bubble {
+  background: linear-gradient(145deg, #ffffff, #f8fafc) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08) !important;
+  padding: 16px 18px !important;
+  min-width: 340px;
+  max-width: 480px;
+}
+
+.exec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.exec-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .exec-spinner-ring {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #93c5fd;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spinRing 0.8s linear infinite;
+  }
+
+  .exec-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+}
+
+@keyframes spinRing {
+  to { transform: rotate(360deg); }
+}
+
+.exec-timer-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 12px;
+
+  .timer-icon {
+    color: #2563eb;
+  }
+
+  .timer-number {
+    color: #2563eb;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.exec-stage-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.stage-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+
+  .stage-icon {
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  .stage-texts {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stage-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .stage-desc {
+    font-size: 11px;
+    color: #64748b;
+  }
+}
+
+.exec-progress-track {
+  width: 100%;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+
+  .exec-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa, #2563eb);
+    background-size: 200% 100%;
+    animation: progressGradient 2s ease infinite;
+    transition: width 0.3s ease;
+  }
+}
+
+@keyframes progressGradient {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.exec-footer-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+
+  .heartbeat-wave {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+
+    i {
+      display: inline-block;
+      width: 3px;
+      height: 10px;
+      background: #3b82f6;
+      border-radius: 2px;
+      animation: waveHeight 1.2s infinite ease-in-out;
+
+      &:nth-child(2) { animation-delay: 0.15s; }
+      &:nth-child(3) { animation-delay: 0.3s; }
+      &:nth-child(4) { animation-delay: 0.45s; }
+    }
+  }
+}
+
+@keyframes waveHeight {
+  0%, 100% { height: 4px; opacity: 0.4; }
+  50% { height: 12px; opacity: 1; }
+}
+
+/* 3. 执行完成耗时徽章 */
+.meta-cost-badge {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #10b981;
+  background: #ecfdf5;
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px solid #d1fae5;
+}
+
+.execution-done-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 4px 10px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #64748b;
+
+  .done-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #10b981;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .done-time strong {
+    color: #059669;
+    font-weight: 600;
+  }
 }
 
 .service-sidebar {

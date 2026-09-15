@@ -102,6 +102,28 @@
         .line{
             line-height: 69px;
             border-bottom: 1px solid #EEEEEE;
+
+            &.line-danger {
+                .danger-title {
+                    color: #DC2626;
+                    font-weight: 600;
+                }
+                .danger-tip {
+                    color: #94A3B8;
+                    font-size: 13px;
+                    margin-left: 10px;
+                }
+                .bt-danger {
+                    color: #EF4444;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: color 0.2s;
+                    &:hover {
+                        color: #DC2626;
+                        text-decoration: underline;
+                    }
+                }
+            }
         }
     }
       

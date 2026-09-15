@@ -79,6 +79,13 @@ export const updateStudentPassword = (data) =>
 		method: 'put',
 		data
 	})
+// 注销账号
+export const cancelStudentAccount = (data) =>
+	request({
+		url: `${USER_API_PREFIX}/students/cancelAccount`,
+		method: 'post',
+		data
+	})
 // 账号退出登录
 export const userLogout = () => {
 	return request({

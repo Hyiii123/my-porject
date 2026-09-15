@@ -154,15 +154,44 @@ public class CustomerService {
     }
 
     public IPage<CustomerSession> listMySessions(long pageNum, long pageSize) {
+        return listMySessions(pageNum, pageSize, null);
+    }
+
+    public IPage<CustomerSession> listMySessions(long pageNum, long pageSize, Integer status) {
         Long userId = currentUserId();
         if (userId == null) {
             return new Page<>();
         }
         Page<CustomerSession> page = new Page<>(safePage(pageNum), safeSize(pageSize));
         LambdaQueryWrapper<CustomerSession> wrapper = new LambdaQueryWrapper<CustomerSession>()
-                .eq(CustomerSession::getUserId, userId)
-                .orderByDesc(CustomerSession::getUpdatedAt);
+                .eq(CustomerSession::getUserId, userId);
+        if (status != null) {
+            if (status == 4) {
+                wrapper.eq(CustomerSession::getStatus, 4);
+            } else {
+                wrapper.ne(CustomerSession::getStatus, 4);
+            }
+        }
+        wrapper.orderByDesc(CustomerSession::getUpdatedAt);
         return sessionMapper.selectPage(page, wrapper);
+    }
+
+    @Transactional
+    public void deleteMySession(Long sessionId) {
+        CustomerSession session = getSession(sessionId);
+        assertOwner(session);
+        sessionMapper.deleteById(sessionId);
+    }
+
+    @Transactional
+    public CustomerSession archiveMySession(Long sessionId, boolean archive) {
+        CustomerSession session = getSession(sessionId);
+        assertOwner(session);
+        session.setStatus(archive ? 4 : 0);
+        session.setUpdatedAt(LocalDateTime.now());
+        session.setUpdateTime(LocalDateTime.now());
+        sessionMapper.updateById(session);
+        return session;
     }
 
     public CustomerSession getMySession(Long sessionId) {

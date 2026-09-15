@@ -22,5 +22,11 @@ export const recordAiReply = (sessionId, data) =>
 export const evaluateService = (sessionId, data) =>
   request({ url: `/customer/session/${sessionId}/evaluation`, method: 'post', data })
 
+export const deleteServiceSession = (sessionId) =>
+  request({ url: `/customer/session/${sessionId}`, method: 'delete' })
+
+export const archiveServiceSession = (sessionId, archive = true) =>
+  request({ url: `/customer/session/${sessionId}/archive`, method: 'put', params: { archive } })
+
 export const getServiceFaqs = (params) =>
   request({ url: '/customer/faq/public', method: 'get', params })

@@ -233,6 +233,45 @@ public class LegacyZhiwenUserController extends BaseController {
     }
 
     @RequiresLogin
+    @PostMapping({"/students/cancelAccount", "/users/cancelAccount"})
+    public AjaxResult cancelAccount(@RequestBody(required = false) Map<String, Object> body) {
+        Long currentUserId = SecurityUtils.getUserId();
+        if (currentUserId == null) {
+            return error("未获取到当前登录用户信息");
+        }
+        if (SecurityUtils.isAdmin(currentUserId) || Long.valueOf(1L).equals(currentUserId)) {
+            return error("系统管理员账户（admin）受平台底层安全保护，严禁注销！");
+        }
+        SysUser user = userService.selectUserById(currentUserId);
+        if (user == null) {
+            return error("当前用户不存在或已注销");
+        }
+        String password = text(body, "password", null);
+        if (StringUtils.isEmpty(password)) {
+            return error("请输入当前账号登录密码进行安全验证");
+        }
+        if (!SecurityUtils.matchesPassword(password, user.getPassword())) {
+            return error("密码核验失败，旧密码错误，无法注销");
+        }
+        int rows = userService.deleteUserById(currentUserId);
+        if (rows > 0) {
+            if ("02".equals(user.getUserType())) {
+                deleteTeacherProfile(currentUserId);
+            }
+            try {
+                String token = SecurityUtils.getToken();
+                if (StringUtils.isNotEmpty(token)) {
+                    AuthUtil.logoutByToken(token);
+                }
+            } catch (Exception ex) {
+                logger.warn("注销后清理Token异常，userId={}", currentUserId, ex);
+            }
+            return success("账号已成功注销");
+        }
+        return error("注销失败，请稍后重试");
+    }
+
+    @RequiresLogin
     @GetMapping("/users/checkCellphone")
     public AjaxResult checkCellphone(@RequestParam(required = false) String cellPhone,
             @RequestParam(required = false) String phone,

@@ -14,6 +14,29 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-15 15:05:00 - AI智能体实时思考反馈流、三栏式可折叠会话侧边栏(新建/归档/删除)与账户安全注销防线正式上线 (Real-time Agent Thought Feedback, 3-Column Collapsible Session Manager & Account Cancellation Security Shield)
+
+* **演进主题**：智能体执行实时感知流 (Live Execution Timer & Pipeline Stages)、耗时徽章 (`costSeconds`)、客服三栏自适应可折叠历史侧边栏、会话归档/删除闭环、个人中心安全设置账号注销与管理员底层强保护 (Admin Protection & Account Cancellation Shield)
+* **核心成果**：
+  1. **智能体执行实时动态感知流与精准耗时反馈 (Real-time Agent Execution & Latency Badge)**：
+     - 在 [`index.vue`](file:///d:/education%20system/my-porject/share-parent/frontends/portal/src/pages/customerService/index.vue) 重构智能体思考态为 `.executing-bubble` 交互组件，内置 `0.1s` 高精度动态计时器（`已执行 X.X 秒`），彻底消除等待卡机或假死体感；
+     - 构建 4 阶段动态流转阶段指示器（意图解析 ➔ 防越权核验 ➔ 智能体协同推演 ➔ 动作卡片装配），配合微光流动呼吸条（Heartbeat Bars）与呼吸脉冲头像；
+     - 后端计算毫秒级执行开销并随消息回传，前端在消息气泡末端渲染现代科技风耗时徽章 `⚡ 智能体已执行完成 · 耗时 X.X 秒`。
+  2. **客服左侧长方形可折叠历史会话侧边栏 (3-Column Collapsible Session Manager)**：
+     - 重塑客服中心为自适应三栏架构（左侧历史会话侧边栏 260px / 折叠态 60px ｜ 中间主对话面板 ｜ 右侧常见问题 FAQ）；
+     - 内置「➕ 新建对话」顶置按钮，支持一键开辟全新上下文会话；
+     - 提供「活跃对话」与「归档箱」状态切换，支持会话标题智能裁剪、悬浮快捷归档（`PUT /customer/session/{id}/archive`）与气泡确认软删除（`DELETE /customer/session/{id}`）；
+     - 后端 [`CustomerService.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-customer/src/main/java/com/share/customer/service/CustomerService.java) 严格实施 `assertOwner(session)` 行级权限校验，杜绝任何水平越权。
+  3. **个人设置账户注销功能与系统管理员强防线 (Account Cancellation & Security Shield)**：
+     - 在个人中心安全设置页（[`mySet.vue`](file:///d:/education%20system/my-porject/share-parent/frontends/portal/src/pages/personal/mySet.vue)）绑定邮箱下方新增「注销账号」危险警示行；
+     - 配套二次确认安全弹窗，包含三项不可逆资产清空风险警告、原登录密码安全核验以及输入「确认注销」文本防误触机制；
+     - **系统管理员底层强保护**：在前端与后端（[`LegacyZhiwenUserController.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-system/src/main/java/com/share/system/controller/LegacyZhiwenUserController.java)）双重严禁管理员账户（`admin` 或 `userId == 1L`）注销，拦截时抛出提示 `系统管理员账户（admin）受平台底层安全保护，严禁注销！`；
+     - 普通学员注销通过密码核验后，软删除用户主数据、联动清理教师关联档案，并调用 `AuthUtil.logoutByToken` 立即吊销当前令牌并销毁前端本地凭据，安全登出跳转至登录页。
+  4. **严格遵循 Golden Release 发布铁律（Rule 1、Rule 2、Rule 8）**：
+     - 本地 JDK 17 完成 `share-customer.jar` 与 `share-system.jar` 编译打包，本地 Vite 构建前端 `dist/`；
+     - Workbench CLI 串行热更新至云端 ECS 容器并重载 Nginx；
+     - 自动化定向验证套件 100% 覆盖会话创建、归档筛选、解归档恢复、软删除、管理员注销阻断、学员错密拦截、正确密码注销及注销后重登阻断，零异常通过。
+
 ### 2026-09-15 14:45:00 - 用户端全域自然语言对话控制与防越权安全防护中枢上线：全量纳管9大核心业务动作卡片(复盘/订单/卡券/加车/考试/速记/积分天梯/画像/穿梭)与严格防越权隔离拦截闭环 (Full-Domain Conversational Agent Control & Anti-IDOR Security Shield for Zhiwen Student Portal)
 
 * **演进主题**：全域自然语言意图纳管、用户端功能对话式全覆盖、行级防越权拦截中枢 (Anti-IDOR Security Shield)、富交互动作卡片全矩阵 (`interview_report`/`order_manage`/`coupon_center`/`cart_view`/`exam_query`/`note_quick`/`points_ranking`/`learning_portrait`/`page_navigator`) 与安全闭环
