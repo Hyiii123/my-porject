@@ -61,7 +61,11 @@ import java.nio.charset.StandardCharsets;
 
 import com.share.common.core.constant.SecurityConstants;
 import com.share.common.core.web.domain.AjaxResult;
+import com.share.customer.domain.interview.InterviewSession;
+import com.share.customer.domain.interview.dto.StartInterviewRequest;
+import com.share.customer.domain.interview.vo.ResumeAnalysisVO;
 import com.share.education.api.RemoteEducationService;
+import org.springframework.context.annotation.Lazy;
 
 /**
  * 客服核心业务服务。
@@ -96,13 +100,16 @@ public class CustomerService {
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
     private final RemoteEducationService remoteEducationService;
+    private final IInterviewService interviewService;
+    private final IUserResumeService userResumeService;
 
     public CustomerService(CustomerKnowledgeMapper knowledgeMapper, CustomerFaqMapper faqMapper,
             CustomerSessionMapper sessionMapper, CustomerMessageMapper messageMapper,
             CustomerEvaluationMapper evaluationMapper, CustomerAiConfigMapper aiConfigMapper,
             CustomerAiCallLogMapper aiCallLogMapper, CustomerAiClient aiClient,
             CustomerAiProperties aiProperties, RedisService redisService, ObjectMapper objectMapper,
-            RestTemplate restTemplate, RemoteEducationService remoteEducationService) {
+            RestTemplate restTemplate, RemoteEducationService remoteEducationService,
+            @Lazy IInterviewService interviewService, @Lazy IUserResumeService userResumeService) {
         this.knowledgeMapper = knowledgeMapper;
         this.faqMapper = faqMapper;
         this.sessionMapper = sessionMapper;
@@ -116,6 +123,8 @@ public class CustomerService {
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
         this.remoteEducationService = remoteEducationService;
+        this.interviewService = interviewService;
+        this.userResumeService = userResumeService;
     }
 
     @Transactional
@@ -205,8 +214,16 @@ public class CustomerService {
         String aiModelUsed = null;
         boolean fallback = false;
 
-        // 1. 优先进行多智能体协同导学意图识别与跨微服务推演分发
-        if (isAgentDeliberationIntent(cleanContent)) {
+        // 1. 优先尝试智能体自主操作意图识别与执行 (Agent Action Copilot)
+        String actionReply = tryDispatchAgentAction(cleanContent);
+        if (StringUtils.hasText(actionReply)) {
+            answer = actionReply;
+            isAgentDeliberation = true;
+            aiModelUsed = "agent-copilot-action";
+        }
+
+        // 2. 尝试多智能体协同导学意图识别与跨微服务推演分发
+        if (!isAgentDeliberation && isAgentDeliberationIntent(cleanContent)) {
             String targetRole = extractTargetRole(cleanContent);
             try {
                 AjaxResult agentRes = remoteEducationService.orchestrateAgentRecommend(currentUserId(), targetRole, 4, SecurityConstants.INNER);
@@ -1119,6 +1136,276 @@ public class CustomerService {
         sb.append("🚀 **全景大屏联动**：\n已为您同步生成全景拓扑看板，点击下方卡片或前往首页即可在「AI 协同推演仪表盘 (HUD)」中全屏研读与人机微调！\n");
         sb.append("[ACTION_VIEW_PATH:").append(targetRole).append("]");
         return sb.toString();
+    }
+
+    private String tryDispatchAgentAction(String content) {
+        if (!StringUtils.hasText(content)) return null;
+        String lower = content.toLowerCase();
+
+        // 1. 模拟面试开考意图 (Interview launch)
+        if (isInterviewActionIntent(lower)) {
+            return handleInterviewAction(lower);
+        }
+
+        // 2. 课程购买 / 加购 / 选购意图 (Course purchase)
+        if (isCoursePurchaseIntent(lower)) {
+            return handleCoursePurchaseAction(content);
+        }
+
+        // 3. 每日打卡签到意图 (Sign in)
+        if (isSignInActionIntent(lower)) {
+            return handleSignInAction();
+        }
+
+        // 4. 简历诊断意图 (Resume diagnosis)
+        if (isResumeActionIntent(lower)) {
+            return handleResumeAction();
+        }
+
+        // 5. 课表与继续学习意图 (Continue learning)
+        if (isLearningActionIntent(lower)) {
+            return handleLearningAction();
+        }
+
+        return null;
+    }
+
+    private boolean isInterviewActionIntent(String lower) {
+        return lower.contains("模拟面试") || lower.contains("我要面试") || lower.contains("开一场面试")
+                || lower.contains("帮我开一场面试") || lower.contains("面试考场") || lower.contains("开始面试")
+                || lower.contains("想面试") || lower.contains("阿里面试") || lower.contains("java面试")
+                || lower.contains("高并发面试") || (lower.contains("面试") && (lower.contains("开") || lower.contains("来一场") || lower.contains("开始")));
+    }
+
+    private String handleInterviewAction(String lower) {
+        String targetJob = "Java高级开发工程师";
+        if (lower.contains("大模型") || lower.contains("llm") || lower.contains("ai")) {
+            targetJob = "大语言模型应用工程师";
+        } else if (lower.contains("go") || lower.contains("golang") || lower.contains("云原生")) {
+            targetJob = "Go云原生架构师";
+        } else if (lower.contains("前端") || lower.contains("vue") || lower.contains("react")) {
+            targetJob = "Web前端架构专家";
+        } else if (lower.contains("大数据") || lower.contains("spark") || lower.contains("flink")) {
+            targetJob = "大数据流批一体工程师";
+        }
+
+        String company = "大厂通用";
+        if (lower.contains("阿里")) company = "阿里巴巴";
+        else if (lower.contains("字节")) company = "字节跳动";
+        else if (lower.contains("腾讯")) company = "腾讯科技";
+        else if (lower.contains("美团")) company = "美团";
+        else if (lower.contains("百度")) company = "百度";
+
+        try {
+            StartInterviewRequest req = new StartInterviewRequest();
+            req.setTargetJob(targetJob);
+            req.setCompanyTarget(company);
+            req.setInterviewerStyle("p7_architect");
+            req.setTotalTurns(20);
+            InterviewSession newSession = interviewService.startSession(req);
+            Long sId = newSession.getId();
+
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "interview_launch");
+            card.put("sessionId", String.valueOf(sId));
+            card.put("targetJob", targetJob);
+            card.put("company", company);
+            card.put("interviewerStyle", "p7_architect");
+            card.put("roundInfo", "全真三环节 20 题 60 分钟限时架构");
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("🎯 **全真 AI 模拟面试考场已为您极速就绪！**\n\n");
+            sb.append("已为您成功开辟面向【").append(company).append("】的【").append(targetJob).append("】全真考核专场：\n");
+            sb.append("• **考核架构**：全真三环节 20 题 60 分钟限时考核（环节一：破题自我介绍 ➔ 环节二：小林coding 10大独立模块八股文 ➔ 环节三：真实项目上下文深度深挖连环追问）；\n");
+            sb.append("• **考官引擎**：微软晓晓 (Xiaoxiao Neural TTS) 真实级语音朗读 + 数字人口型毫秒级音画协同；\n");
+            sb.append("• **考场场次**：#").append(sId).append("，第一题考题已生成完毕。\n\n");
+            sb.append("点击下方考场卡片，即可立即入场进入沉浸式考场开考：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("智能体自动开辟面试考场失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isCoursePurchaseIntent(String lower) {
+        if (lower.contains("退款") || lower.contains("退课") || lower.contains("发票") || lower.contains("开票") || lower.contains("密码")) {
+            return false;
+        }
+        return lower.contains("买课") || lower.contains("买课程") || lower.contains("购课")
+                || lower.contains("我要买") || lower.contains("想买") || lower.contains("购买")
+                || lower.contains("加购") || lower.contains("购物车") || lower.contains("报名")
+                || (lower.contains("课程") && (lower.contains("买") || lower.contains("购") || lower.contains("学") || lower.contains("要") || lower.contains("帮我")));
+    }
+
+    private String extractCourseKeyword(String content) {
+        if (!StringUtils.hasText(content)) return "";
+        String lower = content.toLowerCase();
+        if (lower.contains("微服务") || lower.contains("springcloud") || lower.contains("cloud")) return "微服务";
+        if (lower.contains("springboot") || lower.contains("boot")) return "SpringBoot";
+        if (lower.contains("node") || lower.contains("nodejs")) return "Node";
+        if (lower.contains("vue") || lower.contains("前端") || lower.contains("react")) return "前端";
+        if (lower.contains("python") || lower.contains("爬虫") || lower.contains("机器学习")) return "Python";
+        if (lower.contains("go") || lower.contains("golang")) return "Go";
+        if (lower.contains("docker") || lower.contains("k8s") || lower.contains("云原生")) return "云原生";
+        if (lower.contains("mysql") || lower.contains("数据库") || lower.contains("sql")) return "MySQL";
+        if (lower.contains("redis") || lower.contains("缓存")) return "Redis";
+        if (lower.contains("大模型") || lower.contains("ai") || lower.contains("llm")) return "大模型";
+        if (lower.contains("算法") || lower.contains("数据结构")) return "算法";
+        if (lower.contains("java")) return "Java";
+        return "";
+    }
+
+    @SuppressWarnings("unchecked")
+    private String handleCoursePurchaseAction(String content) {
+        String keyword = extractCourseKeyword(content);
+        try {
+            AjaxResult res = remoteEducationService.searchCourses(keyword, 5);
+            if (res != null && res.isSuccess() && res.get("data") != null) {
+                Map<String, Object> dataMap = (Map<String, Object>) res.get("data");
+                Object listObj = dataMap.get("list");
+                if (listObj instanceof List) {
+                    List<?> list = (List<?>) listObj;
+                    if (!list.isEmpty() && list.get(0) instanceof Map) {
+                        Map<String, Object> course = (Map<String, Object>) list.get(0);
+                        String courseId = String.valueOf(course.get("id"));
+                        String title = course.get("title") != null ? course.get("title").toString() : String.valueOf(course.get("courseName"));
+                        String cover = course.get("cover") != null ? course.get("cover").toString() : "/src/assets/images/courses/default-cover.svg";
+                        Number priceNum = course.get("price") instanceof Number ? (Number) course.get("price") : 0;
+                        Number originalPriceNum = course.get("originalPrice") instanceof Number ? (Number) course.get("originalPrice") : priceNum;
+                        String teacherName = course.get("teacherName") != null ? course.get("teacherName").toString() : "资深讲师团队";
+                        Object lessons = course.getOrDefault("lessons", 0);
+                        Object isFree = course.getOrDefault("isFree", 0);
+                        String desc = course.get("shortDescription") != null ? course.get("shortDescription").toString() : "";
+
+                        Map<String, Object> card = new HashMap<>();
+                        card.put("action", "course_purchase");
+                        card.put("courseId", courseId);
+                        card.put("title", title);
+                        card.put("cover", cover);
+                        card.put("price", priceNum);
+                        card.put("originalPrice", originalPriceNum);
+                        card.put("teacherName", teacherName);
+                        card.put("lessons", lessons);
+                        card.put("isFree", isFree);
+                        String cardJson = objectMapper.writeValueAsString(card);
+
+                        BigDecimal priceYuan = new BigDecimal(priceNum.toString()).divide(new BigDecimal(100), 2, RoundingMode.HALF_UP);
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("🛒 **已为您精准匹配目标课程！**\n\n");
+                        sb.append("已为您调取最受学员好评的精品好课《").append(title).append("》：\n");
+                        if (StringUtils.hasText(desc)) {
+                            sb.append("• **课程介绍**：").append(desc).append("\n");
+                        }
+                        sb.append("• **主讲名师**：").append(teacherName).append(" ｜ **总课时**：").append(lessons).append(" 讲\n");
+                        sb.append("• **课程价格**：");
+                        if ("1".equals(String.valueOf(isFree)) || priceYuan.compareTo(BigDecimal.ZERO) == 0) {
+                            sb.append("【限时免费】\n");
+                        } else {
+                            sb.append("¥").append(priceYuan).append(" 元\n");
+                        }
+                        sb.append("\n我已为您生成专属购课操作卡片，您可以直接点击【加入购物车】或【立即结算】一键发起购买：\n\n");
+                        sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+                        return sb.toString();
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.error("智能体搜索并生成购课卡片异常: {}", ex.getMessage(), ex);
+        }
+        return null;
+    }
+
+    private boolean isSignInActionIntent(String lower) {
+        return lower.contains("签到") || lower.contains("打卡") || lower.contains("今日打卡")
+                || lower.contains("领积分") || lower.contains("每日签到");
+    }
+
+    private String handleSignInAction() {
+        try {
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "sign_in");
+            card.put("dailyPoints", 10);
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("✨ **每日学情打卡与积分中心**\n\n");
+            sb.append("坚持每日签到打卡，每天可固定获得 **+10 学分** 奖励，连续打卡更有惊喜加成！积分可在购买课程时直接抵扣现金或兑换专属大额优惠券。\n\n");
+            sb.append("点击下方卡片中的【一键打卡签到】即可立即完成打卡：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成签到卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isResumeActionIntent(String lower) {
+        return lower.contains("诊断简历") || lower.contains("我的简历") || lower.contains("分析简历")
+                || lower.contains("看看我的简历") || lower.contains("简历诊断") || lower.contains("简历报告");
+    }
+
+    private String handleResumeAction() {
+        try {
+            ResumeAnalysisVO resume = userResumeService.getMyResume();
+            Map<String, Object> card = new HashMap<>();
+            StringBuilder sb = new StringBuilder();
+
+            if (resume != null && resume.getId() != null) {
+                card.put("action", "resume_diagnose");
+                card.put("resumeId", String.valueOf(resume.getId()));
+                card.put("fileName", resume.getFileName());
+                card.put("matchScore", resume.getMatchScore() != null ? resume.getMatchScore() : 80);
+                card.put("targetJob", resume.getTargetJob() != null ? resume.getTargetJob() : "技术开发工程师");
+                String cardJson = objectMapper.writeValueAsString(card);
+
+                sb.append("📄 **AI 简历深度诊断与能力雷达**\n\n");
+                sb.append("已为您调取当前个人中心关联的简历档案《").append(resume.getFileName() != null ? resume.getFileName() : "我的简历").append("》：\n");
+                sb.append("• **对标岗位**：").append(resume.getTargetJob() != null ? resume.getTargetJob() : "技术开发工程师").append("\n");
+                sb.append("• **综合契合度评分**：").append(resume.getMatchScore() != null ? resume.getMatchScore() : 80).append(" 分\n");
+                if (resume.getProjectHighlights() != null && !resume.getProjectHighlights().isEmpty()) {
+                    sb.append("• **核心高光亮点**：").append(String.join("、", resume.getProjectHighlights())).append("\n");
+                }
+                sb.append("\n点击下方卡片即可查看完整能力六维雷达诊断，或直接针对薄弱项发起模拟面试连环追问：\n\n");
+                sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            } else {
+                card.put("action", "resume_upload");
+                String cardJson = objectMapper.writeValueAsString(card);
+
+                sb.append("📄 **AI 简历深度诊断与职涯对标**\n\n");
+                sb.append("检测到您当前尚未在系统中上传求职简历。上传简历后，AI 将基于真实项目与技术标签进行深度特征抽取、契合度量化与高并发/分布式实战考题连环追问。\n\n");
+                sb.append("点击下方卡片即可前往个人中心一键上传简历：\n\n");
+                sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            }
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成简历诊断卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    private boolean isLearningActionIntent(String lower) {
+        return lower.contains("学到哪了") || lower.contains("继续学习") || lower.contains("我的进度")
+                || lower.contains("课表") || lower.contains("我的课表") || lower.contains("继续上课");
+    }
+
+    private String handleLearningAction() {
+        try {
+            Map<String, Object> card = new HashMap<>();
+            card.put("action", "continue_learning");
+            String cardJson = objectMapper.writeValueAsString(card);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("📚 **学伴学习进度接力**\n\n");
+            sb.append("已为您同步个人课表与学习进度。保持持续学习与代码实践是快速蜕变为架构师的核心捷径！\n\n");
+            sb.append("点击下方操作卡片即可直达我的课表或探索更多精品好课：\n\n");
+            sb.append("[AGENT_ACTION_CARD:").append(cardJson).append("]");
+            return sb.toString();
+        } catch (Exception ex) {
+            log.error("生成学习进度卡片失败: {}", ex.getMessage(), ex);
+            return null;
+        }
     }
 
     private record LocalAnswer(int score, String answer, Long id, boolean faq) {

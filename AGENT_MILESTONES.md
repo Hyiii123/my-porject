@@ -14,6 +14,31 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-15 14:30:00 - 全端智能体自主操作与富交互卡片引擎(Agent Action Engine)上线：AI 客服自主跨服务执行查课购课/开辟模拟面试考场/打卡签到/简历诊断/学情导流与微交互卡片闭环 (Agent Action Engine & Rich Interactive Action Cards for AI Customer Service)
+
+* **演进主题**：全端智能体自主操作代理 (Agent Action Engine)、跨服务业务自治流转、结构化微动作卡片协议 (`[AGENT_ACTION_CARD:{...}]`)、富交互前端组件化渲染与一键操作闭环
+* **核心成果**：
+  1. **智能体操作派发核心与跨微服务能力调用 (Agent Action Dispatcher)**：
+     - 在 [`RemoteEducationService.java`](file:///d:/education%20system/my-porject/share-parent/share-api/share-api-education/src/main/java/com/share/education/api/RemoteEducationService.java) 拓展定义 `searchCourses` 课程目录分页检索接口与熔断工厂，实现客服系统跨 Feign 实时检索官方公开好课；
+     - 在 [`CustomerService.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-customer/src/main/java/com/share/customer/service/CustomerService.java) 构建 `tryDispatchAgentAction` 动作分发引擎，突破纯文本问答瓶颈，赋予智能体在用户授权权限内的全端真实自主操作能力：
+       - **课程检索与加购结算**：精准提取用户关键词，联动教育中台检索真实课程数据，提取封面、讲师、课时与售价，构建 `course_purchase` 动作卡片；
+       - **全真模拟面试考场开辟**：提取对标公司（如阿里、腾讯、字节）与目标岗位，直接调用 `interviewService.startSession` 在后台创建正式考场及第一题考核，构建 `interview_launch` 动作卡片；
+       - **每日签到打卡中心**：构建 `sign_in` 动作卡片，引导一键领取积分与优惠券；
+       - **AI 简历深度诊断**：调用 `userResumeService.getMyResume` 读取当前用户的简历报告与综合契合度评分，构建 `resume_diagnose` 动作卡片，支持直达诊断详情与薄弱点模拟面试连环追问；
+       - **学情接力与课表直达**：构建 `continue_learning` 动作卡片，引导学员无缝回到学习进度。
+  2. **前端富交互卡片渲染引擎与一键行动流 (Rich Interactive Action Card UI)**：
+     - 在 [`index.vue`](file:///d:/education%20system/my-porject/share-parent/frontends/portal/src/pages/customerService/index.vue) 构建正则表达式协议解析器 `hasAgentActionCard` 与 `extractAgentActionCard`，分离提示文本与结构化动作数据；
+     - 引入现代化毛玻璃与渐变微交互卡片设计（`.agent-interactive-card`），内嵌五大场景的专属操作交互组件：
+       - 课程卡片支持「🛒 加入购物车」（调用 `putCarts`）、「💳 立即结算」（直达结算台）与「🎓 立即免费报名」；
+       - 模拟面试卡片支持「🚀 立即进入考场」（直达全真考场 `room.vue`）；
+       - 签到卡片支持「✨ 一键打卡签到」（调用 `pointsSign`）与「🎁 领券中心」；
+       - 简历诊断卡片支持「📄 查看诊断报告」与「🎯 针对性发起模拟面试」；
+       - 学习接力卡片支持「📖 前往我的课表」与「🔍 探索更多课程」。
+  3. **严格遵循 Golden Release 发布铁律（Rule 1、Rule 2、Rule 8）**：
+     - 本地 JDK 17 打包 `share-customer.jar`，本地 Vite 打包 `portal` 产出静态 `dist/`；
+     - 通过 Workbench CLI 串行热更新线上 ECS 容器 `zhiwen-customer` 与 `zhiwen-portal-ui`（Nginx 平滑重载）；
+     - 定向接口与消息测试脚本（覆盖购课、开辟面试、签到、简历诊断、继续上课 5 大场景）100% 通过验证。
+
 ### 2026-09-15 02:00:00 - AI 模拟面试考官全景语音革新：接入微软晓晓(Xiaoxiao Neural TTS)真人级拟真发音引擎 / 考场数字人口型实时音画协同 / 考前设备自检试听闭环上线 (Integration of Microsoft Xiaoxiao Neural TTS Voice Engine for AI Mock Interview with Real-Time Avatar Lip-Sync and Pre-Flight Voice Audition)
 
 * **演进主题**：AI 考官声音质感跃迁、微软晓晓 (Xiaoxiao Neural) 智能定向加载与级联容灾、数字人声波能量与嘴型实时音画同步、考前设备检定与即时试听交互

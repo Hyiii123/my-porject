@@ -120,6 +120,272 @@
                       <el-icon><ArrowRight /></el-icon>
                     </div>
                   </div>
+
+                  <!-- 智能体全端富交互操作卡片 (Agent Action Card) -->
+                  <div
+                    v-if="hasAgentActionCard(message.content)"
+                    class="agent-interactive-container"
+                  >
+                    <!-- 1. 课程推荐与一键购课/加购卡片 -->
+                    <div
+                      v-if="extractAgentActionCard(message.content)?.action === 'course_purchase'"
+                      class="agent-interactive-card course-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge course-badge">🛒 智能推荐 · 专属购课通道</span>
+                        <span class="sub-badge">{{ extractAgentActionCard(message.content)?.lessons || 0 }} 课时</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="course-thumb">
+                          <img
+                            :src="extractAgentActionCard(message.content)?.cover || defaultCover"
+                            :alt="extractAgentActionCard(message.content)?.title"
+                            @error="handleImgError($event)"
+                          />
+                        </div>
+                        <div class="course-meta">
+                          <div class="course-title">{{ extractAgentActionCard(message.content)?.title }}</div>
+                          <div class="course-teacher">主讲：{{ extractAgentActionCard(message.content)?.teacherName || '金牌讲师团队' }}</div>
+                          <div class="course-pricing">
+                            <span v-if="extractAgentActionCard(message.content)?.isFree == 1 || Number(extractAgentActionCard(message.content)?.price || 0) === 0" class="free-price">
+                              限时免费
+                            </span>
+                            <template v-else>
+                              <span class="curr-price">¥{{ (Number(extractAgentActionCard(message.content)?.price || 0) / 100).toFixed(2) }}</span>
+                              <span v-if="Number(extractAgentActionCard(message.content)?.originalPrice || 0) > Number(extractAgentActionCard(message.content)?.price || 0)" class="orig-price">
+                                ¥{{ (Number(extractAgentActionCard(message.content)?.originalPrice || 0) / 100).toFixed(2) }}
+                              </span>
+                            </template>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <template v-if="extractAgentActionCard(message.content)?.isFree == 1 || Number(extractAgentActionCard(message.content)?.price || 0) === 0">
+                          <el-button
+                            type="success"
+                            size="small"
+                            round
+                            :loading="actionLoading[message.id + '_enroll']"
+                            :disabled="actionDone[message.id + '_enroll']"
+                            @click="handleActionEnrollFree(extractAgentActionCard(message.content), message.id)"
+                          >
+                            {{ actionDone[message.id + '_enroll'] ? '✅ 已报名成功' : '🎓 立即免费报名' }}
+                          </el-button>
+                          <el-button
+                            v-if="actionDone[message.id + '_enroll']"
+                            type="primary"
+                            size="small"
+                            round
+                            @click="goToLearning(extractAgentActionCard(message.content)?.courseId)"
+                          >
+                            ▶️ 立即开始学习
+                          </el-button>
+                        </template>
+                        <template v-else>
+                          <el-button
+                            type="warning"
+                            size="small"
+                            round
+                            plain
+                            :loading="actionLoading[message.id + '_cart']"
+                            :disabled="actionDone[message.id + '_cart']"
+                            @click="handleActionAddToCart(extractAgentActionCard(message.content), message.id)"
+                          >
+                            {{ actionDone[message.id + '_cart'] ? '✅ 已在购物车' : '🛒 加入购物车' }}
+                          </el-button>
+                          <el-button
+                            type="primary"
+                            size="small"
+                            round
+                            @click="handleActionCheckout(extractAgentActionCard(message.content))"
+                          >
+                            💳 立即结算
+                          </el-button>
+                        </template>
+                      </div>
+                    </div>
+
+                    <!-- 2. 全真模拟面试一键开考卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'interview_launch'"
+                      class="agent-interactive-card interview-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge interview-badge">🎙️ 全真模拟考场 · 已就绪</span>
+                        <span class="voice-badge">
+                          <i class="wave-icon" /> 微软晓晓 (Xiaoxiao Neural) 考官
+                        </span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box interview-icon">
+                          <el-icon :size="26"><Headset /></el-icon>
+                        </div>
+                        <div class="interview-meta">
+                          <div class="job-title">{{ extractAgentActionCard(message.content)?.targetJob || '技术开发工程师' }}</div>
+                          <div class="company-tag">面向：{{ extractAgentActionCard(message.content)?.company || '大厂通用' }} ｜ 场次 #{{ extractAgentActionCard(message.content)?.sessionId }}</div>
+                          <div class="status-tip">三环节20题60分钟限时架构 · 破题第一问与晓晓自然音色已就绪</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          round
+                          class="launch-btn"
+                          @click="handleActionLaunchInterview(extractAgentActionCard(message.content)?.sessionId)"
+                        >
+                          🚀 立即进入考场
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 3. 每日学情打卡签到卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'sign_in'"
+                      class="agent-interactive-card signin-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge signin-badge">✨ 每日学情打卡 · 积分奖励</span>
+                        <span class="sub-badge">+10 积分 / 天</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box signin-icon">
+                          <span class="coin-emoji">🪙</span>
+                        </div>
+                        <div class="signin-meta">
+                          <div class="signin-title">{{ actionDone['today_signed'] ? '🎉 今日已完成打卡！' : '坚持学情打卡，学分兑好礼' }}</div>
+                          <div class="signin-desc">每天打卡领取 10 积分，连续签到更有惊喜加成，购课立减抵扣现金</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="warning"
+                          size="small"
+                          round
+                          :loading="actionLoading['signing_in']"
+                          :disabled="actionDone['today_signed']"
+                          @click="handleActionSignIn"
+                        >
+                          {{ actionDone['today_signed'] ? '🎉 今日已签到' : '✨ 一键打卡签到 (+10分)' }}
+                        </el-button>
+                        <el-button
+                          type="info"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/main/coupon')"
+                        >
+                          🎁 领券中心
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 4. 简历诊断卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'resume_diagnose'"
+                      class="agent-interactive-card resume-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge resume-badge">📄 AI 简历深度诊断</span>
+                        <span class="sub-badge score-badge">契合度 {{ extractAgentActionCard(message.content)?.matchScore || 80 }} 分</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box resume-icon">
+                          <el-icon :size="26"><Document /></el-icon>
+                        </div>
+                        <div class="resume-meta">
+                          <div class="resume-title">{{ extractAgentActionCard(message.content)?.fileName || '我的简历' }}</div>
+                          <div class="resume-desc">对标岗位：{{ extractAgentActionCard(message.content)?.targetJob || '技术研发' }} ｜ 真实项目与高并发深挖</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          round
+                          @click="router.push('/personal/main/myResume')"
+                        >
+                          📄 查看完整诊断报告
+                        </el-button>
+                        <el-button
+                          type="success"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/interview')"
+                        >
+                          🎯 发起针对性模拟面试
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 5. 待上传简历卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'resume_upload'"
+                      class="agent-interactive-card resume-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge resume-badge">📄 简历诊断 · 待上传</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box resume-icon">
+                          <el-icon :size="26"><Document /></el-icon>
+                        </div>
+                        <div class="resume-meta">
+                          <div class="resume-title">尚未关联个人求职简历</div>
+                          <div class="resume-desc">上传 PDF/Word 简历，解锁 AI 真实经历提取、契合度量化与对标深挖</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          round
+                          @click="router.push('/personal/main/myResume')"
+                        >
+                          📤 前往上传简历
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- 6. 学习进度接力卡片 -->
+                    <div
+                      v-else-if="extractAgentActionCard(message.content)?.action === 'continue_learning'"
+                      class="agent-interactive-card learning-action-card"
+                    >
+                      <div class="card-header">
+                        <span class="tag-badge learning-badge">📚 学伴学习进度接力</span>
+                      </div>
+                      <div class="card-body">
+                        <div class="card-icon-box learning-icon">
+                          <el-icon :size="26"><Reading /></el-icon>
+                        </div>
+                        <div class="learning-meta">
+                          <div class="learning-title">我的个人课表与学习轨迹</div>
+                          <div class="learning-desc">无缝接力上次播放进度，按部就班夯实架构技术能力</div>
+                        </div>
+                      </div>
+                      <div class="card-footer">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          round
+                          @click="router.push('/personal/main/myClass')"
+                        >
+                          📖 前往我的课表
+                        </el-button>
+                        <el-button
+                          type="info"
+                          size="small"
+                          plain
+                          round
+                          @click="router.push('/search/index')"
+                        >
+                          🔍 发现更多课程
+                        </el-button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div v-if="message.type === 'user'" class="message-avatar user-avatar">
@@ -201,12 +467,18 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, ChatDotRound, CircleCheck, Clock, Document, Headset, Promotion, QuestionFilled, Refresh, Service, User } from '@element-plus/icons-vue'
+import { ArrowRight, ChatDotRound, CircleCheck, Clock, Document, Headset, Promotion, QuestionFilled, Reading, Refresh, Service, ShoppingCart, Trophy, User, Wallet } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getPixelApiKey, getPixelModel } from '@/api/pixelApi'
 import { createServiceSession, evaluateService, getServiceFaqs, getServiceSession, sendServiceMessage } from '@/api/customerService'
+import { putCarts, enrolledFreeCourse } from '@/api/order.js'
+import { pointsSign } from '@/api/class.js'
+import defaultCover from '@/assets/images/courses/default-cover.svg'
 
 const router = useRouter()
+
+const actionLoading = ref({})
+const actionDone = ref({})
 
 function hasActionPath(content) {
   return /\[ACTION_VIEW_PATH:(.+?)\]/.test(content || '')
@@ -217,8 +489,114 @@ function extractActionRole(content) {
   return match ? match[1].trim() : ''
 }
 
+function hasAgentActionCard(content) {
+  return /\[AGENT_ACTION_CARD:(\{.+?\})\]/.test(content || '')
+}
+
+function extractAgentActionCard(content) {
+  const match = (content || '').match(/\[AGENT_ACTION_CARD:(\{.+?\})\]/)
+  if (!match) return null
+  try {
+    return JSON.parse(match[1])
+  } catch (e) {
+    console.error('Failed to parse agent action card:', e)
+    return null
+  }
+}
+
 function cleanMessageContent(content) {
-  return (content || '').replace(/\[ACTION_VIEW_PATH:.+?\]/g, '').trim()
+  return (content || '')
+    .replace(/\[ACTION_VIEW_PATH:.+?\]/g, '')
+    .replace(/\[AGENT_ACTION_CARD:\{.+?\}\]/g, '')
+    .trim()
+}
+
+function handleImgError(e) {
+  if (e && e.target) {
+    e.target.src = defaultCover
+  }
+}
+
+async function handleActionAddToCart(card, msgId) {
+  if (!card || !card.courseId) return
+  actionLoading.value[msgId + '_cart'] = true
+  try {
+    const res = await putCarts({ courseId: card.courseId })
+    if (res?.code === 200 || res?.code === 0) {
+      actionDone.value[msgId + '_cart'] = true
+      ElMessage.success(`《${card.title || '课程'}》已成功加入购物车！`)
+    } else {
+      ElMessage.warning(res?.msg || '加入购物车失败，请稍后重试')
+    }
+  } catch (err) {
+    ElMessage.error(err?.message || '加入购物车请求异常')
+  } finally {
+    actionLoading.value[msgId + '_cart'] = false
+  }
+}
+
+function handleActionCheckout(card) {
+  if (!card || !card.courseId) return
+  router.push({
+    path: '/pay/settlement',
+    query: { courseId: card.courseId }
+  })
+}
+
+async function handleActionEnrollFree(card, msgId) {
+  if (!card || !card.courseId) return
+  actionLoading.value[msgId + '_enroll'] = true
+  try {
+    const res = await enrolledFreeCourse(card.courseId)
+    if (res?.code === 200 || res?.code === 0) {
+      actionDone.value[msgId + '_enroll'] = true
+      ElMessage.success(`《${card.title || '课程'}》免费报名成功！`)
+    } else {
+      ElMessage.warning(res?.msg || '报名失败，请稍后重试')
+    }
+  } catch (err) {
+    ElMessage.error(err?.message || '报名请求异常')
+  } finally {
+    actionLoading.value[msgId + '_enroll'] = false
+  }
+}
+
+function goToLearning(courseId) {
+  if (!courseId) return
+  router.push({
+    path: '/learning/index',
+    query: { courseId }
+  })
+}
+
+function handleActionLaunchInterview(sessionId) {
+  if (!sessionId) {
+    router.push('/interview')
+    return
+  }
+  router.push({
+    path: '/interview/room',
+    query: { id: sessionId }
+  })
+}
+
+async function handleActionSignIn() {
+  actionLoading.value['signing_in'] = true
+  try {
+    const res = await pointsSign()
+    if (res?.code === 200 || res?.code === 0) {
+      actionDone.value['today_signed'] = true
+      ElMessage.success('🎉 恭喜！每日签到打卡成功，+10 积分已到账！')
+    } else {
+      ElMessage.info(res?.msg || '今日已完成签到打卡')
+      actionDone.value['today_signed'] = true
+    }
+  } catch (err) {
+    ElMessage.info(err?.message || '今日已签到')
+    actionDone.value['today_signed'] = true
+  } finally {
+    actionLoading.value['signing_in'] = false
+  }
 }
 
 function goToAgentPath(targetRole) {
@@ -437,7 +815,7 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .customer-service-page {
   min-height: calc(100vh - 70px);
   padding: 32px 0 48px;
@@ -932,6 +1310,259 @@ onMounted(async () => {
   background: #2563eb;
   color: #ffffff;
   border-color: #2563eb;
+}
+
+.agent-interactive-container {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.agent-interactive-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  padding: 14px 16px;
+  transition: all 0.25s ease;
+  overflow: hidden;
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.1);
+    border-color: #cbd5e1;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f1f5f9;
+
+    .tag-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+
+      &.course-badge {
+        background: #eff6ff;
+        color: #2563eb;
+      }
+      &.interview-badge {
+        background: #fdf2f8;
+        color: #db2777;
+      }
+      &.signin-badge {
+        background: #fefce8;
+        color: #ca8a04;
+      }
+      &.resume-badge {
+        background: #f0fdf4;
+        color: #16a34a;
+      }
+      &.learning-badge {
+        background: #f5f3ff;
+        color: #7c3aed;
+      }
+    }
+
+    .sub-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 12px;
+
+      &.score-badge {
+        background: #dcfce7;
+        color: #15803d;
+      }
+    }
+
+    .voice-badge {
+      font-size: 11px;
+      color: #be185d;
+      background: #fce7f3;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+
+      .wave-icon {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ec4899;
+        animation: pulse 1.5s infinite;
+      }
+    }
+  }
+
+  .card-body {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+
+    .course-thumb {
+      width: 80px;
+      height: 52px;
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: #0f172a;
+      border: 1px solid #e2e8f0;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .course-meta {
+      flex: 1;
+      min-width: 0;
+
+      .course-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .course-teacher {
+        font-size: 11px;
+        color: #64748b;
+        margin-bottom: 4px;
+      }
+
+      .course-pricing {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+
+        .free-price {
+          font-size: 13px;
+          font-weight: 700;
+          color: #16a34a;
+        }
+
+        .curr-price {
+          font-size: 14px;
+          font-weight: 800;
+          color: #e11d48;
+        }
+
+        .orig-price {
+          font-size: 11px;
+          color: #94a3b8;
+          text-decoration: line-through;
+        }
+      }
+    }
+
+    .card-icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      &.interview-icon {
+        background: #fdf2f8;
+        color: #db2777;
+      }
+      &.signin-icon {
+        background: #fef9c3;
+        .coin-emoji {
+          font-size: 24px;
+        }
+      }
+      &.resume-icon {
+        background: #f0fdf4;
+        color: #16a34a;
+      }
+      &.learning-icon {
+        background: #f5f3ff;
+        color: #7c3aed;
+      }
+    }
+
+    .interview-meta,
+    .signin-meta,
+    .resume-meta,
+    .learning-meta {
+      flex: 1;
+      min-width: 0;
+
+      .job-title,
+      .signin-title,
+      .resume-title,
+      .learning-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 3px;
+      }
+
+      .company-tag,
+      .signin-desc,
+      .resume-desc,
+      .learning-desc {
+        font-size: 11px;
+        color: #475569;
+        margin-bottom: 2px;
+      }
+
+      .status-tip {
+        font-size: 11px;
+        color: #94a3b8;
+      }
+    }
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+
+    .el-button {
+      font-weight: 600;
+      padding: 6px 14px;
+      font-size: 12px;
+    }
+
+    .launch-btn {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border: none;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+      &:hover {
+        background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      }
+    }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
 }
 
 .user-message .message-bubble {

@@ -41,4 +41,11 @@ public interface RemoteEducationService {
         @RequestParam(value = "limit", required = false, defaultValue = "4") Integer limit,
         @RequestHeader(SecurityConstants.FROM_SOURCE) String source
     );
+
+    /** 搜索公开课程列表。 */
+    @GetMapping("/courses/page")
+    AjaxResult searchCourses(
+        @RequestParam(value = "keyword", required = false) String keyword,
+        @RequestParam(value = "pageSize", required = false, defaultValue = "5") Integer pageSize
+    );
 }
