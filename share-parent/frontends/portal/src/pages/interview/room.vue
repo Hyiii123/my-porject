@@ -1109,10 +1109,12 @@ const loadSession = async () => {
         ElMessage.info('本场面试已交卷完成，可随时查看能力诊断报告')
       }
     } else if (res && res.code !== 200) {
-      ElMessage.error(res.msg || '加载考场详情失败')
+      ElMessage.error(res?.msg || '加载考场详情失败')
+      router.push('/interview')
     }
   } catch (err) {
     ElMessage.error('加载考场详情异常：' + (err.message || '网络错误'))
+    router.push('/interview')
   } finally {
     loading.value = false
   }

@@ -48,4 +48,17 @@ public interface IInterviewService {
      * 中途主动终止面试场次。
      */
     void terminateSession(Long sessionId);
+
+    /**
+     * 删除指定面试场次（级联清理问答轮次、手撕代码与诊断报告）。
+     */
+    void deleteSession(Long sessionId);
+
+    /**
+     * 清理停滞超过指定小时数的进行中面试场次（兜底释放过期数据）。
+     *
+     * @param expireHours 超时小时数（例如 2 小时）
+     * @return 清理成功的场次数目
+     */
+    int cleanStagnantSessions(int expireHours);
 }

@@ -31,6 +31,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -169,6 +170,11 @@ public class InterviewServiceImpl implements IInterviewService {
         }
         assertOwner(session);
 
+        if (isSessionStagnant(session, 2)) {
+            deleteSessionCascade(Collections.singletonList(session.getId()));
+            throw new ServiceException("该面试场次停滞超过2小时已超时，记录已自动清理");
+        }
+
         InterviewTurn currentTurn = turnMapper.selectById(request.getTurnId());
         if (currentTurn == null || !currentTurn.getSessionId().equals(session.getId())) {
             throw new ServiceException("问答轮次不存在或不匹配");
@@ -245,6 +251,11 @@ public class InterviewServiceImpl implements IInterviewService {
             throw new ServiceException("该面试场次已结束或已终止");
         }
         assertOwner(session);
+
+        if (isSessionStagnant(session, 2)) {
+            deleteSessionCascade(Collections.singletonList(session.getId()));
+            throw new ServiceException("该面试场次停滞超过2小时已超时，记录已自动清理");
+        }
 
         InterviewCodeSubmission submission = new InterviewCodeSubmission();
         submission.setSessionId(session.getId());
@@ -388,6 +399,12 @@ public class InterviewServiceImpl implements IInterviewService {
         }
         assertOwner(session);
 
+        // 检查是否为停滞超过 2 小时的进行中场次：自动级联清理并提示
+        if (isSessionStagnant(session, 2)) {
+            deleteSessionCascade(Collections.singletonList(session.getId()));
+            throw new ServiceException("该面试场次停滞超过2小时已超时，记录已自动清理");
+        }
+
         List<InterviewTurn> turns = turnMapper.selectList(new LambdaQueryWrapper<InterviewTurn>()
                 .eq(InterviewTurn::getSessionId, session.getId())
                 .orderByAsc(InterviewTurn::getTurnNum));
@@ -416,6 +433,13 @@ public class InterviewServiceImpl implements IInterviewService {
     @Override
     public IPage<InterviewSession> listMySessions(long pageNum, long pageSize) {
         Long userId = currentUserId();
+        // 前置主动巡检清理：停滞超过2小时的进行中场次在拉取列表时立即物理清除，保证列表即时纯净
+        try {
+            cleanStagnantSessions(2);
+        } catch (Exception e) {
+            log.warn("查询列表前置清理超时场次异常: {}", e.getMessage());
+        }
+
         Page<InterviewSession> page = new Page<>(pageNum < 1 ? 1 : pageNum, pageSize < 1 ? 10 : Math.min(pageSize, 50));
         LambdaQueryWrapper<InterviewSession> wrapper = new LambdaQueryWrapper<InterviewSession>()
                 .eq(InterviewSession::getUserId, userId)
@@ -453,6 +477,81 @@ public class InterviewServiceImpl implements IInterviewService {
         }
         session.setUpdateTime(now);
         sessionMapper.updateById(session);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteSession(Long sessionId) {
+        if (sessionId == null) {
+            return;
+        }
+        InterviewSession session = sessionMapper.selectById(sessionId);
+        if (session == null) {
+            return;
+        }
+        assertOwner(session);
+        deleteSessionCascade(Collections.singletonList(sessionId));
+        log.info("【AI模拟面试治理】学员主动删除面试场次成功: id={}", sessionId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int cleanStagnantSessions(int expireHours) {
+        int hours = expireHours > 0 ? expireHours : 2;
+        LocalDateTime threshold = LocalDateTime.now().minusHours(hours);
+        List<InterviewSession> stagnantSessions = sessionMapper.selectList(new LambdaQueryWrapper<InterviewSession>()
+                .eq(InterviewSession::getStatus, 1)
+                .and(w -> w.lt(InterviewSession::getUpdateTime, threshold)
+                        .or(ow -> ow.isNull(InterviewSession::getUpdateTime).lt(InterviewSession::getCreateTime, threshold))));
+        if (stagnantSessions == null || stagnantSessions.isEmpty()) {
+            return 0;
+        }
+        List<Long> expiredIds = stagnantSessions.stream().map(InterviewSession::getId).filter(Objects::nonNull).toList();
+        if (!expiredIds.isEmpty()) {
+            deleteSessionCascade(expiredIds);
+            log.info("【AI模拟面试超时治理】成功自动清理 {} 个停滞超过 {} 小时的进行中场次: {}", expiredIds.size(), hours, expiredIds);
+        }
+        return expiredIds.size();
+    }
+
+    /**
+     * 后台定时任务：每天凌晨 3:00 自动巡检一次，清理停滞超过 2 小时的进行中面试场次，释放数据库存储。
+     */
+    @Scheduled(cron = "0 0 3 * * ?")
+    public void scheduleCleanStagnantSessions() {
+        try {
+            int cleaned = cleanStagnantSessions(2);
+            if (cleaned > 0) {
+                log.info("【AI模拟面试每日巡检】凌晨任务已自动清理 {} 个停滞超过2小时的过期场次", cleaned);
+            }
+        } catch (Exception e) {
+            log.warn("【AI模拟面试每日巡检】清理超时场次异常: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 判定场次是否处于进行中且停滞超过指定小时数。
+     */
+    private boolean isSessionStagnant(InterviewSession session, int hours) {
+        if (session == null || session.getStatus() == null || session.getStatus() != 1) {
+            return false;
+        }
+        LocalDateTime lastActivity = session.getUpdateTime() != null ? session.getUpdateTime() : session.getCreateTime();
+        return lastActivity != null && lastActivity.plusHours(hours).isBefore(LocalDateTime.now());
+    }
+
+    /**
+     * 级联物理删除面试场次及其关联的全部问答轮次、手撕代码与诊断报告。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteSessionCascade(List<Long> sessionIds) {
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return;
+        }
+        turnMapper.delete(new LambdaQueryWrapper<InterviewTurn>().in(InterviewTurn::getSessionId, sessionIds));
+        codeMapper.delete(new LambdaQueryWrapper<InterviewCodeSubmission>().in(InterviewCodeSubmission::getSessionId, sessionIds));
+        reportMapper.delete(new LambdaQueryWrapper<InterviewReport>().in(InterviewReport::getSessionId, sessionIds));
+        sessionMapper.deleteBatchIds(sessionIds);
     }
 
     // =========================================================================

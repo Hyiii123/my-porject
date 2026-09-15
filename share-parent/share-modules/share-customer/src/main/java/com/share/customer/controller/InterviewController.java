@@ -112,6 +112,16 @@ public class InterviewController extends BaseController {
     }
 
     /**
+     * 删除指定面试场次记录（级联清理问答与评测数据）。
+     */
+    @RequiresLogin
+    @DeleteMapping("/{sessionId}")
+    public AjaxResult delete(@PathVariable Long sessionId) {
+        interviewService.deleteSession(sessionId);
+        return success();
+    }
+
+    /**
      * 获取当前登录用户的个人简历与最新 AI 诊断报告。
      */
     @RequiresLogin

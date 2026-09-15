@@ -169,9 +169,24 @@
           >
             <div class="item-top">
               <div class="job-tag">{{ item.targetJob }}</div>
-              <el-tag :type="getStatusTag(item.status).type" size="small">
-                {{ getStatusTag(item.status).text }}
-              </el-tag>
+              <div class="item-top-right">
+                <el-tag v-if="item.status === 1" type="warning" size="small" class="stagnant-tip-tag" effect="plain">
+                  ⏳ 停滞2h自动清理
+                </el-tag>
+                <el-tag :type="getStatusTag(item.status).type" size="small">
+                  {{ getStatusTag(item.status).text }}
+                </el-tag>
+                <el-button
+                  link
+                  type="danger"
+                  size="small"
+                  class="del-session-btn"
+                  title="删除该条记录"
+                  @click.stop="handleDeleteSession(item)"
+                >
+                  🗑️
+                </el-button>
+              </div>
             </div>
             <div class="item-meta">
               <span>企业：{{ item.companyTarget }}</span>
@@ -335,8 +350,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { startInterview, getMyInterviews, getMyResume } from '@/api/interview.js'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { startInterview, getMyInterviews, getMyResume, deleteInterviewSession } from '@/api/interview.js'
 import { createVirtualCameraStream } from '@/utils/virtualCamera.js'
 
 const router = useRouter()
@@ -715,6 +730,35 @@ const handleOpenSession = (item) => {
   }
 }
 
+const deletingSessionId = ref(null)
+
+const handleDeleteSession = (item) => {
+  ElMessageBox.confirm(
+    `确定要彻底删除【${item.targetJob}】的面试记录吗？删除后该场次关联的问答轮次与评测数据将不可恢复。`,
+    '删除面试记录',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      deletingSessionId.value = item.id
+      const res = await deleteInterviewSession(item.id)
+      if (res && res.code === 200) {
+        ElMessage.success('该面试记录已成功删除')
+        await loadMyHistory()
+      } else {
+        ElMessage.error(res?.msg || '删除记录失败')
+      }
+    } catch (err) {
+      ElMessage.error('删除记录异常：' + (err.message || '网络连接失败'))
+    } finally {
+      deletingSessionId.value = null
+    }
+  }).catch(() => {})
+}
+
 // ==================== 考前音色检定 (微软晓晓) ====================
 const isXiaoxiaoAvailable = ref(false)
 let cachedLobbyVoice = null
@@ -1029,6 +1073,29 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+}
+
+.item-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stagnant-tip-tag {
+  font-size: 11px;
+  border-radius: 4px;
+}
+
+.del-session-btn {
+  padding: 0 4px;
+  font-size: 14px;
+  color: #a0aec0;
+  transition: all 0.2s;
+}
+
+.del-session-btn:hover {
+  color: #e53e3e;
+  transform: scale(1.15);
 }
 
 .job-tag {

@@ -22,6 +22,9 @@ export const getMyInterviews = (params) =>
 export const terminateInterview = (sessionId) =>
   request({ url: `/customer/interview/terminate/${sessionId}`, method: 'post' })
 
+export const deleteInterviewSession = (sessionId) =>
+  request({ url: `/customer/interview/${sessionId}`, method: 'delete' })
+
 // 个人中心简历与 AI 深度诊断 API
 export const getMyResume = () =>
   request({ url: '/customer/interview/resume/my', method: 'get' })

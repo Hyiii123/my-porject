@@ -6,6 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import com.share.customer.config.CustomerAiProperties;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 客服服务启动类。
@@ -13,6 +14,7 @@ import com.share.customer.config.CustomerAiProperties;
  * <p>客服服务是增量业务模块，独立使用 tj_customer 数据库，
  * 不会改写底座已有业务表。</p>
  */
+@EnableScheduling
 @EnableCustomConfig
 @EnableRyFeignClients
 @EnableConfigurationProperties(CustomerAiProperties.class)
