@@ -14,6 +14,30 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-16 16:30:00 - 前端工程 pnpm workspace Monorepo 统一架构演进：构建 `@zhiwen/shared` 核心共享包，统一多端常量、鉴权刷新与样式治理，全端构建 100% 验证通过 (Frontend pnpm Workspace Monorepo Upgrade: Unified @zhiwen/shared Core Package, Token Refresh Governance & Multi-App Build Verified)
+
+* **演进主题**：前端 Monorepo 架构治理 (Frontend Monorepo Architecture)、`pnpm workspace` 依赖编排 (Workspace Dependency Orchestration)、核心公共包提炼 (`@zhiwen/shared` Package Extraction)、统一鉴权与双 Token 静默刷新收敛 (Unified Token Governance & Silent Refresh)、Vue 3.3+ 严格规范重构 (Vue 3 Strict Single Direction Data Flow Fixes)、全端编译 100% 验证闭环 (Multi-App Production Build Verified)
+* **核心成果**：
+  1. **统一 Monorepo 体系构建 (`pnpm workspace`)**：
+     - 在 `frontends/` 根目录下建立 `pnpm-workspace.yaml`、根 `package.json` 与 `.npmrc`，将用户端 `portal`、业务端 `business-admin`、核心包 `packages/*` 与管理端 `share-ui` 纳入统一工程空间；
+     - 提供了根目录级一键多包依赖同步 `pnpm install` 与一键全端编译命令 `pnpm -r build`，极大提升了多端协同开发与持续集成效率。
+  2. **核心共享包 `@zhiwen/shared` 落地 (`frontends/packages/shared`)**：
+     - **常量中心 (`src/constants`)**：统一封装 Access/Refresh Token 本地存储 Key 标识、全站默认头像/默认课程封面占位图、统一订单状态映射、AI 客服及全真面试轮次枚举；
+     - **鉴权中枢 (`src/utils/token.js`)**：规范化封装 Cookie/LocalStorage Token 读写与清理，并将各前端原先分散且容易产生竞态条件的双 Token 异步防并发静默刷新核心逻辑收敛至 `tryRefreshToken`；
+     - **工具与样式资产 (`src/utils/date.js`, `validate.js`, `styles/`)**：封装常用时间解析与美化、表单正则校验器、全局 SCSS 色彩变量与 Flex 布局 Mixins。
+  3. **多端子应用深度解耦与引用重构**：
+     - 用户端 `frontends/portal` 与业务管理端 `frontends/business-admin` 声明 `"@zhiwen/shared": "workspace:*"` 依赖，并在 `vite.config.js` 中配置精准别名映射，实现开发环境无编译实时热重载；
+     - 各端 `src/utils/refreshToken.js` 统一重构为代理调用 `@zhiwen/shared`，彻底消除各端冗余重复代码；
+     - 超级管理端 `share-ui` 同步打通依赖与构建别名通道。
+  4. **Vue 3 规范化编译缺陷彻底根治**：
+     - 修复 `curriculum/media/video.vue` 历史残留 0 字节空文件导致的 Vite SFC 编译中断，补充合规单文件组件骨架；
+     - 批量检测并彻底重构 `business-admin` 中 26 处 Dialog 弹窗组件因在 `props` 属性上直接使用 `v-model` 触发的 Vue 3.3+ 语法报错，严格采用 `:model-value` 配合事件发射，符合单向数据流规范；
+     - 修正 `App.vue` 中 Element Plus 国际化语言包 ESM 现代导入路径（`element-plus/es/locale/lang/zh-cn`）。
+  5. **容器构建升级与 100% 向后兼容 (Rule 1 & Rule 2 Compliance)**：
+     - 升级 `frontends/Dockerfile`，在 builder 镜像阶段支持 pnpm workspace 多包安装与源码隔离编译；
+     - 完全保留各前端子目录的原有开发习惯（`pnpm run dev` / `pnpm run build` 命令 100% 独立向后兼容）；
+     - `portal`、`business-admin`、`share-ui` 单独编译与工作区联合打包（`pnpm -r build`）均一次性 100% 构建成功，产物正常产出。
+
 ### 2026-09-16 16:00:00 - 客服全域动作卡片策略工厂架构重构：落地 Strategy + Factory 模式，解耦 14 大业务卡片装配器至独立 Handler 并在云端 100% 验证通过 (Customer Action Card Strategy + Factory Architectural Decoupling: Extracting 14 Domain Handlers and Converging Assembler)
 
 * **演进主题**：策略工厂模式架构重构 (Strategy + Factory Pattern Architecture)、单一职责原则与开闭原则 (SRP & OCP Alignment)、全域动作卡片解耦 (Full-Domain Action Card Handlers)、门面精简化治理 (Assembler Convergence from 767 to 156 Lines)、云端定向测试 100% 闭环 (Targeted Verification Passed)

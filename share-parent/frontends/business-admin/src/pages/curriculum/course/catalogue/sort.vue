@@ -1,7 +1,7 @@
-<!--章排序-->
+﻿<!--章排序-->
 <template>
   <el-dialog
-    v-model="dialogSortVisible"
+    :model-value="dialogSortVisible"
     title="章排序"
     :before-close="handleClose"
   >

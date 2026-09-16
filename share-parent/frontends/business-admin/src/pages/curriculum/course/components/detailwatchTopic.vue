@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="topicBox" v-if="dialogVisible">
     <el-dialog
-      v-model="dialogVisible"
+      :model-value="dialogVisible"
       title="查看题目"
       :before-close="handleClose"
     >

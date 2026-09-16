@@ -1,0 +1,10 @@
+packages:
+  - 'portal'
+  - 'business-admin'
+  - 'packages/*'
+  - '../share-ui'
+
+onlyBuiltDependencies:
+  - esbuild
+  - swiper
+  - vue-demi

@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="deleteDialog">
     <el-dialog
-      v-model="dialogDeleteVisible"
+      :model-value="dialogDeleteVisible"
       title="确认删除"
       :show-close="false"
     >

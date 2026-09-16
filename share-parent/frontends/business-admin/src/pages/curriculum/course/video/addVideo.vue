@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="dialogMain videoBox dialogHeignt">
     <el-dialog
-      v-model="dialogVisible"
+      :model-value="dialogVisible"
       title="选择媒资视频"
       :before-close="handleClose"
     >

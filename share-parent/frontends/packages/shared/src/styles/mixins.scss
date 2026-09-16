@@ -1,0 +1,38 @@
+/**
+ * 智问学伴前端公共 SCSS 混入 (Shared SCSS Mixins)
+ */
+
+@mixin glassmorphism($blur: 16px, $bg: rgba(15, 23, 42, 0.75), $border: rgba(255, 255, 255, 0.08)) {
+  background: $bg;
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+  border: 1px solid $border;
+}
+
+@mixin pulse-animation($name: breathe, $duration: 2.5s) {
+  @keyframes #{$name} {
+    0%, 100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  }
+  animation: #{$name} $duration ease-in-out infinite;
+}
+
+@mixin text-ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

@@ -1,8 +1,8 @@
-<!--课程题目-->
+﻿<!--课程题目-->
 <template>
   <div class="dialogMain topicBox dialogHeignt" v-if="dialogVisible">
     <el-dialog
-      v-model="dialogVisible"
+      :model-value="dialogVisible"
       title="选择题目"
       :before-close="handleClose"
     >

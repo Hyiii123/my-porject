@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="succeeBox">
-    <el-dialog v-model="dialogSucceeVisible" :title="title">
+    <el-dialog :model-value="dialogSucceeVisible" :title="title">
       <div class="icon"><component :is="Result403Icon"></component></div>
       <div class="succeeCon">
         <p class="tit">恭喜您，<span>{{fromData.name}}</span> 的账号创建成功！</p>

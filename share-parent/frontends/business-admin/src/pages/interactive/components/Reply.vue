@@ -1,8 +1,8 @@
-<!--回复弹层-->
+﻿<!--回复弹层-->
 <template>
   <div class="dialogBox">
     <el-dialog
-      v-model="dialogVisible"
+      :model-value="dialogVisible"
       title="我来回复"
       :before-close="handleClose"
     >

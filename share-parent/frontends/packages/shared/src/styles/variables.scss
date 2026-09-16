@@ -1,0 +1,30 @@
+/**
+ * 智问学伴深色学术科技风设计变量 (Theme Design Tokens)
+ */
+
+// 主题核心色彩
+$primary-color: #3b82f6;
+$primary-hover: #2563eb;
+$primary-light: rgba(59, 130, 246, 0.15);
+
+$success-color: #10b981;
+$warning-color: #f59e0b;
+$danger-color: #ef4444;
+$info-color: #64748b;
+
+// 深色背景色阶
+$bg-dark-900: #0a0e1a;
+$bg-dark-800: #0f172a;
+$bg-dark-700: #1e293b;
+$bg-dark-card: rgba(15, 23, 42, 0.75);
+
+// 边框与微光色
+$border-glass: rgba(255, 255, 255, 0.08);
+$border-glass-hover: rgba(59, 130, 246, 0.35);
+$glow-primary: 0 0 20px rgba(59, 130, 246, 0.25);
+$glow-emerald: 0 0 20px rgba(16, 185, 129, 0.25);
+
+// 文字色彩
+$text-primary: #f8fafc;
+$text-secondary: #94a3b8;
+$text-muted: #64748b;

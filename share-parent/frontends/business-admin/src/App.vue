@@ -7,7 +7,7 @@
 
 <script setup>
 import { defineComponent } from "vue";
-import zhCn from "element-plus/lib/locale/lang/zh-cn";
+import zhCn from "element-plus/es/locale/lang/zh-cn";
 let locale = zhCn;
 import { computed, onMounted } from 'vue';
 // import config from '@/config/style';

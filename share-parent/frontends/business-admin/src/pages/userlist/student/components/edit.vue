@@ -1,6 +1,6 @@
 ﻿<template>
   <el-dialog
-    v-model="dialogFormVisible"
+    :model-value="dialogFormVisible"
     :title="title"
     :before-close="handleClose"
   >

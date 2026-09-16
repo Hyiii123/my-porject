@@ -1,6 +1,6 @@
 ﻿<template>
   <el-dialog
-    v-model="dialogFormVisible"
+    :model-value="dialogFormVisible"
     :before-close="handleClose"
     title="选择退款原因"
   >

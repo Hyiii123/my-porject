@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="dialogMain selectBox">
     <el-dialog
-      v-model="dialogVisible"
+      :model-value="dialogVisible"
       title="选择老师"
       :before-close="handleClose"
     >

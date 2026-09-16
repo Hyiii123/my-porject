@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="deleteDialog">
-    <el-dialog v-model="dialogVisible" title="重置密码" :show-close="false">
+    <el-dialog :model-value="dialogVisible" title="重置密码" :show-close="false">
       <p>
         请确认，是否重置
         <span class="fontColor333 ft-wt-600">{{ teachName }}</span> 的密码？

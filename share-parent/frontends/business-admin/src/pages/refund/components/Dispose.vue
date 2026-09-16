@@ -1,9 +1,9 @@
-<!--发放弹层-->
+﻿<!--发放弹层-->
 <template>
   
 
   <div class="succeeBox">
-    <el-dialog v-model="dialogVisible" :title="title">
+    <el-dialog :model-value="dialogVisible" :title="title">
       <div class="icon"><component :is="Result403Icon"></component></div>
       <div class="succeeCon">
         <p class="tit">恭喜您，已经完成了所有待审批退款订单的审批！</p>

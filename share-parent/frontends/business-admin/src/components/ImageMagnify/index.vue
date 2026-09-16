@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="picBox">
-    <el-dialog v-model="dialogPicVisible" :title="title">
+    <el-dialog :model-value="dialogPicVisible" :title="title">
       <div class="close" @click="handleClose"></div>
       <div class="pic"><img :src="pic" /></div>
     </el-dialog>

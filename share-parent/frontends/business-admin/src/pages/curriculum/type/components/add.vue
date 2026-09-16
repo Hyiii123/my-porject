@@ -1,7 +1,7 @@
-<!--课程分类添加、编辑-->
+﻿<!--课程分类添加、编辑-->
 <template>
   <el-dialog
-    v-model="dialogFormVisible"
+    :model-value="dialogFormVisible"
     :title="title"
     :before-close="handleClose"
   >

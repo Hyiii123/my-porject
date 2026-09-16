@@ -1,0 +1,14 @@
+{
+  "name": "zhiwen-frontends-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "智问学伴多端前端 Monorepo 工作区",
+  "scripts": {
+    "dev:portal": "pnpm --filter zhiwen-portal dev",
+    "dev:admin": "pnpm --filter zhiwen-business-admin dev",
+    "dev:ui": "pnpm --filter ruoyi dev",
+    "build:portal": "pnpm --filter zhiwen-portal build",
+    "build:admin": "pnpm --filter zhiwen-business-admin build",
+    "build:ui": "pnpm --filter ruoyi build:prod"
+  }
+}

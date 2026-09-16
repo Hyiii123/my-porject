@@ -1,8 +1,8 @@
-<!--查看兑换码列表-->
+﻿<!--查看兑换码列表-->
 <template>
   <div class="dialogMain redeemDialog ">
     <el-dialog
-      v-model="dialogVisible"
+      :model-value="dialogVisible"
       title="查看优惠券兑换码"
       :before-close="handleClose"
     >

@@ -1,8 +1,8 @@
-<!--发放弹层-->
+﻿<!--发放弹层-->
 <template>
   <div class="dialogMain markDialog">
     <el-dialog
-      v-model="dialogVisible"
+      :model-value="dialogVisible"
       title="设置领用/使用期限"
       :before-close="handleClose"
     >

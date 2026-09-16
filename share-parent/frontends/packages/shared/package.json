@@ -1,0 +1,25 @@
+{
+  "name": "@zhiwen/shared",
+  "version": "1.0.0",
+  "description": "智问学伴前端全域公共核心模块与工具库",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./utils/*": "./src/utils/*.js",
+    "./constants": "./src/constants/index.js",
+    "./styles/*": "./src/styles/*"
+  },
+  "keywords": [
+    "zhiwen",
+    "shared",
+    "monorepo",
+    "utils"
+  ],
+  "author": "智问学伴研发团队",
+  "license": "MIT",
+  "peerDependencies": {
+    "axios": ">=0.27.0"
+  }
+}

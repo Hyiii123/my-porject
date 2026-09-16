@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="deleteDialog">
     <el-dialog
-      v-model="dialogStatusVisible"
+      :model-value="dialogStatusVisible"
       :title="title"
       :show-close="false"
     >
