@@ -23,9 +23,23 @@ public class FeignRequestInterceptor implements RequestInterceptor
     public void apply(RequestTemplate requestTemplate)
     {
         HttpServletRequest httpServletRequest = ServletUtils.getRequest();
+        Map<String, String> headers = null;
         if (StringUtils.isNotNull(httpServletRequest))
         {
-            Map<String, String> headers = ServletUtils.getHeaders(httpServletRequest);
+            try
+            {
+                // 探测请求对象是否仍有效绑定（Tomcat回收后调用会抛 IllegalStateException）
+                httpServletRequest.getMethod();
+                headers = ServletUtils.getHeaders(httpServletRequest);
+            }
+            catch (Exception e)
+            {
+                headers = null;
+            }
+        }
+
+        if (headers != null && !headers.isEmpty())
+        {
             // 传递用户信息请求头，防止丢失
             String userId = headers.get(SecurityConstants.DETAILS_USER_ID);
             if (StringUtils.isNotEmpty(userId))
@@ -53,7 +67,7 @@ public class FeignRequestInterceptor implements RequestInterceptor
         }
         else
         {
-            // B48: 异步线程/线程池调用 Feign 时，HttpServletRequest 为空，从 TransmittableThreadLocal (SecurityContextHolder) 兜底读取
+            // B48: 异步线程/线程池调用 Feign 时，HttpServletRequest 为空或已被回收，从 TransmittableThreadLocal (SecurityContextHolder) 兜底读取
             String userId = SecurityContextHolder.getUserId() != null && SecurityContextHolder.getUserId() > 0
                     ? String.valueOf(SecurityContextHolder.getUserId()) : SecurityContextHolder.get(SecurityConstants.DETAILS_USER_ID);
             if (StringUtils.isNotEmpty(userId))

@@ -25,13 +25,29 @@ public interface RemoteEducationService {
     @GetMapping("/courses/baseInfo/{id}")
     AjaxResult getCourse(@PathVariable("id") Long id);
 
-    /** 为当前登录用户创建或补齐课程学习记录。 */
+    /** 为指定用户创建或补齐课程学习记录（支持显式指定 userId 与内部调用来源）。 */
     @PostMapping("/internal/enrollments/{courseId}")
-    AjaxResult enroll(@PathVariable("courseId") Long courseId);
+    AjaxResult enroll(
+            @PathVariable("courseId") Long courseId,
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestHeader(value = SecurityConstants.FROM_SOURCE, required = false) String source);
 
-    /** 撤销当前登录用户的课程学习权限（退款时调用）。 */
+    /** 撤销指定用户的课程学习权限（退款时调用，支持显式指定 userId 与内部调用来源）。 */
     @PostMapping("/internal/enrollments/{courseId}/revoke")
-    AjaxResult revokeEnrollment(@PathVariable("courseId") Long courseId);
+    AjaxResult revokeEnrollment(
+            @PathVariable("courseId") Long courseId,
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestHeader(value = SecurityConstants.FROM_SOURCE, required = false) String source);
+
+    /** 为当前登录用户创建或补齐课程学习记录 (兼容旧方法)。 */
+    default AjaxResult enroll(Long courseId) {
+        return enroll(courseId, null, SecurityConstants.INNER);
+    }
+
+    /** 撤销当前登录用户的课程学习权限 (兼容旧方法)。 */
+    default AjaxResult revokeEnrollment(Long courseId) {
+        return revokeEnrollment(courseId, null, SecurityConstants.INNER);
+    }
 
     /** 触发多智能体协同推荐与路径规划 (内部调用)。 */
     @PostMapping("/internal/ai/agent/orchestrate")

@@ -117,7 +117,18 @@ public class ServletUtils
     {
         try
         {
-            return getRequestAttributes().getRequest();
+            ServletRequestAttributes attributes = getRequestAttributes();
+            if (attributes == null)
+            {
+                return null;
+            }
+            HttpServletRequest request = attributes.getRequest();
+            if (request != null)
+            {
+                // 探测 request 是否已被 Tomcat 容器回收
+                request.getMethod();
+            }
+            return request;
         }
         catch (Exception e)
         {
@@ -163,26 +174,49 @@ public class ServletUtils
 
     public static String getHeader(HttpServletRequest request, String name)
     {
-        String value = request.getHeader(name);
-        if (StringUtils.isEmpty(value))
+        if (request == null)
         {
             return StringUtils.EMPTY;
         }
-        return urlDecode(value);
+        try
+        {
+            String value = request.getHeader(name);
+            if (StringUtils.isEmpty(value))
+            {
+                return StringUtils.EMPTY;
+            }
+            return urlDecode(value);
+        }
+        catch (Exception e)
+        {
+            return StringUtils.EMPTY;
+        }
     }
 
     public static Map<String, String> getHeaders(HttpServletRequest request)
     {
         Map<String, String> map = new LinkedCaseInsensitiveMap<>();
-        Enumeration<String> enumeration = request.getHeaderNames();
-        if (enumeration != null)
+        if (request == null)
         {
-            while (enumeration.hasMoreElements())
+            return map;
+        }
+        try
+        {
+            Enumeration<String> enumeration = request.getHeaderNames();
+            if (enumeration != null)
             {
-                String key = enumeration.nextElement();
-                String value = request.getHeader(key);
-                map.put(key, value);
+                while (enumeration.hasMoreElements())
+                {
+                    String key = enumeration.nextElement();
+                    String value = request.getHeader(key);
+                    map.put(key, value);
+                }
             }
+        }
+        catch (Exception e)
+        {
+            // 防御 Tomcat RequestFacade 已被回收等 IllegalStateException 异常
+            return Collections.emptyMap();
         }
         return map;
     }

@@ -2,6 +2,7 @@ package com.share.trade.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.share.common.core.constant.SecurityConstants;
 import com.share.common.core.exception.ServiceException;
 import com.share.common.core.web.domain.AjaxResult;
 import com.share.common.redis.service.RedisService;
@@ -567,18 +568,20 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     @Override
     public void enrollPurchasedCourses(TrOrder order) {
         if (order == null || educationService == null) return;
+        Long userId = order.getUserId();
         itemMapper.selectList(new LambdaQueryWrapper<TrOrderItem>().eq(TrOrderItem::getOrderId, order.getId()))
                 .stream().map(TrOrderItem::getCourseId).filter(Objects::nonNull).distinct().forEach(courseId -> {
-                    try { educationService.enroll(courseId); } catch (Exception ignored) {}
+                    try { educationService.enroll(courseId, userId, SecurityConstants.INNER); } catch (Exception ignored) {}
                 });
     }
 
     @Override
     public void revokePurchasedCourses(TrOrder order) {
         if (order == null || educationService == null) return;
+        Long userId = order.getUserId();
         itemMapper.selectList(new LambdaQueryWrapper<TrOrderItem>().eq(TrOrderItem::getOrderId, order.getId()))
                 .stream().map(TrOrderItem::getCourseId).filter(Objects::nonNull).distinct().forEach(courseId -> {
-                    try { educationService.revokeEnrollment(courseId); } catch (Exception ignored) {}
+                    try { educationService.revokeEnrollment(courseId, userId, SecurityConstants.INNER); } catch (Exception ignored) {}
                 });
     }
 

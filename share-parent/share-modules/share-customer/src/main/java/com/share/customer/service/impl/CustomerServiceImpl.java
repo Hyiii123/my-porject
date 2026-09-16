@@ -419,10 +419,10 @@ public class CustomerServiceImpl implements ICustomerService {
         CustomerKnowledge value = request == null || request.getId() == null
                 ? new CustomerKnowledge() : getKnowledge(request.getId());
         LocalDateTime now = LocalDateTime.now();
-        value.setQuestion(request.getQuestion().trim());
-        value.setAnswer(request.getAnswer().trim());
+        value.setQuestion(request.getQuestion() != null ? request.getQuestion().trim() : "");
+        value.setAnswer(request.getAnswer() != null ? request.getAnswer().trim() : "");
         value.setKeywords(request.getKeywords());
-        value.setCategory(request.getCategory().trim());
+        value.setCategory(request.getCategory() != null ? request.getCategory().trim() : "通用");
         value.setStatus(request.getStatus() == null ? 1 : request.getStatus());
         value.setUpdateBy(currentUserId());
         value.setUpdateTime(now);
@@ -503,9 +503,9 @@ public class CustomerServiceImpl implements ICustomerService {
     public CustomerFaq saveFaq(CustomerFaqRequest request) {
         CustomerFaq value = request == null || request.getId() == null ? new CustomerFaq() : getFaq(request.getId());
         LocalDateTime now = LocalDateTime.now();
-        value.setQuestion(request.getQuestion().trim());
-        value.setAnswer(request.getAnswer().trim());
-        value.setCategory(request.getCategory().trim());
+        value.setQuestion(request.getQuestion() != null ? request.getQuestion().trim() : "");
+        value.setAnswer(request.getAnswer() != null ? request.getAnswer().trim() : "");
+        value.setCategory(request.getCategory() != null ? request.getCategory().trim() : "通用");
         value.setEnabled(request.getEnabled() == null ? 1 : request.getEnabled());
         value.setSortNum(request.getSortNum() == null ? 0 : request.getSortNum());
         value.setUpdateBy(currentUserId());

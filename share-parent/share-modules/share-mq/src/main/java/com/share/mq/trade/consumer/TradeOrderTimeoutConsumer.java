@@ -45,7 +45,11 @@ public class TradeOrderTimeoutConsumer implements RocketMQListener<String> {
 
             // 通过 Feign 调用交易服务内部关单接口 (附带 InnerAuth 凭证)
             AjaxResult result = tradeInternalService.cancelOrder(orderId, SecurityConstants.INNER);
-            log.info("【Share-MQ消息中枢-交易领域】订单超时关单执行完毕, orderId={}, 响应结果={}", orderId, result);
+            if (result != null && !result.isSuccess()) {
+                log.warn("【Share-MQ消息中枢-交易领域】关单接口返回非成功状态: orderId={}, result={}", orderId, result);
+            } else {
+                log.info("【Share-MQ消息中枢-交易领域】订单超时关单执行完毕, orderId={}, 响应结果={}", orderId, result);
+            }
         } catch (Exception e) {
             log.error("【Share-MQ消息中枢-交易领域】处理订单超时延时关单异常, message={}", message, e);
             throw new RuntimeException("处理订单超时消息异常", e);

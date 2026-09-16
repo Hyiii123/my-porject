@@ -58,9 +58,13 @@ public class RedisService
     public long increment(final String key, final long timeout, final TimeUnit timeUnit)
     {
         Long value = redisTemplate.opsForValue().increment(key, 1L);
-        if (value != null && value == 1L && timeout > 0)
+        if (value != null && timeout > 0)
         {
-            redisTemplate.expire(key, timeout, timeUnit);
+            Long expire = redisTemplate.getExpire(key);
+            if (value == 1L || expire == null || expire < 0)
+            {
+                redisTemplate.expire(key, timeout, timeUnit);
+            }
         }
         return value == null ? 0L : value;
     }
