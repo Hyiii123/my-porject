@@ -14,6 +14,34 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-16 15:25:00 - 独立消息中枢架构重构：落地全新微服务 `share-modules/share-mq`，按领域分类解耦交易、教育与AI客服全站消息事件 (Standalone Event-Driven Message Hub Microservice: `share-mq` with Domain Partitioning & Zero-Database Feign Dispatching)
+
+* **演进主题**：微服务事件中枢架构演进 (Event-Driven Message Hub Microservice)、领域驱动按包分类 (`trade` / `education` / `customer`)、无数据库纯调度设计 (`DataSourceAutoConfiguration` Excluded)、Feign + `@InnerAuth` 安全跨服务调度 (Secure Internal Service Invocation)、全站业务事件解耦闭环 (Enterprise Event Decoupling Closure)
+* **核心成果**：
+  1. **新建全站独立消息中枢微服务 `share-modules/share-mq` (Port: 9215 / 19215)**：
+     - 在 `share-modules` 下新建独立子模块 `share-mq`，配置 Maven Reactor 与 `docker-compose.yml` 统一编排；
+     - 采用无数据库设计，排查并排除 `DataSourceAutoConfiguration`，专注于 RocketMQ 事件监听与跨服务协调；
+     - 容器名 `zhiwen-mq`，限额 `-Xms128m -Xmx256m`，线上常驻仅约 520MB，ECS 总体可用内存充裕 (>1.1GB)。
+  2. **严格按业务领域划分消费者与事件契约 (Domain-Driven Architecture)**：
+     - **交易领域 (`trade`)**：
+       - `TradeMqConstants`：统一管理 `TRADE_ORDER_TIMEOUT_TOPIC`（订单超时自动关单）与 `TRADE_ORDER_EXPIRING_REMINDER_TOPIC`（订单催付通知）；
+       - `TradeOrderTimeoutConsumer`：监听超时延时消息，通过 `RemoteTradeInternalService` 调用交易内部接口执行超时关单与解绑优惠券；
+       - `TradeOrderExpiringReminderConsumer`：监听待支付催付消息，执行到期前提醒日志与履约预警；
+     - **教育领域 (`education`)**：
+       - `EducationMqConstants`：统一管理 `TRADE_ORDER_PAID_TOPIC`、`TRADE_ORDER_REFUNDED_TOPIC` 与 `EDU_COURSE_COMPLETED_TOPIC`；
+       - `EduCourseEnrollConsumer`：监听到支付成功事件后，通过 Feign 跨微服务调用教育内部接口为用户开通课程并建立学情；
+       - `EduCourseRefundConsumer`：监听到退款事件后，通过 Feign 跨微服务调用教育内部接口撤销学员课程学习权限与学情；
+       - `EduCourseCompletedConsumer`：监听到完课跃迁事件后，广播学员完课打卡成就并触发学分发放；
+     - **客服与AI领域 (`customer`)**：
+       - `CustomerMqConstants`：统一管理 `CUSTOMER_KNOWLEDGE_SYNC_TOPIC`；
+       - `CustomerKnowledgeSyncConsumer`：监听到知识库变更（INSERT/UPDATE/DELETE）事件后，异步执行向量索引重构与缓存刷新预热。
+  3. **内部调用安全防护体系 (@InnerAuth Security Interceptor)**：
+     - 各业务微服务提供受 `@InnerAuth` 保护的 `/internal/**` 控制器接口（如 `TradeInternalController`、`EducationInternalController`）；
+     - `share-mq` 的 OpenFeign 客户端在调用时统一注入 `@RequestHeader(SecurityConstants.FROM_SOURCE, SecurityConstants.INNER)` 请求头，经网关与安全拦截切面严密校验，彻底杜绝外部恶意越权。
+  4. **定向测试与全链路闭环 100% 通过 (Rule 8 Targeted Verification Passed)**：
+     - 本地 JDK 17 离线打包，云端热更新容器，自动化定向验证脚本 `.scratch/verify_share_mq_hub.ps1` 执行 100% 成功；
+     - 验证覆盖：网关健康检查 -> 学员/管理员登录 -> 加购下单（触发超时与催付延时MQ投递） -> 演示支付 -> `share-mq` 监听到支付消息并通过 Feign 成功执行开课履约 -> 学员端成功获取学习权限 -> 知识库新增/删除（`share-mq` 收到事件并成功完成异步索引与缓存预热）。
+
 ### 2026-09-16 15:00:00 - 核心微服务消息队列架构演进：引入 Apache RocketMQ 5.1.4 极轻量集群(~580MB)、落地15分钟延时关单与支付成功异步履约开课 (RocketMQ 5.x Message Queue Infrastructure, 15-Min Order Timeout & Async Course Enrollment)
 
 * **演进主题**：消息中间件架构落地 (Message Queue Infrastructure)、极轻量化内存调优 (Ultra-lightweight JVM Tuning ~580MB Total)、订单 15 分钟超时自动关单 (15-Minute Order Timeout Delay Message)、支付成功可靠异步履约开课 (Reliable Asynchronous Order Paid Course Enrollment)、定向自动化测试闭环 (Targeted Scope Test Closure)

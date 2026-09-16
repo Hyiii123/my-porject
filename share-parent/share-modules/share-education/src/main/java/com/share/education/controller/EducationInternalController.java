@@ -52,4 +52,28 @@ public class EducationInternalController extends BaseController {
             @RequestParam(value = "limit", required = false, defaultValue = "4") Integer limit) {
         return success(educationService.orchestrateAgentRecommend(userId, targetRole, limit));
     }
+
+    /** 供 Share-MQ / 内部微服务调用：为指定用户开通课程学习权限 (受 @InnerAuth 保护) */
+    @InnerAuth
+    @PostMapping("/enrollments/{courseId}")
+    public AjaxResult enrollCourseForUser(
+            @PathVariable Long courseId,
+            @RequestParam(value = "userId", required = false) Long userId) {
+        if (userId != null) {
+            return success(educationService.enrollCourseForUser(userId, courseId));
+        }
+        return success(educationService.enrollCourse(courseId));
+    }
+
+    /** 供 Share-MQ / 内部微服务调用：为指定用户撤销课程学习权限与学情 (受 @InnerAuth 保护) */
+    @InnerAuth
+    @PostMapping("/enrollments/{courseId}/revoke")
+    public AjaxResult revokeCourseForUser(
+            @PathVariable Long courseId,
+            @RequestParam(value = "userId", required = false) Long userId) {
+        if (userId != null) {
+            return success(educationService.revokeCourseForUser(userId, courseId));
+        }
+        return success(educationService.revokeCourse(courseId));
+    }
 }

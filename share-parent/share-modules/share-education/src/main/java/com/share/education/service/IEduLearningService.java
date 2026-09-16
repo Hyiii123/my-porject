@@ -21,6 +21,8 @@ public interface IEduLearningService {
 
     Map<String, Object> revokeCourse(Long courseId);
 
+    Map<String, Object> revokeCourseForUser(Long userId, Long courseId);
+
     Map<String, Object> restartLearning(Long courseId);
 
     Map<String, Object> learningPage(long pageNo, long pageSize, boolean current);

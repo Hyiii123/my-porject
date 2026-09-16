@@ -48,6 +48,7 @@ docker compose -p tianji-share ps
 | `share-modules/share-education` | 教育服务 | 课程、教师、目录、学习、考试、问答、笔记、签到、积分、教育工作台，schema 为 `tj_education` |
 | `share-modules/share-trade` | 交易服务 | 购物车、订单、演示支付、优惠券、退款、统计，schema 为 `tj_trade` |
 | `share-modules/share-customer` | 客服服务 | AI 客服、FAQ、知识库、会话、评价、统计，schema 为 `tj_customer` |
+| `share-modules/share-mq` | 消息中枢服务 | 全站 RocketMQ 消费者与跨领域事件调度（交易超时关单/催付、支付异步开课、退款学情撤销、完课打卡、知识库异步同步） |
 | `share-modules/share-file` | 文件服务 | 上传、文件/媒资元数据，schema 为 `tj_file` |
 | `share-modules/share-gen` | 代码生成 | 若依生成器 |
 | `share-modules/share-job` | 定时任务 | Quartz 作业 |

@@ -17,6 +17,7 @@
         <module>share-customer</module>
         <module>share-education</module>
         <module>share-trade</module>
+        <module>share-mq</module>
     </modules>
 
     <artifactId>share-modules</artifactId>

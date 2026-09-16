@@ -12,7 +12,12 @@ import com.share.education.mapper.EduLearningRecordMapper;
 import com.share.education.service.IEduCourseService;
 import com.share.education.service.IEduLearningService;
 import lombok.extern.slf4j.Slf4j;
+import com.alibaba.fastjson2.JSON;
+import com.share.education.mq.EduRocketMQConstants;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +43,9 @@ public class EduLearningServiceImpl implements IEduLearningService {
     private final EduCourseMapper courseMapper;
     private final EduCourseCatalogMapper catalogMapper;
     private final IEduCourseService courseService;
+
+    @Autowired(required = false)
+    private RocketMQTemplate rocketMQTemplate;
 
     public EduLearningServiceImpl(EduLearningRecordMapper learningMapper,
                                   EduLearningPlanMapper planMapper,
@@ -118,13 +126,21 @@ public class EduLearningServiceImpl implements IEduLearningService {
     @Override
     @Transactional
     public Map<String, Object> revokeCourse(Long courseId) {
-        Long userId = currentUserId();
+        return revokeCourseForUser(currentUserId(), courseId);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> revokeCourseForUser(Long userId, Long courseId) {
         if (userId == null || courseId == null) {
             return Map.of();
         }
         learningMapper.delete(new LambdaQueryWrapper<EduLearningRecord>()
                 .eq(EduLearningRecord::getUserId, userId)
                 .eq(EduLearningRecord::getCourseId, courseId));
+        planMapper.delete(new LambdaQueryWrapper<EduLearningPlan>()
+                .eq(EduLearningPlan::getUserId, userId)
+                .eq(EduLearningPlan::getCourseId, courseId));
         return Map.of("revoked", true, "courseId", courseId, "userId", userId);
     }
 
@@ -339,6 +355,8 @@ public class EduLearningServiceImpl implements IEduLearningService {
             }
         }
 
+        Integer oldStatus = summary != null ? summary.getStatus() : null;
+
         if (summary == null) {
             summary = new EduLearningRecord();
             summary.setId(newId());
@@ -369,6 +387,13 @@ public class EduLearningServiceImpl implements IEduLearningService {
             learningMapper.updateById(summary);
         }
 
+        // 完课状态跃迁判定：若从非完成跃迁为已完成(status=2)，触发 RocketMQ 完课打卡异步广播
+        boolean wasCompleted = oldStatus != null && oldStatus == 2;
+        boolean isCompleted = summary.getStatus() != null && summary.getStatus() == 2;
+        if (!wasCompleted && isCompleted) {
+            sendCourseCompletedMessage(userId, value.getCourseId(), overallPercent);
+        }
+
         try {
             List<EduLearningPlan> plans = planMapper.selectList(new LambdaQueryWrapper<EduLearningPlan>()
                     .eq(EduLearningPlan::getUserId, userId)
@@ -388,6 +413,31 @@ public class EduLearningServiceImpl implements IEduLearningService {
         }
 
         return summary;
+    }
+
+    private void sendCourseCompletedMessage(Long userId, Long courseId, BigDecimal percent) {
+        if (rocketMQTemplate == null) {
+            log.warn("RocketMQTemplate not available, skipping course completed message for user {} course {}", userId, courseId);
+            return;
+        }
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("userId", userId);
+            payload.put("courseId", courseId);
+            payload.put("progressPercent", percent != null ? percent : BigDecimal.valueOf(100));
+            payload.put("rewardPoints", 50);
+            payload.put("badge", "COURSE_MASTER");
+            payload.put("completedTime", LocalDateTime.now().toString());
+
+            rocketMQTemplate.syncSend(
+                EduRocketMQConstants.EDU_COURSE_COMPLETED_TOPIC,
+                MessageBuilder.withPayload(JSON.toJSONString(payload)).build(),
+                3000
+            );
+            log.info("【RocketMQ】成功发送学员完课打卡广播, userId={}, courseId={}, percent={}", userId, courseId, percent);
+        } catch (Exception e) {
+            log.error("【RocketMQ】发送学员完课打卡广播失败, userId={}, courseId={}", userId, courseId, e);
+        }
     }
 
     @Override

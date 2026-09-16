@@ -58,6 +58,7 @@
 | **推荐算法微服务** | `http://47.121.31.17:15000` | 容器 `zhiwen-recommend`，内部端口 `5000`，`DRAG-KP4SR` 语义桥接引擎 |
 | **RocketMQ 路由中心** | 内部 `zhiwen-rocketmq-namesrv:9876` / 宿主机 `9876` | 容器 `zhiwen-rocketmq-namesrv`（极轻量路由中心，限额 256M，实测 ~140MB） |
 | **RocketMQ Broker** | 内部 `zhiwen-rocketmq-broker:10911` / 宿主机 `10909, 10911` | 容器 `zhiwen-rocketmq-broker`（极轻量存储转发，限额 600M，实测 ~440MB，异步刷盘保护云盘） |
+| **消息中枢微服务 Share-MQ** | 内部端口 `9215` / 宿主机 `19215` | 容器 `zhiwen-mq`，全站 RocketMQ 消费者与事件调度微服务（限额 256M，实测 ~520MB） |
 | **Nacos 控制台** | 内部端口 `8848` / 宿主机 `8848` | 配置中心与服务发现（命名空间等依赖外部 MySQL） |
 
 ---
@@ -118,6 +119,8 @@
 | **39** | **Workbench CLI 长时间未操作后执行命令挂起或无输出** | Workbench 后台守护进程中长期未关闭的已失效 session 会进入僵死状态，导致后续向该 session 发送输入无响应。 | 执行 `workbench session close <session-id>` 关闭已过期失效会话；后续命令带上 `-r cn-heyuan` 显式指定区域即可毫秒级创建全新 session 正常执行。 |
 | **40** | **RocketMQ 5.1.4 镜像内存限制与云盘保护调优** | 1. 官方镜像启动脚本自带 `-Xmn` 计算逻辑，直接限制堆为 128M 时会导致 `MaxNewSize is equal to or greater than entire heap` 崩溃；<br>2. 容器以 rocketmq(UID=3000) 运行，宿主机目录权限不足会导致启动拒绝；<br>3. 默认同步刷盘会耗尽 ESSD 云盘 IOPS。 | 1. 必须在环境变量声明 `JAVA_OPT_EXT` 显式指定 `-Xmn`（NameSrv: `-Xms128m -Xmx128m -Xmn64m`；Broker: `-Xms256m -Xmx384m -Xmn128m`）；<br>2. 挂载目录赋权 `chmod -R 777 /opt/tianji/rocketmq`；<br>3. `broker.conf` 务必配置 `flushDiskType = ASYNC_FLUSH` 与 `fileReservedTime = 48`，双容器实测常驻仅 ~580MB，ECS 可用内存维持在 1.3GB 以上。 |
 | **41** | **RocketMQ 自定义延时级别与 15 分钟关单落地** | RocketMQ 默认 18 级延时中无 15 分钟（只有 10m -> 20m），业务 15 分钟关单无法直接使用默认级别。 | 在 `broker.conf` 显式声明 `messageDelayLevel = 1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 15m 20m 30m 1h 2h`，将第 15 级精确配置为 15 分钟（`15m`），生产下单使用级别 15，自动化定向测试传 `quickTimeout=true` 使用级别 2（`5s`）。 |
+| **42** | **纯调度微服务（如 share-mq）启动报缺少 DataSource** | 微服务本身不直连数据库（仅通过 MQ 与 Feign 交互），但间接依赖的 `share-common-log`、`share-common-security` 会引入 Spring Boot JDBC 自动配置，导致找不到 `spring.datasource.url` 时启动报错。 | 在微服务启动类上显式声明排除数据源自动配置：`@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})`。 |
+| **43** | **Spring MVC 跨控制器路由重名冲突 (Ambiguous mapping)** | 多个 Controller（如原有 `EducationPortalController` 与新增 `EducationInternalController`）均声明映射了相同 URL 路径（`/internal/enrollments/{courseId}`），即便方法名或参数稍有差异，Spring MVC 启动期也会抛出 `IllegalStateException: Ambiguous mapping` 并终止上下文加载。 | 必须严格收敛同一 URL 的映射入口。内部微服务调用接口集中到 `*InternalController` 处理，将参数设为可选（`required = false`）并在业务逻辑内部做兼容分流（有 `userId` 走跨服务履约，无 `userId` 兜底走当前登录上下文），同时彻底删除原旧控制器中的重名路由。 |
 
 ---
 

@@ -337,19 +337,7 @@ public class EducationPortalController extends BaseController {
         return success(educationService.learningCourse(courseId));
     }
 
-    /** 交易服务完成支付后通过 Feign 调用，创建当前用户的学习记录 (B23)。 */
-    @InnerAuth
-    @PostMapping("/internal/enrollments/{courseId}")
-    public AjaxResult enrollCourse(@PathVariable Long courseId) {
-        return success(educationService.enrollCourse(courseId));
-    }
-
-    /** 交易服务退款后通过 Feign 调用，撤销当前用户的课程学习记录 (B27, B28)。 */
-    @InnerAuth
-    @PostMapping("/internal/enrollments/{courseId}/revoke")
-    public AjaxResult revokeCourse(@PathVariable Long courseId) {
-        return success(educationService.revokeCourse(courseId));
-    }
+    // /internal/enrollments/** 已迁移至 EducationInternalController 统一处理 (支持显式 userId 及当前登录用户兜底)
 
     /**
      * 重置当前用户指定课程的学习进度，保留报名关系和课程本身。

@@ -391,23 +391,38 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         }
         try {
             boolean quickTimeout = body != null && bool(body.get("quickTimeout"));
-            // 延时级别：默认15对应自定义15分钟；单元与联调测试传入 quickTimeout=true 时使用级别2 (5秒)
-            int delayLevel = quickTimeout ? 2 : 15;
+            // 关单延时级别：默认15对应自定义15分钟；单元与联调测试传入 quickTimeout=true 时使用级别2 (5秒)
+            int cancelDelayLevel = quickTimeout ? 2 : 15;
+            // 催付延时级别：默认14对应自定义10分钟（提前5分钟催付）；测试模式传入 quickTimeout=true 时使用级别1 (1秒)
+            int remindDelayLevel = quickTimeout ? 1 : 14;
+
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("orderId", orderId);
             payload.put("userId", userId);
-            payload.put("delayLevel", delayLevel);
+            payload.put("delayLevel", cancelDelayLevel);
             payload.put("createTime", System.currentTimeMillis());
 
+            // 1. 发送 15 分钟超时关单消息
             rocketMQTemplate.syncSend(
                 RocketMQTopicConstants.TRADE_ORDER_TIMEOUT_TOPIC,
                 MessageBuilder.withPayload(JSON.toJSONString(payload)).build(),
                 3000,
-                delayLevel
+                cancelDelayLevel
             );
-            log.info("【RocketMQ】成功发送订单超时延时消息, orderId={}, delayLevel={}", orderId, delayLevel);
+            log.info("【RocketMQ】成功发送订单超时延时关单消息, orderId={}, delayLevel={}", orderId, cancelDelayLevel);
+
+            // 2. 发送超时前 5 分钟催付提醒延时消息
+            Map<String, Object> remindPayload = new LinkedHashMap<>(payload);
+            remindPayload.put("remindDelayLevel", remindDelayLevel);
+            rocketMQTemplate.syncSend(
+                RocketMQTopicConstants.TRADE_ORDER_EXPIRING_REMINDER_TOPIC,
+                MessageBuilder.withPayload(JSON.toJSONString(remindPayload)).build(),
+                3000,
+                remindDelayLevel
+            );
+            log.info("【RocketMQ】成功发送订单超时前催付提醒延时消息, orderId={}, delayLevel={}", orderId, remindDelayLevel);
         } catch (Exception e) {
-            log.error("【RocketMQ】发送订单超时延时消息失败, orderId={}", orderId, e);
+            log.error("【RocketMQ】发送订单延时消息失败, orderId={}", orderId, e);
         }
     }
 

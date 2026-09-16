@@ -1,9 +1,11 @@
-package com.share.education.mq;
+package com.share.mq.education.consumer;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.share.education.service.IEduLearningService;
+import com.share.common.core.constant.SecurityConstants;
+import com.share.mq.education.constant.EducationMqConstants;
+import com.share.mq.education.feign.RemoteEducationInternalService;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.slf4j.Logger;
@@ -14,26 +16,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 课程支付履约消费者 (监听 RocketMQ 支付成功消息，异步开通课程学习权限与学情记录)
+ * 教育领域：课程支付履约消费者 (监听支付成功消息，调度教育服务为用户开课)
  */
 @Component
 @RocketMQMessageListener(
-    topic = "TRADE_ORDER_PAID_TOPIC",
-    consumerGroup = "edu-course-enroll-consumer-group"
+    topic = EducationMqConstants.TRADE_ORDER_PAID_TOPIC,
+    consumerGroup = EducationMqConstants.EDU_ENROLL_CONSUMER_GROUP
 )
 public class EduCourseEnrollConsumer implements RocketMQListener<String> {
 
     private static final Logger log = LoggerFactory.getLogger(EduCourseEnrollConsumer.class);
 
-    private final IEduLearningService learningService;
+    private final RemoteEducationInternalService educationInternalService;
 
-    public EduCourseEnrollConsumer(IEduLearningService learningService) {
-        this.learningService = learningService;
+    public EduCourseEnrollConsumer(RemoteEducationInternalService educationInternalService) {
+        this.educationInternalService = educationInternalService;
     }
 
     @Override
     public void onMessage(String message) {
-        log.info("【RocketMQ课程履约】收到支付成功开课消息: {}", message);
+        log.info("【Share-MQ消息中枢-教育领域】收到支付成功开课履约消息: {}", message);
         try {
             JSONObject data = JSON.parseObject(message);
             if (data == null) {
@@ -43,7 +45,7 @@ public class EduCourseEnrollConsumer implements RocketMQListener<String> {
             Long orderId = data.getLong("orderId");
             JSONArray courses = data.getJSONArray("courseIds");
             if (userId == null || courses == null || courses.isEmpty()) {
-                log.warn("【RocketMQ课程履约】消息参数不全, message={}", message);
+                log.warn("【Share-MQ消息中枢-教育领域】开课消息参数不全, message={}", message);
                 return;
             }
 
@@ -56,12 +58,12 @@ public class EduCourseEnrollConsumer implements RocketMQListener<String> {
             }
 
             for (Long courseId : courseIds) {
-                learningService.enrollCourseForUser(userId, courseId);
-                log.info("【RocketMQ课程履约】成功为用户 {} 开通课程 {} (来自订单 {})", userId, courseId, orderId);
+                educationInternalService.enrollCourseForUser(courseId, userId, SecurityConstants.INNER);
+                log.info("【Share-MQ消息中枢-教育领域】成功调用教育微服务为用户 {} 开通课程 {} (来自订单 {})", userId, courseId, orderId);
             }
-            log.info("【RocketMQ课程履约】订单 {} 全部课程履约开通完毕, 用户: {}, 课程数: {}", orderId, userId, courseIds.size());
+            log.info("【Share-MQ消息中枢-教育领域】订单 {} 全部课程履约开通完毕, 用户: {}, 课程数: {}", orderId, userId, courseIds.size());
         } catch (Exception e) {
-            log.error("【RocketMQ课程履约】开课处理异常, message={}", message, e);
+            log.error("【Share-MQ消息中枢-教育领域】开课履约处理异常, message={}", message, e);
             throw new RuntimeException("处理课程履约异常", e);
         }
     }

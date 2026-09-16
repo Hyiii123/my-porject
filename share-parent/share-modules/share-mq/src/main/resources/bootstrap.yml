@@ -1,11 +1,11 @@
 # Tomcat
 server:
-  port: 9206
+  port: 9215
 
 # Spring
 spring:
   application:
-    name: share-customer
+    name: share-mq
   profiles:
     active: dev
   main:
@@ -29,13 +29,10 @@ feign:
       default:
         connectTimeout: 10000
         readTimeout: 60000
-      remoteEducationService:
-        connectTimeout: 10000
-        readTimeout: 60000
 
 # RocketMQ
 rocketmq:
   name-server: ${ROCKETMQ_NAMESRV_ADDR:zhiwen-rocketmq-namesrv:9876}
   producer:
-    group: customer-producer-group
+    group: mq-hub-producer-group
     send-message-timeout: 3000

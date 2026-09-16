@@ -26,11 +26,16 @@ import com.share.customer.service.support.CustomerActionCardAssembler;
 import com.share.customer.service.support.CustomerSecurityShield;
 import com.share.education.api.RemoteEducationService;
 import lombok.extern.slf4j.Slf4j;
+import com.alibaba.fastjson2.JSON;
+import com.share.customer.mq.CustomerRocketMQConstants;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -74,6 +79,9 @@ public class CustomerServiceImpl implements ICustomerService {
     private final RemoteEducationService remoteEducationService;
     private final CustomerSecurityShield securityShield;
     private final CustomerActionCardAssembler cardAssembler;
+
+    @Autowired(required = false)
+    private RocketMQTemplate rocketMQTemplate;
 
     public CustomerServiceImpl(
             CustomerKnowledgeMapper knowledgeMapper,
@@ -418,7 +426,8 @@ public class CustomerServiceImpl implements ICustomerService {
         value.setStatus(request.getStatus() == null ? 1 : request.getStatus());
         value.setUpdateBy(currentUserId());
         value.setUpdateTime(now);
-        if (value.getId() == null) {
+        boolean isNew = value.getId() == null;
+        if (isNew) {
             value.setId(newId());
             value.setCreateBy(currentUserId());
             value.setCreateTime(now);
@@ -426,8 +435,10 @@ public class CustomerServiceImpl implements ICustomerService {
             value.setVersion(0);
             value.setHitCount(0);
             knowledgeMapper.insert(value);
+            sendKnowledgeSyncMessage("INSERT", value.getId(), value.getQuestion(), value.getCategory());
         } else {
             knowledgeMapper.updateById(value);
+            sendKnowledgeSyncMessage("UPDATE", value.getId(), value.getQuestion(), value.getCategory());
         }
         return value;
     }
@@ -436,7 +447,34 @@ public class CustomerServiceImpl implements ICustomerService {
     @Transactional
     public void removeKnowledge(List<Long> ids) {
         if (ids != null) {
-            ids.stream().filter(Objects::nonNull).forEach(knowledgeMapper::deleteById);
+            ids.stream().filter(Objects::nonNull).forEach(id -> {
+                knowledgeMapper.deleteById(id);
+                sendKnowledgeSyncMessage("DELETE", id, null, null);
+            });
+        }
+    }
+
+    private void sendKnowledgeSyncMessage(String action, Long knowledgeId, String question, String category) {
+        if (rocketMQTemplate == null) {
+            log.warn("RocketMQTemplate not available, skipping knowledge sync message for knowledgeId {}", knowledgeId);
+            return;
+        }
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("action", action);
+            payload.put("knowledgeId", knowledgeId);
+            payload.put("question", question);
+            payload.put("category", category);
+            payload.put("timestamp", System.currentTimeMillis());
+
+            rocketMQTemplate.syncSend(
+                CustomerRocketMQConstants.CUSTOMER_KNOWLEDGE_SYNC_TOPIC,
+                MessageBuilder.withPayload(JSON.toJSONString(payload)).build(),
+                3000
+            );
+            log.info("【RocketMQ】成功发送知识库异步同步消息, action={}, knowledgeId={}", action, knowledgeId);
+        } catch (Exception e) {
+            log.error("【RocketMQ】发送知识库异步同步消息失败, action={}, knowledgeId={}", action, knowledgeId, e);
         }
     }
 

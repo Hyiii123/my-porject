@@ -214,6 +214,34 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
         }
     }
 
+    private void sendOrderRefundedMessage(TrOrder order, BigDecimal refundAmount) {
+        if (rocketMQTemplate == null || order == null) {
+            log.warn("RocketMQTemplate not available, skipping refund message for order {}", order != null ? order.getId() : null);
+            return;
+        }
+        try {
+            List<Long> courseIds = itemMapper.selectList(new LambdaQueryWrapper<TrOrderItem>()
+                    .eq(TrOrderItem::getOrderId, order.getId()))
+                    .stream().map(TrOrderItem::getCourseId).filter(Objects::nonNull).distinct().toList();
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("orderId", order.getId());
+            payload.put("userId", order.getUserId());
+            payload.put("courseIds", courseIds);
+            payload.put("refundAmount", refundAmount != null ? refundAmount.toString() : "0");
+            payload.put("refundTime", order.getRefundTime() != null ? order.getRefundTime().toString() : LocalDateTime.now().toString());
+
+            rocketMQTemplate.syncSend(
+                RocketMQTopicConstants.TRADE_ORDER_REFUNDED_TOPIC,
+                MessageBuilder.withPayload(JSON.toJSONString(payload)).build(),
+                3000
+            );
+            log.info("【RocketMQ】成功发送退款逆向履约消息, orderId={}, userId={}, courseIds={}", order.getId(), order.getUserId(), courseIds);
+        } catch (Exception e) {
+            log.error("【RocketMQ】发送退款逆向履约消息失败, orderId={}", order.getId(), e);
+        }
+    }
+
     @Override
     public Map<String, Object> paymentState(Long orderId) {
         TrOrder order = orderService.findOrder(orderId);
@@ -336,6 +364,10 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
                 order.setUpdateTime(LocalDateTime.now());
                 orderMapper.updateById(order);
                 couponService.restoreUserCoupon(order.getCouponId());
+
+                // 发送退款成功逆向履约消息至 RocketMQ
+                sendOrderRefundedMessage(order, value.getRefundAmount());
+
                 orderService.revokePurchasedCourses(order);
             }
         }
