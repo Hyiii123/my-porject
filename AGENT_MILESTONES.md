@@ -14,6 +14,23 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-15 15:30:00 - 学生端首页多智能体协同导学中心重构：默认极简微光呼吸条(54px)、一键平滑折叠展开与AI客服卡片智能感知唤醒上线 (Collapsible Breathing Bar & Smart Perception Expand for Multi-Agent HUD)
+
+* **演进主题**：首页视觉降噪与主次分流 (Visual De-noising & Hierarchy Optimization)、极简微光胶囊呼吸条 (Collapsible Capsule Bar)、一键展开/收起、学情校准与全景路线轻量直达、客服对话大屏卡片智能感知展开与端到端闭环
+* **核心成果**：
+  1. **首屏视觉降噪与极简微光呼吸条 (54px Collapsible Breathing Bar)**：
+     - 重构 [`AgentReasoningHUD.vue`](file:///d:/education%20system/my-porject/share-parent/frontends/portal/src/components/AgentReasoningHUD.vue)，将原先超 600px 高度的首屏 HUD 默认收拢为高度仅约 54px 的极简科技风微光呼吸胶囊条；
+     - 彻底消除首页拥挤与喧宾夺主感，首屏「为您专属推荐」课程与分类全量上移，一览无余；
+     - 折叠条左侧保留呼吸脉冲灯、L5 集群徽章、动态目标岗位标签与 AAA 级审判质检合规标签，保持高技术辨识度。
+  2. **双态无缝切换与对话框解耦 (Dual-Mode Smooth Toggle & Modal Decoupling)**：
+     - 折叠条提供「🧭 学情校准」（无需展开即可一键弹窗微调冷启动探针）、「🗺️ 4阶段路线」（一键唤起全屏成长路线抽屉）与「⚡ 展开推演看板 ▾」；
+     - 展开态下提供「收起看板 ▴」操作，支持学员自主按需开闭；
+     - 将智能体详情、探针问卷与质检度量三大弹窗解耦至外层容器，在折叠态与展开态下均可完美独立呼出。
+  3. **客服联动智能感知自动唤醒 (Smart Route Query Auto-Expand)**：
+     - 当学员在 AI 客服端进行职业规划咨询并点击「前往大屏」动作卡片跳转至首页时（携带 `?targetRole=xxx`），首页 HUD 自动感知 URL query 参数，瞬间自动切换为展开态，完成端到端丝滑联动。
+  4. **严格遵循 Golden Release 发布铁律（Rule 1、Rule 2、Rule 8）**：
+     - 本地 Vite 离线生产打包验证零错误，提取增量静态文件轻量热部署至服务器 Nginx，公网 `http://47.121.31.17:18081/` 实时生效且零报错。
+
 ### 2026-09-15 15:05:00 - AI智能体实时思考反馈流、三栏式可折叠会话侧边栏(新建/归档/删除)与账户安全注销防线正式上线 (Real-time Agent Thought Feedback, 3-Column Collapsible Session Manager & Account Cancellation Security Shield)
 
 * **演进主题**：智能体执行实时感知流 (Live Execution Timer & Pipeline Stages)、耗时徽章 (`costSeconds`)、客服三栏自适应可折叠历史侧边栏、会话归档/删除闭环、个人中心安全设置账号注销与管理员底层强保护 (Admin Protection & Account Cancellation Shield)
