@@ -7,17 +7,25 @@ import com.share.common.redis.service.RedisService;
 import com.share.customer.config.CustomerAiProperties;
 import com.share.customer.domain.CustomerAiConfig;
 import com.share.customer.mapper.CustomerAiConfigMapper;
+import com.share.customer.service.support.security.DefaultSecurityFilterChain;
+import com.share.customer.service.support.security.SecurityCheckContext;
+import com.share.customer.service.support.security.SecurityCheckFilter;
+import com.share.customer.service.support.security.SecurityFilterChain;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
  * 客服与智能体安全防护屏障（租户越权隔离、接口限流、API Key加解密、URL白名单）
+ * <p>
+ * 集成 GoF 责任链模式 (Chain of Responsibility)，通过 {@link SecurityCheckFilter} 链式执行安全校验与风控拦截。
  */
 @Slf4j
 @Component
@@ -38,14 +46,38 @@ public class CustomerSecurityShield {
     private final RedisService redisService;
     private final CustomerAiConfigMapper aiConfigMapper;
     private final CustomerAiProperties aiProperties;
+    private final List<SecurityCheckFilter> filters;
 
     public CustomerSecurityShield(
             RedisService redisService,
             CustomerAiConfigMapper aiConfigMapper,
-            CustomerAiProperties aiProperties) {
+            CustomerAiProperties aiProperties,
+            List<SecurityCheckFilter> filters) {
         this.redisService = redisService;
         this.aiConfigMapper = aiConfigMapper;
         this.aiProperties = aiProperties;
+        List<SecurityCheckFilter> sorted = new ArrayList<>(filters != null ? filters : List.of());
+        sorted.sort(Comparator.comparingInt(SecurityCheckFilter::getOrder));
+        this.filters = List.copyOf(sorted);
+        log.info("客服安全防御责任链加载完成，生效节点数: {}", this.filters.size());
+    }
+
+    /**
+     * 执行安全防御责任链 (Execute Security Filter Chain)
+     */
+    public SecurityCheckContext executeSecurityChain(Long userId, String userName, String content) {
+        String lower = content != null ? content.toLowerCase() : "";
+        SecurityCheckContext context = SecurityCheckContext.builder()
+                .userId(userId)
+                .content(content)
+                .lowerContent(lower)
+                .build();
+        if (userName != null) {
+            context.getAttributes().put("userName", userName);
+        }
+        SecurityFilterChain chain = new DefaultSecurityFilterChain(this.filters);
+        chain.doFilter(context);
+        return context;
     }
 
     public boolean isCrossUserAttempt(String lower) {

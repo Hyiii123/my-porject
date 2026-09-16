@@ -52,6 +52,7 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
     private final ITradeOrderService orderService;
     private final ITradeCouponService couponService;
     private final Environment environment;
+    private final com.share.trade.service.support.payment.PaymentStrategyFactory paymentStrategyFactory;
 
     @Autowired(required = false)
     private RocketMQTemplate rocketMQTemplate;
@@ -63,7 +64,8 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
                                    MktCouponMapper couponMapper,
                                    @Qualifier("tradeOrderServiceImpl") ITradeOrderService orderService,
                                    @Qualifier("tradeCouponServiceImpl") ITradeCouponService couponService,
-                                   Environment environment) {
+                                   Environment environment,
+                                   com.share.trade.service.support.payment.PaymentStrategyFactory paymentStrategyFactory) {
         this.orderMapper = orderMapper;
         this.itemMapper = itemMapper;
         this.paymentMapper = paymentMapper;
@@ -72,14 +74,12 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
         this.orderService = orderService;
         this.couponService = couponService;
         this.environment = environment;
+        this.paymentStrategyFactory = paymentStrategyFactory;
     }
 
     @Override
     public List<Map<String, Object>> paymentChannels() {
-        return List.of(
-                Map.of("id", "wechat", "name", "微信支付", "type", "wechat"),
-                Map.of("id", "alipay", "name", "支付宝", "type", "alipay")
-        );
+        return paymentStrategyFactory.getAvailableChannels();
     }
 
     @Override
@@ -116,14 +116,7 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
         order.setUpdateTime(LocalDateTime.now());
         orderMapper.updateById(order);
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("paymentNo", payment.getPaymentNo());
-        result.put("orderId", order.getId());
-        result.put("amount", cents(order.getPayableAmount()));
-        result.put("payUrl", "demo://zhiwen-pay/" + payment.getPaymentNo());
-        result.put("status", payment.getStatus());
-        result.put("demo", true);
-        return result;
+        return paymentStrategyFactory.buildPayment(order, payment, channel);
     }
 
     @Override

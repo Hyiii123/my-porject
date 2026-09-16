@@ -45,6 +45,7 @@ public class EduExamServiceImpl implements IEduExamService {
     private final ObjectMapper objectMapper;
     private final IEduCourseService courseService;
     private final IEduInteractionService interactionService;
+    private final com.share.education.service.support.grading.QuestionGradingFactory gradingFactory;
 
     public EduExamServiceImpl(EduExamMapper examMapper,
                               EduExamQuestionBankMapper questionBankMapper,
@@ -54,7 +55,8 @@ public class EduExamServiceImpl implements IEduExamService {
                               EduCatalogQuestionMapper catalogQuestionMapper,
                               ObjectMapper objectMapper,
                               IEduCourseService courseService,
-                              @Lazy IEduInteractionService interactionService) {
+                              @Lazy IEduInteractionService interactionService,
+                              com.share.education.service.support.grading.QuestionGradingFactory gradingFactory) {
         this.examMapper = examMapper;
         this.questionBankMapper = questionBankMapper;
         this.examQuestionMapper = examQuestionMapper;
@@ -64,6 +66,7 @@ public class EduExamServiceImpl implements IEduExamService {
         this.objectMapper = objectMapper;
         this.courseService = courseService;
         this.interactionService = interactionService;
+        this.gradingFactory = gradingFactory;
     }
 
     @Override
@@ -352,8 +355,8 @@ public class EduExamServiceImpl implements IEduExamService {
                 EduExamQuestion relation = relationByQuestion.get(questionId);
                 require(question != null && (!hasExplicitQuestions || relation != null), "提交的题目不属于该考试");
                 Object rawAns = answer.get("answer") != null ? answer.get("answer") : answer.get("userAnswer");
-                String userAnswer = normalizeAnswer(text(rawAns), question.getQuestionType());
-                boolean right = question != null && sameAnswer(question.getCorrectAnswer(), userAnswer, question.getQuestionType());
+                String userAnswer = gradingFactory.normalizeAnswer(text(rawAns), question.getQuestionType());
+                boolean right = question != null && gradingFactory.isCorrect(question.getCorrectAnswer(), userAnswer, question.getQuestionType());
                 BigDecimal itemScore = relation != null && relation.getScore() != null
                         && relation.getScore().compareTo(BigDecimal.ZERO) > 0
                         ? relation.getScore() : defaultValue(question.getScore(), BigDecimal.ZERO);

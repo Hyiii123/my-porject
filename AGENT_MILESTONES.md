@@ -14,6 +14,38 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-16 17:00:00 - 微服务全域 GoF 设计模式系统性架构重构：落地策略模式、工厂模式与责任链模式，彻底解耦交易支付/优惠折扣/题库阅卷与客服安全体系，线上定向测试 100% 验证通过 (Full Microservice Domain GoF Design Patterns Refactoring: Strategy, Factory & Chain of Responsibility across Trade, Education, and Customer)
+
+* **演进主题**：全域设计模式系统性重构 (GoF Design Patterns Architecture)、开闭原则与单一职责深度对齐 (OCP & SRP Compliance)、交易支付与折扣策略解耦 (Payment & Discount Strategy Factories in `share-trade`)、教育试题判卷策略体系构建 (Question Grading Strategy Factory in `share-education`)、智能体安全风控责任链落地 (Security Chain of Responsibility in `share-customer`)、线上微服务逐一平滑发布与定向测试 100% 验证闭环 (Sequential Deployment & Targeted Scope Verification)
+* **核心成果**：
+  1. **交易支付渠道策略模式与工厂架构落地 (`share-trade`)**：
+     - 构建统一支付策略契约 `PaymentChannelStrategy` 与策略工厂 `PaymentStrategyFactory`；
+     - 实现多渠道策略：`WechatPayChannelStrategy` (微信支付，order=10)、`AlipayChannelStrategy` (支付宝，order=20)、`MockDemoPayChannelStrategy` (模拟测试支付，order=30，对外公开隔离)；
+     - 彻底消除 `TradePaymentServiceImpl` 中的硬编码多分支，统一委托工厂调度，保证向后兼容。
+  2. **交易优惠券折扣策略模式重构 (`share-trade`)**：
+     - 构建统一折扣计算策略契约 `CouponDiscountStrategy` 与策略工厂 `CouponDiscountFactory`；
+     - 实现不同优惠计算规则策略：`PercentageDiscountStrategy` (比例折扣率计算，支持百分制与十分制自适应，order=10)、`FixedAmountDiscountStrategy` (满减与立减计算，order=100)；
+     - 彻底解耦 `TradeCouponServiceImpl` 复杂的折扣计算逻辑，新增优惠规则无需改动业务主体。
+  3. **教育考试题型判卷策略模式与工厂架构 (`share-education`)**：
+     - 构建统一判卷策略契约 `QuestionGradingStrategy` 与工厂调度器 `QuestionGradingFactory`；
+     - 针对不同题型解耦专属判卷策略：
+       - `SingleChoiceGradingStrategy` (单选题数字/字母标准化，1->A 自动映射，order=10)；
+       - `MultipleChoiceGradingStrategy` (多选题无序集合去重比对，如 "B,A" 与 "AB" 等价，order=20)；
+       - `JudgeGradingStrategy` (判断题 true/false/1/0/正确/错误 统一布尔归一化，order=30)；
+       - `BlankGradingStrategy` (填空/问答/兜底，支持空格修剪与大小写不敏感匹配，order=100)；
+     - `EduExamServiceImpl` 判卷算法全面委托工厂执行，极大增强未来主观题/AI阅卷的扩展性。
+  4. **客服与智能体安全风控责任链模式落地 (`share-customer`)**：
+     - 建立安全风控责任链核心契约 `SecurityCheckFilter`、`SecurityFilterChain`、`SecurityCheckContext` 与 `DefaultSecurityFilterChain`；
+     - 形成顺序清晰、职责隔离的防线节点：
+       - `RateLimitSecurityFilter` (节点 1，order=10)：基于 Redis 滑动窗口限制 10 次/60 秒防暴力刷量；
+       - `CrossUserReconSecurityFilter` (节点 2，order=20)：基于正则与语义特征防御跨租户/越权查询其他学员敏感资产；
+       - `PromptInjectionSecurityFilter` (节点 3，order=30)：基于提示词特征探测并阻断恶意指令注入、越狱 (Jailbreak) 与系统 Prompt 窥探；
+     - `CustomerSecurityShield` 作为安全中枢门面统一管理过滤器链条，并在 `CustomerActionCardAssembler` 中前置执行链式拦截，实现业务与安全解耦。
+  5. **生产发布与定向测试 100% 闭环验证 (Rule 1, 2, 5, 6, 8 Compliance)**：
+     - 本地 JDK 17 严格离线编译生成 `share-trade.jar`、`share-education.jar`、`share-customer.jar`；
+     - 遵循云盘保护铁律（Rule 2），通过 Workbench CLI 顺序上传与轻量替换容器运行时，未造成任何 I/O 抖动；
+     - 执行 `.scratch/verify_design_patterns_all.ps1` 包含认证、支付渠道策略、优惠券策略、题库判卷策略、跨用户越权防御、Prompt 注入防御、动作卡片派发 8 项定向测试，100% 全部通过。
+
 ### 2026-09-16 16:30:00 - 前端工程 pnpm workspace Monorepo 统一架构演进：构建 `@zhiwen/shared` 核心共享包，统一多端常量、鉴权刷新与样式治理，全端构建 100% 验证通过 (Frontend pnpm Workspace Monorepo Upgrade: Unified @zhiwen/shared Core Package, Token Refresh Governance & Multi-App Build Verified)
 
 * **演进主题**：前端 Monorepo 架构治理 (Frontend Monorepo Architecture)、`pnpm workspace` 依赖编排 (Workspace Dependency Orchestration)、核心公共包提炼 (`@zhiwen/shared` Package Extraction)、统一鉴权与双 Token 静默刷新收敛 (Unified Token Governance & Silent Refresh)、Vue 3.3+ 严格规范重构 (Vue 3 Strict Single Direction Data Flow Fixes)、全端编译 100% 验证闭环 (Multi-App Production Build Verified)

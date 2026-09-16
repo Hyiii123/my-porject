@@ -46,17 +46,20 @@ public class TradeCouponServiceImpl implements ITradeCouponService {
     private final MktUserCouponMapper userCouponMapper;
     private final RedisService redisService;
     private final Environment environment;
+    private final com.share.trade.service.support.coupon.CouponDiscountFactory couponDiscountFactory;
 
     public TradeCouponServiceImpl(MktCouponMapper couponMapper,
                                   MktCouponCodeMapper couponCodeMapper,
                                   MktUserCouponMapper userCouponMapper,
                                   RedisService redisService,
-                                  Environment environment) {
+                                  Environment environment,
+                                  com.share.trade.service.support.coupon.CouponDiscountFactory couponDiscountFactory) {
         this.couponMapper = couponMapper;
         this.couponCodeMapper = couponCodeMapper;
         this.userCouponMapper = userCouponMapper;
         this.redisService = redisService;
         this.environment = environment;
+        this.couponDiscountFactory = couponDiscountFactory;
     }
 
     @Override
@@ -366,27 +369,7 @@ public class TradeCouponServiceImpl implements ITradeCouponService {
         require(coupon.getEndTime() == null || !now.isAfter(coupon.getEndTime()), "优惠券已过期");
         BigDecimal threshold = defaultValue(coupon.getThresholdAmount(), BigDecimal.ZERO);
         if (total.compareTo(threshold) < 0) return BigDecimal.ZERO;
-        BigDecimal value = defaultValue(coupon.getDiscountValue(), BigDecimal.ZERO);
-        BigDecimal discount;
-        if (coupon.getDiscountType() != null && coupon.getDiscountType() == 2) {
-            BigDecimal discountRate;
-            if (value.compareTo(BigDecimal.valueOf(10)) > 0) {
-                discountRate = value.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-            } else if (value.compareTo(BigDecimal.ONE) > 0) {
-                discountRate = value.divide(BigDecimal.TEN, 4, RoundingMode.HALF_UP);
-            } else if (value.compareTo(BigDecimal.ZERO) > 0) {
-                discountRate = value;
-            } else {
-                discountRate = BigDecimal.ONE;
-            }
-            discount = total.multiply(BigDecimal.ONE.subtract(discountRate));
-        } else {
-            discount = value;
-        }
-        if (coupon.getMaxDiscountAmount() != null && coupon.getMaxDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
-            discount = discount.min(coupon.getMaxDiscountAmount());
-        }
-        return discount.max(BigDecimal.ZERO).min(total);
+        return couponDiscountFactory.calculate(total, coupon);
     }
 
     @Override

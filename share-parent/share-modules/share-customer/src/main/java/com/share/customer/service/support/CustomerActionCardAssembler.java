@@ -1,6 +1,7 @@
 package com.share.customer.service.support;
 
 import com.share.customer.service.support.action.CustomerActionFactory;
+import com.share.customer.service.support.security.SecurityCheckContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -12,7 +13,7 @@ import java.util.Map;
  * 智能体自主意图识别、动作派发与交互卡片装配门面 (Agent Copilot Action Card Assembler Facade)
  * <p>
  * 遵循策略工厂模式 (Strategy + Factory)，将全域 14 项业务卡片装配委托给 {@link CustomerActionFactory} 统一调度，
- * 实现高内聚、低耦合与开闭原则 (OCP)。
+ * 并通过责任链模式 (Chain of Responsibility) 驱动前置安全风控核验，实现高内聚、低耦合与开闭原则 (OCP)。
  */
 @Slf4j
 @Component
@@ -155,13 +156,10 @@ public class CustomerActionCardAssembler {
         if (!StringUtils.hasText(content)) return null;
         String lower = content.toLowerCase();
 
-        // 0. 租户与跨用户越权防御拦截 (安全盾第一道防线)
-        if (securityShield.isCrossUserAttempt(lower)) {
-            return "🔒 **系统安全与数据隐私保护拦截**\n\n"
-                    + "智问学伴系统启用了严格的**租户与用户数据隐私隔离防护机制**：\n"
-                    + "• **安全准则**：系统严格遵循权限隔离规范，智能体仅有权操作和展示属于您当前认证账号的数据，**严禁跨账号访问或操作其他学员的订单、简历、考场记录或资产**；\n"
-                    + "• **当前认证账户**：【" + (userName != null ? userName : "当前学员") + "】（用户 ID: " + userId + "）；\n\n"
-                    + "智能体将仅为您本人处理属于您名下的业务。如需管理您本人的数据，请直接对我说“查我的订单”、“看我的面试报告”或“帮我诊断简历”。";
+        // 0. 安全防御责任链前置过滤 (租户隔离、限流与注入防御)
+        SecurityCheckContext secContext = securityShield.executeSecurityChain(userId, userName, content);
+        if (secContext.isBlocked()) {
+            return secContext.getBlockedMessage();
         }
 
         // 1. 委托给策略工厂统一匹配并派发全域 14 大业务动作处理器
