@@ -237,7 +237,7 @@
                       <div class="card-body">
                         <div class="course-thumb">
                           <img
-                            :src="extractAgentActionCard(message.content)?.cover || defaultCover"
+                            :src="extractAgentActionCard(message.content)?.cover || extractAgentActionCard(message.content)?.coverUrl || defaultCover"
                             :alt="extractAgentActionCard(message.content)?.title"
                             @error="handleImgError($event)"
                           />
@@ -1030,7 +1030,7 @@ import { createServiceSession, evaluateService, getServiceFaqs, getServiceSessio
 import { putCarts, enrolledFreeCourse } from '@/api/order.js'
 import { pointsSign } from '@/api/class.js'
 import { addNotes } from '@/api/notes.js'
-import defaultCover from '@/assets/images/courses/default-cover.svg'
+import defaultCover from '@/assets/images/courses/default-cover.svg?url'
 
 const router = useRouter()
 

@@ -50,7 +50,7 @@
               class="recommend-item"
               @click="$router.push(`/details/index?id=${course.id}`)"
             >
-              <img :src="course.cover || defaultCover" :alt="course.title" @error="handleImgError($event, course)" />
+              <img :src="course.cover || course.coverUrl || course.courseCoverUrl || defaultCover" :alt="course.title" @error="handleImgError($event, course)" />
               <div class="recommend-info">
                 <div class="recommend-title">{{ course.title }}</div>
                 <div class="recommend-price">¥{{ (course.price / 100).toFixed(0) }}</div>
@@ -70,10 +70,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { SuccessFilled } from '@element-plus/icons-vue'
 import { getOrderDetails } from '@/api/order.js'
 import { getRecommendClassList } from '@/api/class.js'
-import defaultCover from '@/assets/images/courses/default-cover.svg'
+import defaultCover from '@/assets/images/courses/default-cover.svg?url'
 
 const handleImgError = (e, item) => {
-  if (item) item.cover = defaultCover
+  if (item) {
+    item.cover = defaultCover
+    item.coverUrl = defaultCover
+    item.courseCoverUrl = defaultCover
+  }
   if (e?.target && e.target.src !== defaultCover) {
     e.target.src = defaultCover
   }

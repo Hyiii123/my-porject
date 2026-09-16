@@ -60,7 +60,7 @@
         >
           <div class="course-content">
             <div class="course-cover">
-              <img :src="course.cover || defaultCover" :alt="course.courseName" @error="handleImgError($event, course)" />
+              <img :src="course.cover || course.coverUrl || course.courseCoverUrl || defaultCover" :alt="course.courseName" @error="handleImgError($event, course)" />
               <div class="course-badge" v-if="course.progress === 100">已完成</div>
             </div>
             <div class="course-info">
@@ -127,7 +127,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Reading, Check, Clock, User } from '@element-plus/icons-vue'
 import { getMylessons, delMyClass, restartMyLesson } from '@/api/class.js'
-import defaultCover from '@/assets/images/courses/default-cover.svg'
+import defaultCover from '@/assets/images/courses/default-cover.svg?url'
 
 const router = useRouter()
 
@@ -144,7 +144,11 @@ const courses = ref([])
 const restartingCourseId = ref(null)
 
 const handleImgError = (e, item) => {
-  if (item) item.cover = defaultCover
+  if (item) {
+    item.cover = defaultCover
+    item.coverUrl = defaultCover
+    item.courseCoverUrl = defaultCover
+  }
   if (e?.target && e.target.src !== defaultCover) {
     e.target.src = defaultCover
   }

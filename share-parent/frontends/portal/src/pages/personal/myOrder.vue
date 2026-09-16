@@ -44,7 +44,7 @@
     <el-dialog v-model="evaluateDialogVisible" title="课程评价与心得" width="500px" destroy-on-close>
       <div class="evaluate-modal-content" v-if="evaluatingCourse">
         <div class="course-brief fx-al-ct marg-bt-20" style="display: flex; align-items: center; margin-bottom: 20px;">
-          <img :src="evaluatingCourse.coverUrl || defaultCover" style="width: 100px; height: 56px; border-radius: 6px; object-fit: cover; margin-right: 12px;" />
+          <img :src="evaluatingCourse.coverUrl || evaluatingCourse.courseCoverUrl || evaluatingCourse.cover || defaultCover" @error="handleImgError($event, evaluatingCourse)" style="width: 100px; height: 56px; border-radius: 6px; object-fit: cover; margin-right: 12px;" />
           <div>
             <div style="font-weight: 600; font-size: 15px; color: #333;">{{ evaluatingCourse.name }}</div>
             <div style="font-size: 13px; color: #999; margin-top: 4px;">学完即评，分享真实心得</div>
@@ -103,7 +103,18 @@ import { ElMessageBox } from 'element-plus'
 import CardsTitle from './components/CardsTitle.vue'
 import TableSwitchBar from "./components/TableSwitch.vue";
 import OrderCards from "./components/OrderCards.vue";
-import defaultCover from "@/assets/images/courses/default-cover.svg";
+import defaultCover from "@/assets/images/courses/default-cover.svg?url";
+
+const handleImgError = (e, item) => {
+  if (item) {
+    item.coverUrl = defaultCover
+    item.courseCoverUrl = defaultCover
+    item.cover = defaultCover
+  }
+  if (e?.target && e.target.src !== defaultCover) {
+    e.target.src = defaultCover
+  }
+};
 
 const route = useRoute()
 const store = dataCacheStore()

@@ -135,7 +135,7 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Trophy, Check, Medal, Reading, Star, Share } from '@element-plus/icons-vue'
 import { getSeasons, getSignRecords, getTodayPoints, pointsSign } from '@/api/class.js'
-import defaultAvatar from '@/assets/images/users/default-avatar.svg'
+import defaultAvatar from '@/assets/images/users/default-avatar.svg?url'
 
 // 排行类型
 const rankType = ref('total')

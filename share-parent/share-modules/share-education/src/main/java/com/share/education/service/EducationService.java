@@ -1,6 +1,7 @@
 package com.share.education.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -75,6 +76,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -187,7 +189,36 @@ public class EducationService {
         LambdaQueryWrapper<EduCategory> wrapper = new LambdaQueryWrapper<EduCategory>()
                 .eq(!includeDisabled, EduCategory::getStatus, ENABLED)
                 .orderByAsc(EduCategory::getSortNum).orderByAsc(EduCategory::getId);
-        return categoryMapper.selectList(wrapper).stream().map(this::categoryView).toList();
+        List<EduCategory> list = categoryMapper.selectList(wrapper);
+        if (list == null || list.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Integer> countMap = new HashMap<>();
+        try {
+            List<Map<String, Object>> counts = courseMapper.selectMaps(new QueryWrapper<EduCourse>()
+                    .select("category_id as categoryId, count(*) as total")
+                    .groupBy("category_id"));
+            if (counts != null) {
+                for (Map<String, Object> m : counts) {
+                    if (m != null && m.get("categoryId") != null) {
+                        Long catId = Long.valueOf(m.get("categoryId").toString());
+                        int total = m.get("total") != null ? Integer.parseInt(m.get("total").toString()) : 0;
+                        countMap.put(catId, total);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("统计分类课程数量异常: {}", e.getMessage());
+        }
+
+        return list.stream().map(cat -> {
+            Map<String, Object> view = categoryView(cat);
+            int count = countMap.getOrDefault(cat.getId(), 0);
+            view.put("courseCount", count);
+            view.put("courseNum", count);
+            view.put("courses", count);
+            return view;
+        }).toList();
     }
 
     public Map<String, Object> category(Long id) {
@@ -195,7 +226,12 @@ public class EducationService {
         if (category == null) {
             throw new ServiceException("课程分类不存在");
         }
-        return categoryView(category);
+        Map<String, Object> view = categoryView(category);
+        int count = courseMapper.selectCount(new LambdaQueryWrapper<EduCourse>().eq(EduCourse::getCategoryId, id)).intValue();
+        view.put("courseCount", count);
+        view.put("courseNum", count);
+        view.put("courses", count);
+        return view;
     }
 
     public IPage<EduCategory> pageCategories(String keyword, Integer status, long pageNo, long pageSize) {
@@ -2837,10 +2873,42 @@ public class EducationService {
     }
 
     private Map<String, Object> learningView(EduLearningRecord item) {
-        Map<String, Object> result = new LinkedHashMap<>(); result.put("id", item.getId()); result.put("userId", item.getUserId()); result.put("courseId", item.getCourseId());
-        result.put("catalogId", item.getCatalogId()); result.put("progress", item.getProgressPercent()); result.put("progressPercent", item.getProgressPercent()); result.put("progressSeconds", item.getProgressSeconds());
-        result.put("learnDurationSeconds", item.getLearnDurationSeconds()); result.put("completedLessons", item.getCompletedLessons()); result.put("totalLessons", item.getTotalLessons()); result.put("status", item.getStatus()); result.put("lastLearnTime", item.getLastLearnTime());
-        EduCourse course = courseMapper.selectById(item.getCourseId()); if (course != null) { result.put("courseName", course.getCourseName()); result.put("title", course.getCourseName()); result.put("cover", course.getCoverUrl()); }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", item.getId());
+        result.put("userId", item.getUserId());
+        result.put("courseId", item.getCourseId());
+        result.put("catalogId", item.getCatalogId());
+        result.put("progress", item.getProgressPercent());
+        result.put("progressPercent", item.getProgressPercent());
+        result.put("progressSeconds", item.getProgressSeconds());
+        result.put("learnDurationSeconds", item.getLearnDurationSeconds());
+        result.put("completedLessons", item.getCompletedLessons());
+        result.put("totalLessons", item.getTotalLessons());
+        result.put("learnedSections", item.getCompletedLessons() != null ? item.getCompletedLessons() : 0);
+        result.put("status", item.getStatus());
+        result.put("lastLearnTime", item.getLastLearnTime());
+        result.put("createTime", item.getCreateTime() != null ? item.getCreateTime() : item.getLastLearnTime());
+        result.put("expireTime", null);
+        EduCourse course = courseMapper.selectById(item.getCourseId());
+        if (course != null) {
+            result.put("courseName", course.getCourseName());
+            result.put("title", course.getCourseName());
+            result.put("cover", course.getCoverUrl());
+            result.put("coverUrl", course.getCoverUrl());
+            result.put("courseCoverUrl", course.getCoverUrl());
+            result.put("sections", item.getTotalLessons() != null ? item.getTotalLessons() : course.getLessonCount());
+        } else {
+            result.put("sections", item.getTotalLessons() != null ? item.getTotalLessons() : 0);
+        }
+        if (item.getCatalogId() != null) {
+            try {
+                EduCourseCatalog section = catalogMapper.selectById(item.getCatalogId());
+                if (section != null) {
+                    result.put("latestSectionName", section.getCatalogTitle());
+                    result.put("latestSectionIndex", section.getSortNum() != null ? section.getSortNum() : 1);
+                }
+            } catch (Exception ignored) {}
+        }
         return result;
     }
 

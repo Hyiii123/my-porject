@@ -12,7 +12,7 @@
           <div class="course-list">
             <div v-for="course in selectedCourses" :key="course.id" class="course-item">
               <div class="course-cover">
-                <img :src="course.cover || defaultCover" :alt="course.title" @error="handleImgError($event, course)" />
+                <img :src="course.cover || course.coverUrl || course.courseCoverUrl || defaultCover" :alt="course.title" @error="handleImgError($event, course)" />
               </div>
               <div class="course-info">
                 <h4>{{ course.title }}</h4>
@@ -101,7 +101,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { confirmOrderInfo, setOrder } from '@/api/order.js'
-import defaultCover from '@/assets/images/courses/default-cover.svg'
+import defaultCover from '@/assets/images/courses/default-cover.svg?url'
 
 const route = useRoute()
 const router = useRouter()
@@ -110,7 +110,11 @@ const router = useRouter()
 const selectedCourses = ref([])
 
 const handleImgError = (e, item) => {
-  if (item) item.cover = defaultCover
+  if (item) {
+    item.cover = defaultCover
+    item.coverUrl = defaultCover
+    item.courseCoverUrl = defaultCover
+  }
   if (e?.target && e.target.src !== defaultCover) {
     e.target.src = defaultCover
   }

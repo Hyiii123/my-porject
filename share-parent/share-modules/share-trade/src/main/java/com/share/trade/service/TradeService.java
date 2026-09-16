@@ -1039,7 +1039,10 @@ public class TradeService {
         result.put("selected", item.getSelected()); result.put("checked", Integer.valueOf(1).equals(item.getSelected()));
         result.put("courseName", defaultText(item.getCourseName(), defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), "课程 " + item.getCourseId()))));
         result.put("teacherName", defaultText(item.getTeacherName(), defaultText(snapshot.get("teacherName"), "讲师团队")));
-        result.put("cover", defaultText(item.getCourseCoverUrl(), defaultText(snapshot.get("cover"), defaultText(snapshot.get("coverUrl"), ""))));
+        String cover = defaultText(item.getCourseCoverUrl(), defaultText(snapshot.get("cover"), defaultText(snapshot.get("coverUrl"), "")));
+        result.put("cover", cover);
+        result.put("coverUrl", cover);
+        result.put("courseCoverUrl", cover);
         long price = item.getUnitPrice() == null ? number(snapshot, "price", defaultPriceCents(item.getCourseId())) : cents(item.getUnitPrice()).longValue();
         result.put("price", price); result.put("originalPrice", number(snapshot, "originalPrice", price)); return result;
     }
@@ -1154,6 +1157,8 @@ public class TradeService {
             row.put("name", detail.getCourseName());
             row.put("courseName", detail.getCourseName());
             row.put("cover", detail.getCourseCoverUrl());
+            row.put("coverUrl", detail.getCourseCoverUrl());
+            row.put("courseCoverUrl", detail.getCourseCoverUrl());
             row.put("price", cents(detail.getUnitPrice()));
             row.put("realPayAmount", cents(detail.getPayableAmount()));
             row.put("canRefund", !hasActiveOrApprovedRefund && item.getPaymentStatus() == 1 && item.getOrderStatus() == 1);

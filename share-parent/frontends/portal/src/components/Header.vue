@@ -128,7 +128,7 @@ import { ElMessage } from "element-plus";
 
 import { getUserInfo } from "@/api/user.js";
 import { getCarts } from "@/api/order.js";
-import defaultAvatar from "@/assets/images/users/default-avatar.svg";
+import defaultAvatar from "@/assets/images/users/default-avatar.svg?url";
 
 const router = useRouter();
 const route = useRoute();

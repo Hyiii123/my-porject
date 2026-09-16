@@ -80,7 +80,7 @@
           @click="$router.push(`/details/index?id=${course.id}`)"
         >
           <div class="course-cover">
-            <img :src="course.cover || defaultCover" :alt="course.title" @error="handleImgError" />
+            <img :src="course.cover || course.coverUrl || course.courseCoverUrl || defaultCover" :alt="course.title" @error="handleImgError" />
             <div class="course-badge" v-if="course.price === 0">免费</div>
           </div>
           <div class="course-info">
@@ -122,7 +122,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import { classSeach, getClassCategorys } from '@/api/class.js'
-import defaultCover from '@/assets/images/courses/default-cover.svg'
+import defaultCover from '@/assets/images/courses/default-cover.svg?url'
 
 const route = useRoute()
 const router = useRouter()

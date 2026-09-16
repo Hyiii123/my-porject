@@ -23,7 +23,7 @@
             </div>
             <div class="item-course" @click="$router.push(`/details/index?id=${item.courseId}`)">
               <div class="course-cover">
-                <img :src="item.cover || defaultCover" :alt="item.courseName" @error="handleImgError($event, item)" />
+                <img :src="item.cover || item.coverUrl || item.courseCoverUrl || defaultCover" :alt="item.courseName" @error="handleImgError($event, item)" />
               </div>
               <div class="course-info">
                 <h4 class="course-title">{{ item.courseName }}</h4>
@@ -90,7 +90,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import { getCarts, delCarts } from '@/api/order.js'
-import defaultCover from '@/assets/images/courses/default-cover.svg'
+import defaultCover from '@/assets/images/courses/default-cover.svg?url'
 
 const router = useRouter()
 
@@ -98,7 +98,11 @@ const router = useRouter()
 const cartList = ref([])
 
 const handleImgError = (e, item) => {
-  if (item) item.cover = defaultCover
+  if (item) {
+    item.cover = defaultCover
+    item.coverUrl = defaultCover
+    item.courseCoverUrl = defaultCover
+  }
   if (e?.target && e.target.src !== defaultCover) {
     e.target.src = defaultCover
   }

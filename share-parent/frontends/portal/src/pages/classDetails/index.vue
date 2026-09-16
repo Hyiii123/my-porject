@@ -5,7 +5,7 @@
       <div class="container">
         <div class="header-content">
           <div class="course-cover">
-            <img :src="course.cover || defaultCover" :alt="course.title" @error="handleImgError" />
+            <img :src="course.cover || course.coverUrl || course.courseCoverUrl || defaultCover" :alt="course.title" @error="handleImgError" />
           </div>
           <div class="course-info">
             <h1 class="course-title">{{ course.title }}</h1>
@@ -153,7 +153,7 @@
           </template>
           <div class="like-list">
             <div v-for="(item, index) in likeCourses" :key="index" class="like-item" @click="$router.push(`/details/index?id=${item.id}`)">
-              <img :src="item.cover || defaultCover" :alt="item.title" @error="handleImgError" />
+              <img :src="item.cover || item.coverUrl || item.courseCoverUrl || defaultCover" :alt="item.title" @error="handleImgError" />
               <div class="like-info">
                 <div class="like-title">{{ item.title }}</div>
                 <div class="like-price">¥{{ (item.price / 100).toFixed(0) }}</div>
@@ -176,7 +176,7 @@ import { getAllNotes } from '@/api/notes.js'
 import { getCourseLearning, getRecommendClassList, signUp, likeCourse } from '@/api/class.js'
 import { putCarts, seckillCourse } from '@/api/order.js'
 import { getServiceFaqs } from '@/api/customerService.js'
-import defaultCover from '@/assets/images/courses/default-cover.svg'
+import defaultCover from '@/assets/images/courses/default-cover.svg?url'
 
 const route = useRoute()
 const router = useRouter()

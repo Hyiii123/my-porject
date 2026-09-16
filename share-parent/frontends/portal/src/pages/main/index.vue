@@ -246,11 +246,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Reading, ArrowRight, Pointer, Loading } from '@element-plus/icons-vue'
 import { getClassCategorys, getRecommendClassList, classSeach, getMylessons, getCourseLikeRanking, getPersonalizedRecommendations, getPersonalizedLearningPath } from '@/api/class.js'
-import defaultCover from '@/assets/images/courses/default-cover.svg'
-import vue3Svg from '@/assets/images/courses/vue3.svg'
-import springbootSvg from '@/assets/images/courses/springboot.svg'
-import mlSvg from '@/assets/images/courses/ml.svg'
-import mysqlSvg from '@/assets/images/courses/mysql.svg'
+import defaultCover from '@/assets/images/courses/default-cover.svg?url'
+import vue3Svg from '@/assets/images/courses/vue3.svg?url'
+import springbootSvg from '@/assets/images/courses/springboot.svg?url'
+import mlSvg from '@/assets/images/courses/ml.svg?url'
+import mysqlSvg from '@/assets/images/courses/mysql.svg?url'
 import AgentReasoningHUD from '@/components/AgentReasoningHUD.vue'
 import CareerPathDrawer from '@/components/CareerPathDrawer.vue'
 
@@ -259,15 +259,22 @@ const router = useRouter()
 const HOME_CACHE_KEY = 'tianji_portal_home_cache_v2'
 
 const DEFAULT_PREHEAT_CATEGORIES = [
-  { id: '1', name: '前端开发', iconText: '前端', count: 48 },
-  { id: '2', name: '后端开发', iconText: '后端', count: 72 },
-  { id: '3', name: '移动开发', iconText: '移动', count: 28 },
-  { id: '4', name: '数据库', iconText: '数据', count: 36 },
-  { id: '5', name: '云计算与DevOps', iconText: '云计', count: 32 },
-  { id: '6', name: '人工智能', iconText: '人工', count: 42 },
-  { id: '7', name: '数据科学', iconText: '数据', count: 26 },
-  { id: '8', name: '网络安全', iconText: '网络', count: 20 },
+  { id: '1', name: '前端开发', iconText: '前端', count: 40 },
+  { id: '2', name: '后端开发', iconText: '后端', count: 50 },
+  { id: '3', name: '移动开发', iconText: '移动', count: 26 },
+  { id: '4', name: '数据库', iconText: '数据', count: 32 },
+  { id: '5', name: '云计算与DevOps', iconText: '云计', count: 36 },
+  { id: '6', name: '人工智能', iconText: '人工', count: 47 },
+  { id: '7', name: '数据科学', iconText: '数据', count: 31 },
+  { id: '8', name: '网络安全', iconText: '网络', count: 26 },
+  { id: '9', name: '游戏开发', iconText: '游戏', count: 16 },
+  { id: '10', name: '区块链', iconText: '区块', count: 16 },
 ]
+
+const DEFAULT_CATEGORY_COUNTS = {
+  '1': 40, '2': 50, '3': 26, '4': 32, '5': 36,
+  '6': 47, '7': 31, '8': 26, '9': 16, '10': 16
+}
 
 const DEFAULT_PREHEAT_COURSES = [
   {
@@ -341,6 +348,13 @@ const readHomeCache = () => {
       if (data && data.recentLearning) {
         delete data.recentLearning
         localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(data))
+      }
+      // 自愈历史全0分类缓存，确保刷新页面绝不展示“0门专业课”
+      if (data && Array.isArray(data.categories) && data.categories.length) {
+        data.categories = data.categories.map(cat => ({
+          ...cat,
+          count: (Number(cat.count) > 0) ? Number(cat.count) : (DEFAULT_CATEGORY_COUNTS[String(cat.id)] || 20)
+        }))
       }
       return data
     }
@@ -488,12 +502,16 @@ onMounted(() => {
     if (res?.code === 200) {
       const data = res.data
       const rows = Array.isArray(data) ? data : (data?.list || [])
-      categories.value = rows.filter(item => Number(item.status ?? 1) === 1).map((item) => ({
-        ...item,
-        name: item.name || item.categoryName,
-        iconText: (item.name || item.categoryName || '课').slice(0, 2),
-        count: Number(item.courseCount ?? 0)
-      }))
+      categories.value = rows.filter(item => Number(item.status ?? 1) === 1).map((item) => {
+        const fallbackCount = DEFAULT_CATEGORY_COUNTS[String(item.id)] || 20
+        const serverCount = Number(item.courseCount ?? item.courses ?? item.courseNum ?? 0)
+        return {
+          ...item,
+          name: item.name || item.categoryName,
+          iconText: (item.name || item.categoryName || '课').slice(0, 2),
+          count: serverCount > 0 ? serverCount : fallbackCount
+        }
+      })
       persistCache()
     }
   }).catch(e => console.warn('分类加载异常:', e))

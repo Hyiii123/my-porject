@@ -207,7 +207,7 @@
         <div v-if="recentLearning.length" class="recent-list">
           <div v-for="item in recentLearning" :key="item.courseId" class="recent-item" @click="$router.push(`/learning/index?courseId=${item.courseId}`)">
             <div class="course-cover">
-              <img :src="item.cover || defaultCover" alt="" @error="handleImgError($event, item)" />
+              <img :src="item.cover || item.coverUrl || item.courseCoverUrl || defaultCover" alt="" @error="handleImgError($event, item)" />
             </div>
             <div class="course-info">
               <h4>{{ item.courseName }}</h4>
@@ -232,11 +232,15 @@ import { ElMessage } from 'element-plus'
 import { getUserInfo } from '@/api/user.js'
 import { getMylessons, getTodayPoints, getMyCoupon, getUserPortrait, updateUserPortraitPreferences } from '@/api/class.js'
 import { getOrderListes } from '@/api/order.js'
-import defaultAvatar from '@/assets/images/users/default-avatar.svg'
-import defaultCover from '@/assets/images/courses/default-cover.svg'
+import defaultAvatar from '@/assets/images/users/default-avatar.svg?url'
+import defaultCover from '@/assets/images/courses/default-cover.svg?url'
 
 const handleImgError = (e, item) => {
-  if (item) item.cover = defaultCover
+  if (item) {
+    item.cover = defaultCover
+    item.coverUrl = defaultCover
+    item.courseCoverUrl = defaultCover
+  }
   if (e?.target && e.target.src !== defaultCover) {
     e.target.src = defaultCover
   }

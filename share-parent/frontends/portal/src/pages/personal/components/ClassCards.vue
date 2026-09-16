@@ -2,7 +2,7 @@
 <template>
   <div class="classCards fx-sb fx-ct">
     <div class="marg-rt-20">
-      <img :src="data.courseCoverUrl || defaultCover" alt="" @error="handleImgError($event, data)" @click="$router.push({path: '/details/index', query: {id: data.courseId}})">
+      <img :src="data.courseCoverUrl || data.coverUrl || data.cover || defaultCover" alt="" @error="handleImgError($event, data)" @click="$router.push({path: '/details/index', query: {id: data.courseId}})">
     </div>
     <div class="info fx-1">
       <div class="tit ">{{data.courseName}}</div>
@@ -36,10 +36,14 @@
   </div>
 </template>
 <script setup>
-import defaultCover from '@/assets/images/courses/default-cover.svg'
+import defaultCover from '@/assets/images/courses/default-cover.svg?url'
 
 const handleImgError = (e, item) => {
-  if (item) item.courseCoverUrl = defaultCover
+  if (item) {
+    item.courseCoverUrl = defaultCover
+    item.coverUrl = defaultCover
+    item.cover = defaultCover
+  }
   if (e?.target && e.target.src !== defaultCover) {
     e.target.src = defaultCover
   }
