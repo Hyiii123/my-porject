@@ -1,50 +1,109 @@
 <template>
-  <div class="agent-hud-container">
-    <!-- 顶部标题与目标定位 -->
-    <div class="hud-header">
-      <div class="hud-title-area">
+  <div class="agent-hud-wrapper">
+    <!-- 1. 折叠态：极简胶囊呼吸条 (默认高度约 54px，首屏清爽不遮挡) -->
+    <div v-if="!isExpanded" class="hud-collapsed-bar" @click="toggleExpand">
+      <div class="collapsed-left">
         <div class="hud-badge">
           <span class="pulse-dot"></span>
-          <span>L5 流式自省智能体集群</span>
+          <span>L5 自省智能体集群</span>
         </div>
-        <h3 class="hud-title">多智能体协同导学中心</h3>
+        <div class="collapsed-title-group">
+          <span class="collapsed-title">多智能体协同导学中心 · 已为您就绪</span>
+          <el-tag size="small" effect="plain" type="primary" class="role-tag">
+            🎯 {{ selectedRole }}
+          </el-tag>
+          <span class="eval-pill" v-if="evalMetrics && evalMetrics.overallHealthGrade">
+            🛡️ 质检评级: {{ (evalMetrics.overallHealthGrade || '').split('·')[0].trim() || 'AAA' }} (100% DAG 合规)
+          </span>
+        </div>
       </div>
-      <div class="hud-actions">
-        <div class="role-selector-wrap">
-          <span class="role-label">目标岗位:</span>
-          <el-select
-            v-model="selectedRole"
-            size="small"
-            class="role-select"
-            @change="handleRoleChange"
-            :disabled="isRecalculating"
-          >
-            <el-option label="Java全栈架构师" value="Java全栈架构师" />
-            <el-option label="大模型应用工程师" value="大语言模型应用工程师" />
-            <el-option label="大数据高并发架构师" value="大数据开发工程师" />
-            <el-option label="Go云原生架构师" value="Go云原生架构师" />
-            <el-option label="Web前端技术专家" value="前端技术专家" />
-          </el-select>
-        </div>
+      <div class="collapsed-right" @click.stop>
+        <el-button
+          size="small"
+          round
+          class="mini-action-btn probe-btn"
+          @click="openProbeModal"
+        >
+          🧭 学情校准
+        </el-button>
+        <el-button
+          size="small"
+          round
+          type="success"
+          plain
+          class="mini-action-btn path-btn"
+          @click="$emit('view-path', deliveryResult?.learningPath)"
+        >
+          🗺️ 4阶段路线
+        </el-button>
         <el-button
           type="primary"
           size="small"
-          :loading="isRecalculating"
-          @click="triggerRecalculate"
-          class="recalc-btn"
+          round
+          class="mini-action-btn expand-btn"
+          @click="toggleExpand"
         >
-          <span v-if="!isRecalculating">智能体重新规划</span>
-          <span v-else>正在流式推演...</span>
-        </el-button>
-        <el-button
-          size="small"
-          @click="openProbeModal"
-          class="probe-btn"
-        >
-          🧭 学情探针校准
+          <span>⚡ 展开推演看板</span>
+          <span class="expand-arrow">▾</span>
         </el-button>
       </div>
     </div>
+
+    <!-- 2. 展开态：完整 HUD 全景呈现 -->
+    <div v-else class="agent-hud-container">
+      <!-- 顶部标题与目标定位 -->
+      <div class="hud-header">
+        <div class="hud-title-area">
+          <div class="hud-badge">
+            <span class="pulse-dot"></span>
+            <span>L5 流式自省智能体集群</span>
+          </div>
+          <h3 class="hud-title">多智能体协同导学中心</h3>
+        </div>
+        <div class="hud-actions">
+          <div class="role-selector-wrap">
+            <span class="role-label">目标岗位:</span>
+            <el-select
+              v-model="selectedRole"
+              size="small"
+              class="role-select"
+              @change="handleRoleChange"
+              :disabled="isRecalculating"
+            >
+              <el-option label="Java全栈架构师" value="Java全栈架构师" />
+              <el-option label="大模型应用工程师" value="大语言模型应用工程师" />
+              <el-option label="大数据高并发架构师" value="大数据开发工程师" />
+              <el-option label="Go云原生架构师" value="Go云原生架构师" />
+              <el-option label="Web前端技术专家" value="前端技术专家" />
+            </el-select>
+          </div>
+          <el-button
+            type="primary"
+            size="small"
+            :loading="isRecalculating"
+            @click="triggerRecalculate"
+            class="recalc-btn"
+          >
+            <span v-if="!isRecalculating">智能体重新规划</span>
+            <span v-else>正在流式推演...</span>
+          </el-button>
+          <el-button
+            size="small"
+            @click="openProbeModal"
+            class="probe-btn"
+          >
+            🧭 学情探针校准
+          </el-button>
+          <el-button
+            size="small"
+            class="collapse-btn"
+            @click="toggleExpand"
+            title="收起全景看板"
+          >
+            <span>收起看板 ▴</span>
+          </el-button>
+        </div>
+      </div>
 
     <!-- 6 大 Agent 协同流动画展示 (含审判反思智能体) -->
     <div class="agent-pipeline-track">
@@ -243,6 +302,7 @@
         </el-button>
       </div>
     </div>
+  </div>
 
     <!-- 智能体详细推理透视对话框 -->
     <el-dialog
@@ -382,6 +442,12 @@ const emit = defineEmits(['recalculate', 'calibrated', 'view-path'])
 
 const selectedRole = ref('Java全栈架构师')
 const isRecalculating = ref(false)
+const isExpanded = ref(false)
+
+const toggleExpand = () => {
+  isExpanded.value = !isExpanded.value
+}
+
 const currentStepIdx = ref(-1)
 const activeAgentId = ref('agent-6')
 const detailVisible = ref(false)
@@ -547,6 +613,9 @@ const scrollToCourses = () => {
 
 const triggerRecalculate = async () => {
   if (isRecalculating.value) return
+  if (!isExpanded.value) {
+    isExpanded.value = true
+  }
   isRecalculating.value = true
   streamTotalLatencyMs.value = 0
   isThinkingExpanded.value = true
@@ -694,6 +763,7 @@ onMounted(() => {
   // 检测 URL query 是否由外部（如 AI 客服多智能体导学卡片）联动带入 targetRole
   const targetRoleQuery = route?.query?.targetRole
   if (targetRoleQuery && typeof targetRoleQuery === 'string') {
+    isExpanded.value = true
     const roleStr = targetRoleQuery.trim()
     if (roleStr) {
       if (roleStr.includes('大模型') || roleStr.includes('LLM') || roleStr.includes('大语言模型')) {
@@ -722,13 +792,126 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.agent-hud-wrapper {
+  margin-bottom: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 1. 折叠态：极简胶囊呼吸条 (高度约 54px，首屏清爽) */
+.hud-collapsed-bar {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F0F7FF 100%);
+  border: 1px solid #BFDBFE;
+  border-radius: 12px;
+  padding: 10px 20px;
+  box-shadow: 0 2px 12px -2px rgba(37, 99, 235, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    border-color: #3B82F6;
+    box-shadow: 0 4px 18px -2px rgba(37, 99, 235, 0.16);
+    transform: translateY(-1px);
+
+    .expand-btn {
+      background: #1D4ED8;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    }
+  }
+
+  .collapsed-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    .hud-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      color: #2563EB;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+
+      .pulse-dot {
+        width: 6px;
+        height: 6px;
+        background: #10B981;
+        border-radius: 50%;
+        box-shadow: 0 0 6px #10B981;
+        animation: pulse 2s infinite;
+      }
+    }
+
+    .collapsed-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+
+      .collapsed-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #0F172A;
+      }
+
+      .role-tag {
+        font-weight: 600;
+        border-radius: 6px;
+      }
+
+      .eval-pill {
+        font-size: 12px;
+        color: #059669;
+        background: #ECFDF5;
+        border: 1px solid #A7F3D0;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .collapsed-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+
+    .mini-action-btn {
+      font-size: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .expand-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 14px;
+      font-weight: 600;
+
+      .expand-arrow {
+        font-size: 13px;
+        transition: transform 0.2s ease;
+      }
+    }
+  }
+}
+
 .agent-hud-container {
   background: #FFFFFF;
   border-radius: 16px;
   padding: 22px 26px;
   border: 1px solid #E2E8F0;
   box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05);
-  margin-bottom: 28px;
+  margin-bottom: 0;
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -822,6 +1005,21 @@ onMounted(() => {
     border-radius: 8px;
     height: 32px;
     font-size: 12px;
+  }
+
+  .collapse-btn {
+    border-radius: 8px;
+    height: 32px;
+    font-size: 12px;
+    color: #64748B;
+    background: #F1F5F9;
+    border: 1px solid #CBD5E1;
+
+    &:hover {
+      color: #0F172A;
+      background: #E2E8F0;
+      border-color: #94A3B8;
+    }
   }
 }
 
@@ -1735,6 +1933,19 @@ onMounted(() => {
   }
   .connector {
     display: none;
+  }
+}
+@media (max-width: 768px) {
+  .hud-collapsed-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+
+    .collapsed-right {
+      width: 100%;
+      justify-content: flex-end;
+    }
   }
 }
 @media (max-width: 640px) {
