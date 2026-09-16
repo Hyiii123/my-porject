@@ -14,7 +14,38 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-16 16:00:00 - 客服全域动作卡片策略工厂架构重构：落地 Strategy + Factory 模式，解耦 14 大业务卡片装配器至独立 Handler 并在云端 100% 验证通过 (Customer Action Card Strategy + Factory Architectural Decoupling: Extracting 14 Domain Handlers and Converging Assembler)
+
+* **演进主题**：策略工厂模式架构重构 (Strategy + Factory Pattern Architecture)、单一职责原则与开闭原则 (SRP & OCP Alignment)、全域动作卡片解耦 (Full-Domain Action Card Handlers)、门面精简化治理 (Assembler Convergence from 767 to 156 Lines)、云端定向测试 100% 闭环 (Targeted Verification Passed)
+* **核心成果**：
+  1. **构建策略契约与工厂调度器体系 (`com.share.customer.service.support.action`)**：
+     - 定义统一策略接口 [`CustomerActionHandler.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-customer/src/main/java/com/share/customer/service/support/action/CustomerActionHandler.java)，规范 `supports(content, lower)`、`handle(...)` 与 `getOrder()` 优先级契约；
+     - 落地策略工厂 [`CustomerActionFactory.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-customer/src/main/java/com/share/customer/service/support/action/CustomerActionFactory.java)，利用 Spring IOC 依赖注入自动发现并按 `order` 排序装配所有卡片策略处理器，运行时高效动态责任链分发。
+  2. **14 大全域动作卡片彻底解耦至专属 Handler (`action.handler`)**：
+     - 将原先集中在单一装配器中的 14 大业务动作彻底拆散至独立单一职责类中，每个 Handler 仅依赖自身所需依赖：
+       - `InterviewReportActionHandler`（面试复盘档案，order=10）
+       - `InterviewLaunchActionHandler`（开辟全真模拟面试考场，order=20）
+       - `OrderManageActionHandler`（订单与售后管理，order=30）
+       - `CouponCenterActionHandler`（领券与福利中心，order=40）
+       - `CartViewActionHandler`（购物车资产清单，order=50）
+       - `CoursePurchaseActionHandler`（课程搜索与加购，order=60）
+       - `SignInActionHandler`（每日打卡签到，order=70）
+       - `PointsRankingActionHandler`（学霸天梯积分榜，order=80）
+       - `ExamQueryActionHandler`（学情考试测验成绩，order=90）
+       - `ResumeActionHandler`（简历诊断与雷达，order=100）
+       - `NoteQuickActionHandler`（随堂速记入库，order=110）
+       - `LearningPortraitActionHandler`（动态学习画像，order=120）
+       - `ContinueLearningActionHandler`（课表与继续学习，order=130）
+       - `PageNavigatorActionHandler`（页面智能穿梭导航，order=140）
+  3. **装配器门面瘦身与向后兼容 (Facade Convergence)**：
+     - [`CustomerActionCardAssembler.java`](file:///d:/education%20system/my-porject/share-parent/share-modules/share-customer/src/main/java/com/share/customer/service/support/CustomerActionCardAssembler.java) 由原先的 **767 行** 锐减至 **156 行**；
+     - 移除类中对 `RemoteEducationService`、`IInterviewService`、`IUserResumeService` 等跨微服务组件的直接硬编码依赖，只保留顶层安全盾（`securityShield`）和策略工厂调度，对 `CustomerServiceImpl` 的调用协议保持 100% 向后兼容。
+  4. **发布铁律与云端定向测试 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 本地 JDK 17 离线打包成功，通过 Workbench 上传热替换 ECS 容器 `zhiwen-customer`；
+     - 执行定向验证自动化脚本 `.scratch/verify_action_card_factory.ps1`，覆盖越权阻断、面试开辟、订单管理、卡券、购物车、购课、签到、积分、考试、简历、笔记、画像、课表、页面导航等全量 14 项动作卡片，验证通过率 100%。
+
 ### 2026-09-16 15:25:00 - 独立消息中枢架构重构：落地全新微服务 `share-modules/share-mq`，按领域分类解耦交易、教育与AI客服全站消息事件 (Standalone Event-Driven Message Hub Microservice: `share-mq` with Domain Partitioning & Zero-Database Feign Dispatching)
+
 
 * **演进主题**：微服务事件中枢架构演进 (Event-Driven Message Hub Microservice)、领域驱动按包分类 (`trade` / `education` / `customer`)、无数据库纯调度设计 (`DataSourceAutoConfiguration` Excluded)、Feign + `@InnerAuth` 安全跨服务调度 (Secure Internal Service Invocation)、全站业务事件解耦闭环 (Enterprise Event Decoupling Closure)
 * **核心成果**：
