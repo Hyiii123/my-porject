@@ -79,6 +79,7 @@ public interface IEducationService {
     Map<String, Object> learningCourse(Long courseId);
     Map<String, Object> learningRecord(Long lessonId);
     Map<String, Object> enrollCourse(Long courseId);
+    Map<String, Object> enrollCourseForUser(Long userId, Long courseId);
     Map<String, Object> revokeCourse(Long courseId);
     Map<String, Object> restartLearning(Long courseId);
     Map<String, Object> learningPage(long pageNo, long pageSize, boolean current);

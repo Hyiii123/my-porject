@@ -14,6 +14,32 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-16 15:00:00 - 核心微服务消息队列架构演进：引入 Apache RocketMQ 5.1.4 极轻量集群(~580MB)、落地15分钟延时关单与支付成功异步履约开课 (RocketMQ 5.x Message Queue Infrastructure, 15-Min Order Timeout & Async Course Enrollment)
+
+* **演进主题**：消息中间件架构落地 (Message Queue Infrastructure)、极轻量化内存调优 (Ultra-lightweight JVM Tuning ~580MB Total)、订单 15 分钟超时自动关单 (15-Minute Order Timeout Delay Message)、支付成功可靠异步履约开课 (Reliable Asynchronous Order Paid Course Enrollment)、定向自动化测试闭环 (Targeted Scope Test Closure)
+* **核心成果**：
+  1. **Apache RocketMQ 5.1.4 极轻量云端部署与云盘保护架构 (Lightweight RocketMQ Cluster & IOPS Protection)**：
+     - 在 ECS 云端宿主机落地轻量化 RocketMQ 集群（`zhiwen-rocketmq-namesrv` 堆内存 128M + `zhiwen-rocketmq-broker` 堆内存 384M），实测双容器物理内存常驻仅 ~580MB，ECS 可用内存充裕（维持在 1.3GB ~ 1.4GB）；
+     - 严格配置异步刷盘策略（`flushDiskType = ASYNC_FLUSH`）与文件保留时间（`fileReservedTime = 48`），彻底规避 ECS ESSD 云盘 IOPS 突发积分耗尽风险；
+     - 配置自定义延时级别支持：`messageDelayLevel = 1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 15m 20m 30m 1h 2h`，第 15 级精确对齐 15 分钟业务超时，第 2 级（5s）支持高效率自动化联调。
+  2. **Spring Boot 3 微服务体系深度集成 (Spring Boot 3 / Jakarta Integration)**：
+     - 父工程统一声明 `rocketmq-spring-boot-starter:2.3.1` 依赖版本治理；
+     - 交易服务 `share-trade` 与教育服务 `share-education` 引入 starter 并通过 `bootstrap.yml` 注入集群地址与 Producer 命名空间；
+     - 构建高可靠、结构化的业务主题常量规范（`RocketMQTopicConstants`：`TRADE_ORDER_TIMEOUT_TOPIC` 与 `TRADE_ORDER_PAID_TOPIC`）。
+  3. **业务闭环 1：订单 15 分钟超时未支付自动关单与优惠券回退 (Order 15-Min Timeout Delay Message)**：
+     - `TradeOrderServiceImpl`：下单成功后设置 `expireTime = now.plusMinutes(15)`，并同步向 RocketMQ 发送延时消息；
+     - `TradeOrderTimeoutConsumer`：监听超时延时消息，严格执行幂等检查，仅在待支付（status=0）状态下原子将订单更新为已关闭（status=4），并自动解绑释放用户锁定的优惠券。
+  4. **业务闭环 2：支付成功异步开课与学情建立 (Order Paid Async Course Enrollment)**：
+     - `TradePaymentServiceImpl`：模拟/第三方支付成功后，可靠投递 `TRADE_ORDER_PAID_TOPIC`（携带 `orderId`, `userId`, `courseIds`），并保留原有同步 Feign 降级兜底（双轨平滑过渡）；
+     - `EduCourseEnrollConsumer`：教育服务监听支付履约消息，异步为用户开通课程并建立学情追踪；
+     - 扩展 `IEduLearningService.enrollCourseForUser` 与 `IEducationService` 支持非 HTTP 请求上下文下的系统级跨服务开课。
+  5. **发布铁律与定向端到端测试 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 本地 JDK 17 离线打包，通过 Workbench 串行安全热替换；
+     - 自动化脚本 `.scratch/verify_rocketmq.ps1` 包含 4 项定向验证用例全部通过：
+       - 用例 1（延时关单）：5s 快速延时测试模式下，订单在第 5 秒精确消费并自动关闭；
+       - 用例 2（15分钟参数）：正式订单 `expireTime - createTime` 精确等于 15 分钟；
+       - 用例 3（异步履约）：支付成功后 RocketMQ 毫秒级投递，教育微服务成功异步为学员开通课程。
+
 ### 2026-09-16 14:10:00 - 全库千行上帝类解耦与Service层1:1接口架构治理：消除5大超长上帝类(8600+行代码精简)、全量Java文件收敛至健康区间(<1000行)与高内聚领域服务重构 (God Class Decoupling & 1:1 Service-Interface Architectural Refactoring)
 
 * **演进主题**：上帝类重构 (God Class Refactoring)、Service层 1 接口 1 实现 1:1 规范对齐 (`IService` ➔ `ServiceImpl`)、高内聚低耦合 (High Cohesion & Low Coupling)、消除循环依赖与单一职责治理 (Single Responsibility & Clean DI)

@@ -164,6 +164,55 @@ services:
     networks:
       - zhiwen-net
 
+  # Apache RocketMQ 5.x 路由中心（极轻量调优：堆内存 128M，物理常驻 ~128MB）
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.1.4
+    container_name: zhiwen-rocketmq-namesrv
+    restart: unless-stopped
+    command: ["sh", "mqnamesrv"]
+    ports:
+      - "9876:9876"
+    environment:
+      JAVA_OPT_EXT: "-Xms128m -Xmx128m -Xmn64m"
+      TZ: Asia/Shanghai
+    volumes:
+      - /opt/tianji/rocketmq/namesrv/logs:/home/rocketmq/logs
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      zhiwen-net:
+        aliases:
+          - zhiwen-rocketmq-namesrv
+
+  # Apache RocketMQ 5.x 消息存储与转发（极轻量调优：堆内存 384M，异步刷盘保护云盘IOPS，物理常驻 ~420MB）
+  rocketmq-broker:
+    image: apache/rocketmq:5.1.4
+    container_name: zhiwen-rocketmq-broker
+    restart: unless-stopped
+    command: ["sh", "mqbroker", "-c", "/home/rocketmq/rocketmq-5.1.4/conf/broker.conf"]
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+    environment:
+      JAVA_OPT_EXT: "-Xms256m -Xmx384m -Xmn128m"
+      TZ: Asia/Shanghai
+    volumes:
+      - /opt/tianji/rocketmq/conf/broker.conf:/home/rocketmq/rocketmq-5.1.4/conf/broker.conf:ro
+      - /opt/tianji/rocketmq/broker/logs:/home/rocketmq/logs
+      - /opt/tianji/rocketmq/broker/store:/home/rocketmq/store
+    depends_on:
+      - rocketmq-namesrv
+    deploy:
+      resources:
+        limits:
+          memory: 600M
+    networks:
+      zhiwen-net:
+        aliases:
+          - zhiwen-rocketmq-broker
+
   auth:
     build:
       context: ./share-auth

@@ -12,10 +12,17 @@ import com.share.trade.service.ITradeCouponService;
 import com.share.trade.service.ITradeOrderService;
 import com.share.trade.service.ITradePaymentService;
 import com.share.trade.service.support.TradeUtils;
+import com.alibaba.fastjson2.JSON;
+import com.share.trade.mq.RocketMQTopicConstants;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -35,6 +42,8 @@ import static com.share.trade.service.support.TradeUtils.*;
 @Primary
 public class TradePaymentServiceImpl implements ITradePaymentService {
 
+    private static final Logger log = LoggerFactory.getLogger(TradePaymentServiceImpl.class);
+
     private final TrOrderMapper orderMapper;
     private final TrOrderItemMapper itemMapper;
     private final TrPaymentOrderMapper paymentMapper;
@@ -43,6 +52,9 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
     private final ITradeOrderService orderService;
     private final ITradeCouponService couponService;
     private final Environment environment;
+
+    @Autowired(required = false)
+    private RocketMQTemplate rocketMQTemplate;
 
     public TradePaymentServiceImpl(TrOrderMapper orderMapper,
                                    TrOrderItemMapper itemMapper,
@@ -167,8 +179,39 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
         order.setPaymentChannel(payment.getPaymentChannel());
         order.setUpdateTime(now);
 
+        // 发送支付成功课程履约消息至 RocketMQ
+        sendOrderPaidMessage(order);
+
+        // 同步开课双轨平滑过渡（支持无缝降级）
         orderService.enrollPurchasedCourses(order);
         return orderService.orderView(order);
+    }
+
+    private void sendOrderPaidMessage(TrOrder order) {
+        if (rocketMQTemplate == null || order == null) {
+            log.warn("RocketMQTemplate not available, skipping paid message for order {}", order != null ? order.getId() : null);
+            return;
+        }
+        try {
+            List<Long> courseIds = itemMapper.selectList(new LambdaQueryWrapper<TrOrderItem>()
+                    .eq(TrOrderItem::getOrderId, order.getId()))
+                    .stream().map(TrOrderItem::getCourseId).filter(Objects::nonNull).distinct().toList();
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("orderId", order.getId());
+            payload.put("userId", order.getUserId());
+            payload.put("courseIds", courseIds);
+            payload.put("paidTime", order.getPaidTime() != null ? order.getPaidTime().toString() : LocalDateTime.now().toString());
+
+            rocketMQTemplate.syncSend(
+                RocketMQTopicConstants.TRADE_ORDER_PAID_TOPIC,
+                MessageBuilder.withPayload(JSON.toJSONString(payload)).build(),
+                3000
+            );
+            log.info("【RocketMQ】成功发送支付履约消息, orderId={}, userId={}, courseIds={}", order.getId(), order.getUserId(), courseIds);
+        } catch (Exception e) {
+            log.error("【RocketMQ】发送支付履约消息失败, orderId={}", order.getId(), e);
+        }
     }
 
     @Override

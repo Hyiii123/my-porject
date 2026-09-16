@@ -11,9 +11,16 @@ import com.share.trade.mapper.*;
 import com.share.trade.service.ITradeCouponService;
 import com.share.trade.service.ITradeOrderService;
 import com.share.trade.service.support.TradeUtils;
+import com.alibaba.fastjson2.JSON;
+import com.share.trade.mq.RocketMQTopicConstants;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -34,6 +41,8 @@ import static com.share.trade.service.support.TradeUtils.*;
 @Primary
 public class TradeOrderServiceImpl implements ITradeOrderService {
 
+    private static final Logger log = LoggerFactory.getLogger(TradeOrderServiceImpl.class);
+
     private final TrCartMapper cartMapper;
     private final TrOrderMapper orderMapper;
     private final TrOrderItemMapper itemMapper;
@@ -44,6 +53,9 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     private final RedisService redisService;
     private final Environment environment;
     private final ITradeCouponService couponService;
+
+    @Autowired(required = false)
+    private RocketMQTemplate rocketMQTemplate;
 
     public TradeOrderServiceImpl(TrCartMapper cartMapper,
                                  TrOrderMapper orderMapper,
@@ -316,7 +328,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         order.setPaymentChannel("mock");
         order.setOrderStatus(0);
         order.setPaymentStatus(0);
-        order.setExpireTime(now.plusMinutes(30));
+        order.setExpireTime(now.plusMinutes(15));
         order.setCreateTime(now);
         order.setUpdateTime(now);
         order.setDelFlag(0);
@@ -366,7 +378,37 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
                     .eq(MktCoupon::getId, coupon.getId()));
         }
 
+        // 发送 15 分钟超时关单延时消息至 RocketMQ
+        sendOrderTimeoutDelayMessage(order.getId(), order.getUserId(), body);
+
         return orderView(order);
+    }
+
+    private void sendOrderTimeoutDelayMessage(Long orderId, Long userId, Map<String, ?> body) {
+        if (rocketMQTemplate == null) {
+            log.warn("RocketMQTemplate not available, skipping delay message for orderId={}", orderId);
+            return;
+        }
+        try {
+            boolean quickTimeout = body != null && bool(body.get("quickTimeout"));
+            // 延时级别：默认15对应自定义15分钟；单元与联调测试传入 quickTimeout=true 时使用级别2 (5秒)
+            int delayLevel = quickTimeout ? 2 : 15;
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("orderId", orderId);
+            payload.put("userId", userId);
+            payload.put("delayLevel", delayLevel);
+            payload.put("createTime", System.currentTimeMillis());
+
+            rocketMQTemplate.syncSend(
+                RocketMQTopicConstants.TRADE_ORDER_TIMEOUT_TOPIC,
+                MessageBuilder.withPayload(JSON.toJSONString(payload)).build(),
+                3000,
+                delayLevel
+            );
+            log.info("【RocketMQ】成功发送订单超时延时消息, orderId={}, delayLevel={}", orderId, delayLevel);
+        } catch (Exception e) {
+            log.error("【RocketMQ】发送订单超时延时消息失败, orderId={}", orderId, e);
+        }
     }
 
     @Override
@@ -592,6 +634,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         result.put("paidAmount", cents(item.getPaidAmount()));
         result.put("couponId", item.getCouponId());
         result.put("status", toOldOrderStatus(item.getOrderStatus()));
+        result.put("orderStatus", item.getOrderStatus());
         result.put("statusName", oldStatusName(toOldOrderStatus(item.getOrderStatus())));
         result.put("paymentStatus", item.getPaymentStatus());
         result.put("paymentChannel", item.getPaymentChannel());

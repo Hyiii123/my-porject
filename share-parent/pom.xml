@@ -47,11 +47,19 @@
         <mqttv3.version>1.2.2</mqttv3.version>
         <redisson.version>3.23.3</redisson.version>
         <spring-ai.version>1.0.0</spring-ai.version>
+        <rocketmq.version>2.3.1</rocketmq.version>
     </properties>
 
     <!-- 依赖声明 -->
     <dependencyManagement>
         <dependencies>
+
+            <!-- Apache RocketMQ 消息队列 (Spring Boot 3 / Jakarta) -->
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-spring-boot-starter</artifactId>
+                <version>${rocketmq.version}</version>
+            </dependency>
 
             <!-- Spring AI 官方 BOM -->
             <dependency>

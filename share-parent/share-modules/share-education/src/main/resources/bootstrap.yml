@@ -25,3 +25,10 @@ spring:
         file-extension: yml
         shared-configs:
           - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+
+rocketmq:
+  name-server: ${ROCKETMQ_NAMESRV_ADDR:zhiwen-rocketmq-namesrv:9876}
+  producer:
+    group: education-producer-group
+    send-message-timeout: 3000
+

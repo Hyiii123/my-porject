@@ -76,8 +76,16 @@ public class EduLearningServiceImpl implements IEduLearningService {
     @Override
     @Transactional
     public Map<String, Object> enrollCourse(Long courseId) {
+        return enrollCourseForUser(currentUserId(), courseId);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> enrollCourseForUser(Long userId, Long courseId) {
+        if (userId == null || courseId == null) {
+            return Map.of();
+        }
         EduCourse course = courseService.requireCourse(courseId);
-        Long userId = currentUserId();
         EduLearningRecord record = learningMapper.selectOne(new LambdaQueryWrapper<EduLearningRecord>()
                 .eq(EduLearningRecord::getUserId, userId)
                 .eq(EduLearningRecord::getCourseId, courseId)

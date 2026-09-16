@@ -328,6 +328,11 @@ public class EducationServiceImpl implements IEducationService {
     }
 
     @Override
+    public Map<String, Object> enrollCourseForUser(Long userId, Long courseId) {
+        return learningService.enrollCourseForUser(userId, courseId);
+    }
+
+    @Override
     public Map<String, Object> revokeCourse(Long courseId) {
         return learningService.revokeCourse(courseId);
     }
