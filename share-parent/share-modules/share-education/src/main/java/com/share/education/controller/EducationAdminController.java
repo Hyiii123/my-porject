@@ -14,7 +14,7 @@ import com.share.education.domain.EduCourseCatalog;
 import com.share.education.domain.EduExam;
 import com.share.education.domain.EduExamQuestionBank;
 import com.share.education.domain.EduTeacher;
-import com.share.education.service.EducationService;
+import com.share.education.service.IEducationService;
 import java.util.Arrays;
 import java.util.Map;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,9 +31,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/admin")
 public class EducationAdminController extends BaseController {
-    private final EducationService educationService;
+    private final IEducationService educationService;
 
-    public EducationAdminController(EducationService educationService) {
+    public EducationAdminController(IEducationService educationService) {
         this.educationService = educationService;
     }
 

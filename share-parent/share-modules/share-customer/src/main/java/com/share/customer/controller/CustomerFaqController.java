@@ -2,7 +2,7 @@ package com.share.customer.controller;
 
 import com.share.customer.domain.CustomerFaq;
 import com.share.common.core.web.domain.AjaxResult;
-import com.share.customer.service.CustomerService;
+import com.share.customer.service.ICustomerService;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/faq")
 public class CustomerFaqController {
-    private final CustomerService customerService;
+    private final ICustomerService customerService;
 
-    public CustomerFaqController(CustomerService customerService) {
+    public CustomerFaqController(ICustomerService customerService) {
         this.customerService = customerService;
     }
 

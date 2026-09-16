@@ -7,7 +7,7 @@ import com.share.common.core.web.domain.AjaxResult;
 import com.share.common.core.web.page.TableDataInfo;
 import com.share.common.security.annotation.RequiresPermissions;
 import com.share.trade.domain.MktCoupon;
-import com.share.trade.service.TradeService;
+import com.share.trade.service.ITradeService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/admin")
 public class TradeAdminController extends BaseController {
-    private final TradeService tradeService;
+    private final ITradeService tradeService;
 
-    public TradeAdminController(TradeService tradeService) {
+    public TradeAdminController(ITradeService tradeService) {
         this.tradeService = tradeService;
     }
 

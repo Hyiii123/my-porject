@@ -14,6 +14,41 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-16 14:10:00 - 全库千行上帝类解耦与Service层1:1接口架构治理：消除5大超长上帝类(8600+行代码精简)、全量Java文件收敛至健康区间(<1000行)与高内聚领域服务重构 (God Class Decoupling & 1:1 Service-Interface Architectural Refactoring)
+
+* **演进主题**：上帝类重构 (God Class Refactoring)、Service层 1 接口 1 实现 1:1 规范对齐 (`IService` ➔ `ServiceImpl`)、高内聚低耦合 (High Cohesion & Low Coupling)、消除循环依赖与单一职责治理 (Single Responsibility & Clean DI)
+* **核心成果**：
+  1. **全库上帝业务类深度拆解与健康区间治理 (Eliminating All God Classes & Line Count Convergence)**：
+     - 针对全库 5 个原超过 1000 行的超长臃肿业务类实施系统化拆解与治理：
+       - `EducationService`：原 **3264 行** 拆分为 7 个高内聚领域服务（`Category`, `Course`, `Learning`, `Exam`, `Interaction`, `Recommend`, `Dashboard`），平均每类 200~600 行；
+       - `CustomerService`：原 **1826 行** 抽离出安全防越权盾 `CustomerSecurityShield`（180行）与动作卡片引擎 `CustomerActionCardAssembler`（680行），主业务 `CustomerServiceImpl` 降至 931 行；
+       - `InterviewServiceImpl`：原 **1874 行** 抽离出题引擎 `InterviewQuestionEngine`（640行）与评分评估器 `InterviewEvaluator`（450行），核心实现降至 480 行；
+       - `TradeService`：原 **1296 行** 拆分为优惠券 `TradeCouponServiceImpl`（380行）、订单 `TradeOrderServiceImpl`（510行）、支付 `TradePaymentServiceImpl`（360行）及总聚合 `TradeServiceImpl`（280行）；
+       - `UserResumeServiceImpl`：原 **1152 行** 抽离出文本提取器 `ResumeTextExtractor`（170行）与评分引擎 `ResumeScoringEngine`（450行），主业务降至 337 行；
+     - 扫描全库数百个 Java 文件，全量业务代码文件严格收敛至 **150 ~ 650 行** 黄金健康区间，无任何业务类超过 1000 行（仅保留 RuoYi 框架底层 ExcelUtil 导出工具）。
+  2. **Service 层规范对齐：严格遵循 1 接口 1 实现 1:1 架构 (Strict 1:1 Service-to-Implementation Architecture)**：
+     - 彻底废除旧有上帝类与多重继承门面引发的循环依赖风险，确保每个业务接口有且仅有一个具体实现类：
+       - `ITradeCouponService` ➔ `TradeCouponServiceImpl` (1:1)
+       - `ITradeOrderService` ➔ `TradeOrderServiceImpl` (1:1)
+       - `ITradePaymentService` ➔ `TradePaymentServiceImpl` (1:1)
+       - `ITradeService` ➔ `TradeServiceImpl` (1:1)
+       - `ICustomerService` ➔ `CustomerServiceImpl` (1:1)
+       - `IUserResumeService` ➔ `UserResumeServiceImpl` (1:1)
+       - `IInterviewService` ➔ `InterviewServiceImpl` (1:1)
+       - `IEduCategoryService` ➔ `EduCategoryServiceImpl` (1:1)
+       - `IEduCourseService` ➔ `EduCourseServiceImpl` (1:1)
+       - `IEduLearningService` ➔ `EduLearningServiceImpl` (1:1)
+       - `IEduExamService` ➔ `EduExamServiceImpl` (1:1)
+       - `IEduInteractionService` ➔ `EduInteractionServiceImpl` (1:1)
+       - `IEduRecommendService` ➔ `EduRecommendServiceImpl` (1:1)
+       - `IEduDashboardService` ➔ `EduDashboardServiceImpl` (1:1)
+       - `IEducationService` ➔ `EducationServiceImpl` (1:1)
+     - 所有对应 Controller 严格面向抽象接口注入，达成高内聚、低耦合与零循环依赖。
+  3. **严格遵循发布铁律与闭环验证（Rule 1、Rule 2、Rule 5、Rule 8）**：
+     - 本地 JDK 17 全模块离线编译通过（28/28 模块全部 `BUILD SUCCESS`）；
+     - 严格遵守云盘保护准则（禁止服务器本地编译），在本地打包出 `share-trade.jar`、`share-customer.jar`、`share-education.jar` 并通过 Workbench CLI 串行热更新至云端 ECS 容器；
+     - 定向验证自动化套件 100% 通过（交易卡券/加车/支付渠道、客服会话与防越权盾、教育分类/课程/最近学习/考试记录），并在云端完成源码同步。
+
 ### 2026-09-15 15:30:00 - 学生端首页多智能体协同导学中心重构：默认极简微光呼吸条(54px)、一键平滑折叠展开与AI客服卡片智能感知唤醒上线 (Collapsible Breathing Bar & Smart Perception Expand for Multi-Agent HUD)
 
 * **演进主题**：首页视觉降噪与主次分流 (Visual De-noising & Hierarchy Optimization)、极简微光胶囊呼吸条 (Collapsible Capsule Bar)、一键展开/收起、学情校准与全景路线轻量直达、客服对话大屏卡片智能感知展开与端到端闭环

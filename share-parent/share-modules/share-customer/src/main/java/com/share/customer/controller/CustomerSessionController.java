@@ -12,7 +12,7 @@ import com.share.customer.domain.dto.CreateSessionRequest;
 import com.share.customer.domain.dto.EvaluationRequest;
 import com.share.customer.domain.dto.AiReplyRecordRequest;
 import com.share.customer.domain.dto.SendMessageRequest;
-import com.share.customer.service.CustomerService;
+import com.share.customer.service.ICustomerService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,9 +29,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/session")
 public class CustomerSessionController extends BaseController {
-    private final CustomerService customerService;
+    private final ICustomerService customerService;
 
-    public CustomerSessionController(CustomerService customerService) {
+    public CustomerSessionController(ICustomerService customerService) {
         this.customerService = customerService;
     }
 

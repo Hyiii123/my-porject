@@ -3,7 +3,7 @@ package com.share.education.controller;
 import com.share.common.core.web.controller.BaseController;
 import com.share.common.core.web.domain.AjaxResult;
 import com.share.common.security.annotation.InnerAuth;
-import com.share.education.service.EducationService;
+import com.share.education.service.IEducationService;
 import java.util.Map;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/internal")
 public class EducationInternalController extends BaseController {
-    private final EducationService educationService;
+    private final IEducationService educationService;
 
-    public EducationInternalController(EducationService educationService) {
+    public EducationInternalController(IEducationService educationService) {
         this.educationService = educationService;
     }
 

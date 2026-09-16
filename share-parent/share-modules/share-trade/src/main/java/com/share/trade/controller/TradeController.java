@@ -4,7 +4,7 @@ import com.share.common.core.web.controller.BaseController;
 import com.share.common.core.web.domain.AjaxResult;
 import com.share.common.security.annotation.RequiresLogin;
 import com.share.common.security.annotation.RequiresPermissions;
-import com.share.trade.service.TradeService;
+import com.share.trade.service.ITradeService;
 import java.util.Map;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,9 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 /** 用户端优惠券、购物车、订单、支付和退款兼容接口。 */
 @RestController
 public class TradeController extends BaseController {
-    private final TradeService tradeService;
+    private final ITradeService tradeService;
 
-    public TradeController(TradeService tradeService) {
+    public TradeController(ITradeService tradeService) {
         this.tradeService = tradeService;
     }
 

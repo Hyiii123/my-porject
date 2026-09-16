@@ -3,7 +3,7 @@ package com.share.education.controller;
 import com.share.common.core.web.controller.BaseController;
 import com.share.common.core.web.domain.AjaxResult;
 import com.share.education.domain.EduDashboardDaily;
-import com.share.education.service.EducationService;
+import com.share.education.service.IEducationService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -27,9 +27,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/data")
 public class EducationDashboardController extends BaseController {
-    private final EducationService educationService;
+    private final IEducationService educationService;
 
-    public EducationDashboardController(EducationService educationService) {
+    public EducationDashboardController(IEducationService educationService) {
         this.educationService = educationService;
     }
 

@@ -12,7 +12,7 @@ import com.share.education.domain.EduLearningRecord;
 import com.share.education.domain.EduNote;
 import com.share.education.domain.EduQuestion;
 import com.share.education.domain.EduReply;
-import com.share.education.service.EducationService;
+import com.share.education.service.IEducationService;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,9 +38,9 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class EducationPortalController extends BaseController {
-    private final EducationService educationService;
+    private final IEducationService educationService;
 
-    public EducationPortalController(EducationService educationService) {
+    public EducationPortalController(IEducationService educationService) {
         this.educationService = educationService;
     }
 

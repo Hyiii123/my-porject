@@ -17,7 +17,7 @@ import com.share.customer.domain.dto.AiTestRequest;
 import com.share.customer.domain.dto.CustomerFaqRequest;
 import com.share.customer.domain.dto.CustomerKnowledgeRequest;
 import com.share.customer.domain.dto.SendMessageRequest;
-import com.share.customer.service.CustomerService;
+import com.share.customer.service.ICustomerService;
 import jakarta.validation.Valid;
 import java.util.Arrays;
 import java.util.List;
@@ -35,9 +35,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/admin")
 public class CustomerAdminController extends BaseController {
-    private final CustomerService customerService;
+    private final ICustomerService customerService;
 
-    public CustomerAdminController(CustomerService customerService) {
+    public CustomerAdminController(ICustomerService customerService) {
         this.customerService = customerService;
     }
 
