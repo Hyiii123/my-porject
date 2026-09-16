@@ -3,7 +3,7 @@
   <div class="myClassWrapper" v-loading="loading">
     <div v-if="hasData">
       <!-- 最近学习 -->
-      <div class="personalCards" v-if="learningData != null && typeof(learningData) != 'string'">
+      <div class="personalCards" v-if="learningData && (learningData.courseId || learningData.id)">
         <CardsTitle class="marg-bt-20" title="最近学习"/>
         <ClassCards :data="learningData" type="1"/>
       </div>
@@ -85,7 +85,7 @@ const store = dataCacheStore()
 const loading = ref(false)
 
 const hasData = computed(() => {
-  return (learningData.value != null && typeof learningData.value !== 'string') ||
+  return (learningData.value != null && Boolean(learningData.value.courseId || learningData.value.id)) ||
          (planData.value && planData.value.length > 0) ||
          (myClassData.value && myClassData.value.length > 0)
 })
@@ -99,6 +99,21 @@ onMounted(async () => {
       getMylessonsData(),
       getPlanData()
     ])
+    // 若用户无单独的正在学习记录，但有我的课程列表，则自动选取第1门课作为待学习展示
+    if (!learningData.value && myClassData.value && myClassData.value.length > 0) {
+      const firstClass = myClassData.value[0]
+      if (firstClass && (firstClass.courseId || firstClass.id)) {
+        learningData.value = {
+          ...firstClass,
+          courseId: firstClass.courseId || firstClass.id,
+          courseName: firstClass.courseName || firstClass.title || firstClass.name,
+          learnedSections: firstClass.learnedSections ?? firstClass.completedLessons ?? 0,
+          sections: firstClass.sections || firstClass.totalLessons || 0,
+          latestSectionIndex: firstClass.latestSectionIndex || 1,
+          latestSectionName: firstClass.latestSectionName || '课程导学'
+        }
+      }
+    }
   } finally {
     loading.value = false
   }
@@ -112,8 +127,22 @@ const getLearningData = async () => {
   try {
     const res = await getMyLearning()
     if (res && res.code == 200 && res.data != null) {
-      learningData.value = res.data
-      store.setMyLearnClassInfo(res.data)
+      let target = null
+      if (Array.isArray(res.data)) {
+        target = res.data[0] || null
+      } else if (res.data && Array.isArray(res.data.list)) {
+        target = res.data.list[0] || null
+      } else if (res.data && (res.data.courseId || res.data.id || res.data.courseName)) {
+        target = res.data
+      }
+
+      if (target && (target.courseId || target.id) && (target.courseName || target.name || target.title)) {
+        learningData.value = target
+        store.setMyLearnClassInfo(target)
+      } else {
+        learningData.value = null
+        store.setMyLearnClassInfo({})
+      }
     } else {
       learningData.value = null
     }

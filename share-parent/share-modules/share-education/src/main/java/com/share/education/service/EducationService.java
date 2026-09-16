@@ -2898,16 +2898,37 @@ public class EducationService {
             result.put("courseCoverUrl", course.getCoverUrl());
             result.put("sections", item.getTotalLessons() != null ? item.getTotalLessons() : course.getLessonCount());
         } else {
+            String fallbackName = "课程 " + (item.getCourseId() != null ? item.getCourseId() : "");
+            result.put("courseName", fallbackName);
+            result.put("title", fallbackName);
+            result.put("cover", "");
+            result.put("coverUrl", "");
+            result.put("courseCoverUrl", "");
             result.put("sections", item.getTotalLessons() != null ? item.getTotalLessons() : 0);
         }
+        EduCourseCatalog section = null;
         if (item.getCatalogId() != null) {
             try {
-                EduCourseCatalog section = catalogMapper.selectById(item.getCatalogId());
-                if (section != null) {
-                    result.put("latestSectionName", section.getCatalogTitle());
-                    result.put("latestSectionIndex", section.getSortNum() != null ? section.getSortNum() : 1);
+                section = catalogMapper.selectById(item.getCatalogId());
+            } catch (Exception ignored) {}
+        }
+        if (section == null && item.getCourseId() != null) {
+            try {
+                List<EduCourseCatalog> firstSections = catalogMapper.selectList(new LambdaQueryWrapper<EduCourseCatalog>()
+                        .eq(EduCourseCatalog::getCourseId, item.getCourseId())
+                        .orderByAsc(EduCourseCatalog::getSortNum)
+                        .last("limit 1"));
+                if (firstSections != null && !firstSections.isEmpty()) {
+                    section = firstSections.get(0);
                 }
             } catch (Exception ignored) {}
+        }
+        if (section != null) {
+            result.put("latestSectionName", section.getCatalogTitle());
+            result.put("latestSectionIndex", section.getSortNum() != null ? section.getSortNum() : 1);
+        } else {
+            result.put("latestSectionName", "课程导学");
+            result.put("latestSectionIndex", 1);
         }
         return result;
     }

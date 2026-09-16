@@ -2,23 +2,36 @@
 <template>
   <div class="classCards fx-sb fx-ct">
     <div class="marg-rt-20">
-      <img :src="data.courseCoverUrl || data.coverUrl || data.cover || defaultCover" alt="" @error="handleImgError($event, data)" @click="$router.push({path: '/details/index', query: {id: data.courseId}})">
+      <img :src="data.courseCoverUrl || data.coverUrl || data.cover || defaultCover" alt="课程封面" @error="handleImgError($event, data)" @click="$router.push({path: '/details/index', query: {id: data.courseId || data.id}})">
     </div>
     <div class="info fx-1">
-      <div class="tit ">{{data.courseName}}</div>
+      <div class="tit">{{ data.courseName || data.name || data.title || '精品在线课程' }}</div>
       <div>
         <span>有效日期：</span>
-        {{data.expireTime == null ? '永久有效' :
-          new Date(data.createTime).toLocaleDateString() + ' - ' + new Date(data.expireTime).toLocaleDateString()}}
+        {{ data.expireTime ? (new Date(data.createTime || Date.now()).toLocaleDateString() + ' - ' + new Date(data.expireTime).toLocaleDateString()) : '永久有效' }}
       </div>
-      <div><span>已学习：</span><em>{{data.learnedSections}}</em> / {{data.sections}}</div>
-      <div v-if="type == '1'"><span>正在学习：</span>第{{data.latestSectionIndex}}节 {{data.latestSectionName}}</div>
+      <div>
+        <span>已学习：</span>
+        <em>{{ data.learnedSections ?? data.completedLessons ?? 0 }}</em> / {{ data.sections || data.totalLessons || 0 }} 节
+      </div>
+      <div v-if="type == '1'">
+        <span>正在学习：</span>
+        <template v-if="data.latestSectionName">
+          第{{ data.latestSectionIndex || 1 }}节 {{ data.latestSectionName }}
+        </template>
+        <template v-else-if="data.sections || data.totalLessons">
+          第1节 课程导学
+        </template>
+        <template v-else>
+          尚未开始学习
+        </template>
+      </div>
     </div>
     <div class="btnCont">
-      <div class="btn" v-if="type == '1'" @click="() => $router.push({path: '/learning/index', query: {id: data.courseId}})">
+      <div class="btn" v-if="type == '1'" @click="() => $router.push({path: '/learning/index', query: {id: data.courseId || data.id, courseId: data.courseId || data.id}})">
         <span class="bt bt-round">继续学习</span>
       </div>
-      <div class="btn" v-if="type == '2' && data.status != 3" @click="() => $router.push({path: '/learning/index', query: {id: data.courseId}})">
+      <div class="btn" v-if="type == '2' && data.status != 3" @click="() => $router.push({path: '/learning/index', query: {id: data.courseId || data.id, courseId: data.courseId || data.id}})">
         <span class="bt bt-round" v-if="data.status == 0">马上学习</span>
         <span class="bt bt-round" v-if="data.status == 1">继续学习</span>
         <span class="bt bt-round" v-if="data.status == 2">重新学习</span>
