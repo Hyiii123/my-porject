@@ -105,9 +105,17 @@ public class EducationPortalController extends BaseController {
         return success(educationService.courseLikeRanking(limit));
     }
 
-    @GetMapping({"/courses/recommendations/personalized", "/courses/recommend/personalized"})
+    @GetMapping({"/courses/recommendations", "/courses/recommend", "/courses/recommendations/personalized", "/courses/recommend/personalized"})
     public AjaxResult personalizedRecommendations(@RequestParam(required = false, defaultValue = "6") int limit) {
         return success(educationService.personalizedRecommendations(limit));
+    }
+
+    @GetMapping({"/courses/recommendations/orchestrate", "/courses/recommend/orchestrate"})
+    public AjaxResult orchestrateAgentRecommend(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String targetRole,
+            @RequestParam(required = false, defaultValue = "4") Integer limit) {
+        return success(educationService.orchestrateAgentRecommend(userId, targetRole, limit));
     }
 
     /**

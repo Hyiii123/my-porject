@@ -31,7 +31,7 @@ fi
 echo "[1/2] 正在校验阿里云 ECS 实时公网 IP..."
 PUB_IP="$("$WORKBENCH_BIN" exec --instance-id "${INSTANCE_ID}" --command "curl -s --connect-timeout 3 http://100.100.100.200/latest/meta-data/eipv4" 2>/dev/null | tr -d '\r\n' || true)"
 if [ -z "$PUB_IP" ] || [[ ! "$PUB_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    PUB_IP="47.121.31.17"
+    PUB_IP="8.155.160.123"
 fi
 echo "      ECS 公网 IP: ${PUB_IP}"
 

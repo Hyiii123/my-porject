@@ -23,7 +23,7 @@
    * 严禁私自变更、删除已有微服务路由、Java Controller 接口路径、DTO 字段结构、数据库表结构或菜单权限配置。
 5. **【本地禁启准则】严禁在本地环境中启动微服务或中间件**
    * **严禁执行**：在本地启动 Spring Boot 微服务（如 `java -jar`、`mvn spring-boot:run`、IDEA Run）、本地 Docker Compose、本地 MySQL、Redis 或 Nacos 实例。
-   * **原因**：项目微服务集群已全面统一部署于阿里云 ECS 线上服务器（`47.121.31.17`），所有数据状态、Nacos 配置中心、Redis 缓存与数据库均在线上闭环。在本地拉起本地服务不仅会争抢本地系统端口、造成端口冲突，还会产生因本地与云端配置不一致带来的“脏调用”与环境割裂。
+   * **原因**：项目微服务集群已全面统一部署于阿里云 ECS 线上服务器（`8.155.160.123`），所有数据状态、Nacos 配置中心、Redis 缓存与数据库均在线上闭环。在本地拉起本地服务不仅会争抢本地系统端口、造成端口冲突，还会产生因本地与云端配置不一致带来的“脏调用”与环境割裂。
    * **正确方式**：本地环境严格仅用于代码编写、Git 版本管理、离线打包构建（`mvn package -DskipTests`、`npm run build`）以及向服务器发起命令运维和测试验证。所有应用服务的运行与联调必须严格在线上服务器进行。
 6. **【严禁占用C盘准则】本地工作严禁占用C盘，临时与工作数据严格落地D盘**
    * **严禁执行**：在 C: 盘（包括各类临时目录、用户缓存、IDE 工作区、测试数据抓取目录等）写入大文件、临时脚本产物、离线数据集或日志。
@@ -46,16 +46,16 @@
 | 资产项 | 配置详情 | 备注 |
 | :--- | :--- | :--- |
 | **ECS 实例 ID** | `i-f8z1loc07p8p5ve8c7jf` | 阿里云 ECS（华东区） |
-| **ECS 公网 IP** | `47.121.31.17` | 线上运行地址（动态公网，当前已切换至 `47.121.31.17`） |
+| **ECS 公网 IP** | `8.155.160.123` | 线上运行地址（动态公网，当前已切换至 `8.155.160.123`） |
 | **服务器项目路径** | `/opt/tianji/share-parent` | Docker Compose `zhiwen-share` 运行目录（注：无 `.git`） |
 | **本地代码根目录** | `D:\education system\my-porject\share-parent` | Java 17 + Vue3 前后端源码 |
 | **本地 Git 仓库根** | `D:\education system\my-porject` | 分支 `master`，远端 `git@github.com:Hyiii123/my-porject.git` |
 | **远程连接工具** | `D:\nodejs_global\workbench.exe` | 阿里云 Workbench CLI（已配置凭证，支持 `exec` 与 `upload`） |
-| **前端 - 学生端** | `http://47.121.31.17:18081` | 容器 `zhiwen-portal-ui`，对应源码 `frontends/portal` |
-| **前端 - 业务管理端** | `http://47.121.31.17:18082` | 容器 `zhiwen-business-admin-ui`，对应源码 `frontends/business-admin` |
-| **前端 - 基础管理端** | `http://47.121.31.17:18080` | 容器 `zhiwen-ruoyi-ui`，对应源码 `share-ui` |
-| **API 网关 Gateway** | `http://47.121.31.17:8080` | 容器 `zhiwen-gateway`，统一接口入口 |
-| **推荐算法微服务** | `http://47.121.31.17:15000` | 容器 `zhiwen-recommend`，内部端口 `5000`，`DRAG-KP4SR` 语义桥接引擎 |
+| **前端 - 学生端** | `http://8.155.160.123:18081` | 容器 `zhiwen-portal-ui`，对应源码 `frontends/portal` |
+| **前端 - 业务管理端** | `http://8.155.160.123:18082` | 容器 `zhiwen-business-admin-ui`，对应源码 `frontends/business-admin` |
+| **前端 - 基础管理端** | `http://8.155.160.123:18080` | 容器 `zhiwen-ruoyi-ui`，对应源码 `share-ui` |
+| **API 网关 Gateway** | `http://8.155.160.123:8080` | 容器 `zhiwen-gateway`，统一接口入口 |
+| **推荐算法微服务** | `http://8.155.160.123:15000` | 容器 `zhiwen-recommend`，内部端口 `5000`，`DRAG-KP4SR` 语义桥接引擎 |
 | **RocketMQ 路由中心** | 内部 `zhiwen-rocketmq-namesrv:9876` / 宿主机 `9876` | 容器 `zhiwen-rocketmq-namesrv`（极轻量路由中心，限额 256M，实测 ~140MB） |
 | **RocketMQ Broker** | 内部 `zhiwen-rocketmq-broker:10911` / 宿主机 `10909, 10911` | 容器 `zhiwen-rocketmq-broker`（极轻量存储转发，限额 600M，实测 ~440MB，异步刷盘保护云盘） |
 | **消息中枢微服务 Share-MQ** | 内部端口 `9215` / 宿主机 `19215` | 容器 `zhiwen-mq`，全站 RocketMQ 消费者与事件调度微服务（限额 256M，实测 ~520MB） |

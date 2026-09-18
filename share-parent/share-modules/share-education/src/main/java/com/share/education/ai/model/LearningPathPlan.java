@@ -37,4 +37,9 @@ public class LearningPathPlan {
 
     /** 审判反思智能体质检报告 (PathCriticAgent 评估产出) */
     private CriticReport criticReport;
+
+    /** 兼容前端字段：预估总学时 */
+    public Integer getTotalHours() {
+        return totalEstimatedHours;
+    }
 }

@@ -71,7 +71,7 @@ try {
 }
 
 if (-not $pubIp) {
-    $pubIp = "47.121.31.17"
+    $pubIp = "8.155.160.123"
 }
 Write-Host "      ECS 公网 IP: $pubIp" -ForegroundColor Green
 

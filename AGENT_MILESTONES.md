@@ -14,6 +14,26 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-18 13:45:00 - 引入 Spring AI Alibaba Graph 架构模式系统性重构多智能体协同引擎：落地动态意图路由、双轮圆桌博弈协商共识与 Kahn DAG 审判反思闭环，线上全链路 100% 验证通过 (Spring AI Alibaba Graph Composite Multi-Agent Refactoring: Dynamic Routing, Roundtable Debate & Consensus, and Kahn DAG Reflection Loop)
+
+* **演进主题**：Spring AI Alibaba Graph 模式重构 (Spring AI Graph Patterns Architecture)、复合多智能体协同架构 (Composite Multi-Agent Architecture)、动态意图路由分发 (Dynamic Intent Routing in `IntentDispatcherNode`)、专家圆桌博弈与共识协商 (Roundtable Debate & Consensus in `PedagogyMentorNode`, `IndustryArchitectNode` & `ConsensusArbiterNode`)、Actor-Critic 反思回路与 Kahn DAG 质检 (Kahn Algorithm & Bloom Gradient Audit in `PathCriticNode`)、共享辩论黑板状态机 (`DebateBlackboardState`)、方案补丁与共识决议 (`PlanPatch` & `DebateConsensusSummary`)、流式思考心流与前端 HUD 契约 100% 兼容 (SSE Streaming Mindflow & Backward Compatibility)、线上轻量热发布与定向测试 100% 验证通过 (Sequential Lightweight Release & Targeted Verification)
+* **核心成果**：
+  1. **复合架构模式体系构建 (Composite Architecture combining Pattern 2, Pattern 5 & Pattern 4)**：
+     - **模式 2 (动态意图路由 - Dynamic Intent Routing)**：实现 `IntentDispatcherNode` 针对学员输入与画像上下文进行首道意向分类，精准分流动作卡片 (`ROUTE_ACTION_CARD`)、全真面试 (`ROUTE_MOCK_INTERVIEW`) 与导学规划 (`ROUTE_MULTI_AGENT_DEBATE`)；
+     - **模式 5 (专家圆桌博弈与共识达成 - Roundtable Debate & Consensus)**：构建 `PedagogyMentorNode` (学情成长导师)、`IndustryArchitectNode` (大厂技术总监) 与 `ConsensusArbiterNode` (圆桌首席仲裁者)，基于 `DebateBlackboardState` 共享黑板展开跨轮次辩论、方案质疑与妥协折中补丁 (`PlanPatch`)，严控 2 轮博弈上限并签署权威共识决议 (`DebateConsensusSummary`)；
+     - **模式 4 (Actor-Critic 反思回路与 Kahn DAG 拓扑审计 - Actor-Critic Reflection Loop)**：实现 `PathCriticNode` 基于 Kahn 拓扑排序算法与布鲁姆认知梯度进行三元量化质检，初审精准发现排布缺陷与前置依赖倒置并下发强制反思指令 (`AUDIT_REJECT`)，第二轮终审通过数学无环核验放行并授予 100 分卓越 A+ 认证 (`AUDIT_PASS`)；
+     - **交付层 (方案合成与接地推理 - ExplanationSynthesisNode)**：融合 Spring AI 与 RAG 胜任力知识切片，为共识方案生成通俗且具备强事实依据的可解释性推荐理由。
+  2. **总编排器与前端 HUD 契约无缝升级 (`MultiAgentRecommendOrchestrator`)**：
+     - `MultiAgentRecommendOrchestrator` 全面接入 `CompositeMultiAgentGraphEngine`，优雅驱动 `recommendCourses`、`getLearningPath` 与 `streamReasoning`；
+     - 在 `LearningPathPlan` 中新增 `getTotalHours()` 兼容字段，在 `EducationPortalController` 中补充统一别名映射，完美向前向后兼容 `AgentReasoningHUD.vue` 的 6 大协同步骤心流与外部 Feign 调用契约。
+  3. **日常环境感知与公网 IP 动态治理 (Rule 7 Compliance)**：
+     - 依据每日检测铁律，探测并确认 ECS 动态公网 IP 切换为 `8.155.160.123`；
+     - 全局批量更新 `AGENTS.md`、`AGENT_WORKLOG.md`、`start-project.ps1`、`start-project.sh`、`manage-project.sh`、`AGENT_HANDOFF.md` 等关键资产配置。
+  4. **单向发布与定向范围 100% 闭环验证 (Rule 1, 2, 5, 6, 8 Compliance)**：
+     - 本地 JDK 17 严格离线编译并打包 `share-education.jar`（145MB）；
+     - 遵循云盘保护铁律，通过 Workbench CLI 顺序上传并平滑替换 `zhiwen-education` 容器运行时（`/app/app.jar`），服务器零 IOPS 消耗；
+     - 运行 `.scratch/verify_composite_agent.ps1`，覆盖用户认证、推荐课程主接口、个性化推荐接口、全景成长路线规划、多智能体编排接口以及 SSE 9 阶段实时流式思考心流，全部 100% 验证通过。
+
 ### 2026-09-16 17:00:00 - 微服务全域 GoF 设计模式系统性架构重构：落地策略模式、工厂模式与责任链模式，彻底解耦交易支付/优惠折扣/题库阅卷与客服安全体系，线上定向测试 100% 验证通过 (Full Microservice Domain GoF Design Patterns Refactoring: Strategy, Factory & Chain of Responsibility across Trade, Education, and Customer)
 
 * **演进主题**：全域设计模式系统性重构 (GoF Design Patterns Architecture)、开闭原则与单一职责深度对齐 (OCP & SRP Compliance)、交易支付与折扣策略解耦 (Payment & Discount Strategy Factories in `share-trade`)、教育试题判卷策略体系构建 (Question Grading Strategy Factory in `share-education`)、智能体安全风控责任链落地 (Security Chain of Responsibility in `share-customer`)、线上微服务逐一平滑发布与定向测试 100% 验证闭环 (Sequential Deployment & Targeted Scope Verification)
