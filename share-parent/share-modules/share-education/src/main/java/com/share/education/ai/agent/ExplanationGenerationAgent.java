@@ -106,7 +106,29 @@ public class ExplanationGenerationAgent {
                                         UserProfileContext profile,
                                         PathStageVO stage,
                                         String benchmarkEvidence) {
-        // 直接使用课程大纲核心知识点内生自洽解释引擎，确保推荐理由 100% 严谨且零延迟
+        // 1. AI 优先：尝试调用大模型生成极具针对性与温情的可解释性推荐理由
+        if (aiClient != null && aiClient.isAvailable()) {
+            try {
+                String courseName = ac != null && StringUtils.hasText(ac.getCourseName()) ? ac.getCourseName() : "专业课";
+                String role = profile != null && StringUtils.hasText(profile.getIntendedRole()) ? profile.getIntendedRole() : "技术工程师";
+                String kps = (ac != null && ac.getCoreKnowledgePoints() != null && !ac.getCoreKnowledgePoints().isEmpty())
+                        ? String.join("、", ac.getCoreKnowledgePoints()) : courseName;
+                String stageName = stage != null && stage.getStageName() != null ? stage.getStageName() : "专业进阶";
+
+                String sys = "你是一位资深的在线教育学术导学顾问。请针对该课程为学员生成一句简练、专业、高度内生自洽的推荐理由（控制在35~55字，直接输出陈述句，说明学后价值）。";
+                String usr = String.format("学员目标岗位：%s，当前所处阶段：%s，推荐课程：《%s》，核心技术点：%s。请生成专属推荐理由：",
+                        role, stageName, courseName, kps);
+
+                String aiReason = aiClient.generate(sys, usr);
+                if (StringUtils.hasText(aiReason)) {
+                    return aiReason.trim().replaceAll("^[\"“]|[\"”]$", "");
+                }
+            } catch (Exception ex) {
+                log.debug("[ExplanationAgent] 大模型生成单课理由降级至内生规则: {}", ex.getMessage());
+            }
+        }
+
+        // 2. 规则保底：使用课程大纲核心知识点内生自洽解释引擎，确保推荐理由 100% 严谨且零延迟
         return buildRuleBasedReason(ac, profile, stage);
     }
 

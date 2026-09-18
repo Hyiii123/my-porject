@@ -105,7 +105,18 @@ public class PedagogyMentorNode {
         double rawDisagreement = ((100.0 - discipline) / 100.0) * 0.45 + (hasSteepStage ? 0.35 : 0.15) + (completedHours < 10 ? 0.10 : 0.0);
         double calculatedDisagreement = Math.min(0.95, Math.max(0.40, Math.round(rawDisagreement * 100.0) / 100.0));
 
-        String arg = String.format(
+        // 尝试调用大模型动态立论质疑 (AI优先 + 规则保底)
+        String dynamicArg = null;
+        if (aiClient != null && aiClient.isAvailable()) {
+            String sys = "你是一位资深的教育教学法专家与学情成长导师。你的立场是捍卫学员的认知承载力，警惕理论过陡、学时过重导致的劝退风险。请针对大厂技术总监提交的培养方案提出严正质疑与改进建议（不超过100字）。";
+            String usr = String.format("学员画像：目标【%s】，自律完课指数【%d分】，历史学时【%.1fh】，认知阶段【%s】。总监方案：总课时【%dh】，阶段2学时【%dh】。请提出你的质疑理由与软化坡度要求。",
+                profile != null && profile.getIntendedRole() != null ? profile.getIntendedRole() : "技术工程师",
+                discipline, completedHours, profile != null && profile.getCognitiveLevel() != null ? profile.getCognitiveLevel() : "筑基期",
+                draft != null && draft.getTotalEstimatedHours() != null ? draft.getTotalEstimatedHours() : 120, stage2Hours);
+            dynamicArg = aiClient.generate(sys, usr);
+        }
+
+        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg.trim() : String.format(
             "严正质疑技术总监的初始方案！学员自律完课指数仅 %d 分，历史学时 %.1fh，处于【%s】。" +
             "总监在阶段 2 设置了过高的理论门槛与认知跃迁 (阶段学时达 %dh)，严重违反维果茨基最近发展区理论！根据教学法模型预测，学员在此阶段半途劝退率超 60%%，必须下调坡度并加入过渡缓冲课！",
             discipline, completedHours, profile != null ? profile.getCognitiveLevel() : "核心筑基期", stage2Hours);
@@ -137,7 +148,15 @@ public class PedagogyMentorNode {
     public void reviewCompromise(DebateBlackboardState state) {
         long tStart = System.currentTimeMillis();
 
-        String arg = "复核大厂技术总监提交的折中方案：阶段 2 晦涩理论已软化，补充了渐进式实战项目，认知坡度已平缓可攀登。该调整既保护了学员信心，又保留了必要核心技能。学情端认可并签字通过！";
+        String dynamicArg = null;
+        if (aiClient != null && aiClient.isAvailable()) {
+            String sys = "你是一位资深学情成长导师。技术总监已根据你的质疑对阶段2进行了妥协优化，插入了实战过渡课并降低了学时。请发表你的审查认可意见（不超过80字）。";
+            String usr = "总监已采纳教学法意见软化阶段2坡度并补充了过渡项目。请给出你的学情批准声明。";
+            dynamicArg = aiClient.generate(sys, usr);
+        }
+
+        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg.trim() :
+            "复核大厂技术总监提交的折中方案：阶段 2 晦涩理论已软化，补充了渐进式实战项目，认知坡度已平缓可攀登。该调整既保护了学员信心，又保留了必要核心技能。学情端认可并签字通过！";
 
         long latency = System.currentTimeMillis() - tStart;
         state.recordLatency("PedagogyMentorNode_Accept", latency);

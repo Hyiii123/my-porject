@@ -14,6 +14,30 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-18 20:50:00 - 智问学伴多智能体系统真智化根治重构：消除伪智能体、真大模型驳论、客观 Kahn DAG 质检与全真度量闭环 (Multi-Agent System Genuine Intelligence Refactor: Decoupling Pseudo-Agents, LLM Dialectic Debate, Objective Kahn DAG Audit & Zero-Faked Metrics Closure)
+
+* **演进主题**：多智能体真智化全面治理 (Eradication of Pseudo-Agents & Elimination of Hardcoded Heuristics)、真实大模型驳论与辩证立论 (Real LLM Dialectic Argumentation in `PedagogyMentorNode` & `ExplanationGenerationAgent`)、废除预设扣分剧本回归客观数学质检 (Abolition of Scripted Penalties & Pure Kahn DAG / Bloom Variance Quality Audit in `PathCriticNode`)、结构化集合过滤收敛穷举分支 (Structured Set-Based Domain Filtering in `PathPlanningAgent`)、大纲认知全景解构 (Full-Outline Bloom Taxonomy Decomposition in `CourseAnalysisAgent`)、前端 HUD 零基线全真度量接入 (Zero-Baseline True Evaluative Telemetry in `AgentReasoningHUD.vue`)、云端热更新与端到端闭环定向验证 100% 通过 (Cloud Hot-Deployment & Targeted Verification Closure)
+* **核心成果**：
+  1. **彻底根治“伪智能体”，激活大模型真实批判与驳论 (`PedagogyMentorNode` & `ExplanationGenerationAgent`)**：
+     - 学情护航导师（`PedagogyMentorNode`）接入全域统一大模型客户端，基于学员画像（自律完课指数、学时、认知阶段）实时向大模型发起学术质询与折中批准声明，彻底废弃单纯写死的单一字符串占位，兼具大模型不可预测深度洞察与结构化规则托底；
+     - 解释生成智能体（`ExplanationGenerationAgent`）全面恢复大模型推理调用，深度结合目标岗位与前驱拓扑生成针对性推荐成因，异常时依托课程真实大纲核心知识点内生自洽托底。
+  2. **废除“演戏式打回”，恢复 Kahn DAG 客观质检裁决 (`PathCriticNode`)**：
+     - 彻底删除第一轮强行扣除平滑分 25 分的“剧本杀”逻辑（`penalizedSmoothness`），质检法官严格依据 Kahn DAG 拓扑无环性、前驱知识覆盖率、认知平滑分及自律负荷分歧度综合打分；
+     - 允许首轮达到卓越门槛（综合分 ≥ 80 分且无严重拓扑先修断层）的高质量规划方案直接客观放行，杜绝无意义人为自省重算，大幅提升高并发推演响应速度。
+  3. **收敛穷举分支与升级布鲁姆认知阶梯解构 (`PathPlanningAgent` & `CourseAnalysisAgent`)**：
+     - 将 `PathPlanningAgent` 中 50+ 行硬编码级联 `|| allText.contains(...)` 重构为结构化不可变集合（`JAVA_EXCLUDED_KEYWORDS`, `JAVA_REQUIRED_KEYWORDS`）与高性能 `containsAny` 判定；
+     - 将 `CourseAnalysisAgent` 从以往仅扫描前两个一级章节，升级为全大纲章节目录标题及技能标签的扁平化遍历与布鲁姆动词词频加权统计，认知层级评定真实覆盖全课程知识体系。
+  4. **前端 HUD 仪表盘清除非真硬编码，建立零基线真实采样 (`AgentReasoningHUD.vue`)**：
+     - 清除组件中原有的“142次执行、AAA生产卓越级”等静态假数据兜底，默认初始化为 0 次执行、待采样与无数据占位状态；
+     - 仅当真实调用 `/es/courses/recommendations/evals/metrics` 产生度量指标时动态驱动 HUD 仪表盘，确保评测可信度。
+  5. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 本地打包 `share-education.jar` 与 `portal-ui/dist`，串行上传并热替换云端容器，Nginx 重载；
+     - 定向接口验证全绿通过：
+       - 多智能体编排接口（`/cs/courses/recommendations/orchestrate`）：首轮客观评分 100 分卓越（A+），各阶段课程 100% 对口 Java 全栈；
+       - 真实度量接口（`/cs/courses/recommendations/evals/metrics`）：真实采样计数器自增至 1，DAG 合规率 100%，保真度 100%；
+       - 流式推理心流（`/es/courses/recommendations/stream/reasoning`）：稳定实时推送 6 步多智能体圆桌博弈事件流；
+       - 学生端前端（`http://8.155.160.123:18081`）：HTTP 200 OK，静态资源秒级加载。
+
 ### 2026-09-18 20:30:00 - 智问学伴全平台统一第三方大模型 API (Pixel / gpt-5.6-luna) 深度适配与单并发保护闭环 (Unified Third-Party Pixel AI Architecture: gpt-5.6-luna Alignment, OpenFeign Timeout Tuning, Single-Concurrency Guard & E2E Verification Closure)
 
 * **演进主题**：全域统一第三方大模型单一真相源 (Unified Third-Party LLM API `https://ai-pixel.online` with model `gpt-5.6-luna`)、严格剥离官方大模型直连依赖 (Complete Decoupling from Official DashScope/OpenAI Endpoints)、反向代理协议深度调优与双路径防重 (Proxy Header Negotiation & URL Double Prefix Sanitization in `SpringAiConfiguration` & `ThirdPartyAiClient`)、账号单并发保护锁与快速弹性熔断自愈 (ReentrantLock Single-Concurrency Guard & 20s Fast-Recovery Circuit Breaker)、全域 OpenFeign 与微服务调用链路超时重构 (OpenFeign AI Timeout Extension in Nacos `application-dev.yml` & `share-customer-dev.yml`)、多智能体精益推演时延优化 (Multi-Agent Lean Deliberation Latency Optimization)、云端生产热部署与端到端闭环验证 100% 通过 (Cloud Hot-Deployment & E2E Verification Closure)

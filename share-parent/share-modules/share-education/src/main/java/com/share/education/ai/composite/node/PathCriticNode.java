@@ -40,29 +40,21 @@ public class PathCriticNode {
         long latency = System.currentTimeMillis() - tStart;
         state.recordLatency("PathCriticNode_Audit", latency);
 
-        boolean hasMentorObjection = state.getDisagreementScore() != null && state.getDisagreementScore() > 0.50;
+        // 客观判定：若存在先修倒置异常、严重认知断层或极度学情冲突，才触发反思折中回路
+        boolean hasGenuineDefect = !Boolean.TRUE.equals(report.getPassed())
+            || (report.getPrerequisiteScore() != null && report.getPrerequisiteScore() < 80)
+            || (report.getSmoothnessScore() != null && report.getSmoothnessScore() < 70);
+        boolean hasSevereConflict = state.getDisagreementScore() != null && state.getDisagreementScore() >= 0.80;
 
-        if (state.getCurrentRound() == 1 && (hasMentorObjection || !Boolean.TRUE.equals(report.getPassed()))) {
-            // 第一轮：审判法官依据真实拓扑审计与学情分歧度做出裁决，不伪造假数据
-            if (hasMentorObjection && Boolean.TRUE.equals(report.getPassed())) {
-                // 若拓扑无环但学情导师抗辩强烈，结合真实分歧度惩罚平滑分
-                int penalizedSmoothness = Math.max(50, report.getSmoothnessScore() - (int)(state.getDisagreementScore() * 25));
-                int adjustedOverall = (int) Math.round(0.40 * report.getPrerequisiteScore() + 0.35 * penalizedSmoothness + 0.25 * report.getBalanceScore());
-                report.setSmoothnessScore(penalizedSmoothness);
-                report.setCognitiveContinuityScore(penalizedSmoothness);
-                report.setOverallScore(adjustedOverall);
-                report.setPassed(adjustedOverall >= 80);
-                report.setVerdictLevel(adjustedOverall >= 80 ? "合格 (B)" : "待优化 (C)");
-            }
-
-            state.setCriticReport(report);
+        if (state.getCurrentRound() == 1 && (hasGenuineDefect || hasSevereConflict)) {
+            // 第一轮未达标：出具真实质检缺陷报告，下发精准修正指令集
             Map<String, Object> directives = report.getRefinementDirectives() != null ? new HashMap<>(report.getRefinementDirectives()) : new HashMap<>();
             directives.put("smoothDifficultyTransition", true);
             directives.put("insertTransitionalPractice", true);
             state.setRefinementDirectives(directives);
 
             String arg = String.format("法官初审裁决：综合质检得分 %d 分，评级【%s】。经布鲁姆认知阶梯与学情负荷审计：" +
-                "Kahn DAG 拓扑分 %d，认知平滑分 %d，阶段均衡分 %d。采纳导师防劝退质疑，下发针对性修正指令集，进入第二轮自省折中！",
+                "Kahn DAG 拓扑分 %d，认知平滑分 %d，阶段均衡分 %d。检测到学情负荷过载或拓扑梯度不均，下发针对性修正指令集，进入第二轮自省折中！",
                 report.getOverallScore(), report.getVerdictLevel(), report.getPrerequisiteScore(),
                 report.getSmoothnessScore(), report.getBalanceScore());
 
@@ -80,7 +72,8 @@ public class PathCriticNode {
                 .build();
 
             state.recordTurn(turn);
-            log.warn("[PathCriticNode] 第一轮质检真实评分打回: 分数={}, 评级={}", report.getOverallScore(), report.getVerdictLevel());
+            log.warn("[PathCriticNode] 第一轮质检真实评分打回: 分数={}, 评级={}, 原因={}",
+                report.getOverallScore(), report.getVerdictLevel(), report.getSummary());
             return false;
         } else {
             // 第二轮或已达标：执行终审客观数学核验，杜绝篡改分数

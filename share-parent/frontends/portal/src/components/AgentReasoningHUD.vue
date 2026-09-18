@@ -12,8 +12,11 @@
           <el-tag size="small" effect="plain" type="primary" class="role-tag">
             🎯 {{ selectedRole }}
           </el-tag>
-          <span class="eval-pill" v-if="evalMetrics && evalMetrics.overallHealthGrade">
-            🛡️ 质检评级: {{ (evalMetrics.overallHealthGrade || '').split('·')[0].trim() || 'AAA' }} (100% DAG 合规)
+          <span class="eval-pill" v-if="evalMetrics && evalMetrics.totalPipelinesRun > 0">
+            🛡️ 质检评级: {{ (evalMetrics.overallHealthGrade || '').split('·')[0].trim() || 'AAA' }} ({{ evalMetrics.dagValidityRate }}% DAG 合规)
+          </span>
+          <span class="eval-pill" v-else>
+            🛡️ 质检探针: 实时就绪 (Kahn DAG 拓扑守护)
           </span>
         </div>
       </div>
@@ -375,6 +378,9 @@
       class="evals-dialog"
     >
       <div class="evals-dialog-body">
+        <div v-if="!evalMetrics || evalMetrics.totalPipelinesRun === 0" class="evals-empty-banner" style="margin-bottom: 16px; padding: 10px 14px; background: rgba(59, 130, 246, 0.08); border-radius: 8px; color: #60a5fa; font-size: 13px;">
+          ℹ️ 当前服务尚未产生推演采样记录。点击 HUD 顶部的「智能体重新规划」触发推演后，将自动展示实时 SLA 阶段时延与客观质检得分。
+        </div>
         <div class="evals-kpi-grid">
           <div class="kpi-card">
             <div class="kpi-val text-success">{{ evalMetrics.dagValidityRate }}%</div>
@@ -468,26 +474,16 @@ const probeAnswers = ref({})
 
 const evalsVisible = ref(false)
 const evalMetrics = ref({
-  dagValidityRate: 100.0,
-  intentAlignmentScore: 92.5,
-  faithfulnessScore: 95.0,
-  criticPassRate: 96.8,
-  averageLatencyMs: 38.2,
-  overallHealthGrade: 'AAA · 生产卓越级',
-  totalPipelinesRun: 142,
-  latencyBreakdownMs: {
-    'UserProfileAgent': 3.2,
-    'RecommendationAgent': 8.5,
-    'CourseAnalysisAgent': 11.0,
-    'PathPlanningAgent': 6.8,
-    'PathCriticAgent': 4.1,
-    'ExplanationGenerationAgent': 12.4
-  },
+  dagValidityRate: 0.0,
+  intentAlignmentScore: 0.0,
+  faithfulnessScore: 0.0,
+  criticPassRate: 0.0,
+  averageLatencyMs: 0.0,
+  overallHealthGrade: '待采样监控',
+  totalPipelinesRun: 0,
+  latencyBreakdownMs: {},
   qualityHighlights: [
-    'DAG 先修拓扑合规率 100.0%，无违规反向依赖',
-    '解释生成保真度 95.0%，通过真实大纲证据强接地',
-    '审判反思智能体综合首轮达标率 96.8%',
-    '全链路平均推演响应时间 38.2 毫秒，符合生产 SLA 性能指标'
+    '系统处于实时就绪状态，点击「智能体重新规划」触发推演采样'
   ]
 })
 

@@ -369,6 +369,44 @@ public class PathPlanningAgent {
         return isCourseDomainRelevantFallback(c, domain);
     }
 
+    private static final Set<String> JAVA_EXCLUDED_KEYWORDS = Set.of(
+        "go 语言", "go语言", "golang", "goroutine", "kratos", "geecache", "go后端", "go web", "gin", "grpc", "protobuf",
+        "kubernetes", "k8s", "terraform", "istio", "service mesh", "iac", "rust",
+        "大数据", "hadoop", "flink", "spark", "datax", "sqoop", "clickhouse", "doris", "hive", "hbase", "数仓", "离线计算",
+        "nlp", "word2vec", "大模型", "llm", "rag", "langchain", "python", "django", "fastapi",
+        "vue", "react", "typescript", "javascript", "前端", "flutter", "android", "ios", "鸿蒙", "harmonyos", "harmony",
+        "c++", "node.js", "nodejs", "区块链"
+    );
+
+    private static final Set<String> JAVA_REQUIRED_KEYWORDS = Set.of(
+        "java", "spring", "mysql", "redis", "mybatis", "jvm", "linux", "微服务", "高并发", "分布式",
+        "数据库", "sql", "网络编程", "数据结构", "算法", "操作系统", "计算机网络", "后端", "中间件",
+        "netty", "kafka", "设计模式", "juc", "seata"
+    );
+
+    private static final Set<String> FRONTEND_EXCLUDED = Set.of("java", "rust", "大数据", "flutter");
+    private static final Set<String> FRONTEND_REQUIRED = Set.of("vue", "react", "typescript", "javascript", "前端", "web");
+
+    private static final Set<String> BIGDATA_EXCLUDED = Set.of("vue", "react", "flutter");
+    private static final Set<String> BIGDATA_REQUIRED = Set.of("大数据", "spark", "flink", "hadoop", "datax", "sqoop");
+
+    private static final Set<String> AI_EXCLUDED = Set.of("vue", "flutter", "区块链");
+    private static final Set<String> AI_REQUIRED = Set.of("ai", "大模型", "大语言模型", "语言模型", "llm", "nlp", "word2vec", "pytorch", "深度学习");
+
+    private static final Set<String> GO_EXCLUDED = Set.of("vue", "rust", "大数据");
+    private static final Set<String> GO_REQUIRED = Set.of("go", "golang", "k8s", "docker");
+
+    private static final Set<String> MOBILE_REQUIRED = Set.of("flutter", "android", "ios", "鸿蒙", "安卓");
+
+    private static boolean containsAny(String text, Set<String> keywords) {
+        for (String kw : keywords) {
+            if (text.contains(kw)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isCourseDomainRelevantFallback(AnalyzedCourseVO c, DefaultHybridAlgorithmEngine.DisciplineDomain domain) {
         if (c == null || domain == DefaultHybridAlgorithmEngine.DisciplineDomain.GENERAL) {
             return true;
@@ -380,64 +418,29 @@ public class PathPlanningAgent {
 
         switch (domain) {
             case JAVA_BACKEND:
-                // 排除黑名单：非 Java 后端强相关领域 (Go、K8s/云原生、Rust、大数据、Python/NLP、移动端、前端、区块链等)
-                if (allText.contains("go 语言") || allText.contains("go语言") || allText.contains("golang")
-                        || allText.contains("goroutine") || allText.contains("kratos") || allText.contains("geecache")
-                        || allText.contains("go后端") || allText.contains("go web") || allText.contains("gin")
-                        || allText.contains("grpc") || allText.contains("protobuf")
-                        || allText.contains("kubernetes") || allText.contains("k8s") || allText.contains("terraform")
-                        || allText.contains("istio") || allText.contains("service mesh") || allText.contains("iac")
-                        || allText.contains("rust")
-                        || allText.contains("大数据") || allText.contains("hadoop") || allText.contains("flink")
-                        || allText.contains("spark") || allText.contains("datax") || allText.contains("sqoop")
-                        || allText.contains("clickhouse") || allText.contains("doris") || allText.contains("hive")
-                        || allText.contains("hbase") || allText.contains("数仓") || allText.contains("离线计算")
-                        || allText.contains("nlp") || allText.contains("word2vec") || allText.contains("大模型")
-                        || allText.contains("llm") || allText.contains("rag") || allText.contains("langchain")
-                        || allText.contains("python") || allText.contains("django") || allText.contains("fastapi")
-                        || allText.contains("vue") || allText.contains("react") || allText.contains("typescript")
-                        || allText.contains("javascript") || allText.contains("前端")
-                        || allText.contains("flutter") || allText.contains("android") || allText.contains("ios")
-                        || allText.contains("鸿蒙") || allText.contains("harmonyos") || allText.contains("harmony")
-                        || allText.contains("c++") || allText.contains("node.js") || allText.contains("nodejs")
-                        || allText.contains("区块链")) {
+                if (containsAny(allText, JAVA_EXCLUDED_KEYWORDS)) {
                     return false;
                 }
-                // 白名单特征：Java、后端、数据库、计算机基础
-                return allText.contains("java") || allText.contains("spring") || allText.contains("mysql")
-                        || allText.contains("redis") || allText.contains("mybatis") || allText.contains("jvm")
-                        || allText.contains("linux") || allText.contains("微服务") || allText.contains("高并发")
-                        || allText.contains("分布式") || allText.contains("数据库") || allText.contains("sql")
-                        || allText.contains("网络编程") || allText.contains("数据结构") || allText.contains("算法")
-                        || allText.contains("操作系统") || allText.contains("计算机网络") || allText.contains("后端")
-                        || allText.contains("中间件") || allText.contains("netty") || allText.contains("kafka")
-                        || allText.contains("设计模式") || allText.contains("juc") || allText.contains("seata");
+                return containsAny(allText, JAVA_REQUIRED_KEYWORDS);
 
             case FRONTEND:
-                if (allText.contains("java") || allText.contains("rust") || allText.contains("大数据") || allText.contains("flutter")) {
-                    return false;
-                }
-                return allText.contains("vue") || allText.contains("react") || allText.contains("typescript")
-                        || allText.contains("javascript") || allText.contains("前端") || allText.contains("web");
+                if (containsAny(allText, FRONTEND_EXCLUDED)) return false;
+                return containsAny(allText, FRONTEND_REQUIRED);
 
             case BIG_DATA:
-                if (allText.contains("vue") || allText.contains("react") || allText.contains("flutter")) return false;
-                return allText.contains("大数据") || allText.contains("spark") || allText.contains("flink")
-                        || allText.contains("hadoop") || allText.contains("datax") || allText.contains("sqoop");
+                if (containsAny(allText, BIGDATA_EXCLUDED)) return false;
+                return containsAny(allText, BIGDATA_REQUIRED);
 
             case AI_LLM:
-                if (allText.contains("vue") || allText.contains("flutter") || allText.contains("区块链")) return false;
-                return allText.contains("ai") || allText.contains("大模型") || allText.contains("大语言模型")
-                        || allText.contains("语言模型") || allText.contains("llm") || allText.contains("nlp")
-                        || allText.contains("word2vec") || allText.contains("pytorch") || allText.contains("深度学习");
+                if (containsAny(allText, AI_EXCLUDED)) return false;
+                return containsAny(allText, AI_REQUIRED);
 
             case GO_CLOUD_NATIVE:
-                if (allText.contains("vue") || allText.contains("rust") || allText.contains("大数据")) return false;
-                return allText.contains("go") || allText.contains("golang") || allText.contains("k8s") || allText.contains("docker");
+                if (containsAny(allText, GO_EXCLUDED)) return false;
+                return containsAny(allText, GO_REQUIRED);
 
             case MOBILE:
-                return allText.contains("flutter") || allText.contains("android") || allText.contains("ios")
-                        || allText.contains("鸿蒙") || allText.contains("安卓");
+                return containsAny(allText, MOBILE_REQUIRED);
 
             default:
                 return true;

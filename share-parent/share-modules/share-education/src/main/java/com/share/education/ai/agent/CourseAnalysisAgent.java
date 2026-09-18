@@ -202,16 +202,29 @@ public class CourseAnalysisAgent {
         String name = c.getCourseName() != null ? c.getCourseName().toLowerCase() : "";
         int diff = c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2;
 
+        StringBuilder fullCatalogText = new StringBuilder(name);
+        if (StringUtils.hasText(c.getSkills())) {
+            fullCatalogText.append(" ").append(c.getSkills().toLowerCase());
+        }
+        if (catalogs != null) {
+            for (EduCourseCatalog cat : catalogs) {
+                if (StringUtils.hasText(cat.getCatalogTitle())) {
+                    fullCatalogText.append(" ").append(cat.getCatalogTitle().toLowerCase());
+                }
+            }
+        }
+        String corpus = fullCatalogText.toString();
+
         // 布鲁姆认知层级递进：CREATE(系统创新) > EVALUATE(架构调优) > ANALYZE(底层剖析) > APPLY(工程应用) > UNDERSTAND(原理理解) > REMEMBER(核心识记)
-        if (name.contains("自研") || name.contains("手写") || name.contains("架构自研") || name.contains("从零构建")) {
+        if (corpus.contains("自研") || corpus.contains("手写") || corpus.contains("架构自研") || corpus.contains("从零构建") || name.contains("从0到1")) {
             return new BloomInfo("CREATE", "系统创新级");
-        } else if (name.contains("调优") || name.contains("性能") || name.contains("全链路") || diff >= 4) {
+        } else if (corpus.contains("调优") || corpus.contains("性能压测") || corpus.contains("全链路") || corpus.contains("故障排查") || diff >= 4) {
             return new BloomInfo("EVALUATE", "架构调优级");
-        } else if (name.contains("底层") || name.contains("源码") || name.contains("内核") || name.contains("剖析") || diff == 3) {
+        } else if (corpus.contains("底层") || corpus.contains("源码") || corpus.contains("内核") || corpus.contains("剖析") || corpus.contains("深度解析") || diff == 3) {
             return new BloomInfo("ANALYZE", "底层剖析级");
-        } else if (name.contains("实战") || name.contains("开发") || name.contains("应用") || name.contains("项目") || diff == 2) {
+        } else if (corpus.contains("实战") || corpus.contains("开发") || corpus.contains("应用") || corpus.contains("项目") || corpus.contains("工程") || diff == 2) {
             return new BloomInfo("APPLY", "工程应用级");
-        } else if (name.contains("原理") || name.contains("机制") || name.contains("网络") || name.contains("入门")) {
+        } else if (corpus.contains("原理") || corpus.contains("机制") || corpus.contains("网络") || corpus.contains("入门") || corpus.contains("基础")) {
             return new BloomInfo("UNDERSTAND", "原理理解级");
         } else {
             return new BloomInfo("REMEMBER", "核心识记级");
