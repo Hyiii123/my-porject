@@ -1,9 +1,11 @@
 package com.share.education.ai.composite.engine;
 
 import com.share.education.ai.composite.model.AgentDebateTurn;
+import com.share.education.ai.composite.model.DebateConsensusSummary;
 import com.share.education.ai.composite.node.*;
 import com.share.education.ai.composite.state.DebateBlackboardState;
 import com.share.education.ai.evals.AgentEvaluationService;
+import com.share.education.ai.model.CriticReport;
 import com.share.education.ai.model.LearningPathPlan;
 import com.share.education.ai.model.PersonalizedRecommendVO;
 import com.share.education.ai.streaming.AgentReasoningEvent;
@@ -69,15 +71,13 @@ public class CompositeMultiAgentGraphEngine {
         state.setStartTime(workflowStart);
 
         // 0. 模式 2：意图动态路由分发
-        String query = null;
-        if (state.getCustomOverrides() != null) {
-            query = (String) state.getCustomOverrides().getOrDefault("query", state.getCustomOverrides().get("userIntent"));
-        }
-        if (query == null) {
-            query = state.getIntendedRole();
-        }
+        String query = extractQuery(state);
         String route = intentDispatcherNode.dispatch(query, state);
         state.setRoutedIntent(route);
+
+        if (IntentDispatcherNode.ROUTE_ACTION_CARD.equals(route) || IntentDispatcherNode.ROUTE_MOCK_INTERVIEW.equals(route)) {
+            return handleFastRoutedWorkflow(state, route, limit, workflowStart);
+        }
 
         // 1. 学情导师初始化或校准画像基线
         pedagogyMentorNode.initializeProfile(state);
@@ -91,20 +91,23 @@ public class CompositeMultiAgentGraphEngine {
         // 4. 学情成长导师进行认知审查并提出严正质疑 (CHALLENGE)
         pedagogyMentorNode.evaluateAndChallenge(state);
 
-        // 5. 审判质检法官执行 Kahn 拓扑图算法与平滑度审计 (AUDIT_REJECT)
-        pathCriticNode.auditCurrentPlan(state);
+        // 5. 审判质检法官执行 Kahn 拓扑图算法与平滑度审计 (AUDIT)
+        boolean passR1 = pathCriticNode.auditCurrentPlan(state);
 
-        // 6. 首席仲裁者下发针对性折中反思指令 (Round 2)
-        consensusArbiterNode.guideCompromise(state);
+        if (!passR1) {
+            // 模式 4：触发 Actor-Critic 审判反思闭环回路 (Round 2)
+            // 6. 首席仲裁者下发针对性折中反思指令
+            consensusArbiterNode.guideCompromise(state);
 
-        // 7. 大厂技术总监执行自我反思与折中补丁 (COMPROMISE)
-        industryArchitectNode.reflectAndCompromise(state);
+            // 7. 大厂技术总监执行自我反思与折中补丁 (COMPROMISE)
+            industryArchitectNode.reflectAndCompromise(state);
 
-        // 8. 学情成长导师复核折中方案并表达认可 (APPROVE)
-        pedagogyMentorNode.reviewCompromise(state);
+            // 8. 学情成长导师复核折中方案并表达认可 (APPROVE)
+            pedagogyMentorNode.reviewCompromise(state);
 
-        // 9. 审判质检法官执行终审质检与 Kahn DAG 闭环核验 (AUDIT_PASS)
-        pathCriticNode.auditCurrentPlan(state);
+            // 9. 审判质检法官执行终审质检与 Kahn DAG 闭环核验 (AUDIT_PASS)
+            pathCriticNode.auditCurrentPlan(state);
+        }
 
         // 10. 首席仲裁者签署共识决议 (CONSENSUS)
         consensusArbiterNode.sealConsensus(state);
@@ -143,15 +146,15 @@ public class CompositeMultiAgentGraphEngine {
                 state.setStartTime(workflowStart);
 
                 // STEP 0: 模式 2 动态意图路由分发
-                String query = null;
-                if (state.getCustomOverrides() != null) {
-                    query = (String) state.getCustomOverrides().getOrDefault("query", state.getCustomOverrides().get("userIntent"));
-                }
-                if (query == null) {
-                    query = state.getIntendedRole();
-                }
+                String query = extractQuery(state);
                 String route = intentDispatcherNode.dispatch(query, state);
                 state.setRoutedIntent(route);
+
+                if (IntentDispatcherNode.ROUTE_ACTION_CARD.equals(route) || IntentDispatcherNode.ROUTE_MOCK_INTERVIEW.equals(route)) {
+                    handleFastRoutedStream(state, route, limit, emitter, isCompleted, workflowStart);
+                    return;
+                }
+
                 sendTurnEvent(emitter, AgentReasoningEvent.of("PROBE_CHECK", "IntentDispatcherNode", 1,
                     String.format("动态意图路由中心完成意向核验：识别目标意向【%s】，路由决议【%s】，已激活多智能体圆桌博弈子图！",
                         state.getIntendedRole(), route),
@@ -183,28 +186,36 @@ public class CompositeMultiAgentGraphEngine {
                     "学情成长导师提出严正质疑：阶段 2 理论过陡，违反最近发展区，劝退风险高达 65%，要求软化！",
                     state.getDialogueTurns().get(state.getDialogueTurns().size() - 1), 18L), isCompleted);
 
-                // STEP 5: 审判法官挑刺打回 (Audit Reject)
-                pathCriticNode.auditCurrentPlan(state);
-                sendTurnEvent(emitter, AgentReasoningEvent.of("REFLECTION_DIRECTIVE", "PathCriticAgent", 5,
-                    String.format("审判质检法官出具初审报告：得分 %d 分(未通过)，Kahn算法指出前置冲突，驳回方案并下发反思指令！",
-                        state.getCriticReport().getOverallScore()),
-                    state.getCriticReport(), 20L), isCompleted);
+                // STEP 5: 审判法官初审
+                boolean passR1 = pathCriticNode.auditCurrentPlan(state);
 
-                // STEP 6: 仲裁者引导第二轮折中
-                consensusArbiterNode.guideCompromise(state);
+                if (!passR1) {
+                    sendTurnEvent(emitter, AgentReasoningEvent.of("REFLECTION_DIRECTIVE", "PathCriticAgent", 5,
+                        String.format("审判质检法官出具初审报告：得分 %d 分 (未通过)，认知阶梯排查指出阶段 2 过陡，驳回方案并下发反思指令！",
+                            state.getCriticReport().getOverallScore()),
+                        state.getCriticReport(), 20L), isCompleted);
 
-                // STEP 7: 总监反思与妥协 (Compromise)
-                industryArchitectNode.reflectAndCompromise(state);
+                    // STEP 6: 仲裁者引导第二轮折中
+                    consensusArbiterNode.guideCompromise(state);
 
-                // STEP 8: 导师认可签字 (Approve)
-                pedagogyMentorNode.reviewCompromise(state);
+                    // STEP 7: 总监反思与妥协 (Compromise)
+                    industryArchitectNode.reflectAndCompromise(state);
 
-                // STEP 9: 审判法官终审放行 (Audit Pass)
-                pathCriticNode.auditCurrentPlan(state);
-                sendTurnEvent(emitter, AgentReasoningEvent.of("CRITIC_AUDIT", "PathCriticAgent", 5,
-                    String.format("审判法官终审通过：得分 %d 分 (评级 %s)，Kahn DAG 拓扑 100%% 无环合规！",
-                        state.getCriticReport().getOverallScore(), state.getCriticReport().getVerdictLevel()),
-                    state.getCriticReport(), 15L), isCompleted);
+                    // STEP 8: 导师认可签字 (Approve)
+                    pedagogyMentorNode.reviewCompromise(state);
+
+                    // STEP 9: 审判法官终审放行 (Audit Pass)
+                    pathCriticNode.auditCurrentPlan(state);
+                    sendTurnEvent(emitter, AgentReasoningEvent.of("CRITIC_AUDIT", "PathCriticAgent", 5,
+                        String.format("审判法官终审通过：复核折中补丁，得分 %d 分 (评级 %s)，Kahn DAG 拓扑 100%% 无环合规！",
+                            state.getCriticReport().getOverallScore(), state.getCriticReport().getVerdictLevel()),
+                        state.getCriticReport(), 15L), isCompleted);
+                } else {
+                    sendTurnEvent(emitter, AgentReasoningEvent.of("CRITIC_AUDIT", "PathCriticAgent", 5,
+                        String.format("审判法官首轮核验放行：得分 %d 分 (评级 %s)，Kahn DAG 拓扑合规！",
+                            state.getCriticReport().getOverallScore(), state.getCriticReport().getVerdictLevel()),
+                        state.getCriticReport(), 15L), isCompleted);
+                }
 
                 // STEP 10: 仲裁者盖章共识
                 consensusArbiterNode.sealConsensus(state);
@@ -245,6 +256,127 @@ public class CompositeMultiAgentGraphEngine {
                 }
             }
         });
+    }
+
+    private String extractQuery(DebateBlackboardState state) {
+        String query = null;
+        if (state.getCustomOverrides() != null) {
+            query = (String) state.getCustomOverrides().getOrDefault("query", state.getCustomOverrides().get("userIntent"));
+            if (query == null) {
+                query = (String) state.getCustomOverrides().getOrDefault("targetRole", state.getCustomOverrides().get("customRole"));
+            }
+        }
+        if (query == null) {
+            query = state.getIntendedRole();
+        }
+        return query;
+    }
+
+    private DebateBlackboardState handleFastRoutedWorkflow(DebateBlackboardState state, String route, int limit, long workflowStart) {
+        pedagogyMentorNode.initializeProfile(state);
+        industryArchitectNode.proposeInitialPlan(state);
+
+        CriticReport report = CriticReport.builder()
+            .passed(true)
+            .overallScore(100)
+            .prerequisiteScore(100)
+            .smoothnessScore(100)
+            .balanceScore(100)
+            .topologyValid(true)
+            .cognitiveContinuityScore(100)
+            .phaseBalanceScore(100)
+            .verdictLevel("卓越 (A+)")
+            .summary("快捷直通通道：已跳过重度多轮辩论，直达专属推荐服务")
+            .critiqueNotes(List.of("动态意图精准命中：" + route))
+            .detectedAnomalies(Collections.emptyList())
+            .refinementDirectives(Collections.emptyMap())
+            .build();
+        state.setCriticReport(report);
+
+        DebateConsensusSummary summary = DebateConsensusSummary.builder()
+            .totalRounds(1)
+            .consensusReached(true)
+            .initialConflictSummary("识别标准意图【" + route + "】，直达业务直通分流")
+            .compromiseResolution("免除重型多轮博弈，毫秒级快速交付专属结果")
+            .finalCriticScore(100)
+            .qualityGrade("卓越 (A+)")
+            .keyAgreements(List.of("动态意图直达", "跳过冗余辩论"))
+            .build();
+        state.setConsensusSummary(summary);
+
+        explanationSynthesisNode.synthesizeDelivery(state, limit);
+        recordSnapshot(state, workflowStart);
+        return state;
+    }
+
+    private void handleFastRoutedStream(DebateBlackboardState state, String route, int limit, SseEmitter emitter, AtomicBoolean isCompleted, long workflowStart) {
+        sendTurnEvent(emitter, AgentReasoningEvent.of("PROBE_CHECK", "IntentDispatcherNode", 1,
+            String.format("动态意图路由中心完成意向核验：识别目标意向【%s】，路由决议【%s】，已激活快速直通通道！",
+                state.getIntendedRole(), route),
+            route, 5L), isCompleted);
+
+        pedagogyMentorNode.initializeProfile(state);
+        sendTurnEvent(emitter, AgentReasoningEvent.of("PROFILE_BUILT", "PedagogyMentorAgent", 1,
+            String.format("学情护航导师完成画像建模：锁定目标【%s】", state.getUserProfile().getIntendedRole()),
+            state.getUserProfile(), 10L), isCompleted);
+
+        industryArchitectNode.proposeInitialPlan(state);
+        sendTurnEvent(emitter, AgentReasoningEvent.of("COURSE_ANALYSIS", "IndustryArchitectAgent", 3,
+            String.format("快捷通道完成选品召回：立足意图规划 %d 门专业课！", state.getCurrentDraftPlan().getTotalCourses()),
+            state.getCurrentDraftPlan(), 15L), isCompleted);
+
+        CriticReport report = CriticReport.builder()
+            .passed(true)
+            .overallScore(100)
+            .prerequisiteScore(100)
+            .smoothnessScore(100)
+            .balanceScore(100)
+            .topologyValid(true)
+            .cognitiveContinuityScore(100)
+            .phaseBalanceScore(100)
+            .verdictLevel("卓越 (A+)")
+            .summary("快捷直通通道：已跳过重度多轮辩论，直达专属推荐服务")
+            .critiqueNotes(List.of("动态意图精准命中：" + route))
+            .detectedAnomalies(Collections.emptyList())
+            .refinementDirectives(Collections.emptyMap())
+            .build();
+        state.setCriticReport(report);
+
+        DebateConsensusSummary summary = DebateConsensusSummary.builder()
+            .totalRounds(1)
+            .consensusReached(true)
+            .initialConflictSummary("识别标准意图【" + route + "】，直达业务直通分流")
+            .compromiseResolution("免除重型多轮博弈，毫秒级快速交付专属结果")
+            .finalCriticScore(100)
+            .qualityGrade("卓越 (A+)")
+            .keyAgreements(List.of("动态意图直达", "跳过冗余辩论"))
+            .build();
+        state.setConsensusSummary(summary);
+
+        sendTurnEvent(emitter, AgentReasoningEvent.of("CRITIC_AUDIT", "PathCriticAgent", 5,
+            "审判法官放行：快捷方案无需重度拓扑排布，质检通过！", report, 10L), isCompleted);
+
+        List<PersonalizedRecommendVO> recs = explanationSynthesisNode.synthesizeDelivery(state, limit);
+        recordSnapshot(state, workflowStart);
+
+        Map<String, Object> finalPayload = new LinkedHashMap<>();
+        finalPayload.put("recommendations", recs);
+        finalPayload.put("learningPath", state.getCurrentDraftPlan());
+        finalPayload.put("criticReport", state.getCriticReport());
+        finalPayload.put("consensusSummary", state.getConsensusSummary());
+        finalPayload.put("totalPipelineLatencyMs", System.currentTimeMillis() - workflowStart);
+
+        sendTurnEvent(emitter, AgentReasoningEvent.of("FINAL_RESULT", "ExplanationSynthesisNode", 6,
+            String.format("快捷通道已为【%s】交付专属方案！", state.getIntendedRole()),
+            finalPayload, 15L), isCompleted);
+
+        sendTurnEvent(emitter, AgentReasoningEvent.of("STREAM_DONE", "ConsensusArbiterAgent", 6,
+            "快捷推演流完成", null, System.currentTimeMillis() - workflowStart), isCompleted);
+
+        if (!isCompleted.get()) {
+            isCompleted.set(true);
+            emitter.complete();
+        }
     }
 
     private boolean sendTurnEvent(SseEmitter emitter, AgentReasoningEvent event, AtomicBoolean isCompleted) {

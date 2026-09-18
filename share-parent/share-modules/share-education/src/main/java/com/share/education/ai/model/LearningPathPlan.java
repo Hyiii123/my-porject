@@ -39,7 +39,21 @@ public class LearningPathPlan {
     private CriticReport criticReport;
 
     /** 兼容前端字段：预估总学时 */
+    private Integer totalHours;
+
     public Integer getTotalHours() {
-        return totalEstimatedHours;
+        return totalHours != null ? totalHours : totalEstimatedHours;
+    }
+
+    public void setTotalHours(Integer totalHours) {
+        this.totalHours = totalHours;
+        if (this.totalEstimatedHours == null) {
+            this.totalEstimatedHours = totalHours;
+        }
+    }
+
+    public void setTotalEstimatedHours(Integer totalEstimatedHours) {
+        this.totalEstimatedHours = totalEstimatedHours;
+        this.totalHours = totalEstimatedHours;
     }
 }

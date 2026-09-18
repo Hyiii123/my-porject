@@ -158,6 +158,45 @@ public class MultiAgentRecommendOrchestrator {
     }
 
     /**
+     * 统一编排入口：单次图计算完成课程推荐与成长进阶路线规划
+     */
+    public Map<String, Object> orchestrate(Long userId, String targetRole, Integer limit) {
+        int safeLimit = limit != null && limit > 0 ? Math.min(limit, 10) : 4;
+        Map<String, Object> overrides = new LinkedHashMap<>();
+        if (targetRole != null && !targetRole.isBlank()) {
+            overrides.put("targetRole", targetRole.trim());
+            overrides.put("customRole", targetRole.trim());
+        }
+
+        String intendedRole = targetRole != null && !targetRole.isBlank() ? targetRole.trim() : "Java全栈架构师";
+
+        DebateBlackboardState state = DebateBlackboardState.builder()
+            .sessionId(UUID.randomUUID().toString())
+            .userId(userId)
+            .intendedRole(intendedRole)
+            .probeAnswers(Collections.emptyMap())
+            .customOverrides(overrides)
+            .build();
+
+        DebateBlackboardState finalState = compositeGraphEngine.runWorkflow(state, safeLimit);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("targetRole", intendedRole);
+        result.put("recommendations", finalState.getFinalRecommendations());
+        result.put("learningPath", finalState.getCurrentDraftPlan());
+        if (finalState.getCriticReport() != null) {
+            result.put("criticReport", finalState.getCriticReport());
+        }
+        if (finalState.getConsensusSummary() != null) {
+            result.put("consensusSummary", finalState.getConsensusSummary());
+        }
+        if (finalState.getDialogueTurns() != null) {
+            result.put("dialogueTurns", finalState.getDialogueTurns());
+        }
+        return result;
+    }
+
+    /**
      * 冷启动主动探针：获取诊断问题问卷
      */
     public List<ActiveProbeQuestion> getProbingQuestions(Long userId) {
@@ -173,13 +212,20 @@ public class MultiAgentRecommendOrchestrator {
      */
     public Map<String, Object> submitProbingAnswers(Long userId, Map<String, String> answers) {
         invalidateUserCache(userId);
-        List<PersonalizedRecommendVO> recs = recommendCourses(userId, 6, answers, Collections.emptyMap());
-        LearningPathPlan plan = getLearningPath(userId, answers, Collections.emptyMap());
+        DebateBlackboardState state = DebateBlackboardState.builder()
+            .sessionId(UUID.randomUUID().toString())
+            .userId(userId)
+            .intendedRole("Java全栈架构师")
+            .probeAnswers(answers != null ? answers : Collections.emptyMap())
+            .customOverrides(Collections.emptyMap())
+            .build();
+
+        DebateBlackboardState finalState = compositeGraphEngine.runWorkflow(state, 6);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("calibrated", true);
-        result.put("recommendations", recs);
-        result.put("learningPath", plan);
+        result.put("recommendations", finalState.getFinalRecommendations());
+        result.put("learningPath", finalState.getCurrentDraftPlan());
         return result;
     }
 
@@ -188,13 +234,21 @@ public class MultiAgentRecommendOrchestrator {
      */
     public Map<String, Object> refineLearningPath(Long userId, Map<String, Object> overrides) {
         invalidateUserCache(userId);
-        List<PersonalizedRecommendVO> recs = recommendCourses(userId, 6, Collections.emptyMap(), overrides);
-        LearningPathPlan plan = getLearningPath(userId, Collections.emptyMap(), overrides);
+        String targetRole = extractTargetRole(overrides);
+        DebateBlackboardState state = DebateBlackboardState.builder()
+            .sessionId(UUID.randomUUID().toString())
+            .userId(userId)
+            .intendedRole(targetRole != null && !targetRole.isBlank() ? targetRole.trim() : "Java全栈架构师")
+            .probeAnswers(Collections.emptyMap())
+            .customOverrides(overrides != null ? overrides : Collections.emptyMap())
+            .build();
+
+        DebateBlackboardState finalState = compositeGraphEngine.runWorkflow(state, 6);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("refined", true);
-        result.put("recommendations", recs);
-        result.put("learningPath", plan);
+        result.put("recommendations", finalState.getFinalRecommendations());
+        result.put("learningPath", finalState.getCurrentDraftPlan());
         return result;
     }
 

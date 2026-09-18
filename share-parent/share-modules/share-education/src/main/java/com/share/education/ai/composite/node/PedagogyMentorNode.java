@@ -68,18 +68,22 @@ public class PedagogyMentorNode {
 
         // 检查阶段难度与学时负荷
         boolean hasSteepStage = false;
+        int stage2Hours = 35;
         if (draft != null && draft.getStages() != null) {
             for (PathStageVO stg : draft.getStages()) {
-                if (stg.getStageIndex() != null && stg.getStageIndex() == 2 && stg.getEstimatedHours() != null && stg.getEstimatedHours() > 35) {
-                    hasSteepStage = true;
+                if (stg.getStageIndex() != null && stg.getStageIndex() == 2 && stg.getEstimatedHours() != null) {
+                    stage2Hours = stg.getEstimatedHours();
+                    if (stage2Hours > 30) {
+                        hasSteepStage = true;
+                    }
                     break;
                 }
             }
         }
 
         String arg = String.format("严正质疑技术总监的初始方案！学员自律完课指数仅 %d 分，历史学时 %.1fh，处于【%s】。" +
-            "总监在阶段 2 设置了过高的理论门槛与认知跃迁，严重违反维果茨基最近发展区理论！根据教学法模型预测，学员在此阶段半途劝退率超 65%%，必须下调坡度并加入过渡缓冲课！",
-            discipline, completedHours, profile != null ? profile.getCognitiveLevel() : "核心筑基期");
+            "总监在阶段 2 设置了过高的理论门槛与认知跃迁 (阶段学时达 %dh)，严重违反维果茨基最近发展区理论！根据教学法模型预测，学员在此阶段半途劝退率超 65%%，必须下调坡度并加入过渡缓冲课！",
+            discipline, completedHours, profile != null ? profile.getCognitiveLevel() : "核心筑基期", stage2Hours);
 
         long latency = System.currentTimeMillis() - tStart;
         state.recordLatency("PedagogyMentorNode_Challenge", latency);

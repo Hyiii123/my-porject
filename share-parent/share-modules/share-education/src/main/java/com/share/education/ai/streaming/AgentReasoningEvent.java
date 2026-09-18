@@ -66,6 +66,17 @@ public class AgentReasoningEvent implements Serializable {
     private Long timestamp = System.currentTimeMillis();
 
     /**
+     * 兼容前端与调用端：获取步骤编号
+     */
+    public Integer getStepNumber() {
+        return stepIndex;
+    }
+
+    public void setStepNumber(Integer stepNumber) {
+        this.stepIndex = stepNumber;
+    }
+
+    /**
      * 快速构建事件工厂方法
      */
     public static AgentReasoningEvent of(String eventType, String agentName, Integer stepIndex, String thoughtChunk, Object dataPayload, Long latencyMs) {

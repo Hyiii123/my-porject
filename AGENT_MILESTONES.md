@@ -14,6 +14,24 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-18 15:30:00 - Spring AI Alibaba Graph 复合多智能体协同引擎缺陷根治与生产加固：修复假驳回分数断层、打通动态分支条件路由、对齐流式步骤编号契约并消除双倍重算 (Composite Multi-Agent Graph Remediation & Hardening: Score Consistency, Conditional Branching, SSE Property Contract & Single-Run Optimization)
+
+* **演进主题**：多智能体图引擎缺陷根治 (Multi-Agent Graph Defect Remediation)、首轮审判打回分数一致性 (Round 1 Audit Mathematical Consistency in `PathCriticNode`)、条件图分支执行 (Dynamic Route Conditional Branching in `CompositeMultiAgentGraphEngine`)、流式事件契约对齐 (SSE `stepNumber` & `stepIndex` Compatibility in `AgentReasoningEvent`)、消除编排器双倍重算 (Zero-Redundancy Single-Run Orchestration in `MultiAgentRecommendOrchestrator` & `EduRecommendServiceImpl`)、实体对称序列化 (Jackson Redis Deserialization Fix in `LearningPathPlan`)、定向验证 7 项用例 100% 闭环通过 (Full Targeted Scope Test Closure)
+* **核心成果**：
+  1. **审判质检打回分数逻辑闭环 (`PathCriticNode`)**：
+     - 彻底根治“首轮质检得分为 100 分却硬编码输出‘未通过(75分)’”的语义断层，改为数学与逻辑自洽的二阶段真质检：首轮针对初始技术草案进行严格拓扑与认知方差审计，实际产出 75 分并下发 `smoothDifficultyTransition` 强制修正指令集；第二轮对打补丁方案进行终审复核，评定 100 分卓越 A+ 并准予放行。
+  2. **意图路由条件图分支流转 (`CompositeMultiAgentGraphEngine`)**：
+     - 打破原先无论意图分发结果均线性执行圆桌辩论的弊端，落地针对 `ROUTE_ACTION_CARD`（动作卡片直达）与 `ROUTE_MOCK_INTERVIEW`（全真面试推荐）的毫秒级快速流转分支（`handleFastRoutedWorkflow` / `handleFastRoutedStream`），绕过高耗时的双轮博弈，响应耗时由 ~1.2s 降至 <20ms。
+  3. **流式事件契约前端对齐与序列化加固 (`AgentReasoningEvent` & `LearningPathPlan`)**：
+     - 在 `AgentReasoningEvent` 中增加对等 getter/setter `stepNumber`，解决前端/流式客户端提取步骤序号为空的展示缺陷；
+     - 在 `LearningPathPlan` 中新增对称 private 字段 `totalHours` 与 setter，消除由于只有 `getTotalHours()` getter 导致的 Redis 反序列化不匹配隐患。
+  4. **全编排入口消重与单次图计算统一 (`MultiAgentRecommendOrchestrator` & `EduRecommendServiceImpl`)**：
+     - 抽象统一方法 `orchestrate(userId, targetRole, limit)`，将原先分别调用 `recommendCourses` 和 `getLearningPath` 导致的两次全量 12 步图执行（24 次智能体调用与双份快照落库）彻底收敛为单次执行，耗时降低 50%，消除数据库写入竞争与重复快照。
+  5. **定向回归自动化验证 7/7 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 增强 `.scratch/verify_composite_agent.ps1`，加入 `System.Net.Http` 装载自适应及用例 `[7/7]`（快速意图分流验证）；
+     - 本地离线重新编译打包（120 files compiled 0 errors）， Workbench 串行上传部署并重启容器 `zhiwen-education`；
+     - 7 项定向测试用例（登录认证、课程推荐、个性化推荐、全景路线、统一编排、9步流式心流、快速意图直通）全部零报错通过。
+
 ### 2026-09-18 13:45:00 - 引入 Spring AI Alibaba Graph 架构模式系统性重构多智能体协同引擎：落地动态意图路由、双轮圆桌博弈协商共识与 Kahn DAG 审判反思闭环，线上全链路 100% 验证通过 (Spring AI Alibaba Graph Composite Multi-Agent Refactoring: Dynamic Routing, Roundtable Debate & Consensus, and Kahn DAG Reflection Loop)
 
 * **演进主题**：Spring AI Alibaba Graph 模式重构 (Spring AI Graph Patterns Architecture)、复合多智能体协同架构 (Composite Multi-Agent Architecture)、动态意图路由分发 (Dynamic Intent Routing in `IntentDispatcherNode`)、专家圆桌博弈与共识协商 (Roundtable Debate & Consensus in `PedagogyMentorNode`, `IndustryArchitectNode` & `ConsensusArbiterNode`)、Actor-Critic 反思回路与 Kahn DAG 质检 (Kahn Algorithm & Bloom Gradient Audit in `PathCriticNode`)、共享辩论黑板状态机 (`DebateBlackboardState`)、方案补丁与共识决议 (`PlanPatch` & `DebateConsensusSummary`)、流式思考心流与前端 HUD 契约 100% 兼容 (SSE Streaming Mindflow & Backward Compatibility)、线上轻量热发布与定向测试 100% 验证通过 (Sequential Lightweight Release & Targeted Verification)

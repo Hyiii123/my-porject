@@ -210,22 +210,7 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
 
     @Override
     public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit) {
-        int recLimit = limit != null && limit > 0 ? Math.min(limit, 10) : 4;
-        Map<String, Object> overrides = new LinkedHashMap<>();
-        if (StringUtils.hasText(targetRole)) {
-            overrides.put("targetRole", targetRole.trim());
-        }
-        List<PersonalizedRecommendVO> recs = multiAgentOrchestrator.recommendCourses(userId, recLimit, Collections.emptyMap(), overrides);
-        LearningPathPlan plan = multiAgentOrchestrator.getLearningPath(userId, Collections.emptyMap(), overrides);
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("targetRole", StringUtils.hasText(targetRole) ? targetRole.trim() : "Java 全栈开发工程师");
-        result.put("recommendations", recs);
-        result.put("learningPath", plan);
-        if (plan != null && plan.getCriticReport() != null) {
-            result.put("criticReport", plan.getCriticReport());
-        }
-        return result;
+        return multiAgentOrchestrator.orchestrate(userId, targetRole, limit);
     }
 
     @Override
