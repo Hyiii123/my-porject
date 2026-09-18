@@ -71,6 +71,12 @@ public class CustomerActionFactory {
             if (targetClass != null) {
                 for (CustomerActionHandler handler : handlers) {
                     if (targetClass.isInstance(handler)) {
+                        // 防御性校验：虽然语义向量命中意图，但对应 Handler 仍须进行语义特征与关键字规则二次确认，防止向量越界误判
+                        if (!handler.supports(content, lowerContent)) {
+                            log.warn("【语义向量路由】意图命中 [{}] 但对应处理器 [{}] 规则校验未通过，放弃派发并放行",
+                                    intent, handler.getClass().getSimpleName());
+                            continue;
+                        }
                         log.info("【语义向量路由】成功命中动作卡片策略: intent={}, handler={}", intent, handler.getClass().getSimpleName());
                         try {
                             String result = handler.handle(content, lowerContent, userId, userName);

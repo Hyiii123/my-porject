@@ -34,6 +34,10 @@ public class CoursePurchaseActionHandler implements CustomerActionHandler {
         if (lower.contains("退款") || lower.contains("退课") || lower.contains("发票") || lower.contains("开票") || lower.contains("密码")) {
             return false;
         }
+        // 如果仅为课程推荐/咨询求助，严禁误判为购课卡片动作，应交由导学多智能体推演或大模型处理
+        if (lower.contains("推荐") && !(lower.contains("买") || lower.contains("购") || lower.contains("下单") || lower.contains("加购") || lower.contains("加购物车") || lower.contains("结算"))) {
+            return false;
+        }
         return lower.contains("买课") || lower.contains("买课程") || lower.contains("购课")
                 || lower.contains("我要买") || lower.contains("想买") || lower.contains("购买")
                 || lower.contains("加购") || lower.contains("加购物车") || lower.contains("加入购物车")
@@ -62,6 +66,9 @@ public class CoursePurchaseActionHandler implements CustomerActionHandler {
     @Override
     @SuppressWarnings("unchecked")
     public String handle(String content, String lower, Long userId, String userName) {
+        if (!supports(content, lower)) {
+            return null;
+        }
         String keyword = extractCourseKeyword(content);
         try {
             AjaxResult res = remoteEducationService.searchCourses(keyword, 5);

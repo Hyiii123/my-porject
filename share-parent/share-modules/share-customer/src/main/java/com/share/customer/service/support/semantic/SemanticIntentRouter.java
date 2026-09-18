@@ -63,7 +63,12 @@ public class SemanticIntentRouter {
             "根据我现在的水平推荐适合的学习路径",
             "零基础转行程序员该怎么系统化学起",
             "想去大厂做开发求指路和选课规划方案",
-            "学习路线图谱与课程推荐"
+            "学习路线图谱与课程推荐",
+            "帮我推荐几门课程",
+            "有什么好课程推荐吗",
+            "推荐几门优质实战课程",
+            "请帮我推荐一些好课",
+            "我想学技术推荐一些适合的课程"
         )),
         Map.entry(UserIntent.PAGE_NAVIGATOR, List.of(
             "带我去个人中心或者个人资料设置页面",
@@ -108,8 +113,10 @@ public class SemanticIntentRouter {
             "大厂后端核心岗位模拟面试专项考场"
         )),
         Map.entry(UserIntent.COURSE_PURCHASE, List.of(
-            "我想购买这门推荐的付费专业课",
-            "立即报名课程并下单结算"
+            "我想购买这门付费专业课",
+            "立即购买并加入购物车结算",
+            "立即报名课程并下单支付",
+            "购买这门课程进行结算"
         ))
     );
 
@@ -350,9 +357,14 @@ public class SemanticIntentRouter {
     private UserIntent ruleBasedFallbackIntent(String content) {
         String lower = content.toLowerCase();
         if (lower.contains("路线") || lower.contains("路径") || lower.contains("规划")
-                || lower.contains("学什么") || lower.contains("怎么学") || lower.contains("如何进阶")
+                || lower.contains("推荐") || lower.contains("学什么") || lower.contains("怎么学") || lower.contains("如何进阶")
                 || lower.contains("学习方案") || lower.contains("选课") || lower.contains("想转行")) {
             return UserIntent.PATH_PLANNING;
+        }
+        if (lower.contains("买课") || lower.contains("购课") || lower.contains("买课程")
+                || lower.contains("我要买") || lower.contains("想买") || lower.contains("购买")
+                || lower.contains("加购") || lower.contains("加购物车") || lower.contains("加入购物车")) {
+            return UserIntent.COURSE_PURCHASE;
         }
         if (lower.contains("签到") || lower.contains("打卡")) return UserIntent.SIGN_IN;
         if (lower.contains("优惠券") || lower.contains("领券")) return UserIntent.COUPON_CENTER;
