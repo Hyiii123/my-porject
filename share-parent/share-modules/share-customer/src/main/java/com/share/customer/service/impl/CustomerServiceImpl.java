@@ -260,8 +260,9 @@ public class CustomerServiceImpl implements ICustomerService {
         // 2. 尝试多智能体协同导学意图识别与跨微服务推演分发
         if (!isAgentDeliberation && cardAssembler.isAgentDeliberationIntent(cleanContent)) {
             String targetRole = cardAssembler.extractTargetRole(cleanContent);
+            Integer difficulty = cardAssembler.extractTargetDifficulty(cleanContent);
             try {
-                AjaxResult agentRes = remoteEducationService.orchestrateAgentRecommend(currentUserId(), targetRole, 4, SecurityConstants.INNER);
+                AjaxResult agentRes = remoteEducationService.orchestrateAgentRecommend(currentUserId(), targetRole, 4, difficulty, SecurityConstants.INNER);
                 if (agentRes != null && agentRes.isSuccess() && agentRes.get("data") != null) {
                     answer = cardAssembler.formatAgentDeliberationReply(targetRole, agentRes.get("data"));
                     if (StringUtils.hasText(answer)) {

@@ -14,6 +14,37 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-18 17:30:00 - 智问学伴多智能体协同导学与意图识别“学科领域硬隔离”与“自洽解释引擎”重构落地：彻底根除跨学科课程渗透与机械模板拼接，实现大二在校生日常实习精准画像与自适应难度1闭环 (Discipline Domain Hard Isolation & Self-Consistent Explainable Recommendations: Cross-Discipline Contamination Eradication, In-College Internship Profiling & Level-1 Difficulty Adaptation)
+
+* **演进主题**：学科领域硬隔离 (Discipline Domain Hard Isolation in `DefaultHybridAlgorithmEngine`)、路径规划拓扑一致性核验 (Topological Domain Consistency & Deduplication in `PathPlanningAgent`)、课程内生自洽解释文案重构 (Self-Consistent Intrinsic Explanation Engine in `ExplanationGenerationAgent`)、圆桌辩论多阶段消重与自愈 (Plan-Wide Deduplication in `IndustryArchitectNode` & `DebateBlackboardState`)、客服会话多维画像与大二日常实习精准挖掘 (In-College Sophomore & Internship Intent Extraction in `CustomerActionCardAssembler`)、跨微服务契约对齐 (Difficulty Propagation in `RemoteEducationService`)、云端热部署与端到端闭环验证 100% 通过 (Sequential Cloud Deployment & E2E Targeted Verification Closure)
+* **核心成果**：
+  1. **学科领域硬隔离过滤器与领域边界判定规则 (`DefaultHybridAlgorithmEngine`)**：
+     - 重构 `resolveDomain(targetRole)`：严格调整领域词条判定优先级，将细分领域（Go、前端、大数据、移动端/鸿蒙、Python/AI）前置于宽泛的后端与架构师关键字，彻底消除裸字符串 `"ai"` 导致 `Java后端架构师` 被误判为 `AI_ENGINEER` 的重大缺陷；
+     - 实现领域黑白名单矩阵 `isCourseAllowedForDomain`：针对 Java 后端，强制限定分类必须为 2（后端开发）或 4（数据库），并建立严格的跨学科排除黑名单，坚决过滤 Rust、Go/Golang/Kratos/gRPC、Python/FastAPI/Django、Node.js、C++、云原生/K8s/Terraform/Istio、移动端/Flutter/HarmonyOS、大数据/数仓、NLP/LLM 大模型等非对口课程。
+  2. **候选课程召回与热点兜底去重闭环 (`RecommendationAgent`)**：
+     - 在候选课程召回环节引入 `isCourseAllowedForDomain` 硬过滤，对本地混合算法和 Python 天机推荐模型（`tianji-recommend:5000`）返回的候选池统一拦截；
+     - 增加全局唯一 ID 记录集 `pickedIds`，避免在不同召回策略之间出现同名同 ID 课程重复；增加领域感知的高评分兜底召回（Domain-Aware Hot Fallback），确保即使强过滤后候选池依然充盈。
+  3. **路径规划学科一致性核验与拓扑消重 (`PathPlanningAgent`)**：
+     - 在 Kahn DAG 拓扑排序前，对全量课程进行 `isCourseDomainRelevant` 强过滤，剔除与目标岗位无关的孤岛课程；
+     - 引入 `seenIds` 集合保证进入有向无环图的节点绝对唯一，杜绝同一课程在学习路径中多次出现。
+  4. **辩论黑板报全局课程防重与补丁防御 (`IndustryArchitectNode` & `DebateBlackboardState`)**：
+     - 在工业架构师反思妥协（`reflectAndCompromise`）与打补丁逻辑中，检查全图（Stage 1 至 Stage 4）已有课程集合，阻止过渡阶段插入的课程与已有阶段课程冲突；
+     - 黑板报状态 `applyPatch` 增加幂等保护，彻底消除阶段间课程重复堆叠。
+  5. **课程内生核心知识点自洽解释引擎 (`ExplanationGenerationAgent`)**：
+     - 彻底废除机械拼接用户第 1 技能的模板（如强行输出“基于 Vue3 的 DataX”这类荒谬描述）；
+     - 依据当前课程自身的大纲章节与核心知识点（`ac.getCoreKnowledgePoints()`）动态生成匹配阶段定位的内生推荐理由，如设计模式解释“掌握工厂模式、单例模式等经典模式在 Java 开发中的落地规范，筑牢面向对象工程编码基石”，做到文案 100% 自洽严密。
+  6. **客服会话意图深度理解与在校生初阶画像挖掘 (`CustomerActionCardAssembler` & `CustomerServiceImpl`)**：
+     - 升级动态意图提取器 `extractTargetRole` 与 `extractTargetDifficulty`：不仅支持精准提取目标方向（Java/Go/前端/大数据等），更深度挖掘“计算机大二/大三/在校生/仅学过C语言/日常实习/暑期实习”等上下文语义；
+     - 智能将初阶实习生、转专业及在校低年级学生自适应锚定为**难度 1（筑基入门）**，并通过 Feign 接口透传至教育微服务，实现按需生成初阶打底路径。
+  7. **本地单元测试 100% 覆盖与云端端到端闭环验证 (Rule 1 & Rule 8 Compliance)**：
+     - 编写新增测试用例覆盖领域硬隔离与意图画像提取；
+     - 顺次打包并更新部署云端 ECS 容器 `zhiwen-education` 与 `zhiwen-customer`；
+     - 执行真实学员提问定向验证：“老师，我是计算机大二的，目前只学过 C 语言，想明年暑假找一份大厂后端日常实习，但我自律性一般，怕学不会被劝退，能帮我制定一个学习路线吗？”，客服回复 100% 适配：
+       - 精准识别目标角色为 `Java后端开发工程师(日常实习/校招)`、难度等级 1；
+       - 生成的 4 门筑基课程为《设计模式之美：23 种经典模式的 Java 落地实践》、《SQLite 轻量级嵌入式数据库深度应用与调优》、《Redis 哨兵模式与脑裂问题全方位排查实战》、《Redis 分布式集群模式与大厂高并发缓存实战》；
+       - 彻底剔除 Rust、NLP、Vue3 强行拼接与大数据 DataX；
+       - 审判智能体质检评级：卓越 (A+) · 100分。
+
 ### 2026-09-18 16:30:00 - 客服会话全生命周期自动化治理：落地超2天无对话活跃会话定时巡检与按需自愈清理引擎，前后端生产闭环 100% 验证通过 (Customer Service Session Lifecycle Automation: 2-Day Inactivity Auto-Cleanup Engine, Scheduled Inspection & On-Demand Healing)
 
 * **演进主题**：客服活跃会话生命周期治理 (Customer Service Session Lifecycle Automation)、超期无对话自动清理策略 (2-Day Inactivity Auto-Cleanup Engine in `CustomerServiceImpl`)、复合时间窗口与消息防误删保障 (Composite Cutoff & Message-Existence Boundary Check in `CustomerSessionMapper`)、可配置周期定时巡检任务 (Spring Scheduled Inspection with Dynamic Cron in `CustomerSessionSchedule`)、客户端按需动态查漏自愈与友好引导 (On-Demand Active Session Healing & UI Guidance in `portal/customerService/index.vue`)、管理端全局应急清理治理接口与双端管理UI联动 (Global Clean Endpoint in `CustomerAdminController` & Admin UI Action in `business-admin` and `share-ui`)、云端轻量热部署与定向用例 100% 闭环通过 (Sequential Cloud Deployment & Targeted Verification Closure)

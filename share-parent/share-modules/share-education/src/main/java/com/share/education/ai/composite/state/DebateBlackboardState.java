@@ -128,11 +128,14 @@ public class DebateBlackboardState {
                     stageCourses.removeIf(c -> patch.getRemoveCourseIds().contains(c.getCourseId()));
                 }
 
-                // 2. 插入新过渡课程 (去重)
+                // 2. 插入新过渡课程 (全局去重：确保整套培养方案中不出现重复课程)
                 if (patch.getInsertCourses() != null && !patch.getInsertCourses().isEmpty()) {
                     for (AnalyzedCourseVO ins : patch.getInsertCourses()) {
-                        boolean exists = stageCourses.stream().anyMatch(c -> c.getCourseId().equals(ins.getCourseId()));
-                        if (!exists) {
+                        boolean existsInPlan = stages.stream()
+                            .filter(s -> s.getCourses() != null)
+                            .flatMap(s -> s.getCourses().stream())
+                            .anyMatch(c -> c.getCourseId().equals(ins.getCourseId()));
+                        if (!existsInPlan) {
                             stageCourses.add(ins);
                         }
                     }

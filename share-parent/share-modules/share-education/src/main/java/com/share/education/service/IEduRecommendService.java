@@ -30,7 +30,10 @@ public interface IEduRecommendService {
 
     SseEmitter streamPersonalizedReasoning(String targetRole);
 
-    Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit);
+    Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty);
+    default Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit) {
+        return orchestrateAgentRecommend(userId, targetRole, limit, null);
+    }
 
     Map<String, Object> getUserPortrait(Long userId);
 

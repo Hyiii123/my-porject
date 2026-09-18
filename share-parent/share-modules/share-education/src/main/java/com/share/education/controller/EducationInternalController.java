@@ -49,8 +49,9 @@ public class EducationInternalController extends BaseController {
     public AjaxResult orchestrateAgentRecommend(
             @RequestParam(value = "userId", required = false) Long userId,
             @RequestParam(value = "targetRole", required = false) String targetRole,
-            @RequestParam(value = "limit", required = false, defaultValue = "4") Integer limit) {
-        return success(educationService.orchestrateAgentRecommend(userId, targetRole, limit));
+            @RequestParam(value = "limit", required = false, defaultValue = "4") Integer limit,
+            @RequestParam(value = "difficulty", required = false) Integer difficulty) {
+        return success(educationService.orchestrateAgentRecommend(userId, targetRole, limit, difficulty));
     }
 
     /** 供 Share-MQ / 内部微服务调用：为指定用户开通课程学习权限 (受 @InnerAuth 保护) */

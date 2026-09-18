@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 复合架构模式 5：大厂技术总监节点 (IndustryArchitectNode)。
@@ -86,14 +87,23 @@ public class IndustryArchitectNode {
     public void reflectAndCompromise(DebateBlackboardState state) {
         long tStart = System.currentTimeMillis();
 
-        // 挑选一门温和的实战过渡课程作为补丁
+        // 挑选一门温和的实战过渡课程作为补丁 (严格去重：不得与当前方案中已规划的课程重复)
         List<AnalyzedCourseVO> analyzed = state.getAnalyzedCourses();
         AnalyzedCourseVO transitionalCourse = null;
         if (analyzed != null && !analyzed.isEmpty()) {
+            Set<Long> alreadyPlannedIds = (state.getCurrentDraftPlan() != null && state.getCurrentDraftPlan().getStages() != null)
+                ? state.getCurrentDraftPlan().getStages().stream()
+                    .filter(s -> s.getCourses() != null)
+                    .flatMap(s -> s.getCourses().stream())
+                    .map(AnalyzedCourseVO::getCourseId)
+                    .collect(Collectors.toSet())
+                : Collections.emptySet();
+
             transitionalCourse = analyzed.stream()
+                .filter(c -> !alreadyPlannedIds.contains(c.getCourseId()))
                 .filter(c -> c.getDifficultyLevel() != null && c.getDifficultyLevel() <= 2)
                 .findFirst()
-                .orElse(analyzed.get(0));
+                .orElse(null);
         }
 
         // 组装补丁：在第 2 阶段软化理论深度，插入过渡实战课
@@ -102,7 +112,7 @@ public class IndustryArchitectNode {
             .adjustedDifficulty(2)
             .hoursAdjustment(-5)
             .insertCourses(transitionalCourse != null ? List.of(transitionalCourse) : Collections.emptyList())
-            .rationale("采纳学情导师防劝退意见：软化第 2 阶段纯理论深度，将 JVM 源码深挖穿插移至第 4 阶段实战项目，并插入过渡实战小节")
+            .rationale("采纳学情导师防劝退意见：软化第 2 阶段纯理论深度，将难点分流，并插入过渡实战模块")
             .build();
 
         long latency = System.currentTimeMillis() - tStart;

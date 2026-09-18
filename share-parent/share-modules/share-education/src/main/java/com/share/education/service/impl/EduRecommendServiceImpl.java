@@ -209,8 +209,8 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
     }
 
     @Override
-    public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit) {
-        return multiAgentOrchestrator.orchestrate(userId, targetRole, limit);
+    public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty) {
+        return multiAgentOrchestrator.orchestrate(userId, targetRole, limit, difficulty);
     }
 
     @Override

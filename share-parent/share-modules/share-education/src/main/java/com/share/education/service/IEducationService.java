@@ -71,7 +71,10 @@ public interface IEducationService {
     Map<String, Object> submitActiveProbingAnswers(Map<String, String> answers);
     AgentEvalMetricsVO getAgentEvaluationMetrics();
     SseEmitter streamPersonalizedReasoning(String targetRole);
-    Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit);
+    Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty);
+    default Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit) {
+        return orchestrateAgentRecommend(userId, targetRole, limit, null);
+    }
     Map<String, Object> getUserPortrait(Long userId);
     Map<String, Object> updateUserPortraitPreferences(Long userId, Map<String, Object> body);
 

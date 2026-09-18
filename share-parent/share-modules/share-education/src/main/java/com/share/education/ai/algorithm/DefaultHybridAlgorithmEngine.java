@@ -69,12 +69,22 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
         int preferredDifficulty = (profile != null && profile.getPreferredDifficulty() != null)
                 ? profile.getPreferredDifficulty() : 2;
 
+        // 1.1 学科领域硬隔离过滤器 (Category / Tag Boundary Discipline Domain Filtering)
+        DisciplineDomain domain = resolveDomain(intendedRole);
+        List<EduCourse> domainFilteredCourses = activeCourses.stream()
+            .filter(c -> isCourseAllowedForDomain(c, domain))
+            .collect(Collectors.toList());
+        if (domainFilteredCourses.isEmpty()) {
+            log.warn("[DomainBoundaryFilter] 学科硬隔离过滤后候选集为空，平滑降级为全量课程: intendedRole={}, domain={}", intendedRole, domain);
+            domainFilteredCourses = activeCourses;
+        }
+
         // 2. 构建学员技能特征向量
         double[] userVector = buildFeatureVector(userSkills);
 
         List<AlgorithmCandidateDTO> candidates = new ArrayList<>();
 
-        for (EduCourse c : activeCourses) {
+        for (EduCourse c : domainFilteredCourses) {
             // 过滤已购买或已加入学习计划的课程
             if (enrolledSet.contains(c.getId())) {
                 continue;
@@ -116,6 +126,10 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
             if (StringUtils.hasText(intendedRole) && StringUtils.hasText(c.getTargetRole())) {
                 if (c.getTargetRole().contains(intendedRole) || intendedRole.contains(c.getTargetRole())) {
                     baseScore += 15.0;
+                    roleMatched = true;
+                } else if ((intendedRole.contains("Java") || intendedRole.contains("后端") || intendedRole.contains("服务端"))
+                        && (c.getTargetRole().contains("Java") || c.getTargetRole().contains("后端") || c.getTargetRole().contains("开发") || c.getTargetRole().contains("架构师"))) {
+                    baseScore += 12.0;
                     roleMatched = true;
                 }
             }
@@ -221,5 +235,161 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
         }
         if (normA == 0.0 || normB == 0.0) return 0.0;
         return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+    }
+
+    public enum DisciplineDomain {
+        JAVA_BACKEND,
+        FRONTEND,
+        BIG_DATA,
+        AI_LLM,
+        GO_CLOUD_NATIVE,
+        MOBILE,
+        GENERAL
+    }
+
+    public static DisciplineDomain resolveDomain(String intendedRole) {
+        if (!StringUtils.hasText(intendedRole)) {
+            return DisciplineDomain.JAVA_BACKEND;
+        }
+        String lower = intendedRole.toLowerCase();
+        if (lower.contains("go") || lower.contains("golang") || lower.contains("云原生")) {
+            return DisciplineDomain.GO_CLOUD_NATIVE;
+        }
+        if (lower.contains("前端") || lower.contains("web") || lower.contains("vue") || lower.contains("react")) {
+            return DisciplineDomain.FRONTEND;
+        }
+        if (lower.contains("大数据") || lower.contains("数仓") || lower.contains("spark")
+                || lower.contains("flink") || lower.contains("数据开发")) {
+            return DisciplineDomain.BIG_DATA;
+        }
+        if (lower.contains("移动") || lower.contains("flutter") || lower.contains("安卓")
+                || lower.contains("android") || lower.contains("ios") || lower.contains("鸿蒙")) {
+            return DisciplineDomain.MOBILE;
+        }
+        if (lower.contains("大模型") || lower.contains("大语言模型") || lower.contains("语言模型")
+                || lower.contains("llm") || lower.contains("ai大模型") || lower.contains("人工智能")
+                || lower.contains("nlp") || lower.contains("算法工程")) {
+            return DisciplineDomain.AI_LLM;
+        }
+        if (lower.contains("java") || lower.contains("后端") || lower.contains("服务端") || lower.contains("后台")
+                || lower.contains("spring") || lower.contains("架构")) {
+            return DisciplineDomain.JAVA_BACKEND;
+        }
+        return DisciplineDomain.JAVA_BACKEND;
+    }
+
+    public static boolean isCourseAllowedForDomain(EduCourse c, DisciplineDomain domain) {
+        if (c == null || domain == DisciplineDomain.GENERAL) {
+            return true;
+        }
+        Long catId = c.getCategoryId();
+        String cName = c.getCourseName() != null ? c.getCourseName().toLowerCase() : "";
+        String skills = c.getSkills() != null ? c.getSkills().toLowerCase() : "";
+        String targetRole = c.getTargetRole() != null ? c.getTargetRole().toLowerCase() : "";
+        String desc = c.getDescription() != null ? c.getDescription().toLowerCase() : "";
+        String combined = cName + " " + skills + " " + targetRole + " " + desc;
+
+        switch (domain) {
+            case JAVA_BACKEND:
+                // 白名单门类：2 (后端开发), 4 (数据库)
+                if (catId == null || (catId != 2L && catId != 4L)) {
+                    return false;
+                }
+                // 硬隔离黑名单排除：强制过滤掉 Go、Rust、大数据/数仓、Python/NLP、移动端、前端、云原生/K8s、区块链等
+                if (combined.contains("go 语言") || combined.contains("go语言") || combined.contains("golang")
+                        || combined.contains("goroutine") || combined.contains("kratos") || combined.contains("geecache")
+                        || combined.contains("go后端") || combined.contains("go web") || combined.contains("gin框架")
+                        || combined.contains("gin ") || combined.contains("grpc") || combined.contains("protobuf")
+                        || combined.contains("rust")
+                        || combined.contains("kubernetes") || combined.contains("k8s") || combined.contains("terraform")
+                        || combined.contains("istio") || combined.contains("service mesh") || combined.contains("iac")
+                        || combined.contains("大数据") || combined.contains("hadoop") || combined.contains("flink")
+                        || combined.contains("spark") || combined.contains("datax") || combined.contains("sqoop")
+                        || combined.contains("clickhouse") || combined.contains("hive") || combined.contains("hbase")
+                        || combined.contains("数仓") || combined.contains("离线计算") || combined.contains("流批一体")
+                        || combined.contains("doris") || targetRole.contains("数据开发") || targetRole.contains("大数据")
+                        || combined.contains("python") || combined.contains("django") || combined.contains("fastapi")
+                        || combined.contains("flask") || combined.contains("nlp") || combined.contains("word2vec")
+                        || combined.contains("大模型") || combined.contains("llm") || combined.contains("rag")
+                        || combined.contains("langchain") || combined.contains("pytorch") || combined.contains("tensorflow")
+                        || combined.contains("深度学习") || combined.contains("机器学习")
+                        || targetRole.contains("nlp") || targetRole.contains("算法工程")
+                        || combined.contains("vue") || combined.contains("react") || combined.contains("typescript")
+                        || combined.contains("javascript") || combined.contains("html/css") || targetRole.contains("前端")
+                        || combined.contains("flutter") || combined.contains("android") || combined.contains("ios")
+                        || combined.contains("鸿蒙") || combined.contains("harmonyos") || combined.contains("harmony")
+                        || combined.contains("安卓") || targetRole.contains("移动")
+                        || combined.contains("c++20") || combined.contains("c++") || combined.contains("cpp")
+                        || combined.contains("node.js") || combined.contains("nodejs")
+                        || combined.contains("express") || combined.contains("koa")
+                        || combined.contains("区块链") || combined.contains("solidity") || combined.contains("游戏开发")
+                        || combined.contains("unity") || combined.contains("unreal") || combined.contains("渗透测试")) {
+                    return false;
+                }
+                // 白名单技能/方向要求 (至少满足一项 Java/后端/数据库/计算机基础 核心关键词)
+                boolean matchesJavaBackend = combined.contains("java") || combined.contains("spring")
+                        || combined.contains("springboot") || combined.contains("springcloud") || combined.contains("mybatis")
+                        || combined.contains("mysql") || combined.contains("redis") || combined.contains("kafka")
+                        || combined.contains("rabbitmq") || combined.contains("rocketmq") || combined.contains("jvm")
+                        || combined.contains("linux") || combined.contains("数据库") || combined.contains("sql")
+                        || combined.contains("微服务") || combined.contains("高并发") || combined.contains("分布式")
+                        || combined.contains("中间件") || combined.contains("网络编程") || combined.contains("数据结构")
+                        || combined.contains("算法") || combined.contains("操作系统") || combined.contains("计算机网络")
+                        || combined.contains("设计模式") || combined.contains("netty") || combined.contains("juc")
+                        || combined.contains("seata") || combined.contains("ddd") || combined.contains("maven")
+                        || combined.contains("tomcat") || combined.contains("sharding") || combined.contains("后端");
+                return matchesJavaBackend;
+
+            case FRONTEND:
+                if (catId == null || catId != 1L) return false;
+                if (combined.contains("java") || combined.contains("spring") || combined.contains("rust")
+                        || combined.contains("golang") || combined.contains("大数据") || combined.contains("hadoop")
+                        || combined.contains("flutter") || combined.contains("鸿蒙")) {
+                    return false;
+                }
+                return combined.contains("vue") || combined.contains("react") || combined.contains("typescript")
+                        || combined.contains("javascript") || combined.contains("前端") || combined.contains("html")
+                        || combined.contains("css") || combined.contains("web");
+
+            case BIG_DATA:
+                if (catId == null || (catId != 7L && catId != 4L)) return false;
+                if (combined.contains("vue") || combined.contains("react") || combined.contains("前端")
+                        || combined.contains("flutter") || combined.contains("ios") || combined.contains("安卓")) {
+                    return false;
+                }
+                return combined.contains("大数据") || combined.contains("hadoop") || combined.contains("flink")
+                        || combined.contains("spark") || combined.contains("datax") || combined.contains("sqoop")
+                        || combined.contains("clickhouse") || combined.contains("hive") || combined.contains("hbase")
+                        || combined.contains("数仓") || combined.contains("数据开发") || combined.contains("mysql");
+
+            case AI_LLM:
+                if (catId == null || catId != 6L) return false;
+                if (combined.contains("vue") || combined.contains("react") || combined.contains("前端")
+                        || combined.contains("flutter") || combined.contains("安卓") || combined.contains("区块链")) {
+                    return false;
+                }
+                return combined.contains("ai") || combined.contains("人工智能") || combined.contains("大模型")
+                        || combined.contains("llm") || combined.contains("rag") || combined.contains("langchain")
+                        || combined.contains("nlp") || combined.contains("word2vec") || combined.contains("pytorch")
+                        || combined.contains("tensorflow") || combined.contains("深度学习") || combined.contains("机器学习");
+
+            case GO_CLOUD_NATIVE:
+                if (catId == null || (catId != 2L && catId != 5L && catId != 4L)) return false;
+                if (combined.contains("vue") || combined.contains("react") || combined.contains("前端")
+                        || combined.contains("rust") || combined.contains("python") || combined.contains("大数据")) {
+                    return false;
+                }
+                return combined.contains("go") || combined.contains("golang") || combined.contains("goroutine")
+                        || combined.contains("k8s") || combined.contains("docker") || combined.contains("云原生");
+
+            case MOBILE:
+                if (catId == null || catId != 3L) return false;
+                return combined.contains("flutter") || combined.contains("android") || combined.contains("ios")
+                        || combined.contains("鸿蒙") || combined.contains("harmonyos") || combined.contains("安卓")
+                        || combined.contains("移动端");
+
+            default:
+                return true;
+        }
     }
 }

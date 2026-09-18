@@ -297,8 +297,8 @@ public class EducationServiceImpl implements IEducationService {
     }
 
     @Override
-    public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit) {
-        return recommendService.orchestrateAgentRecommend(userId, targetRole, limit);
+    public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty) {
+        return recommendService.orchestrateAgentRecommend(userId, targetRole, limit, difficulty);
     }
 
     @Override

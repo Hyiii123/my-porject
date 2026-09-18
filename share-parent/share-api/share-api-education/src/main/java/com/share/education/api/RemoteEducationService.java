@@ -55,8 +55,13 @@ public interface RemoteEducationService {
         @RequestParam(value = "userId", required = false) Long userId,
         @RequestParam(value = "targetRole", required = false) String targetRole,
         @RequestParam(value = "limit", required = false, defaultValue = "4") Integer limit,
+        @RequestParam(value = "difficulty", required = false) Integer difficulty,
         @RequestHeader(SecurityConstants.FROM_SOURCE) String source
     );
+
+    default AjaxResult orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, String source) {
+        return orchestrateAgentRecommend(userId, targetRole, limit, null, source);
+    }
 
     /** 搜索公开课程列表。 */
     @GetMapping("/courses/page")

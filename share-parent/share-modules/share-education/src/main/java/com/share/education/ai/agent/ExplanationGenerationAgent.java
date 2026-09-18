@@ -49,9 +49,13 @@ public class ExplanationGenerationAgent {
         );
 
         List<PersonalizedRecommendVO> result = new ArrayList<>();
+        Set<Long> seenCourseIds = new HashSet<>();
 
         for (PathStageVO stage : pathPlan.getStages()) {
             for (AnalyzedCourseVO ac : stage.getCourses()) {
+                if (!seenCourseIds.add(ac.getCourseId())) {
+                    continue;
+                }
                 // 2. 生成可解释性理由 (Spring AI 优先 + 本地图谱规则降级)
                 String reason = generateCourseReason(ac, profile, stage, benchmarkEvidence);
                 String skillGapFilled = (ac.getCoreKnowledgePoints() != null && !ac.getCoreKnowledgePoints().isEmpty())
@@ -105,8 +109,9 @@ public class ExplanationGenerationAgent {
         if (aiClient.isAvailable()) {
             try {
                 SystemPromptTemplate systemTemplate = new SystemPromptTemplate(
-                    "你是一名资深 IT 职业教育规划专家。请针对学员目标岗位、当前技能画像、知识图谱推导先修链路和推荐课程，"
-                    + "用一句温暖、专业、富有严密逻辑性的话（45字以内）阐述【为什么推荐这门课程以及学完对前沿技术突破的帮助】。直接输出一句话，不带格式。"
+                    "你是一名资深 IT 职业教育规划专家。请针对学员目标岗位、推荐课程自身核心知识点及先修链路，"
+                    + "用一句温暖、专业、富有严密逻辑性的话（45字以内）阐述【为什么推荐这门课程以及课程自身核心技能对学员成长的帮助】。"
+                    + "【严格约束】：必须严格围绕当前推荐课程自身的核心知识点展开，严禁强行拼接与当前课程毫不相干的学员历史技能标签（如对后端/数据库课程绝不能提及前端Vue等无关技术）。直接输出一句话，不带格式。"
                 );
 
                 String pathEvidence = (ac.getEvidencePaths() != null && !ac.getEvidencePaths().isEmpty())
@@ -145,8 +150,21 @@ public class ExplanationGenerationAgent {
     private String buildRuleBasedReason(AnalyzedCourseVO ac, UserProfileContext profile, PathStageVO stage) {
         String courseName = (ac != null && StringUtils.hasText(ac.getCourseName())) ? ac.getCourseName() : "该课程";
         String role = (profile != null && StringUtils.hasText(profile.getIntendedRole())) ? profile.getIntendedRole() : "技术工程师";
-        List<String> topSkills = profile != null ? profile.getTopSkills() : null;
-        String mainSkill = (topSkills != null && !topSkills.isEmpty() && StringUtils.hasText(topSkills.get(0))) ? topSkills.get(0) : "现有技术";
+
+        // 依据当前课程自身的核心技能点（ac.getCoreKnowledgePoints()）生成自洽的推荐理由，彻底消除跨学科机械拼接
+        String courseCoreSkill;
+        if (ac != null && ac.getCoreKnowledgePoints() != null && !ac.getCoreKnowledgePoints().isEmpty()) {
+            List<String> points = ac.getCoreKnowledgePoints();
+            if (points.size() <= 2) {
+                courseCoreSkill = String.join("、", points);
+            } else {
+                courseCoreSkill = String.join("、", points.subList(0, Math.min(3, points.size())));
+            }
+        } else if (ac != null && ac.getPrerequisiteSkills() != null && !ac.getPrerequisiteSkills().isEmpty()) {
+            courseCoreSkill = String.join("、", ac.getPrerequisiteSkills().subList(0, Math.min(2, ac.getPrerequisiteSkills().size())));
+        } else {
+            courseCoreSkill = courseName;
+        }
 
         // 优先采纳 DRAG-KP4SR 算法推演出的显式先修知识路径作为解释锚点（前提是路径必须真正与当前课程相关）
         if (ac != null && ac.getEvidencePaths() != null && !ac.getEvidencePaths().isEmpty()) {
@@ -160,18 +178,20 @@ public class ExplanationGenerationAgent {
                             .anyMatch(kp -> StringUtils.hasText(kp) && pathLower.contains(kp.toLowerCase()));
                 }
                 if (matchesCourse) {
-                    return String.format("前沿知识攻坚：基于先修拓扑链路（%s），助力平滑跃升攻克 %s 核心难点。", path, courseName);
+                    return String.format("前沿知识攻坚：基于先修拓扑链路（%s），深度吃透《%s》（%s）核心难点。", path, courseName, courseCoreSkill);
                 }
             }
         }
 
         int stageIndex = (stage != null && stage.getStageIndex() != null) ? stage.getStageIndex() : 1;
         if (stageIndex == 1) {
-            return String.format("筑基先修保障：巩固《%s》核心概念，为深入掌握 %s 筑牢底层代码设计与架构底座。", courseName, role);
+            return String.format("筑基先修保障：巩固《%s》核心概念（%s），为深入进阶 %s 筑牢底层代码设计与架构底座。", courseName, courseCoreSkill, role);
         } else if (stageIndex == 2) {
-            return String.format("实战进阶攻坚：补齐基于 %s 的工业级设计与企业高可用最佳实践，实现技能跃升。", mainSkill);
+            return String.format("实战进阶攻坚：攻克《%s》核心技能（%s），深入企业高可用工程实践，实现业务研发能力跃升。", courseName, courseCoreSkill);
+        } else if (stageIndex == 3) {
+            return String.format("架构实战跃升：通过《%s》掌握生产级（%s）高并发与微服务设计，打破业务开发壁垒。", courseName, courseCoreSkill);
         } else {
-            return String.format("行业前沿破局：冲刺 %s 关键高薪架构与底层优化，对标行业一流胜任力标准。", role);
+            return String.format("行业前沿破局：冲刺《%s》（%s）高阶底层优化与性能调优，对标大厂一流 %s 胜任力标准。", courseName, courseCoreSkill, role);
         }
     }
 

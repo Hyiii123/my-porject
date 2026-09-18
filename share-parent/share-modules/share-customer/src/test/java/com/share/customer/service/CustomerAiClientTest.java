@@ -82,8 +82,10 @@ class CustomerAiClientTest {
 
         server.expect(requestTo("https://api.ai-pixel.online/v1/chat/completions"))
                 .andExpect(method(HttpMethod.POST))
-                .andExpect(jsonPath("$.messages[0].role").value("user"))
-                .andExpect(jsonPath("$.messages[0].content").value("你好"))
+                .andExpect(jsonPath("$.messages[0].role").value("system"))
+                .andExpect(jsonPath("$.messages[0].content").value(properties.getSystemPrompt()))
+                .andExpect(jsonPath("$.messages[1].role").value("user"))
+                .andExpect(jsonPath("$.messages[1].content").value("你好"))
                 .andRespond(withSuccess(
                         "{\"choices\":[{\"message\":{\"role\":\"assistant\","
                                 + "\"content\":\"你好，我是智问学伴。\"}}],"

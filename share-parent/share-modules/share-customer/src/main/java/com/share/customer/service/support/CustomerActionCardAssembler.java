@@ -49,7 +49,7 @@ public class CustomerActionCardAssembler {
      * 提取目标岗位/技术方向
      */
     public String extractTargetRole(String content) {
-        if (!StringUtils.hasText(content)) return "Java 全栈架构师";
+        if (!StringUtils.hasText(content)) return "Java 后端开发工程师";
         String lower = content.toLowerCase();
         if (lower.contains("大模型") || lower.contains("大语言模型") || lower.contains("语言模型") || lower.contains("llm") || lower.contains("langchain")
                 || lower.contains("prompt") || lower.contains("rag") || lower.contains("ai应用")
@@ -71,7 +71,43 @@ public class CustomerActionCardAssembler {
         if (lower.contains("鸿蒙") || lower.contains("flutter") || lower.contains("移动端") || lower.contains("安卓") || lower.contains("ios")) {
             return "移动与跨端开发工程师";
         }
-        return "Java 全栈架构师";
+
+        // 识别初阶/在校生/日常实习意图 (如：大二、只学过C语言、日常实习、暑期实习、校招等)
+        boolean hasInternOrStudentIntent = lower.contains("实习") || lower.contains("日常实习") || lower.contains("暑期实习")
+                || lower.contains("校招") || lower.contains("大二") || lower.contains("大一") || lower.contains("大三")
+                || lower.contains("c语言") || lower.contains("c 语言") || lower.contains("零基础") || lower.contains("入门");
+        boolean hasBackendIntent = lower.contains("后端") || lower.contains("服务端") || lower.contains("后台")
+                || lower.contains("java") || lower.contains("开发");
+
+        if (hasInternOrStudentIntent && hasBackendIntent) {
+            return "Java 后端开发工程师 (日常实习/校招)";
+        }
+        if (hasInternOrStudentIntent) {
+            return "Java 后端开发工程师 (日常实习/校招)";
+        }
+        if (lower.contains("架构") || lower.contains("架构师")) {
+            return "Java 全栈架构师";
+        }
+        return "Java 后端开发工程师";
+    }
+
+    /**
+     * 提取期望难度等级 (1: 筑基入门/初级实习生, 2: 核心进阶, 3: 架构攻坚)
+     */
+    public Integer extractTargetDifficulty(String content) {
+        if (!StringUtils.hasText(content)) return 1;
+        String lower = content.toLowerCase();
+        if (lower.contains("实习") || lower.contains("日常实习") || lower.contains("暑期实习")
+                || lower.contains("校招") || lower.contains("大一") || lower.contains("大二")
+                || lower.contains("c语言") || lower.contains("c 语言") || lower.contains("零基础")
+                || lower.contains("入门") || lower.contains("新手") || lower.contains("只学过")) {
+            return 1;
+        }
+        if (lower.contains("架构") || lower.contains("架构师") || lower.contains("专家")
+                || lower.contains("百万qps") || lower.contains("源码剖析") || lower.contains("内核")) {
+            return 3;
+        }
+        return 2;
     }
 
     /**

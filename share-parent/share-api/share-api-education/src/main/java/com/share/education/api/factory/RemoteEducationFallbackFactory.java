@@ -32,7 +32,7 @@ public class RemoteEducationFallbackFactory implements FallbackFactory<RemoteEdu
             }
 
             @Override
-            public AjaxResult orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, String source) {
+            public AjaxResult orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty, String source) {
                 return AjaxResult.error("教育多智能体推荐规划服务暂不可用");
             }
 

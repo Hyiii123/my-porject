@@ -35,10 +35,27 @@ public class PedagogyMentorNode {
         UserProfileContext profile = userProfileAgent.buildProfile(state.getUserId(), state.getProbeAnswers());
 
         if (state.getIntendedRole() != null && !state.getIntendedRole().isBlank()) {
+            int prefDiff = profile.getPreferredDifficulty() != null ? profile.getPreferredDifficulty() : 2;
+            if (state.getCustomOverrides() != null) {
+                Object dObj = state.getCustomOverrides().get("preferredDifficulty");
+                if (dObj == null) {
+                    dObj = state.getCustomOverrides().get("difficulty");
+                }
+                if (dObj instanceof Number num) {
+                    prefDiff = num.intValue();
+                } else if (dObj != null) {
+                    try { prefDiff = Integer.parseInt(dObj.toString()); } catch (Exception ignored) {}
+                }
+            }
+            if (state.getIntendedRole().contains("实习") || state.getIntendedRole().contains("校招")
+                    || state.getIntendedRole().contains("入门") || state.getIntendedRole().contains("初级")) {
+                prefDiff = 1;
+            }
+
             profile = UserProfileContext.builder()
                 .userId(profile.getUserId())
                 .intendedRole(state.getIntendedRole())
-                .preferredDifficulty(profile.getPreferredDifficulty())
+                .preferredDifficulty(prefDiff)
                 .skillWeights(profile.getSkillWeights())
                 .topSkills(profile.getTopSkills())
                 .skillGaps(profile.getSkillGaps())

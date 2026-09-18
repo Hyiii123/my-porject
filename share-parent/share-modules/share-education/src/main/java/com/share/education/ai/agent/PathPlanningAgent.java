@@ -1,9 +1,12 @@
 package com.share.education.ai.agent;
 
+import com.share.education.ai.algorithm.DefaultHybridAlgorithmEngine;
 import com.share.education.ai.model.AnalyzedCourseVO;
 import com.share.education.ai.model.LearningPathPlan;
 import com.share.education.ai.model.PathStageVO;
 import com.share.education.ai.model.UserProfileContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -20,6 +23,8 @@ import java.util.*;
  */
 @Component
 public class PathPlanningAgent {
+
+    private static final Logger log = LoggerFactory.getLogger(PathPlanningAgent.class);
 
     public LearningPathPlan planPath(UserProfileContext profile, List<AnalyzedCourseVO> courses) {
         return planPath(profile, courses, Collections.emptyMap());
@@ -70,6 +75,22 @@ public class PathPlanningAgent {
                 }
             }
             activeCourses.removeIf(c -> exIds.contains(c.getCourseId()));
+        }
+
+        // 0.5 学科领域一致性核验与非对口孤岛课程剔除 (Domain Consistency Check & Isolated Course Pruning)
+        DefaultHybridAlgorithmEngine.DisciplineDomain domain = DefaultHybridAlgorithmEngine.resolveDomain(role);
+        List<AnalyzedCourseVO> consistentCourses = new ArrayList<>();
+        Set<Long> seenIds = new HashSet<>();
+        for (AnalyzedCourseVO c : activeCourses) {
+            if (c != null && seenIds.add(c.getCourseId()) && isCourseDomainRelevant(c, domain)) {
+                consistentCourses.add(c);
+            } else {
+                log.info("[PathPlanningAgent] 剔除非本学科强相关或重复课程: courseId={}, courseName={}, targetRole={}",
+                        c != null ? c.getCourseId() : null, c != null ? c.getCourseName() : null, role);
+            }
+        }
+        if (!consistentCourses.isEmpty()) {
+            activeCourses = consistentCourses;
         }
 
         // 1. 基于 Kahn 算法的 DAG 严格拓扑排序 (避免 ComparableTimSort 破坏 contract 异常)
@@ -317,5 +338,80 @@ public class PathPlanningAgent {
             }
         }
         return false;
+    }
+
+    private boolean isCourseDomainRelevant(AnalyzedCourseVO c, DefaultHybridAlgorithmEngine.DisciplineDomain domain) {
+        if (c == null || domain == DefaultHybridAlgorithmEngine.DisciplineDomain.GENERAL) {
+            return true;
+        }
+        String name = c.getCourseName() != null ? c.getCourseName().toLowerCase() : "";
+        List<String> kps = c.getCoreKnowledgePoints() != null ? c.getCoreKnowledgePoints() : Collections.emptyList();
+        List<String> prereqs = c.getPrerequisiteSkills() != null ? c.getPrerequisiteSkills() : Collections.emptyList();
+        String allText = (name + " " + String.join(" ", kps) + " " + String.join(" ", prereqs)).toLowerCase();
+
+        switch (domain) {
+            case JAVA_BACKEND:
+                // 排除黑名单：非 Java 后端强相关领域 (Go、K8s/云原生、Rust、大数据、Python/NLP、移动端、前端、区块链等)
+                if (allText.contains("go 语言") || allText.contains("go语言") || allText.contains("golang")
+                        || allText.contains("goroutine") || allText.contains("kratos") || allText.contains("geecache")
+                        || allText.contains("go后端") || allText.contains("go web") || allText.contains("gin")
+                        || allText.contains("grpc") || allText.contains("protobuf")
+                        || allText.contains("kubernetes") || allText.contains("k8s") || allText.contains("terraform")
+                        || allText.contains("istio") || allText.contains("service mesh") || allText.contains("iac")
+                        || allText.contains("rust")
+                        || allText.contains("大数据") || allText.contains("hadoop") || allText.contains("flink")
+                        || allText.contains("spark") || allText.contains("datax") || allText.contains("sqoop")
+                        || allText.contains("clickhouse") || allText.contains("doris") || allText.contains("hive")
+                        || allText.contains("hbase") || allText.contains("数仓") || allText.contains("离线计算")
+                        || allText.contains("nlp") || allText.contains("word2vec") || allText.contains("大模型")
+                        || allText.contains("llm") || allText.contains("rag") || allText.contains("langchain")
+                        || allText.contains("python") || allText.contains("django") || allText.contains("fastapi")
+                        || allText.contains("vue") || allText.contains("react") || allText.contains("typescript")
+                        || allText.contains("javascript") || allText.contains("前端")
+                        || allText.contains("flutter") || allText.contains("android") || allText.contains("ios")
+                        || allText.contains("鸿蒙") || allText.contains("harmonyos") || allText.contains("harmony")
+                        || allText.contains("c++") || allText.contains("node.js") || allText.contains("nodejs")
+                        || allText.contains("区块链")) {
+                    return false;
+                }
+                // 白名单特征：Java、后端、数据库、计算机基础
+                return allText.contains("java") || allText.contains("spring") || allText.contains("mysql")
+                        || allText.contains("redis") || allText.contains("mybatis") || allText.contains("jvm")
+                        || allText.contains("linux") || allText.contains("微服务") || allText.contains("高并发")
+                        || allText.contains("分布式") || allText.contains("数据库") || allText.contains("sql")
+                        || allText.contains("网络编程") || allText.contains("数据结构") || allText.contains("算法")
+                        || allText.contains("操作系统") || allText.contains("计算机网络") || allText.contains("后端")
+                        || allText.contains("中间件") || allText.contains("netty") || allText.contains("kafka")
+                        || allText.contains("设计模式") || allText.contains("juc") || allText.contains("seata");
+
+            case FRONTEND:
+                if (allText.contains("java") || allText.contains("rust") || allText.contains("大数据") || allText.contains("flutter")) {
+                    return false;
+                }
+                return allText.contains("vue") || allText.contains("react") || allText.contains("typescript")
+                        || allText.contains("javascript") || allText.contains("前端") || allText.contains("web");
+
+            case BIG_DATA:
+                if (allText.contains("vue") || allText.contains("react") || allText.contains("flutter")) return false;
+                return allText.contains("大数据") || allText.contains("spark") || allText.contains("flink")
+                        || allText.contains("hadoop") || allText.contains("datax") || allText.contains("sqoop");
+
+            case AI_LLM:
+                if (allText.contains("vue") || allText.contains("flutter") || allText.contains("区块链")) return false;
+                return allText.contains("ai") || allText.contains("大模型") || allText.contains("大语言模型")
+                        || allText.contains("语言模型") || allText.contains("llm") || allText.contains("nlp")
+                        || allText.contains("word2vec") || allText.contains("pytorch") || allText.contains("深度学习");
+
+            case GO_CLOUD_NATIVE:
+                if (allText.contains("vue") || allText.contains("rust") || allText.contains("大数据")) return false;
+                return allText.contains("go") || allText.contains("golang") || allText.contains("k8s") || allText.contains("docker");
+
+            case MOBILE:
+                return allText.contains("flutter") || allText.contains("android") || allText.contains("ios")
+                        || allText.contains("鸿蒙") || allText.contains("安卓");
+
+            default:
+                return true;
+        }
     }
 }

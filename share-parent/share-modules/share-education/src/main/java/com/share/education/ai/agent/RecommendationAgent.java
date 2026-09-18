@@ -1,6 +1,7 @@
 package com.share.education.ai.agent;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.share.education.ai.algorithm.DefaultHybridAlgorithmEngine;
 import com.share.education.ai.algorithm.IRecommendAlgorithmEngine;
 import com.share.education.ai.model.AlgorithmCandidateDTO;
 import com.share.education.ai.model.CandidateCourseDTO;
@@ -77,13 +78,23 @@ public class RecommendationAgent {
             categoryMapper.selectBatchIds(categoryIds).stream()
                 .collect(Collectors.toMap(EduCategory::getId, EduCategory::getCategoryName, (cat1, cat2) -> cat1));
 
-        // 4. 多样性控制与重排组装 (每个分类至多保留 3 门)
+        // 4. 多样性控制与重排组装 (每个分类至多保留 5 门，避免后端专业课程被生硬截断)
         List<CandidateCourseDTO> result = new ArrayList<>();
+        Set<Long> pickedIds = new HashSet<>();
         Map<Long, Integer> categoryCount = new HashMap<>();
+        DefaultHybridAlgorithmEngine.DisciplineDomain domain = DefaultHybridAlgorithmEngine.resolveDomain(
+            profile != null ? profile.getIntendedRole() : ""
+        );
 
         for (AlgorithmCandidateDTO ac : algoCandidates) {
             EduCourse c = courseMap.get(ac.getCourseId());
             if (c == null) continue;
+            if (pickedIds.contains(c.getId())) continue;
+
+            // 学科领域硬隔离：严格过滤非本领域技术课程
+            if (!DefaultHybridAlgorithmEngine.isCourseAllowedForDomain(c, domain)) {
+                continue;
+            }
 
             // 过滤用户已购课程
             if (profile != null && profile.getEnrolledCourseIds() != null
@@ -94,12 +105,13 @@ public class RecommendationAgent {
             Long catId = c.getCategoryId();
             int currentCatCount = categoryCount.getOrDefault(catId, 0);
 
-            // 多样性控制：单门类不超过 3 门
-            if (currentCatCount >= 3 && result.size() < targetCount) {
+            // 多样性控制：单门类不超过 5 门
+            if (currentCatCount >= 5 && result.size() < targetCount) {
                 continue;
             }
 
             categoryCount.put(catId, currentCatCount + 1);
+            pickedIds.add(c.getId());
 
             result.add(CandidateCourseDTO.builder()
                 .courseId(c.getId())
@@ -126,18 +138,102 @@ public class RecommendationAgent {
             }
         }
 
+        // 若受分类数量限制未达到 targetCount，从已有 algoCandidates 中按得分继续补齐
+        if (result.size() < targetCount) {
+            for (AlgorithmCandidateDTO ac : algoCandidates) {
+                if (result.size() >= targetCount) break;
+                if (pickedIds.contains(ac.getCourseId())) continue;
+                EduCourse c = courseMap.get(ac.getCourseId());
+                if (c == null) continue;
+                if (!DefaultHybridAlgorithmEngine.isCourseAllowedForDomain(c, domain)) continue;
+                if (profile != null && profile.getEnrolledCourseIds() != null
+                    && profile.getEnrolledCourseIds().contains(c.getId())) continue;
+
+                Long catId = c.getCategoryId();
+                pickedIds.add(c.getId());
+                result.add(CandidateCourseDTO.builder()
+                    .courseId(c.getId())
+                    .courseName(c.getCourseName())
+                    .coverUrl(c.getCoverUrl())
+                    .categoryId(catId)
+                    .categoryName(categoryMap.getOrDefault(catId, "前沿技术"))
+                    .price(c.getPrice() != null ? c.getPrice().multiply(BigDecimal.valueOf(100)).longValue() : 0L)
+                    .originalPrice(c.getOriginalPrice() != null ? c.getOriginalPrice().multiply(BigDecimal.valueOf(100)).longValue() : 0L)
+                    .teacherName("智问教研团队")
+                    .difficultyLevel(c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2)
+                    .skills(c.getSkills())
+                    .targetRole(c.getTargetRole())
+                    .learnerCount(c.getLearnerCount() != null ? c.getLearnerCount() : 0)
+                    .algorithmScore(ac.getScore())
+                    .recallChannel(algorithmEngine.getEngineName())
+                    .matchTag(ac.getMatchTag())
+                    .evidencePaths(ac.getEvidencePaths())
+                    .featureMap(ac.getFeatureMap())
+                    .build());
+            }
+        }
+
+        // 兜底补齐：若依然未达到目标数，从数据库中拉取对口学科的优质好课
+        if (result.size() < targetCount) {
+            List<EduCourse> domainHots = courseMapper.selectList(
+                new LambdaQueryWrapper<EduCourse>()
+                    .eq(EduCourse::getStatus, 1)
+                    .orderByDesc(EduCourse::getLearnerCount)
+            ).stream()
+                .filter(c -> !pickedIds.contains(c.getId()))
+                .filter(c -> profile == null || profile.getEnrolledCourseIds() == null || !profile.getEnrolledCourseIds().contains(c.getId()))
+                .filter(c -> DefaultHybridAlgorithmEngine.isCourseAllowedForDomain(c, domain))
+                .limit(targetCount - result.size())
+                .toList();
+
+            for (EduCourse c : domainHots) {
+                Long catId = c.getCategoryId();
+                pickedIds.add(c.getId());
+                result.add(CandidateCourseDTO.builder()
+                    .courseId(c.getId())
+                    .courseName(c.getCourseName())
+                    .coverUrl(c.getCoverUrl())
+                    .categoryId(catId)
+                    .categoryName(categoryMap.getOrDefault(catId, "前沿技术"))
+                    .price(c.getPrice() != null ? c.getPrice().multiply(BigDecimal.valueOf(100)).longValue() : 0L)
+                    .originalPrice(c.getOriginalPrice() != null ? c.getOriginalPrice().multiply(BigDecimal.valueOf(100)).longValue() : 0L)
+                    .teacherName("智问教研团队")
+                    .difficultyLevel(c.getDifficultyLevel() != null ? c.getDifficultyLevel() : 2)
+                    .skills(c.getSkills())
+                    .targetRole(c.getTargetRole())
+                    .learnerCount(c.getLearnerCount() != null ? c.getLearnerCount() : 0)
+                    .algorithmScore(85.0)
+                    .recallChannel("DOMAIN_BASELINE_RECALL")
+                    .matchTag("学科核心精选")
+                    .evidencePaths(Collections.emptyList())
+                    .featureMap(Collections.emptyMap())
+                    .build());
+            }
+        }
+
         return result;
     }
 
     private List<CandidateCourseDTO> fallbackRecall(UserProfileContext profile, int targetCount) {
+        String role = profile != null ? profile.getIntendedRole() : "";
+        DefaultHybridAlgorithmEngine.DisciplineDomain domain = DefaultHybridAlgorithmEngine.resolveDomain(role);
+
         List<EduCourse> hots = courseMapper.selectList(
             new LambdaQueryWrapper<EduCourse>()
                 .eq(EduCourse::getStatus, 1)
                 .orderByDesc(EduCourse::getLearnerCount)
-                .last("LIMIT " + targetCount)
         );
 
-        return hots.stream().map(c -> CandidateCourseDTO.builder()
+        List<EduCourse> domainHots = hots.stream()
+            .filter(c -> DefaultHybridAlgorithmEngine.isCourseAllowedForDomain(c, domain))
+            .limit(targetCount)
+            .toList();
+
+        if (domainHots.isEmpty()) {
+            domainHots = hots.stream().limit(targetCount).toList();
+        }
+
+        return domainHots.stream().map(c -> CandidateCourseDTO.builder()
             .courseId(c.getId())
             .courseName(c.getCourseName())
             .coverUrl(c.getCoverUrl())

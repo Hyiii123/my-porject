@@ -161,11 +161,22 @@ public class MultiAgentRecommendOrchestrator {
      * 统一编排入口：单次图计算完成课程推荐与成长进阶路线规划
      */
     public Map<String, Object> orchestrate(Long userId, String targetRole, Integer limit) {
+        return orchestrate(userId, targetRole, limit, null);
+    }
+
+    public Map<String, Object> orchestrate(Long userId, String targetRole, Integer limit, Integer difficulty) {
         int safeLimit = limit != null && limit > 0 ? Math.min(limit, 10) : 4;
         Map<String, Object> overrides = new LinkedHashMap<>();
         if (targetRole != null && !targetRole.isBlank()) {
             overrides.put("targetRole", targetRole.trim());
             overrides.put("customRole", targetRole.trim());
+        }
+        if (difficulty != null && difficulty > 0) {
+            overrides.put("preferredDifficulty", difficulty);
+            overrides.put("difficulty", difficulty);
+        } else if (targetRole != null && (targetRole.contains("实习") || targetRole.contains("校招") || targetRole.contains("初级") || targetRole.contains("入门"))) {
+            overrides.put("preferredDifficulty", 1);
+            overrides.put("difficulty", 1);
         }
 
         String intendedRole = targetRole != null && !targetRole.isBlank() ? targetRole.trim() : "Java全栈架构师";

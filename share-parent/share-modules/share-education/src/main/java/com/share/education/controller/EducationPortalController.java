@@ -114,8 +114,9 @@ public class EducationPortalController extends BaseController {
     public AjaxResult orchestrateAgentRecommend(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String targetRole,
-            @RequestParam(required = false, defaultValue = "4") Integer limit) {
-        return success(educationService.orchestrateAgentRecommend(userId, targetRole, limit));
+            @RequestParam(required = false, defaultValue = "4") Integer limit,
+            @RequestParam(required = false) Integer difficulty) {
+        return success(educationService.orchestrateAgentRecommend(userId, targetRole, limit, difficulty));
     }
 
     /**
