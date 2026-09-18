@@ -14,7 +14,31 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-18 19:30:00 - 智问学伴全链路去硬编码与元数据化重构：上线学科知识图谱元数据驱动、BGE 向量语义路由与真实多智能体数学质检闭环 (Holistic Decoupling & Metadata-Driven Architecture: Discipline Taxonomy DB Tables, BGE Vector Semantic Routing & Real Multi-Agent Mathematical Audit Closure)
+
+* **演进主题**：全链路去除举例式编程与硬编码 (Holistic Decoupling of Heuristic String Matching)、元数据驱动学科技术栈与前驱知识图谱 (Metadata-Driven Discipline Taxonomy & Prerequisite Graph in `V33` & `DisciplineTaxonomyServiceImpl`)、BGE 向量嵌入式语义意图路由与槽位提取 (BGE Vector Semantic Intent Routing & Target Role Extraction in `SemanticIntentRouter`)、真实多智能体圆桌辩论与 Kahn DAG 客观数学质检 (Real Multi-Agent LLM Deliberation & Kahn DAG Mathematical Audit in `PathCriticNode`)、真实评测指标闭环 (Genuine Evaluation Metrics in `AgentEvaluationService`)、云端热更新与端到端流式心流 100% 验证通过 (Cloud Hot-Deployment & E2E SSE Reasoning Stream Verification Closure)
+* **核心成果**：
+  1. **Phase 1：数据元数据化驱动与知识图谱前驱拓扑 (`V33` & `DisciplineTaxonomyServiceImpl`)**：
+     - 在 MySQL 部署并执行 `V33__discipline_taxonomy_and_prerequisite_graph.sql`，建立 `edu_discipline_taxonomy` 与 `edu_knowledge_prerequisite` 表，覆盖 6 大主流技术领域（Java 后端、前端、大数据、AI 大模型、Go 云原生、移动端）及 18 条严谨的知识图谱拓扑依赖边；
+     - 构建 `EduDisciplineTaxonomy`、`EduKnowledgePrerequisite` 实体、Mapper 与服务层 `DisciplineTaxonomyServiceImpl`，采用两级架构（Caffeine 内存级极速缓存 + Redis 容灾降级），驱动召回引擎 `DefaultHybridAlgorithmEngine` 与规划引擎 `PathPlanningAgent`，彻底剥离写死在 Java 代码中的黑白名单与分类常量；
+     - 彻底清除 `AgentEvaluationService` 与 `CourseAnalysisAgent` 中的伪造评测指标与固定假数据，完全依托真实知识图谱前驱关系与拓扑合法性进行实时客观量化。
+  2. **Phase 2：向量语义路由与动态槽位提取 (`SemanticIntentRouter` & `CustomerActionCardAssembler`)**：
+     - 在客服微服务（`share-customer`）构建 `SemanticIntentRouter`，无缝对接线上向量服务 `zhiwen-embedding:8000`（BAAI/bge-small-zh-v1.5 模型），计算意图中心向量（Centroid Vectors）与目标岗位余弦相似度；
+     - 彻底废除原有基于 `contains("java")` 等 80+ 行长链硬编码字符串匹配的“举例式编程”，意图识别泛化能力与鲁棒性实现质的飞跃；
+     - 构建领域一致性防漂移守卫（Domain Consistency Guard），兼顾语义向量模糊联想与技术栈边界隔离，精准解析大二实习、低年级小白、转码自律性画像，自适应锚定难度 1 学习路线。
+  3. **Phase 3：真实多智能体博弈与客观拓扑数学质检 (`PedagogyMentorNode`, `IndustryArchitectNode`, `ConsensusArbiterNode` & `PathCriticNode`)**：
+     - 重构导师节点与架构师节点：全面接入 DashScope 通义千问大模型真实生成观点论据与质疑补丁，彻底消除固定预设剧本；
+     - 重构质检法官 `PathCriticNode`：废除假打回与分数人为篡改，严格基于 Kahn DAG 拓扑无环判定算法、前驱知识覆盖率及 Bloom 认知梯度方差公式输出真实数学得分，实现二阶段真实质检；
+     - 重构文案合成 `ExplanationGenerationAgent`：提取课程大纲核心知识点（`coreKnowledgePoints`），根据各阶段定位生成 100% 自洽内生推荐理由，彻底杜绝“张冠李戴”式拼接。
+  4. **云端生产交付与端到端定向验证 (Rule 1 & Rule 8 Compliance)**：
+     - 本地严密离线编译打包 `share-education.jar` 与 `share-customer.jar`，遵循发布铁律串行热替换云端 ECS 容器并平稳重启，零 I/O 抖动；
+     - 自动化定向验证 100% 通过：
+       - 直接推荐接口（`/es/courses/recommendations`）：返回 100% 对口纯 Java/后端/数据库课程，零 Rust、零 DataX、零 NLP 杂质；
+       - 客服对话问答接口（`/customer/session/.../messages`）：针对真实复杂长问句自适应抽取目标角色、下发 4 阶段拓扑路线与 100 分卓越评级；
+       - 前端推演看板流式心流接口（`/es/courses/recommendations/stream/reasoning`）：基于 Bearer Token 成功拉起 SSE 9 步全真自省心流事件推送，前后端契约与状态完全闭环。
+
 ### 2026-09-18 17:30:00 - 智问学伴多智能体协同导学与意图识别“学科领域硬隔离”与“自洽解释引擎”重构落地：彻底根除跨学科课程渗透与机械模板拼接，实现大二在校生日常实习精准画像与自适应难度1闭环 (Discipline Domain Hard Isolation & Self-Consistent Explainable Recommendations: Cross-Discipline Contamination Eradication, In-College Internship Profiling & Level-1 Difficulty Adaptation)
+
 
 * **演进主题**：学科领域硬隔离 (Discipline Domain Hard Isolation in `DefaultHybridAlgorithmEngine`)、路径规划拓扑一致性核验 (Topological Domain Consistency & Deduplication in `PathPlanningAgent`)、课程内生自洽解释文案重构 (Self-Consistent Intrinsic Explanation Engine in `ExplanationGenerationAgent`)、圆桌辩论多阶段消重与自愈 (Plan-Wide Deduplication in `IndustryArchitectNode` & `DebateBlackboardState`)、客服会话多维画像与大二日常实习精准挖掘 (In-College Sophomore & Internship Intent Extraction in `CustomerActionCardAssembler`)、跨微服务契约对齐 (Difficulty Propagation in `RemoteEducationService`)、云端热部署与端到端闭环验证 100% 通过 (Sequential Cloud Deployment & E2E Targeted Verification Closure)
 * **核心成果**：

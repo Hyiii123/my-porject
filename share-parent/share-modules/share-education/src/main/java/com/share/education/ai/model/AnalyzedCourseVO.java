@@ -18,6 +18,7 @@ import java.util.List;
 public class AnalyzedCourseVO {
     private Long courseId;
     private String courseName;
+    private Long categoryId;
     private String coverUrl;
     private Long price;
     private Long originalPrice;

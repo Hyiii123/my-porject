@@ -30,28 +30,11 @@ public class AgentEvaluationService {
 
     private static final int MAX_ROLLING_RECORDS = 200;
 
-    private final AtomicLong totalRunCount = new AtomicLong(128);
+    private final AtomicLong totalRunCount = new AtomicLong(0);
     private final ConcurrentLinkedDeque<PipelineEvalRecord> rollingRecords = new ConcurrentLinkedDeque<>();
 
     public AgentEvaluationService() {
-        // 初始化预热基线数据
-        for (int i = 0; i < 20; i++) {
-            rollingRecords.add(new PipelineEvalRecord(
-                100.0,
-                92.5 + (i % 5),
-                94.0 + (i % 4),
-                true,
-                38.0 + (i % 15),
-                Map.of(
-                    "UserProfileAgent", 3.2,
-                    "RecommendationAgent", 8.5,
-                    "CourseAnalysisAgent", 11.0,
-                    "PathPlanningAgent", 6.8,
-                    "PathCriticAgent", 4.1,
-                    "ExplanationGenerationAgent", 12.4
-                )
-            ));
-        }
+        // 纯数据驱动：真实执行驱动指标收集，严禁预置虚假样本
     }
 
     /**
@@ -100,14 +83,14 @@ public class AgentEvaluationService {
     public AgentEvalMetricsVO getMetricsSnapshot() {
         if (rollingRecords.isEmpty()) {
             return AgentEvalMetricsVO.builder()
-                .dagValidityRate(100.0)
-                .intentAlignmentScore(92.0)
-                .faithfulnessScore(95.0)
-                .criticPassRate(96.5)
+                .dagValidityRate(0.0)
+                .intentAlignmentScore(0.0)
+                .faithfulnessScore(0.0)
+                .criticPassRate(0.0)
                 .totalPipelinesRun(totalRunCount.get())
-                .averageLatencyMs(42.0)
-                .overallHealthGrade("AAA · 生产卓越级")
-                .qualityHighlights(List.of("DAG 拓扑 100% 无倒置", "毫秒级神经符号双模低延迟", "布鲁姆认知模型全量对齐"))
+                .averageLatencyMs(0.0)
+                .overallHealthGrade("待采样监控")
+                .qualityHighlights(List.of("系统已就绪，等待多智能体工作流执行产生真实度量"))
                 .build();
         }
 

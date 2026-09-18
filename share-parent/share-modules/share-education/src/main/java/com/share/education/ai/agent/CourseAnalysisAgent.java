@@ -26,9 +26,12 @@ import java.util.stream.Collectors;
 public class CourseAnalysisAgent {
 
     private final EduCourseCatalogMapper catalogMapper;
+    private final com.share.education.service.IDisciplineTaxonomyService taxonomyService;
 
-    public CourseAnalysisAgent(EduCourseCatalogMapper catalogMapper) {
+    public CourseAnalysisAgent(EduCourseCatalogMapper catalogMapper,
+                               com.share.education.service.IDisciplineTaxonomyService taxonomyService) {
         this.catalogMapper = catalogMapper;
+        this.taxonomyService = taxonomyService;
     }
 
     /**
@@ -110,6 +113,7 @@ public class CourseAnalysisAgent {
             analyzedList.add(AnalyzedCourseVO.builder()
                 .courseId(c.getCourseId())
                 .courseName(c.getCourseName())
+                .categoryId(c.getCategoryId())
                 .coverUrl(c.getCoverUrl())
                 .price(c.getPrice())
                 .originalPrice(c.getOriginalPrice())
@@ -185,25 +189,11 @@ public class CourseAnalysisAgent {
                     .trim();
     }
 
-    private static final List<Map.Entry<List<String>, List<String>>> PREREQ_RULES = List.of(
-        Map.entry(List.of("springcloud", "微服务", "dubbo"), List.of("Java 核心语法", "SpringBoot 基础")),
-        Map.entry(List.of("k8s", "kubernetes", "istio"), List.of("Linux 基础操作", "Docker 容器基础")),
-        Map.entry(List.of("大模型", "llm", "rag", "agent"), List.of("Python 基础", "基础机器学习概念")),
-        Map.entry(List.of("vue3", "react", "next.js"), List.of("HTML5/CSS3", "ES6+ / TypeScript")),
-        Map.entry(List.of("flink", "spark", "hadoop"), List.of("Java / Scala 基础", "SQL 复杂查询")),
-        Map.entry(List.of("go", "golang", "gin"), List.of("计算机网络基础", "操作系统导论")),
-        Map.entry(List.of("redis", "mysql调优", "分库分表"), List.of("SQL 基础", "关系型数据库原理"))
-    );
-
     private List<String> extractPrerequisites(CandidateCourseDTO c) {
-        String text = (c.getCourseName() + " " + (c.getSkills() != null ? c.getSkills() : "")).toLowerCase();
-        List<String> matched = PREREQ_RULES.stream()
-            .filter(r -> r.getKey().stream().anyMatch(text::contains))
-            .flatMap(r -> r.getValue().stream())
-            .distinct()
-            .limit(4)
-            .toList();
-        return matched.isEmpty() ? List.of("计算机基础知识") : matched;
+        if (taxonomyService != null && c != null) {
+            return taxonomyService.getPrerequisitesForCourse(c.getCourseName(), c.getSkills());
+        }
+        return List.of("计算机基础知识");
     }
 
     private record BloomInfo(String level, String name) {}

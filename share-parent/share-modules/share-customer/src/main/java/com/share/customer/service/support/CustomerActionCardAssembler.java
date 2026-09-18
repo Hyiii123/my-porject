@@ -15,18 +15,30 @@ import java.util.Map;
  * 遵循策略工厂模式 (Strategy + Factory)，将全域 14 项业务卡片装配委托给 {@link CustomerActionFactory} 统一调度，
  * 并通过责任链模式 (Chain of Responsibility) 驱动前置安全风控核验，实现高内聚、低耦合与开闭原则 (OCP)。
  */
+import com.share.customer.service.support.semantic.SemanticIntentRouter;
+
 @Slf4j
 @Component
 public class CustomerActionCardAssembler {
 
     private final CustomerSecurityShield securityShield;
     private final CustomerActionFactory actionFactory;
+    private final SemanticIntentRouter semanticRouter;
 
     public CustomerActionCardAssembler(
             CustomerSecurityShield securityShield,
             CustomerActionFactory actionFactory) {
+        this(securityShield, actionFactory, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public CustomerActionCardAssembler(
+            CustomerSecurityShield securityShield,
+            CustomerActionFactory actionFactory,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) SemanticIntentRouter semanticRouter) {
         this.securityShield = securityShield;
         this.actionFactory = actionFactory;
+        this.semanticRouter = semanticRouter;
     }
 
     /**
@@ -39,6 +51,16 @@ public class CustomerActionCardAssembler {
                 || lower.contains("发票") || lower.contains("支付失败") || lower.contains("订单号")) {
             return false;
         }
+
+        // 1. 优先采用语义向量路由意图研判
+        if (semanticRouter != null) {
+            SemanticIntentRouter.UserIntent intent = semanticRouter.routeIntent(content);
+            if (intent == SemanticIntentRouter.UserIntent.PATH_PLANNING) {
+                return true;
+            }
+        }
+
+        // 2. 降级规则研判
         return lower.contains("路线") || lower.contains("路径") || lower.contains("规划")
                 || lower.contains("推荐") || lower.contains("学什么") || lower.contains("怎么学")
                 || lower.contains("如何进阶") || lower.contains("学习方案") || lower.contains("学习计划")
@@ -50,6 +72,16 @@ public class CustomerActionCardAssembler {
      */
     public String extractTargetRole(String content) {
         if (!StringUtils.hasText(content)) return "Java 后端开发工程师";
+
+        // 1. 优先采用语义向量槽位提取
+        if (semanticRouter != null) {
+            String role = semanticRouter.extractTargetRole(content);
+            if (StringUtils.hasText(role)) {
+                return role;
+            }
+        }
+
+        // 2. 降级规则抽取
         String lower = content.toLowerCase();
         if (lower.contains("大模型") || lower.contains("大语言模型") || lower.contains("语言模型") || lower.contains("llm") || lower.contains("langchain")
                 || lower.contains("prompt") || lower.contains("rag") || lower.contains("ai应用")
@@ -96,6 +128,16 @@ public class CustomerActionCardAssembler {
      */
     public Integer extractTargetDifficulty(String content) {
         if (!StringUtils.hasText(content)) return 1;
+
+        // 1. 优先采用语义向量槽位提取
+        if (semanticRouter != null) {
+            Integer diff = semanticRouter.extractTargetDifficulty(content);
+            if (diff != null) {
+                return diff;
+            }
+        }
+
+        // 2. 降级规则抽取
         String lower = content.toLowerCase();
         if (lower.contains("实习") || lower.contains("日常实习") || lower.contains("暑期实习")
                 || lower.contains("校招") || lower.contains("大一") || lower.contains("大二")

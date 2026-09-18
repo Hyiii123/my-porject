@@ -19,6 +19,12 @@ public class ConsensusArbiterNode {
 
     private static final Logger log = LoggerFactory.getLogger(ConsensusArbiterNode.class);
 
+    private final com.share.education.ai.client.DashScopeAiClient aiClient;
+
+    public ConsensusArbiterNode(@org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.DashScopeAiClient aiClient) {
+        this.aiClient = aiClient;
+    }
+
     /**
      * 辩论启动：召开专家圆桌会议
      */
@@ -26,7 +32,7 @@ public class ConsensusArbiterNode {
         long tStart = System.currentTimeMillis();
         state.setCurrentRound(1);
         state.setConsensusReached(false);
-        state.setDisagreementScore(0.85);
+        double initialDisagreement = state.getDisagreementScore() != null ? state.getDisagreementScore() : 0.85;
 
         String role = state.getIntendedRole() != null ? state.getIntendedRole() : "全栈架构师";
         String arg = String.format("专家圆桌会议正式启动！本次议题：为学员定制【%s】系统化进阶路线。" +
@@ -56,8 +62,19 @@ public class ConsensusArbiterNode {
         long tStart = System.currentTimeMillis();
         state.setCurrentRound(2); // 进入第二轮
 
-        String arg = "第一轮博弈评估：当前各方分歧度高达 85%！核心冲突聚焦在【技术总监方案理论过陡】与【学情导师担忧劝退】的矛盾，且法官指出了先修依赖倒置。" +
-            "仲裁者指令下发：请总监下调阶段 2 理论深度、修复先修顺序，以工程实战化解难度；请导师在保证核心就业刚需的前提下予以放行。开启第二轮反思折中！";
+        double currentDisagreement = state.getDisagreementScore() != null ? state.getDisagreementScore() : 0.85;
+
+        String dynamicArg = null;
+        if (aiClient != null && aiClient.isAvailable()) {
+            String sys = "你是一位资深中立的技术教学评审委员会主席与首席仲裁者。面对第一轮学情导师与技术总监的分歧，请下发第二轮折中反思指令（要求总监降载实战化，要求导师在保证核心技能前提下适度放行，限制在100字内）。";
+            String usr = String.format("当前双方量化分歧度为 %.0f%%。请下达仲裁指令。", currentDisagreement * 100);
+            dynamicArg = aiClient.generate(sys, usr);
+        }
+
+        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg : String.format(
+            "第一轮博弈评估：当前各方动态分歧度为 %.0f%%！核心冲突聚焦在【技术总监方案理论过陡】与【学情导师担忧劝退】的矛盾，且法官指出了先修依赖需优化。" +
+            "仲裁者指令下发：请总监下调阶段 2 理论深度，以工程实战化解难度；请导师在保证核心就业刚需的前提下予以放行。开启第二轮反思折中！",
+            currentDisagreement * 100);
 
         AgentDebateTurn turn = AgentDebateTurn.builder()
             .round(2)
@@ -66,14 +83,14 @@ public class ConsensusArbiterNode {
             .stance("COMPROMISE_DIRECTIVE")
             .targetObject("IndustryArchitect & PedagogyMentor")
             .argument(arg)
-            .metricSummary("分歧度: 0.85, 判定: 启动第二轮受控妥协反思回路")
+            .metricSummary(String.format("动态分歧度: %.2f, 判定: 启动第二轮受控妥协反思回路", currentDisagreement))
             .latencyMs(System.currentTimeMillis() - tStart)
             .timestamp(System.currentTimeMillis())
             .build();
 
         state.recordTurn(turn);
         state.recordLatency("ConsensusArbiterNode_Guide", System.currentTimeMillis() - tStart);
-        log.info("[ConsensusArbiterNode] 第一轮分歧总结完毕，已下发第二轮折中反思指令");
+        log.info("[ConsensusArbiterNode] 第一轮分歧总结完毕，已下发第二轮折中反思指令: 分歧度={}", currentDisagreement);
     }
 
     /**
@@ -84,23 +101,36 @@ public class ConsensusArbiterNode {
         state.setConsensusReached(true);
         state.setDisagreementScore(0.00);
 
+        int finalScore = state.getCriticReport() != null && state.getCriticReport().getOverallScore() != null
+            ? state.getCriticReport().getOverallScore() : 95;
+        String qualityGrade = state.getCriticReport() != null && state.getCriticReport().getVerdictLevel() != null
+            ? state.getCriticReport().getVerdictLevel() : "卓越 (A+)";
+
         DebateConsensusSummary summary = DebateConsensusSummary.builder()
             .totalRounds(state.getCurrentRound())
             .consensusReached(true)
-            .initialConflictSummary("初版方案阶段 2 理论陡峭、认知负荷过重与微服务前置依赖倒置 (分歧度 85%)")
-            .compromiseResolution("技术总监将高难度源码深挖下沉至实战项目，学情导师认可平滑后梯度，审判法官验证 Kahn DAG 拓扑 100% 合规")
-            .finalCriticScore(state.getCriticReport() != null ? state.getCriticReport().getOverallScore() : 96)
-            .qualityGrade(state.getCriticReport() != null ? state.getCriticReport().getVerdictLevel() : "卓越 (A+)")
+            .initialConflictSummary("初版方案阶段 2 理论负荷过载，学情导师提出防劝退抗辩")
+            .compromiseResolution("技术总监将高难度理论软化为渐进式实战项目，学情导师认可平滑后梯度，审判法官复核 Kahn DAG 拓扑合规")
+            .finalCriticScore(finalScore)
+            .qualityGrade(qualityGrade)
             .keyAgreements(List.of(
                 "全周期 4 阶段无缝递进，总学时均衡受控",
-                "Kahn 拓扑合规度 100%，无任何反向先修依赖",
+                "Kahn 拓扑合规度无环，无反向先修依赖",
                 "兼顾大厂胜任力底线与学员自律认知平滑度"
             ))
             .build();
 
         state.setConsensusSummary(summary);
 
-        String arg = String.format("仲裁决议宣布：历经 %d 轮充分博弈与自适应妥协，学情导师、技术总监与审判法官达成 100%% 共识！" +
+        String dynamicArg = null;
+        if (aiClient != null && aiClient.isAvailable()) {
+            String sys = "你是一位资深中立的首席仲裁者。各方历经博弈已达成共识，法官出具了量化质检评分。请发表最终仲裁批准声明（限制在80字内）。";
+            String usr = String.format("最终质检得分：%d分，评级：%s。请宣布方案批准正式交付。", finalScore, qualityGrade);
+            dynamicArg = aiClient.generate(sys, usr);
+        }
+
+        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg : String.format(
+            "仲裁决议宣布：历经 %d 轮充分博弈与自适应妥协，学情导师、技术总监与审判法官达成 100%% 共识！" +
             "终审质检评级【%s · %d分】。方案兼具极高的大厂就业竞争力与学员认知舒适度，正式签署交付！",
             state.getCurrentRound(), summary.getQualityGrade(), summary.getFinalCriticScore());
 

@@ -28,13 +28,16 @@ public class IndustryArchitectNode {
     private final RecommendationAgent recommendationAgent;
     private final CourseAnalysisAgent courseAnalysisAgent;
     private final PathPlanningAgent pathPlanningAgent;
+    private final com.share.education.ai.client.DashScopeAiClient aiClient;
 
     public IndustryArchitectNode(RecommendationAgent recommendationAgent,
                                  CourseAnalysisAgent courseAnalysisAgent,
-                                 PathPlanningAgent pathPlanningAgent) {
+                                 PathPlanningAgent pathPlanningAgent,
+                                 @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.DashScopeAiClient aiClient) {
         this.recommendationAgent = recommendationAgent;
         this.courseAnalysisAgent = courseAnalysisAgent;
         this.pathPlanningAgent = pathPlanningAgent;
+        this.aiClient = aiClient;
     }
 
     /**
@@ -60,8 +63,17 @@ public class IndustryArchitectNode {
         long latency = System.currentTimeMillis() - tStart;
         state.recordLatency("IndustryArchitectNode", latency);
 
-        // 4. 发起首轮发言
-        String arg = String.format("针对【%s】岗位标准，我基于一线大厂胜任力图谱规划了 4 阶段进阶方案，共 %d 门专业课。核心聚焦企业级微服务治理与高并发架构实战，必须满足招聘硬指标！",
+        // 4. 发起首轮发言 (支持大模型动态立论)
+        String dynamicArg = null;
+        if (aiClient != null && aiClient.isAvailable()) {
+            String sys = "你是一线大厂资深架构师和技术委员会专家。你的职责是把关企业级硬核标准与技术胜任力。请针对目标岗位提出首版4阶段进阶方案的专业立论理由（不超过100字）。";
+            String usr = String.format("目标岗位：%s，已规划课程：%d门，预估学时：%dh。请说明你的设计初衷与大厂刚需。",
+                role, initialPlan.getTotalCourses(), initialPlan.getTotalEstimatedHours());
+            dynamicArg = aiClient.generate(sys, usr);
+        }
+
+        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg : String.format(
+            "针对【%s】岗位标准，我基于一线大厂胜任力图谱规划了 4 阶段进阶方案，共 %d 门专业课。核心聚焦企业级微服务治理与高并发架构实战，必须满足招聘硬指标！",
             role, initialPlan.getTotalCourses());
 
         AgentDebateTurn turn = AgentDebateTurn.builder()
@@ -118,13 +130,23 @@ public class IndustryArchitectNode {
         long latency = System.currentTimeMillis() - tStart;
         state.recordLatency("IndustryArchitectNode_Compromise", latency);
 
+        String dynamicArg = null;
+        if (aiClient != null && aiClient.isAvailable()) {
+            String sys = "你是一线大厂资深技术总监。面对学情导师关于认知负荷过重与理论过陡的质疑，你已采纳意见下调阶段2理论难度并补充实战模块。请陈述你的折中反思立场（以战带练兼顾大厂底线，不超过100字）。";
+            String usr = "学情导师提出防劝退质疑。你已经降低阶段2难度并加入过渡项目，请陈述折中妥协发言。";
+            dynamicArg = aiClient.generate(sys, usr);
+        }
+
+        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg :
+            "我充分理解学情导师关于认知负荷的担忧。为兼顾架构师胜任力底线，我做出折中妥协：调整第 2 阶段课程坡度，将晦涩理论改为实战带练，并把前置依赖做细颗粒度拆解。";
+
         AgentDebateTurn turn = AgentDebateTurn.builder()
             .round(state.getCurrentRound())
             .speaker("IndustryArchitect")
             .speakerName("大厂技术总监")
             .stance("COMPROMISE")
             .targetObject("Stage 2: Core Acceleration")
-            .argument("我充分理解学情导师关于认知负荷的担忧。为兼顾架构师胜任力底线，我做出折中妥协：调整第 2 阶段课程坡度，将晦涩理论改为实战带练，并把前置依赖做细颗粒度拆解。")
+            .argument(arg)
             .proposedPatch(patch)
             .metricSummary("已应用方案补丁：降低阶段 2 难度方差，平滑先修坡度")
             .latencyMs(latency)

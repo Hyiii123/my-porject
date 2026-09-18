@@ -5,6 +5,7 @@ import com.share.education.ai.model.AlgorithmCandidateDTO;
 import com.share.education.ai.model.UserProfileContext;
 import com.share.education.domain.EduCourse;
 import com.share.education.mapper.EduCourseMapper;
+import com.share.education.service.IDisciplineTaxonomyService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -40,8 +41,19 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
         "系统架构", "安全渗透", "Web安全", "Flutter", "鸿蒙", "HarmonyOS", "区块链"
     };
 
+    private final IDisciplineTaxonomyService taxonomyService;
+    private static volatile IDisciplineTaxonomyService staticTaxonomyService;
+
     public DefaultHybridAlgorithmEngine(EduCourseMapper courseMapper) {
+        this(courseMapper, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public DefaultHybridAlgorithmEngine(EduCourseMapper courseMapper,
+                                        @org.springframework.beans.factory.annotation.Autowired(required = false) IDisciplineTaxonomyService taxonomyService) {
         this.courseMapper = courseMapper;
+        this.taxonomyService = taxonomyService;
+        staticTaxonomyService = taxonomyService;
     }
 
     @Override
@@ -69,13 +81,12 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
         int preferredDifficulty = (profile != null && profile.getPreferredDifficulty() != null)
                 ? profile.getPreferredDifficulty() : 2;
 
-        // 1.1 学科领域硬隔离过滤器 (Category / Tag Boundary Discipline Domain Filtering)
-        DisciplineDomain domain = resolveDomain(intendedRole);
+        // 1.1 学科领域动态元数据与知识图谱硬隔离过滤器 (Data-driven Taxonomy & Knowledge Boundary Filtering)
         List<EduCourse> domainFilteredCourses = activeCourses.stream()
-            .filter(c -> isCourseAllowedForDomain(c, domain))
+            .filter(c -> isCourseAllowedForRole(c, intendedRole))
             .collect(Collectors.toList());
         if (domainFilteredCourses.isEmpty()) {
-            log.warn("[DomainBoundaryFilter] 学科硬隔离过滤后候选集为空，平滑降级为全量课程: intendedRole={}, domain={}", intendedRole, domain);
+            log.warn("[DomainBoundaryFilter] 学科硬隔离过滤后候选集为空，平滑降级为全量课程: intendedRole={}", intendedRole);
             domainFilteredCourses = activeCourses;
         }
 
@@ -278,7 +289,17 @@ public class DefaultHybridAlgorithmEngine implements IRecommendAlgorithmEngine {
         return DisciplineDomain.JAVA_BACKEND;
     }
 
+    public boolean isCourseAllowedForRole(EduCourse c, String intendedRole) {
+        if (taxonomyService != null) {
+            return taxonomyService.isCourseAllowedForDomain(c, intendedRole);
+        }
+        return isCourseAllowedForDomain(c, resolveDomain(intendedRole));
+    }
+
     public static boolean isCourseAllowedForDomain(EduCourse c, DisciplineDomain domain) {
+        if (staticTaxonomyService != null) {
+            return staticTaxonomyService.isCourseAllowedForDomain(c, domain != null ? domain.name() : "");
+        }
         if (c == null || domain == DisciplineDomain.GENERAL) {
             return true;
         }

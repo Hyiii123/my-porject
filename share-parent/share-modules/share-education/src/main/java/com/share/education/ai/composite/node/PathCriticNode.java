@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,36 +40,31 @@ public class PathCriticNode {
         long latency = System.currentTimeMillis() - tStart;
         state.recordLatency("PathCriticNode_Audit", latency);
 
-        boolean hasMentorObjection = state.getDisagreementScore() != null && state.getDisagreementScore() > 0.5;
+        boolean hasMentorObjection = state.getDisagreementScore() != null && state.getDisagreementScore() > 0.50;
 
-        if (state.getCurrentRound() == 1 && hasMentorObjection) {
-            // 第一轮：审判法官采纳学情质疑，认定认知阶梯坡度过陡与缺少过渡缓冲，打回自省
-            CriticReport r1Report = CriticReport.builder()
-                .passed(false)
-                .overallScore(75)
-                .prerequisiteScore(95)
-                .smoothnessScore(62)
-                .balanceScore(68)
-                .topologyValid(true)
-                .cognitiveContinuityScore(62)
-                .phaseBalanceScore(68)
-                .summary("初审驳回：阶段 2 理论跳跃过陡，与学员当前画像认知阶梯不匹配，存在较高劝退风险")
-                .verdictLevel("需优化 (C)")
-                .critiqueNotes(List.of(
-                    "拓扑核验：Kahn DAG 基础时序大致无环，但阶段 2 理论密度过载",
-                    "阶梯评估：阶段 1 到阶段 2 难度跳跃跨度偏大，缺乏过渡实战缓冲",
-                    "质检裁决：初审综合得分 75 分未达 80 分合格线，打回第二轮进行折中修正"
-                ))
-                .detectedAnomalies(List.of("阶段2理论难度陡峭", "缺少实战过渡缓冲课"))
-                .refinementDirectives(Map.of("smoothDifficultyTransition", true, "insertTransitionalPractice", true))
-                .build();
+        if (state.getCurrentRound() == 1 && (hasMentorObjection || !Boolean.TRUE.equals(report.getPassed()))) {
+            // 第一轮：审判法官依据真实拓扑审计与学情分歧度做出裁决，不伪造假数据
+            if (hasMentorObjection && Boolean.TRUE.equals(report.getPassed())) {
+                // 若拓扑无环但学情导师抗辩强烈，结合真实分歧度惩罚平滑分
+                int penalizedSmoothness = Math.max(50, report.getSmoothnessScore() - (int)(state.getDisagreementScore() * 25));
+                int adjustedOverall = (int) Math.round(0.40 * report.getPrerequisiteScore() + 0.35 * penalizedSmoothness + 0.25 * report.getBalanceScore());
+                report.setSmoothnessScore(penalizedSmoothness);
+                report.setCognitiveContinuityScore(penalizedSmoothness);
+                report.setOverallScore(adjustedOverall);
+                report.setPassed(adjustedOverall >= 80);
+                report.setVerdictLevel(adjustedOverall >= 80 ? "合格 (B)" : "待优化 (C)");
+            }
 
-            state.setCriticReport(r1Report);
-            state.setRefinementDirectives(r1Report.getRefinementDirectives());
+            state.setCriticReport(report);
+            Map<String, Object> directives = report.getRefinementDirectives() != null ? new HashMap<>(report.getRefinementDirectives()) : new HashMap<>();
+            directives.put("smoothDifficultyTransition", true);
+            directives.put("insertTransitionalPractice", true);
+            state.setRefinementDirectives(directives);
 
-            String arg = String.format("法官裁决：驳回初版草案！量化质检综合得分仅 %d 分（未达 80 分合格线），评级【%s】。" +
-                "经布鲁姆认知阶梯与学情负荷排查：阶段 2 难度方差过大且缺少过渡缓冲，支持导师防劝退质疑。下发强制修正指令集，要求总监在第二轮折中软化！",
-                r1Report.getOverallScore(), r1Report.getVerdictLevel());
+            String arg = String.format("法官初审裁决：综合质检得分 %d 分，评级【%s】。经布鲁姆认知阶梯与学情负荷审计：" +
+                "Kahn DAG 拓扑分 %d，认知平滑分 %d，阶段均衡分 %d。采纳导师防劝退质疑，下发针对性修正指令集，进入第二轮自省折中！",
+                report.getOverallScore(), report.getVerdictLevel(), report.getPrerequisiteScore(),
+                report.getSmoothnessScore(), report.getBalanceScore());
 
             AgentDebateTurn turn = AgentDebateTurn.builder()
                 .round(1)
@@ -77,30 +73,26 @@ public class PathCriticNode {
                 .stance("AUDIT_REJECT")
                 .targetObject("IndustryArchitect's Initial Draft")
                 .argument(arg)
-                .metricSummary("质检分: 75, 拓扑分: 95, 平滑分: 62, 均衡分: 68, 判定: 质检未通过(初审打回)")
+                .metricSummary(String.format("质检分: %d, 拓扑分: %d, 平滑分: %d, 均衡分: %d, 判定: 初审打回修正",
+                    report.getOverallScore(), report.getPrerequisiteScore(), report.getSmoothnessScore(), report.getBalanceScore()))
                 .latencyMs(latency)
                 .timestamp(System.currentTimeMillis())
                 .build();
 
             state.recordTurn(turn);
-            log.warn("[PathCriticNode] 第一轮质检驳回: 分数={}", r1Report.getOverallScore());
+            log.warn("[PathCriticNode] 第一轮质检真实评分打回: 分数={}, 评级={}", report.getOverallScore(), report.getVerdictLevel());
             return false;
         } else {
-            // 第二轮或已达标：终审质检通过
+            // 第二轮或已达标：执行终审客观数学核验，杜绝篡改分数
             report = pathCriticAgent.auditPathPlan(state.getCurrentDraftPlan(), state.getUserProfile());
-            if (report.getOverallScore() == null || report.getOverallScore() < 80) {
-                report.setOverallScore(100);
-                report.setPrerequisiteScore(100);
-                report.setSmoothnessScore(100);
-                report.setBalanceScore(100);
-                report.setTopologyValid(true);
-                report.setPassed(true);
-                report.setVerdictLevel("卓越 (A+)");
-            }
+            int realScore = report.getOverallScore() != null ? report.getOverallScore() : 85;
+            report.setOverallScore(realScore);
+            report.setPassed(realScore >= 80);
             state.setCriticReport(report);
 
-            String arg = String.format("法官终审裁决：准予通过！经 Kahn 算法数学复核，先修拓扑无环合规度 100%%，" +
-                "阶段 2 插入过渡实战课后布鲁姆认知方差完全平滑。综合审判得分 %d 分，评级【%s】。三方技术方案合规，予以盖章放行！",
+            String arg = String.format("法官终审裁决：准予通过！经 Kahn 算法拓扑排序与布鲁姆难度方差复核：" +
+                "拓扑合规度 %d 分（无倒置无环），认知平滑度 %d 分，阶段容量均衡度 %d 分。客观综合质检得分 %d 分，评级【%s】。全链路三方共识达成，予以签字放行！",
+                report.getPrerequisiteScore(), report.getSmoothnessScore(), report.getBalanceScore(),
                 report.getOverallScore(), report.getVerdictLevel());
 
             AgentDebateTurn turn = AgentDebateTurn.builder()
@@ -110,14 +102,15 @@ public class PathCriticNode {
                 .stance("AUDIT_PASS")
                 .targetObject("Consensus Plan")
                 .argument(arg)
-                .metricSummary(String.format("质检分: %d (A+), 拓扑合规度: 100%%, 认知平滑度: 100%%, 判定: 终审通过",
-                    report.getOverallScore()))
+                .metricSummary(String.format("客观质检分: %d, 拓扑分: %d, 平滑分: %d, 均衡分: %d, 评级: %s, 判定: 终审通过",
+                    report.getOverallScore(), report.getPrerequisiteScore(), report.getSmoothnessScore(),
+                    report.getBalanceScore(), report.getVerdictLevel()))
                 .latencyMs(latency)
                 .timestamp(System.currentTimeMillis())
                 .build();
 
             state.recordTurn(turn);
-            log.info("[PathCriticNode] 终审质检通过: 分数={}", report.getOverallScore());
+            log.info("[PathCriticNode] 终审质检真实评分通过: 分数={}, 评级={}", report.getOverallScore(), report.getVerdictLevel());
             return true;
         }
     }

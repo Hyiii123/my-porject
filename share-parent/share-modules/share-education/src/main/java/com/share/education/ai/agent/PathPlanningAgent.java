@@ -26,6 +26,17 @@ public class PathPlanningAgent {
 
     private static final Logger log = LoggerFactory.getLogger(PathPlanningAgent.class);
 
+    private final com.share.education.service.IDisciplineTaxonomyService taxonomyService;
+
+    public PathPlanningAgent() {
+        this(null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public PathPlanningAgent(@org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.service.IDisciplineTaxonomyService taxonomyService) {
+        this.taxonomyService = taxonomyService;
+    }
+
     public LearningPathPlan planPath(UserProfileContext profile, List<AnalyzedCourseVO> courses) {
         return planPath(profile, courses, Collections.emptyMap());
     }
@@ -82,7 +93,7 @@ public class PathPlanningAgent {
         List<AnalyzedCourseVO> consistentCourses = new ArrayList<>();
         Set<Long> seenIds = new HashSet<>();
         for (AnalyzedCourseVO c : activeCourses) {
-            if (c != null && seenIds.add(c.getCourseId()) && isCourseDomainRelevant(c, domain)) {
+            if (c != null && seenIds.add(c.getCourseId()) && isCourseDomainRelevant(c, role, domain)) {
                 consistentCourses.add(c);
             } else {
                 log.info("[PathPlanningAgent] 剔除非本学科强相关或重复课程: courseId={}, courseName={}, targetRole={}",
@@ -340,7 +351,25 @@ public class PathPlanningAgent {
         return false;
     }
 
-    private boolean isCourseDomainRelevant(AnalyzedCourseVO c, DefaultHybridAlgorithmEngine.DisciplineDomain domain) {
+    private boolean isCourseDomainRelevant(AnalyzedCourseVO c, String role, DefaultHybridAlgorithmEngine.DisciplineDomain domain) {
+        if (c == null) {
+            return false;
+        }
+        if (taxonomyService != null) {
+            com.share.education.domain.EduCourse dummy = new com.share.education.domain.EduCourse();
+            dummy.setId(c.getCourseId());
+            dummy.setCourseName(c.getCourseName());
+            dummy.setCategoryId(c.getCategoryId());
+            String skills = (c.getCoreKnowledgePoints() != null ? String.join(" ", c.getCoreKnowledgePoints()) : "")
+                    + " " + (c.getPrerequisiteSkills() != null ? String.join(" ", c.getPrerequisiteSkills()) : "");
+            dummy.setSkills(skills);
+            dummy.setDescription(c.getSyllabusSummary());
+            return taxonomyService.isCourseAllowedForDomain(dummy, role);
+        }
+        return isCourseDomainRelevantFallback(c, domain);
+    }
+
+    private boolean isCourseDomainRelevantFallback(AnalyzedCourseVO c, DefaultHybridAlgorithmEngine.DisciplineDomain domain) {
         if (c == null || domain == DefaultHybridAlgorithmEngine.DisciplineDomain.GENERAL) {
             return true;
         }

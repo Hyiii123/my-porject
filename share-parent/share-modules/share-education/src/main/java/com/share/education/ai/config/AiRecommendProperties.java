@@ -51,17 +51,6 @@ public class AiRecommendProperties {
         if (StringUtils.hasText(env)) return env;
         env = System.getenv("OPENAI_API_KEY");
         if (StringUtils.hasText(env)) return env;
-        try {
-            com.share.common.redis.service.RedisService redisService =
-                    com.share.common.core.utils.SpringUtils.getBean(com.share.common.redis.service.RedisService.class);
-            if (redisService != null) {
-                String redisKey = redisService.getCacheObject("customer:ai:secret");
-                if (StringUtils.hasText(redisKey)) {
-                    return redisKey;
-                }
-            }
-        } catch (Exception ignored) {
-        }
         return System.getProperty("ai.recommend.api-key");
     }
 
