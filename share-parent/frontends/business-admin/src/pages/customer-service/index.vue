@@ -86,7 +86,7 @@
 
       <el-tab-pane label="会话记录" name="sessions">
         <section class="panel table-panel">
-          <div class="toolbar"><el-input v-model="sessionState.keyword" clearable placeholder="搜索会话编号、用户或内容" class="search-input" @keyup.enter="loadSessions" /><el-select v-model="sessionState.status" clearable placeholder="会话状态" class="status-select" @change="loadSessions"><el-option label="AI 服务中" :value="0" /><el-option label="已结束" :value="3" /></el-select><el-button :icon="Refresh" @click="loadSessions">刷新</el-button></div>
+          <div class="toolbar"><el-input v-model="sessionState.keyword" clearable placeholder="搜索会话编号、用户或内容" class="search-input" @keyup.enter="loadSessions" /><el-select v-model="sessionState.status" clearable placeholder="会话状态" class="status-select" @change="loadSessions"><el-option label="AI 服务中" :value="0" /><el-option label="已结束" :value="3" /></el-select><el-button :icon="Refresh" @click="loadSessions">刷新</el-button><el-button type="danger" plain :icon="Delete" :loading="cleaningSessions" @click="handleCleanExpiredSessions">排查清理超期会话</el-button></div>
           <el-table v-loading="sessionState.loading" :data="sessionState.list" stripe>
             <el-table-column prop="sessionNo" label="会话编号" width="205" />
             <el-table-column prop="userName" label="用户" width="110" />
@@ -130,8 +130,8 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh } from '@element-plus/icons-vue'
-import { closeSession, deleteKnowledge, deleteFaq, getAiConfig, getKnowledgePage, getFaqPage, getServiceStats, getSessionDetails, getSessionPage, saveAiConfig, testAi, saveKnowledge, saveFaq, updateKnowledge, updateFaq } from '@/api/customerService'
+import { Delete, Plus, Refresh } from '@element-plus/icons-vue'
+import { cleanExpiredSessions, closeSession, deleteKnowledge, deleteFaq, getAiConfig, getKnowledgePage, getFaqPage, getServiceStats, getSessionDetails, getSessionPage, saveAiConfig, testAi, saveKnowledge, saveFaq, updateKnowledge, updateFaq } from '@/api/customerService'
 
 const activeTab = ref('stats')
 const stats = ref({ totalSessions: 0, aiMessages: 0, activeSessions: 0, todaySessions: 0, satisfactionRate: 0, averageMessages: 0, topQuestions: [], trend: [] })
@@ -179,6 +179,24 @@ async function handleCloseSession() {
     selectedSession.value = { ...selectedSession.value, ...sessionView(data) }
     ElMessage.success('会话已结束')
     await Promise.all([loadSessions(), loadStats()])
+  }
+}
+const cleaningSessions = ref(false)
+async function handleCleanExpiredSessions() {
+  if (!await confirmRemove('系统将按规则排查并自动清理超过 2 天无对话的活跃会话，确定执行排查清理吗？')) return
+  cleaningSessions.value = true
+  try {
+    const response = await cleanExpiredSessions()
+    if (response && response.code === 200) {
+      ElMessage.success(response.msg || `成功清理 ${response.data || 0} 个超期会话`)
+      await Promise.all([loadSessions(), loadStats()])
+    } else {
+      ElMessage.error(response?.msg || '排查清理失败')
+    }
+  } catch (error) {
+    ElMessage.error('排查清理异常：' + (error.message || '未知错误'))
+  } finally {
+    cleaningSessions.value = false
   }
 }
 function statusText(status) { return ({ 0: 'AI 服务中', 3: '已结束' }[Number(status)] || '未知') }

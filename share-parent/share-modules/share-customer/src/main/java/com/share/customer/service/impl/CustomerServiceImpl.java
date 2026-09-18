@@ -158,10 +158,12 @@ public class CustomerServiceImpl implements ICustomerService {
         if (userId == null) {
             return new Page<>();
         }
-        // 若查询活跃会话（status == null 或 status != 4），主动排查并清理当前用户超过 2 天无对话的活跃会话，保持列表实时干净
-        if (status == null || status != 4) {
+        // 若查询活跃会话（status == null 或 status != 4），且开启自动清理开关，主动排查并清理当前用户超过指定天数无对话的活跃会话，保持列表实时干净
+        boolean autoClean = sessionProperties == null || sessionProperties.isAutoCleanEnabled();
+        if ((status == null || status != 4) && autoClean) {
             try {
-                cleanExpiredActiveSessionsForUser(userId, sessionProperties != null ? sessionProperties.getExpireDays() : 2);
+                int expireDays = sessionProperties != null ? sessionProperties.getExpireDays() : 2;
+                cleanExpiredActiveSessionsForUser(userId, expireDays);
             } catch (Exception e) {
                 log.warn("【客服会话】为用户 {} 动态排查过期活跃会话异常: {}", userId, e.getMessage());
             }
@@ -979,7 +981,9 @@ public class CustomerServiceImpl implements ICustomerService {
     @Override
     @Transactional
     public int cleanExpiredActiveSessions(int expireDays) {
-        int days = expireDays > 0 ? expireDays : 2;
+        int defaultDays = sessionProperties != null && sessionProperties.getExpireDays() > 0
+                ? sessionProperties.getExpireDays() : 2;
+        int days = expireDays > 0 ? expireDays : defaultDays;
         LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
         List<Long> expiredIds = sessionMapper.selectExpiredActiveSessionIds(cutoff, null);
         if (expiredIds == null || expiredIds.isEmpty()) {
@@ -1003,16 +1007,24 @@ public class CustomerServiceImpl implements ICustomerService {
         if (userId == null) {
             return 0;
         }
-        int days = expireDays > 0 ? expireDays : 2;
+        int defaultDays = sessionProperties != null && sessionProperties.getExpireDays() > 0
+                ? sessionProperties.getExpireDays() : 2;
+        int days = expireDays > 0 ? expireDays : defaultDays;
         LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
         List<Long> expiredIds = sessionMapper.selectExpiredActiveSessionIds(cutoff, userId);
         if (expiredIds == null || expiredIds.isEmpty()) {
             return 0;
         }
-        sessionMapper.deleteBatchIds(expiredIds);
+        int totalDeleted = 0;
+        int batchSize = 200;
+        for (int i = 0; i < expiredIds.size(); i += batchSize) {
+            List<Long> subList = expiredIds.subList(i, Math.min(i + batchSize, expiredIds.size()));
+            sessionMapper.deleteBatchIds(subList);
+            totalDeleted += subList.size();
+        }
         log.info("【客服活跃会话治理】已自动清理学员 (userId: {}) 的 {} 个超过 {} 天无对话的活跃会话: {}",
-                userId, expiredIds.size(), days, expiredIds);
-        return expiredIds.size();
+                userId, totalDeleted, days, expiredIds);
+        return totalDeleted;
     }
 
     private record LocalAnswer(int score, String answer, Long id, boolean faq) {}

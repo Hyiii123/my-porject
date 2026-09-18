@@ -145,9 +145,9 @@ public class CustomerAdminController extends BaseController {
     @RequiresPermissions(value = {"customer:session:close", "customer:session:remove"}, logical = Logical.OR)
     @Log(title = "客服会话", businessType = BusinessType.CLEAN)
     @PostMapping("/sessions/clean-expired")
-    public AjaxResult cleanExpiredSessions(@RequestParam(defaultValue = "2") int expireDays) {
+    public AjaxResult cleanExpiredSessions(@RequestParam(required = false, defaultValue = "0") int expireDays) {
         int count = customerService.cleanExpiredActiveSessions(expireDays);
-        return AjaxResult.success("成功排查并自动清理 " + count + " 个超过 " + expireDays + " 天无对话的活跃会话", count);
+        return AjaxResult.success("成功排查并自动清理 " + count + " 个超过无对话期限的活跃会话", count);
     }
 
     @RequiresPermissions("customer:statistics:view")

@@ -30,6 +30,13 @@ customer:
     endpoint-path: ${TJ_PIXEL_API_ENDPOINT:/v1/chat/completions}
     model: ${TJ_PIXEL_API_MODEL:gpt-5.6-luna}
     secret: ${TJ_AI_SECRET:}
-    timeout-ms: ${TJ_PIXEL_API_TIMEOUT_MS:8000}
+    timeout-ms: ${TJ_PIXEL_API_TIMEOUT_MS:30000}
     max-retries: ${TJ_PIXEL_API_MAX_RETRIES:1}
     system-prompt: ${TJ_PIXEL_API_SYSTEM_PROMPT:你是智问学伴的在线客服，请使用简洁、友好、准确的中文回答学习平台用户的问题；不确定时请明确说明，不要编造订单或账号信息。}
+  session:
+    # 活跃会话超过指定天数无对话自动删除，默认 2 天
+    expire-days: ${CUSTOMER_SESSION_EXPIRE_DAYS:2}
+    # 定时排查 Cron 表达式，默认每 2 天凌晨 2 点执行一次排查清理 (0 0 2 */2 * ?)
+    clean-cron: ${CUSTOMER_SESSION_CLEAN_CRON:0 0 2 */2 * ?}
+    # 是否开启定时自动清理任务
+    auto-clean-enabled: ${CUSTOMER_SESSION_AUTO_CLEAN_ENABLED:true}

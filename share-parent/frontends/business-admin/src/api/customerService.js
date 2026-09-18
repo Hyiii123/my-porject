@@ -24,6 +24,8 @@ export const getSessionDetails = (id) =>
   request({ url: `/customer/admin/sessions/${id}`, method: 'get' })
 export const closeSession = (id) =>
   request({ url: `/customer/admin/sessions/${id}/close`, method: 'post' })
+export const cleanExpiredSessions = (params) =>
+  request({ url: '/customer/admin/sessions/clean-expired', method: 'post', params })
 export const getServiceStats = (params) =>
   request({ url: '/customer/admin/statistics/overview', method: 'get', params })
 

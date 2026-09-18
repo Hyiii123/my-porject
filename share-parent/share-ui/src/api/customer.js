@@ -86,6 +86,10 @@ export function closeCustomerSession(id) {
   return request({ url: '/customer/admin/sessions/' + id + '/close', method: 'post' })
 }
 
+export function cleanExpiredCustomerSessions(params = {}) {
+  return request({ url: '/customer/admin/sessions/clean-expired', method: 'post', params })
+}
+
 export function getCustomerStatistics() {
   return request({ url: '/customer/admin/statistics/overview', method: 'get' })
 }

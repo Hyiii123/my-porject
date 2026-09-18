@@ -27,7 +27,11 @@
                 <el-option label="进行中" :value="0" /><el-option label="已结束" :value="3" />
               </el-select>
             </el-form-item>
-            <el-form-item><el-button type="primary" @click="loadSessions">查询</el-button><el-button @click="resetSessionQuery">重置</el-button></el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="loadSessions">查询</el-button>
+              <el-button @click="resetSessionQuery">重置</el-button>
+              <el-button type="danger" plain :loading="cleaningSessions" @click="handleCleanExpiredSessions" v-hasPermi="['customer:session:close']">清理超期会话</el-button>
+            </el-form-item>
           </el-form>
           <el-table v-loading="loading.sessions" :data="sessions" stripe>
             <el-table-column prop="sessionNo" label="会话编号" min-width="185" />
@@ -102,6 +106,7 @@ import { ChatDotRound, Collection, Document, Lock, Message, Plus, Refresh, Star,
 import {
   addCustomerFaq,
   addCustomerKnowledge,
+  cleanExpiredCustomerSessions,
   closeCustomerSession,
   delCustomerFaq,
   delCustomerKnowledge,
@@ -243,6 +248,19 @@ async function viewSession(row) {
 async function closeSession(row) {
   await ElMessageBox.confirm('结束后该会话将不能继续产生新消息，确定结束吗？', '提示', { type: 'warning' })
   await closeCustomerSession(row.id); ElMessage.success('会话已结束'); sessionDrawer.visible = false; await Promise.all([loadSessions(), loadStatistics()])
+}
+
+const cleaningSessions = ref(false)
+async function handleCleanExpiredSessions() {
+  await ElMessageBox.confirm('系统将排查并自动清理超过 2 天无对话的活跃会话，确定执行吗？', '提示', { type: 'warning' })
+  cleaningSessions.value = true
+  try {
+    const result = await cleanExpiredCustomerSessions()
+    ElMessage.success(result.msg || '清理成功')
+    await Promise.all([loadSessions(), loadStatistics()])
+  } finally {
+    cleaningSessions.value = false
+  }
 }
 
 async function saveAi() {

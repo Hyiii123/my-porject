@@ -16,28 +16,31 @@
 
 ### 2026-09-18 16:30:00 - 客服会话全生命周期自动化治理：落地超2天无对话活跃会话定时巡检与按需自愈清理引擎，前后端生产闭环 100% 验证通过 (Customer Service Session Lifecycle Automation: 2-Day Inactivity Auto-Cleanup Engine, Scheduled Inspection & On-Demand Healing)
 
-* **演进主题**：客服活跃会话生命周期治理 (Customer Service Session Lifecycle Automation)、超期无对话自动清理策略 (2-Day Inactivity Auto-Cleanup Engine in `CustomerServiceImpl`)、复合时间窗口与消息防误删保障 (Composite Cutoff & Message-Existence Boundary Check in `CustomerSessionMapper`)、可配置周期定时巡检任务 (Spring Scheduled Inspection with Dynamic Cron in `CustomerSessionSchedule`)、客户端按需动态查漏自愈与友好引导 (On-Demand Active Session Healing & UI Guidance in `portal/customerService/index.vue`)、管理端全局应急清理治理接口 (Global Clean Endpoint in `CustomerAdminController`)、云端轻量热部署与 8 项定向用例 100% 闭环通过 (Sequential Cloud Deployment & Targeted Verification Closure)
+* **演进主题**：客服活跃会话生命周期治理 (Customer Service Session Lifecycle Automation)、超期无对话自动清理策略 (2-Day Inactivity Auto-Cleanup Engine in `CustomerServiceImpl`)、复合时间窗口与消息防误删保障 (Composite Cutoff & Message-Existence Boundary Check in `CustomerSessionMapper`)、可配置周期定时巡检任务 (Spring Scheduled Inspection with Dynamic Cron in `CustomerSessionSchedule`)、客户端按需动态查漏自愈与友好引导 (On-Demand Active Session Healing & UI Guidance in `portal/customerService/index.vue`)、管理端全局应急清理治理接口与双端管理UI联动 (Global Clean Endpoint in `CustomerAdminController` & Admin UI Action in `business-admin` and `share-ui`)、云端轻量热部署与定向用例 100% 闭环通过 (Sequential Cloud Deployment & Targeted Verification Closure)
 * **核心成果**：
   1. **配置驱动的会话超时与巡检属性体系 (`CustomerSessionProperties`)**：
      - 构建 `CustomerSessionProperties` 配置类（前缀 `customer.session`），支持通过 Nacos 或配置中心热拔插调整过期阈值（`expireDays` 默认 2 天）、巡检调度频率（`cleanCron` 默认 `0 0 2 */2 * ?`，即每 2 天凌晨 2 点执行）及主开关（`autoCleanEnabled` 默认 true）；
-     - 在 `ShareCustomerApplication` 主启动类中优雅激活绑定。
-  2. **复合强安全边界数据查询契约 (`CustomerSessionMapper.selectExpiredActiveSessionIds`)**：
-     - 深度对齐会话状态机，限定仅检索未软删除（`del_flag = 0`）且未归档的活跃会话（`status != 4`）；
-     - 针对数据库记录秒级时间偏差，构建双重安全过滤：既要求会话自身 `updated_at <= cutoffTime`，同时通过 `NOT EXISTS (SELECT 1 FROM cs_message m WHERE m.session_id = s.id AND m.create_time > cutoffTime)` 强校验 2 天内无任何后续消息，杜绝误杀任何近期活跃或已归档历史资产；
+     - 将配置下发至 `deploy/nacos/share-customer-dev.yml` 并成功热推至云端 Nacos，在 `ShareCustomerApplication` 主启动类中优雅激活绑定。
+  2. **复合强安全边界数据查询契约与 NULL 容错防线 (`CustomerSessionMapper.selectExpiredActiveSessionIds`)**：
+     - 深度对齐会话状态机，限定仅检索未软删除（`del_flag = 0`）且未归档的活跃会话（`(status IS NULL OR status != 4)`）；
+     - 完善 NULL 时间字段防线，采用 `IFNULL(s.updated_at, IFNULL(s.create_time, s.started_at)) <= #{cutoffTime}` 防止历史数据缺少 `updated_at` 时三值逻辑求值为 UNKNOWN 导致漏查；
+     - 针对数据库记录秒级时间偏差，构建双重安全过滤：既要求会话自身时间早于等于 `cutoffTime`，同时通过 `NOT EXISTS (SELECT 1 FROM cs_message m WHERE m.session_id = s.id AND m.create_time > cutoffTime)` 强校验 2 天内无任何后续消息，杜绝误杀任何近期活跃或已归档历史资产；
      - 支持全局全量检索（调度任务/管理接口）与单学员按需检索（用户端列表实时自愈）。
   3. **分片安全软删除与列表实时自愈引擎 (`CustomerServiceImpl`)**：
-     - 实现 `cleanExpiredActiveSessions`，采用分片批处理（`batchSize = 200`）委托 MyBatis-Plus `@TableLogic` 安全软删除（`del_flag = 1`），防止大批量 ID 导致 MySQL IN 子句溢出与锁表；
-     - 在学员访问 `listMySessions` 活跃会话列表时前置执行 `cleanExpiredActiveSessionsForUser` 查漏自愈，确保学员端活跃会话列表无延迟实时干净，避免依赖单一时间点的定时任务。
+     - 实现 `cleanExpiredActiveSessions` 与 `cleanExpiredActiveSessionsForUser`，采用分片批处理（`batchSize = 200`）委托 MyBatis-Plus `@TableLogic` 安全软删除（`del_flag = 1`），防止大批量 ID 导致 MySQL IN 子句溢出与锁表；
+     - 参数与开关严密防御：当 `expireDays <= 0` 时自动回退至动态配置 `sessionProperties.getExpireDays()`；在学员访问 `listMySessions` 时前置检查全局总开关 `sessionProperties.isAutoCleanEnabled()`，尊重运维管理员关闭指令，开启时执行查漏自愈，确保学员端活跃会话列表无延迟实时干净。
   4. **每 2 天例行巡检调度器与管理端应急接口 (`CustomerSessionSchedule` & `CustomerAdminController`)**：
      - 构建 `CustomerSessionSchedule`，基于 `@Scheduled(cron = "${customer.session.clean-cron:0 0 2 */2 * ?}")` 驱动每 2 天定期巡检，包含详尽的审计日志与异常自愈降级防护；
-     - 在 `CustomerAdminController` 增加 `POST /customer/admin/sessions/clean-expired` 治理端点，支持运营人员按需触发自定义天数（`expireDays`）的全局巡检。
-  5. **学生端体验升级与失效会话优雅自愈 (`portal/src/pages/customerService/index.vue`)**：
-     - 活跃会话 Tab 与列表顶部增加时钟徽标与清晰友好提示文案（`超过2天无对话自动清理`）；
-     - 页面加载会话时增加失效自愈判断：当检测到目标会话已被自动清理时，自动触发 `resetSession()` 重置为初始对话模式，彻底消除会话空指针与白屏。
-  6. **单元测试与云端生产 8 项定向验证 100% 闭环通过 (Rule 1 & Rule 8 Compliance)**：
-     - 编写本地单元测试 `CustomerSessionScheduleTest`（7/7 用例全部通过，覆盖 Spring Cron 表达式校验、默认属性、调度触发、配置禁用、分片批量删除、单用户自愈与无过期会话幂等）；
-     - 严格遵循 Golden Release 工作流，本地轻量编译并使用 Workbench CLI 顺序热替换 `zhiwen-customer` 与 `zhiwen-portal-ui` 运行时，零 I/O 抖动；
-     - 运行定向验证脚本覆盖登录认证、新建活跃会话、消息交互、3 天过期会话自动软删除（`del_flag=1`）、归档会话（`status=4`）隔离保护、1小时内有对话会话安全隔离、管理端清理历史 48 个无对话积压会话，8 项测试全部零报错通过。
+     - 在 `CustomerAdminController` 增加 `POST /customer/admin/sessions/clean-expired` 治理端点，支持运营人员按需触发自定义天数（`expireDays`，默认 0 自动回退配置）的全局巡检。
+  5. **三端前端体验升级与失效会话优雅自愈 (`portal`、`business-admin` 与 `share-ui`)**：
+     - 学生端：活跃会话 Tab 与列表顶部增加时钟徽标与清晰友好提示文案（`超过2天无对话自动清理`）；页面加载会话时增加失效自愈判断：当检测到目标会话已被自动清理时，自动触发 `resetSession()` 重置为初始对话模式，消除会话空指针与白屏；
+     - 业务管理端 (`frontends/business-admin`)：在客服工作台会话列表工具栏新增「排查清理超期会话」运维按钮与弹窗二次确认，打通后端治理 API；
+     - 基础管理端 (`share-ui`)：在客服管理列表工具栏新增「清理超期会话」按钮及调用联动，支持一键触发全站超期活跃会话排查。
+  6. **单元测试 10/10 全通与云端生产定向验证 100% 闭环通过 (Rule 1 & Rule 8 Compliance)**：
+     - 编写本地单元测试 `CustomerSessionScheduleTest`（10/10 用例全部通过，覆盖 2 天周期 cron 递推、Spring Cron 序列校验、默认配置属性、调度触发、关闭开关测试、大列表分片批处理 205/210 条数据测试、空列表幂等、属性回退、`listMySessions` 尊重关闭开关等）；
+     - 严格遵循 Golden Release 工作流，本地轻量编译并使用 Workbench CLI 顺序热替换 `zhiwen-customer`、`zhiwen-business-admin-ui` 与 `zhiwen-ruoyi-ui` 运行时，零 I/O 抖动；
+     - 运行定向验证脚本覆盖登录认证、新建活跃会话、消息交互、3 天过期会话自动软删除（`del_flag=1`）、归档会话（`status=4`）隔离保护、近期会话安全隔离、学员列表实时自愈、前端 Nginx 健康检查，全部测试零报错通过。
+
 
 ### 2026-09-18 15:30:00 - Spring AI Alibaba Graph 复合多智能体协同引擎缺陷根治与生产加固：修复假驳回分数断层、打通动态分支条件路由、对齐流式步骤编号契约并消除双倍重算 (Composite Multi-Agent Graph Remediation & Hardening: Score Consistency, Conditional Branching, SSE Property Contract & Single-Run Optimization)
 
