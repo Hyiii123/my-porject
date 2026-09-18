@@ -28,12 +28,12 @@ public class IndustryArchitectNode {
     private final RecommendationAgent recommendationAgent;
     private final CourseAnalysisAgent courseAnalysisAgent;
     private final PathPlanningAgent pathPlanningAgent;
-    private final com.share.education.ai.client.DashScopeAiClient aiClient;
+    private final com.share.education.ai.client.ThirdPartyAiClient aiClient;
 
     public IndustryArchitectNode(RecommendationAgent recommendationAgent,
                                  CourseAnalysisAgent courseAnalysisAgent,
                                  PathPlanningAgent pathPlanningAgent,
-                                 @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.DashScopeAiClient aiClient) {
+                                 @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.ThirdPartyAiClient aiClient) {
         this.recommendationAgent = recommendationAgent;
         this.courseAnalysisAgent = courseAnalysisAgent;
         this.pathPlanningAgent = pathPlanningAgent;
@@ -130,15 +130,7 @@ public class IndustryArchitectNode {
         long latency = System.currentTimeMillis() - tStart;
         state.recordLatency("IndustryArchitectNode_Compromise", latency);
 
-        String dynamicArg = null;
-        if (aiClient != null && aiClient.isAvailable()) {
-            String sys = "你是一线大厂资深技术总监。面对学情导师关于认知负荷过重与理论过陡的质疑，你已采纳意见下调阶段2理论难度并补充实战模块。请陈述你的折中反思立场（以战带练兼顾大厂底线，不超过100字）。";
-            String usr = "学情导师提出防劝退质疑。你已经降低阶段2难度并加入过渡项目，请陈述折中妥协发言。";
-            dynamicArg = aiClient.generate(sys, usr);
-        }
-
-        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg :
-            "我充分理解学情导师关于认知负荷的担忧。为兼顾架构师胜任力底线，我做出折中妥协：调整第 2 阶段课程坡度，将晦涩理论改为实战带练，并把前置依赖做细颗粒度拆解。";
+        String arg = "我充分理解学情导师关于认知负荷的担忧。为兼顾架构师胜任力底线，我做出折中妥协：调整第 2 阶段课程坡度，将晦涩理论改为实战带练，并把前置依赖做细颗粒度拆解。";
 
         AgentDebateTurn turn = AgentDebateTurn.builder()
             .round(state.getCurrentRound())

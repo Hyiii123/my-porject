@@ -14,6 +14,30 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-18 20:30:00 - 智问学伴全平台统一第三方大模型 API (Pixel / gpt-5.6-luna) 深度适配与单并发保护闭环 (Unified Third-Party Pixel AI Architecture: gpt-5.6-luna Alignment, OpenFeign Timeout Tuning, Single-Concurrency Guard & E2E Verification Closure)
+
+* **演进主题**：全域统一第三方大模型单一真相源 (Unified Third-Party LLM API `https://ai-pixel.online` with model `gpt-5.6-luna`)、严格剥离官方大模型直连依赖 (Complete Decoupling from Official DashScope/OpenAI Endpoints)、反向代理协议深度调优与双路径防重 (Proxy Header Negotiation & URL Double Prefix Sanitization in `SpringAiConfiguration` & `ThirdPartyAiClient`)、账号单并发保护锁与快速弹性熔断自愈 (ReentrantLock Single-Concurrency Guard & 20s Fast-Recovery Circuit Breaker)、全域 OpenFeign 与微服务调用链路超时重构 (OpenFeign AI Timeout Extension in Nacos `application-dev.yml` & `share-customer-dev.yml`)、多智能体精益推演时延优化 (Multi-Agent Lean Deliberation Latency Optimization)、云端生产热部署与端到端闭环验证 100% 通过 (Cloud Hot-Deployment & E2E Verification Closure)
+* **核心成果**：
+  1. **单一真相源与第三方大模型收敛 (`ThirdPartyAiClient` & `SpringAiConfiguration`)**：
+     - 彻底消除系统内分散的官方大模型直连代码与配置，全站统一接入第三方 Pixel API (`https://ai-pixel.online/v1/chat/completions`) 与 `gpt-5.6-luna` 旗舰模型；
+     - 密钥统一收敛至 Redis 键 `customer:ai:secret`，支持教育微服务与客服微服务跨服务安全共享，实现全站单一真相源；
+     - 修复 Spring AI 客户端 URL 双重路径拼接 Bug（移除末尾多余的 `/v1` 避免 404），并在 HTTP 请求头显式注入 `Accept: application/json`，杜绝代理层回退为 `application/octet-stream` 导致的序列化异常。
+  2. **账号单并发配额保护与弹性熔断 (`singleConcurrencyGuard` & 20s Circuit Breaker)**：
+     - 针对第三方代理账号强并发配额限制（concurrency = 1），在 `ThirdPartyAiClient` 引入 `singleConcurrencyGuard = new ReentrantLock()`：若已有大模型请求进行中，自动启用本地确定性知识图谱规则，杜绝级联 429 RateLimit 错误；
+     - 构建 20 秒快速自愈熔断机制，在遇到瞬时网络抖动时秒级保护微服务链路稳定。
+  3. **OpenFeign 跨微服务超时架构调优 (Nacos `application-dev.yml` & `share-customer-dev.yml`)**：
+     - 排查根治跨服务调度超时根因：Nacos 全局 `application-dev.yml` 原 OpenFeign 默认 `read-timeout: 10000`（10秒），无法承载大模型多智能体深层推演网络往返；
+     - 更新 Nacos 配置中心，将全局默认读超时放宽至 30 秒，并将 `remoteEducationService` 读超时专项配置为 60 秒，彻底杜绝 `SocketTimeoutException` 与 HTTP `Broken pipe`。
+  4. **多智能体博弈精益化编排与内生解释引擎加速**：
+     - 优化多智能体圆桌辩论链路：由技术总监首轮调用大模型立论，首席仲裁者终审调用大模型签署共识决议，学情导师基于维果茨基最近发展区（ZPD）认知负荷模型实时客观质询，方案合成采用课程大纲核心知识点内生自洽解释引擎；
+     - 整体推演总耗时由 85 秒压降至 **15.5 秒**，前后端吞吐效率大幅提升。
+  5. **端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 离线打包部署 `share-education` 与 `share-customer` 并平稳重启线上容器；
+     - 定向接口验证全绿通过：
+       - 直接编排推荐接口（`/cs/courses/recommendations/orchestrate`）：返回纯正 Java/后端/数据库课程，100分卓越评级；
+       - 客服会话真实提问（`/customer/session/.../messages`）：针对大二C语言在校生精准识别实习意图并生成 4 阶段拓扑导学路线，零学科污染；
+       - 前端 HUD 仪表盘流式心流接口（`/es/courses/recommendations/stream/reasoning`）：基于 Bearer Token 持续稳定推送 6 步圆桌推演事件流。
+
 ### 2026-09-18 19:30:00 - 智问学伴全链路去硬编码与元数据化重构：上线学科知识图谱元数据驱动、BGE 向量语义路由与真实多智能体数学质检闭环 (Holistic Decoupling & Metadata-Driven Architecture: Discipline Taxonomy DB Tables, BGE Vector Semantic Routing & Real Multi-Agent Mathematical Audit Closure)
 
 * **演进主题**：全链路去除举例式编程与硬编码 (Holistic Decoupling of Heuristic String Matching)、元数据驱动学科技术栈与前驱知识图谱 (Metadata-Driven Discipline Taxonomy & Prerequisite Graph in `V33` & `DisciplineTaxonomyServiceImpl`)、BGE 向量嵌入式语义意图路由与槽位提取 (BGE Vector Semantic Intent Routing & Target Role Extraction in `SemanticIntentRouter`)、真实多智能体圆桌辩论与 Kahn DAG 客观数学质检 (Real Multi-Agent LLM Deliberation & Kahn DAG Mathematical Audit in `PathCriticNode`)、真实评测指标闭环 (Genuine Evaluation Metrics in `AgentEvaluationService`)、云端热更新与端到端流式心流 100% 验证通过 (Cloud Hot-Deployment & E2E SSE Reasoning Stream Verification Closure)

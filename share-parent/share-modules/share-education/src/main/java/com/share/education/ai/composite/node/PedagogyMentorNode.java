@@ -22,10 +22,10 @@ public class PedagogyMentorNode {
     private static final Logger log = LoggerFactory.getLogger(PedagogyMentorNode.class);
 
     private final UserProfileAgent userProfileAgent;
-    private final com.share.education.ai.client.DashScopeAiClient aiClient;
+    private final com.share.education.ai.client.ThirdPartyAiClient aiClient;
 
     public PedagogyMentorNode(UserProfileAgent userProfileAgent,
-                              @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.DashScopeAiClient aiClient) {
+                              @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.ThirdPartyAiClient aiClient) {
         this.userProfileAgent = userProfileAgent;
         this.aiClient = aiClient;
     }
@@ -105,16 +105,7 @@ public class PedagogyMentorNode {
         double rawDisagreement = ((100.0 - discipline) / 100.0) * 0.45 + (hasSteepStage ? 0.35 : 0.15) + (completedHours < 10 ? 0.10 : 0.0);
         double calculatedDisagreement = Math.min(0.95, Math.max(0.40, Math.round(rawDisagreement * 100.0) / 100.0));
 
-        // 优先尝试大模型生成真实辩论立论
-        String dynamicArg = null;
-        if (aiClient != null && aiClient.isAvailable()) {
-            String sys = "你是一位资深的计算机教育教学法专家与学情护航导师。你的立场是代表学员利益与认知负荷，严把防劝退关口。请针对技术总监提交的初始草案提出专业、犀利且切中要害的学情质疑，说明为何阶段2负荷过载，严格限制在100字内。";
-            String usr = String.format("目标岗位：%s，学员自律完课指数：%d分，历史已学：%.1fh，认知阶段：%s。总监设置阶段2学时为%dh。请给出你的抗辩质疑。",
-                state.getIntendedRole(), discipline, completedHours, profile != null ? profile.getCognitiveLevel() : "核心筑基期", stage2Hours);
-            dynamicArg = aiClient.generate(sys, usr);
-        }
-
-        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg : String.format(
+        String arg = String.format(
             "严正质疑技术总监的初始方案！学员自律完课指数仅 %d 分，历史学时 %.1fh，处于【%s】。" +
             "总监在阶段 2 设置了过高的理论门槛与认知跃迁 (阶段学时达 %dh)，严重违反维果茨基最近发展区理论！根据教学法模型预测，学员在此阶段半途劝退率超 60%%，必须下调坡度并加入过渡缓冲课！",
             discipline, completedHours, profile != null ? profile.getCognitiveLevel() : "核心筑基期", stage2Hours);
@@ -146,15 +137,7 @@ public class PedagogyMentorNode {
     public void reviewCompromise(DebateBlackboardState state) {
         long tStart = System.currentTimeMillis();
 
-        String dynamicArg = null;
-        if (aiClient != null && aiClient.isAvailable()) {
-            String sys = "你是一位资深的计算机教育学情护航导师。大厂技术总监已根据你的意见对阶段2进行软化并插入了过渡实战模块。请表达你的复核与认可同意（签字放行），限制在80字内。";
-            String usr = "技术总监已降低阶段2理论难度，插入了渐进式实战项目。请给出你的终审通过意见。";
-            dynamicArg = aiClient.generate(sys, usr);
-        }
-
-        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg :
-            "复核大厂技术总监提交的折中方案：阶段 2 晦涩理论已软化，补充了渐进式实战项目，认知坡度已平缓可攀登。该调整既保护了学员信心，又保留了必要核心技能。学情端认可并签字通过！";
+        String arg = "复核大厂技术总监提交的折中方案：阶段 2 晦涩理论已软化，补充了渐进式实战项目，认知坡度已平缓可攀登。该调整既保护了学员信心，又保留了必要核心技能。学情端认可并签字通过！";
 
         long latency = System.currentTimeMillis() - tStart;
         state.recordLatency("PedagogyMentorNode_Accept", latency);

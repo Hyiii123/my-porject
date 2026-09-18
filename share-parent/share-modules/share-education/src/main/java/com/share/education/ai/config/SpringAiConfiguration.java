@@ -38,19 +38,52 @@ public class SpringAiConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(OpenAiApi.class)
-    public OpenAiApi openAiApi(AiRecommendProperties properties) {
+    public OpenAiApi openAiApi(AiRecommendProperties properties,
+                               @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.common.redis.service.RedisService redisService) {
         String baseUrl = properties.getBaseUrl();
         if (!StringUtils.hasText(baseUrl)) {
-            baseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1";
+            baseUrl = "https://ai-pixel.online";
+        } else {
+            baseUrl = baseUrl.trim();
+            if (baseUrl.endsWith("/v1")) {
+                baseUrl = baseUrl.substring(0, baseUrl.length() - 3);
+            } else if (baseUrl.endsWith("/v1/")) {
+                baseUrl = baseUrl.substring(0, baseUrl.length() - 4);
+            }
+            if (baseUrl.endsWith("/")) {
+                baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+            }
         }
         String apiKey = properties.getApiKey();
+        if ((!StringUtils.hasText(apiKey) || "sk-tianji-spring-ai-token".equals(apiKey.trim())) && redisService != null) {
+            try {
+                String cached = redisService.getCacheObject("customer:ai:secret");
+                if (StringUtils.hasText(cached)) {
+                    apiKey = cached.trim().replaceFirst("^Bearer\\s+", "").trim();
+                    log.info("[Spring AI] 成功从 Redis (customer:ai:secret) 加载全站共享第三方大模型 API Key");
+                }
+            } catch (Exception ex) {
+                log.warn("[Spring AI] 从 Redis 读取共享 API Key 失败: {}", ex.getMessage());
+            }
+        }
         if (!StringUtils.hasText(apiKey)) {
             apiKey = "dummy-key-for-spring-ai-init";
         }
-        log.info("[Spring AI] Initialized official OpenAiApi bean with baseUrl: {}", baseUrl);
+        log.info("[Spring AI] Initialized official OpenAiApi bean with third-party baseUrl: {}", baseUrl);
+
+        int timeoutMs = properties.getTimeoutMs() > 0 ? properties.getTimeoutMs() : 30000;
+        org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(10000);
+        requestFactory.setReadTimeout(timeoutMs);
+
+        org.springframework.web.client.RestClient.Builder restClientBuilder = org.springframework.web.client.RestClient.builder()
+                .requestFactory(requestFactory);
+
         return OpenAiApi.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
+                .completionsPath("/v1/chat/completions")
+                .restClientBuilder(restClientBuilder)
                 .build();
     }
 
@@ -59,15 +92,16 @@ public class SpringAiConfiguration {
     public ChatModel openAiChatModel(OpenAiApi openAiApi, AiRecommendProperties properties) {
         String model = properties.getModel();
         if (!StringUtils.hasText(model)) {
-            model = "qwen-turbo";
+            model = "gpt-5.6-luna";
         }
 
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(model)
                 .temperature(properties.getTemperature())
+                .maxTokens(250)
                 .build();
 
-        log.info("[Spring AI] Initialized official OpenAiChatModel bean with model: {}", model);
+        log.info("[Spring AI] Initialized official OpenAiChatModel bean with third-party model: {}", model);
         return OpenAiChatModel.builder()
                 .openAiApi(openAiApi)
                 .defaultOptions(options)

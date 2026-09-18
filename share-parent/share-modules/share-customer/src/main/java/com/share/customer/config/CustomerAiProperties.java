@@ -21,7 +21,7 @@ public class CustomerAiProperties {
     /** 服务端环境变量中的 Key；不返回给前端。 */
     private String secret;
 
-    private int timeoutMs = 8000;
+    private int timeoutMs = 30000;
 
     private int maxRetries = 1;
 

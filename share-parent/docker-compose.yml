@@ -379,7 +379,7 @@ services:
       TJ_PIXEL_API_BASE_URL: "${TJ_PIXEL_API_BASE_URL:-https://ai-pixel.online}"
       TJ_PIXEL_API_ENDPOINT: "${TJ_PIXEL_API_ENDPOINT:-/v1/chat/completions}"
       TJ_PIXEL_API_MODEL: "${TJ_PIXEL_API_MODEL:-gpt-5.6-luna}"
-      TJ_AI_SECRET: "${TJ_AI_SECRET:-}"
+      TJ_AI_SECRET: "${TJ_AI_SECRET:-sk-975c6e8ae2e605b9844fe544e2aec345a15518e72a056564d6927d733519c6b4}"
       JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
     ports:
       - "${TJ_CUSTOMER_PORT:-19206}:9206"
@@ -443,9 +443,9 @@ services:
       TJ_MYSQL_PORT: 3306
       TJ_MYSQL_USERNAME: root
       TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
-      AI_BASE_URL: "${AI_BASE_URL:-https://ai-pixel.online/v1}"
+      AI_BASE_URL: "${AI_BASE_URL:-https://ai-pixel.online}"
       AI_MODEL: "${AI_MODEL:-gpt-5.6-luna}"
-      AI_API_KEY: "${AI_API_KEY:-sk-tianji-spring-ai-token}"
+      AI_API_KEY: "${AI_API_KEY:-sk-975c6e8ae2e605b9844fe544e2aec345a15518e72a056564d6927d733519c6b4}"
       JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
     ports:
       - "${TJ_EDUCATION_PORT:-19210}:9210"

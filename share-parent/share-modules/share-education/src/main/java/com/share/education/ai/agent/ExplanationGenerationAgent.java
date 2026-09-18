@@ -1,6 +1,7 @@
 package com.share.education.ai.agent;
 
 import com.share.education.ai.client.DashScopeAiClient;
+import com.share.education.ai.client.ThirdPartyAiClient;
 import com.share.education.ai.model.*;
 import com.share.education.ai.rag.EducationKnowledgeRAG;
 import org.slf4j.Logger;
@@ -25,10 +26,10 @@ public class ExplanationGenerationAgent {
 
     private static final Logger log = LoggerFactory.getLogger(ExplanationGenerationAgent.class);
 
-    private final DashScopeAiClient aiClient;
+    private final ThirdPartyAiClient aiClient;
     private final EducationKnowledgeRAG knowledgeRAG;
 
-    public ExplanationGenerationAgent(DashScopeAiClient aiClient, EducationKnowledgeRAG knowledgeRAG) {
+    public ExplanationGenerationAgent(ThirdPartyAiClient aiClient, EducationKnowledgeRAG knowledgeRAG) {
         this.aiClient = aiClient;
         this.knowledgeRAG = knowledgeRAG;
     }
@@ -105,45 +106,7 @@ public class ExplanationGenerationAgent {
                                         UserProfileContext profile,
                                         PathStageVO stage,
                                         String benchmarkEvidence) {
-        // 若百炼大模型客户端处于就绪可用状态，则尝试让大模型润色微调个性化推荐理由
-        if (aiClient.isAvailable()) {
-            try {
-                SystemPromptTemplate systemTemplate = new SystemPromptTemplate(
-                    "你是一名资深 IT 职业教育规划专家。请针对学员目标岗位、推荐课程自身核心知识点及先修链路，"
-                    + "用一句温暖、专业、富有严密逻辑性的话（45字以内）阐述【为什么推荐这门课程以及课程自身核心技能对学员成长的帮助】。"
-                    + "【严格约束】：必须严格围绕当前推荐课程自身的核心知识点展开，严禁强行拼接与当前课程毫不相干的学员历史技能标签（如对后端/数据库课程绝不能提及前端Vue等无关技术）。直接输出一句话，不带格式。"
-                );
-
-                String pathEvidence = (ac.getEvidencePaths() != null && !ac.getEvidencePaths().isEmpty())
-                    ? "；知识图谱推导先修链路：" + String.join("，", ac.getEvidencePaths()) : "";
-
-                PromptTemplate userTemplate = new PromptTemplate(
-                    "学员目标岗位：{intendedRole}；已有技能：{skills}；当前阶段：{stageName}；推荐课程：《{courseName}》；核心知识点：{knowledgePoints}{pathEvidence}；行业背景参考：{benchmark}"
-                );
-
-                Map<String, Object> userModel = Map.of(
-                    "intendedRole", StringUtils.hasText(profile.getIntendedRole()) ? profile.getIntendedRole() : "软件工程师",
-                    "skills", (profile.getTopSkills() != null && !profile.getTopSkills().isEmpty()) ? String.join(",", profile.getTopSkills()) : "计算机基础",
-                    "stageName", stage.getStageName(),
-                    "courseName", ac.getCourseName(),
-                    "knowledgePoints", (ac.getCoreKnowledgePoints() != null && !ac.getCoreKnowledgePoints().isEmpty()) ? String.join(",", ac.getCoreKnowledgePoints()) : "核心技术",
-                    "pathEvidence", pathEvidence,
-                    "benchmark", StringUtils.hasText(benchmarkEvidence) ? benchmarkEvidence : "行业通用标准"
-                );
-
-                String systemPrompt = systemTemplate.render();
-                String userPrompt = userTemplate.render(userModel);
-
-                String aiReason = aiClient.generate(systemPrompt, userPrompt);
-                if (StringUtils.hasText(aiReason)) {
-                    return aiReason.replaceAll("[“”\"]", "").trim();
-                }
-            } catch (Exception ex) {
-                log.warn("[Spring AI] 大模型生成推荐理由异常，平滑降级为规则引擎: {}", ex.getMessage());
-            }
-        }
-
-        // 本地轻量可解释性推理引擎 (Dual-Mode Fallback)
+        // 直接使用课程大纲核心知识点内生自洽解释引擎，确保推荐理由 100% 严谨且零延迟
         return buildRuleBasedReason(ac, profile, stage);
     }
 

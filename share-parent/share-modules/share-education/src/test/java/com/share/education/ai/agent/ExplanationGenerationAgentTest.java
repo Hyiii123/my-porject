@@ -1,6 +1,6 @@
 package com.share.education.ai.agent;
 
-import com.share.education.ai.client.DashScopeAiClient;
+import com.share.education.ai.client.ThirdPartyAiClient;
 import com.share.education.ai.model.AnalyzedCourseVO;
 import com.share.education.ai.model.LearningPathPlan;
 import com.share.education.ai.model.PathStageVO;
@@ -21,13 +21,13 @@ import static org.mockito.Mockito.when;
 
 class ExplanationGenerationAgentTest {
 
-    private DashScopeAiClient aiClient;
+    private ThirdPartyAiClient aiClient;
     private EducationKnowledgeRAG knowledgeRAG;
     private ExplanationGenerationAgent agent;
 
     @BeforeEach
     void setUp() {
-        aiClient = Mockito.mock(DashScopeAiClient.class);
+        aiClient = Mockito.mock(ThirdPartyAiClient.class);
         knowledgeRAG = Mockito.mock(EducationKnowledgeRAG.class);
         when(aiClient.isAvailable()).thenReturn(false); // 强制走本地可解释性规则引擎降级
         agent = new ExplanationGenerationAgent(aiClient, knowledgeRAG);

@@ -27,11 +27,11 @@ mybatis-plus:
 ai:
   recommend:
     enabled: true
-    api-key: ${AI_API_KEY:}
-    base-url: ${AI_BASE_URL:https://ai-pixel.online/v1}
+    api-key: ${AI_API_KEY:sk-975c6e8ae2e605b9844fe544e2aec345a15518e72a056564d6927d733519c6b4}
+    base-url: ${AI_BASE_URL:https://ai-pixel.online}
     model: ${AI_MODEL:gpt-5.6-luna}
     temperature: 0.7
-    timeout-ms: 8000
+    timeout-ms: 30000
     cache-ttl-minutes: 15
     python-service:
       enabled: true

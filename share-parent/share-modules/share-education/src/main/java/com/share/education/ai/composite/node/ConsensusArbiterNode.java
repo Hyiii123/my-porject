@@ -19,9 +19,9 @@ public class ConsensusArbiterNode {
 
     private static final Logger log = LoggerFactory.getLogger(ConsensusArbiterNode.class);
 
-    private final com.share.education.ai.client.DashScopeAiClient aiClient;
+    private final com.share.education.ai.client.ThirdPartyAiClient aiClient;
 
-    public ConsensusArbiterNode(@org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.DashScopeAiClient aiClient) {
+    public ConsensusArbiterNode(@org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.ThirdPartyAiClient aiClient) {
         this.aiClient = aiClient;
     }
 
@@ -64,14 +64,7 @@ public class ConsensusArbiterNode {
 
         double currentDisagreement = state.getDisagreementScore() != null ? state.getDisagreementScore() : 0.85;
 
-        String dynamicArg = null;
-        if (aiClient != null && aiClient.isAvailable()) {
-            String sys = "你是一位资深中立的技术教学评审委员会主席与首席仲裁者。面对第一轮学情导师与技术总监的分歧，请下发第二轮折中反思指令（要求总监降载实战化，要求导师在保证核心技能前提下适度放行，限制在100字内）。";
-            String usr = String.format("当前双方量化分歧度为 %.0f%%。请下达仲裁指令。", currentDisagreement * 100);
-            dynamicArg = aiClient.generate(sys, usr);
-        }
-
-        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg : String.format(
+        String arg = String.format(
             "第一轮博弈评估：当前各方动态分歧度为 %.0f%%！核心冲突聚焦在【技术总监方案理论过陡】与【学情导师担忧劝退】的矛盾，且法官指出了先修依赖需优化。" +
             "仲裁者指令下发：请总监下调阶段 2 理论深度，以工程实战化解难度；请导师在保证核心就业刚需的前提下予以放行。开启第二轮反思折中！",
             currentDisagreement * 100);
