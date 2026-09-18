@@ -6,6 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import com.share.customer.config.CustomerAiProperties;
+import com.share.customer.config.CustomerSessionProperties;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
@@ -17,7 +18,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableCustomConfig
 @EnableRyFeignClients
-@EnableConfigurationProperties(CustomerAiProperties.class)
+@EnableConfigurationProperties({CustomerAiProperties.class, CustomerSessionProperties.class})
 @SpringBootApplication
 public class ShareCustomerApplication {
 

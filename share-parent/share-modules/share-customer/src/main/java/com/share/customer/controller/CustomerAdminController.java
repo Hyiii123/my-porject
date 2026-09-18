@@ -7,6 +7,7 @@ import com.share.common.core.web.domain.AjaxResult;
 import com.share.common.core.web.page.TableDataInfo;
 import com.share.common.log.annotation.Log;
 import com.share.common.log.enums.BusinessType;
+import com.share.common.security.annotation.Logical;
 import com.share.common.security.annotation.RequiresPermissions;
 import com.share.customer.domain.CustomerFaq;
 import com.share.customer.domain.CustomerKnowledge;
@@ -139,6 +140,14 @@ public class CustomerAdminController extends BaseController {
     @PostMapping("/sessions/{sessionId}/close")
     public AjaxResult closeSession(@PathVariable Long sessionId) {
         return success(customerService.closeSession(sessionId));
+    }
+
+    @RequiresPermissions(value = {"customer:session:close", "customer:session:remove"}, logical = Logical.OR)
+    @Log(title = "客服会话", businessType = BusinessType.CLEAN)
+    @PostMapping("/sessions/clean-expired")
+    public AjaxResult cleanExpiredSessions(@RequestParam(defaultValue = "2") int expireDays) {
+        int count = customerService.cleanExpiredActiveSessions(expireDays);
+        return AjaxResult.success("成功排查并自动清理 " + count + " 个超过 " + expireDays + " 天无对话的活跃会话", count);
     }
 
     @RequiresPermissions("customer:statistics:view")

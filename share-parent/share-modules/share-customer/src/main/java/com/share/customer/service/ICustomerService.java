@@ -75,4 +75,21 @@ public interface ICustomerService {
     CustomerAiConfigView saveAiConfig(AiConfigRequest request);
 
     String testAi(String message);
+
+    /**
+     * 自动排查并清理超过指定天数无对话的活跃会话（全局系统级）。
+     *
+     * @param expireDays 超期天数（如 2 天）
+     * @return 清理的会话数量
+     */
+    int cleanExpiredActiveSessions(int expireDays);
+
+    /**
+     * 排查并清理指定用户超过指定天数无对话的活跃会话。
+     *
+     * @param userId     用户 ID
+     * @param expireDays 超期天数（如 2 天）
+     * @return 清理的会话数量
+     */
+    int cleanExpiredActiveSessionsForUser(Long userId, int expireDays);
 }

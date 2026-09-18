@@ -45,6 +45,7 @@
                 type="button"
                 :class="{ active: sessionTab === 'active' }"
                 @click="sessionTab = 'active'"
+                title="超过2天无对话的活跃会话将自动清理"
               >
                 活跃会话 ({{ activeSessions.length }})
               </button>
@@ -52,9 +53,15 @@
                 type="button"
                 :class="{ active: sessionTab === 'archived' }"
                 @click="sessionTab = 'archived'"
+                title="已归档的会话永久保留"
               >
                 已归档 ({{ archivedSessions.length }})
               </button>
+            </div>
+
+            <div v-if="sessionTab === 'active'" class="session-clean-tip">
+              <el-icon :size="12"><Clock /></el-icon>
+              <span>超过2天无对话自动清理</span>
             </div>
 
             <div class="session-list-wrap" v-loading="loadingSessions">
@@ -1563,12 +1570,16 @@ onMounted(async () => {
 
     if (sessionId.value) {
       const sessionResponse = await getServiceSession(sessionId.value)
-      if (sessionResponse.code === 200 && sessionResponse.data) {
+      if (sessionResponse && sessionResponse.code === 200 && sessionResponse.data) {
         applySession(sessionResponse.data)
+      } else {
+        // 会话已被自动清理或不存在，重置为新会话状态
+        resetSession()
       }
     }
   } catch (error) {
-    // 接口失败时仍保留页面的基础问候语和输入能力。
+    // 接口失败时重置并保留页面的基础问候语和输入能力。
+    resetSession()
   }
   scrollToBottom()
 })
@@ -1745,6 +1756,16 @@ onBeforeUnmount(() => {
       font-weight: 600;
     }
   }
+}
+
+.session-clean-tip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  padding: 0 4px;
 }
 
 .session-list-wrap {

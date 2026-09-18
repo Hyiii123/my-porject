@@ -13,6 +13,7 @@ import com.share.common.core.web.domain.AjaxResult;
 import com.share.common.redis.service.RedisService;
 import com.share.common.security.utils.SecurityUtils;
 import com.share.customer.config.CustomerAiProperties;
+import com.share.customer.config.CustomerSessionProperties;
 import com.share.customer.domain.*;
 import com.share.customer.domain.dto.*;
 import com.share.customer.domain.vo.CustomerAiConfigView;
@@ -73,6 +74,7 @@ public class CustomerServiceImpl implements ICustomerService {
     private final CustomerAiCallLogMapper aiCallLogMapper;
     private final CustomerAiClient aiClient;
     private final CustomerAiProperties aiProperties;
+    private final CustomerSessionProperties sessionProperties;
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
@@ -93,6 +95,7 @@ public class CustomerServiceImpl implements ICustomerService {
             CustomerAiCallLogMapper aiCallLogMapper,
             CustomerAiClient aiClient,
             CustomerAiProperties aiProperties,
+            CustomerSessionProperties sessionProperties,
             RedisService redisService,
             ObjectMapper objectMapper,
             RestTemplate restTemplate,
@@ -108,6 +111,7 @@ public class CustomerServiceImpl implements ICustomerService {
         this.aiCallLogMapper = aiCallLogMapper;
         this.aiClient = aiClient;
         this.aiProperties = aiProperties;
+        this.sessionProperties = sessionProperties != null ? sessionProperties : new CustomerSessionProperties();
         this.redisService = redisService;
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
@@ -153,6 +157,14 @@ public class CustomerServiceImpl implements ICustomerService {
         Long userId = currentUserId();
         if (userId == null) {
             return new Page<>();
+        }
+        // 若查询活跃会话（status == null 或 status != 4），主动排查并清理当前用户超过 2 天无对话的活跃会话，保持列表实时干净
+        if (status == null || status != 4) {
+            try {
+                cleanExpiredActiveSessionsForUser(userId, sessionProperties != null ? sessionProperties.getExpireDays() : 2);
+            } catch (Exception e) {
+                log.warn("【客服会话】为用户 {} 动态排查过期活跃会话异常: {}", userId, e.getMessage());
+            }
         }
         Page<CustomerSession> page = new Page<>(safePage(pageNum), safeSize(pageSize));
         LambdaQueryWrapper<CustomerSession> wrapper = new LambdaQueryWrapper<CustomerSession>()
@@ -962,6 +974,45 @@ public class CustomerServiceImpl implements ICustomerService {
 
     private long safeSize(long size) {
         return size < 1 ? 10 : Math.min(size, 100);
+    }
+
+    @Override
+    @Transactional
+    public int cleanExpiredActiveSessions(int expireDays) {
+        int days = expireDays > 0 ? expireDays : 2;
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
+        List<Long> expiredIds = sessionMapper.selectExpiredActiveSessionIds(cutoff, null);
+        if (expiredIds == null || expiredIds.isEmpty()) {
+            log.debug("【客服活跃会话治理】无超过 {} 天无对话的活跃会话需要清理", days);
+            return 0;
+        }
+        int totalDeleted = 0;
+        int batchSize = 200;
+        for (int i = 0; i < expiredIds.size(); i += batchSize) {
+            List<Long> subList = expiredIds.subList(i, Math.min(i + batchSize, expiredIds.size()));
+            sessionMapper.deleteBatchIds(subList);
+            totalDeleted += subList.size();
+        }
+        log.info("【客服活跃会话治理】成功自动清理 {} 个超过 {} 天无对话的活跃会话: {}", totalDeleted, days, expiredIds);
+        return totalDeleted;
+    }
+
+    @Override
+    @Transactional
+    public int cleanExpiredActiveSessionsForUser(Long userId, int expireDays) {
+        if (userId == null) {
+            return 0;
+        }
+        int days = expireDays > 0 ? expireDays : 2;
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
+        List<Long> expiredIds = sessionMapper.selectExpiredActiveSessionIds(cutoff, userId);
+        if (expiredIds == null || expiredIds.isEmpty()) {
+            return 0;
+        }
+        sessionMapper.deleteBatchIds(expiredIds);
+        log.info("【客服活跃会话治理】已自动清理学员 (userId: {}) 的 {} 个超过 {} 天无对话的活跃会话: {}",
+                userId, expiredIds.size(), days, expiredIds);
+        return expiredIds.size();
     }
 
     private record LocalAnswer(int score, String answer, Long id, boolean faq) {}
