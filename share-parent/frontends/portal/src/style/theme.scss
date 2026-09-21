@@ -1,12 +1,38 @@
 :root {
-    // 现代在线教育 SaaS 主题色板
-    --color-main: #2563EB;
-    --color-hover: #1D4ED8;
-    --color-active: #1E40AF;
-    --color-primary-light: #EFF6FF;
+    // --- 逆向 1:1 IAIC 高校人工智能创新应用平台视觉规范 Design Tokens ---
+    --azure: #1E89F1;
+    --blue: #2B7CF8;
+    --blue-deep: #1366D6;
+    --cyan: #21C6E8;
+    --grad: linear-gradient(120deg, #21C6E8 0%, #2B86F0 100%);
+    --grad-soft: linear-gradient(120deg, rgba(33, 198, 232, .14), rgba(43, 134, 240, .14));
+    --navy: #13294F;
+    --navy-2: #16294C;
+    --ink: #0E1F3D;
+    --slate: #56688A;
+    --slate-2: #8595AE;
+    --sky: #F2F8FE;
+    --sky-2: #E9F2FD;
+    --sky-3: #DCEBFB;
+    --card: #FFFFFF;
+    --line: #E4EDF8;
+    --line-2: #D5E3F5;
+    --green: #1FB877;
+    --green-bg: #E7F7F0;
+    --shadow: 0 1px 2px rgba(19, 41, 79, .04), 0 18px 42px -24px rgba(27, 98, 214, .3);
+    --shadow-lg: 0 24px 60px -28px rgba(27, 98, 214, .45);
+    --display: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --cn: "PingFang SC", "Microsoft YaHei", "Source Han Sans SC", "Noto Sans SC", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
 
-    --color-success: #059669;
-    --color-success-light: #ECFDF5;
+    // 映射系统原有规范 Token
+    --color-main: var(--azure);
+    --color-hover: var(--blue-deep);
+    --color-active: #0d4fa8;
+    --color-primary-light: var(--sky-2);
+
+    --color-success: var(--green);
+    --color-success-light: var(--green-bg);
     --color-warning: #D97706;
     --color-warning-light: #FFFBEB;
     --color-error: #DC2626;
@@ -14,35 +40,68 @@
     --color-error2: #B91C1C;
     --color-error3: #FEF2F2;
 
-    // 背景底板 (Slate 层次)
-    --color-background1: #F8FAFC; // 画布全局底色
-    --color-background2: #F1F5F9; // 次级容器底色
-    --color-background3: #E2E8F0; // 边框与分割浅灰
-    --color-background4: #CBD5E1; // 较深线条
-    --color-background5: #FFFFFF; // 卡片主白板
-    --color-background6: #E2E8F0;
+    // 背景底板 (Slate & Sky 层次)
+    --color-background1: var(--sky);
+    --color-background2: var(--sky-2);
+    --color-background3: var(--line);
+    --color-background4: var(--line-2);
+    --color-background5: var(--card);
+    --color-background6: var(--line);
 
     // 文字层级
-    --color-font1: #0F172A; // 主要标题、高反差文字
-    --color-font2: #475569; // 正文主要文字
-    --color-font3: #64748B; // 次级描述、辅助文字
-    --color-font4: #94A3B8; // 占位符、边框提示
-    --color-font5: #E2E8F0; // 极淡分割
+    --color-font1: var(--ink);
+    --color-font2: var(--navy);
+    --color-font3: var(--slate);
+    --color-font4: var(--slate-2);
+    --color-font5: var(--line);
     --color-font6: #FFFFFF;
-    --color-font7: #CBD5E1;
-    --color-black: #0F172A;
+    --color-font7: var(--line-2);
+    --color-black: var(--ink);
     --color-white: #FFFFFF;
 
     // 视频学习专区沉浸色
-    --color-ft1: #94A3B8;
-    --color-ft2: #64748B;
+    --color-ft1: var(--slate-2);
+    --color-ft2: var(--slate);
 
-    // 结构规范 Token (控制在 6-8px，阴影克制)
-    --radius-sm: 4px;
-    --radius-base: 6px;
-    --radius-md: 8px;
-    --radius-lg: 10px;
-    --border-subtle: 1px solid #E2E8F0;
-    --shadow-subtle: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
-    --shadow-hover: 0 4px 10px -2px rgba(15, 23, 42, 0.08);
+    // 结构规范 Token
+    --radius-sm: 6px;
+    --radius-base: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --border-subtle: 1px solid var(--line);
+    --shadow-subtle: var(--shadow);
+    --shadow-hover: var(--shadow-lg);
+}
+
+// 全局关键帧动画
+@keyframes scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.55; transform: translate(-50%, -50%) scale(1.08); }
+}
+
+@keyframes floatUp {
+  0% { transform: translateY(0) scale(0.8); opacity: 0; }
+  15% { opacity: 0.8; }
+  85% { opacity: 0.6; }
+  100% { transform: translateY(-500px) scale(1.2); opacity: 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.7; }
+}
+
+@keyframes shine {
+  0% { left: -75%; }
+  100% { left: 125%; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
 }

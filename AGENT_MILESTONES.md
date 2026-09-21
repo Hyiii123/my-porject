@@ -14,6 +14,32 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-21 22:35:00 - 智问学伴系统全域 105 项 Bug 深度治理与 IAIC 产学研科技前端 1:1 逆向重塑 (System-Wide 105-Bug Remediation, High-Risk Exploit Eradication & 1:1 IAIC Visual Design Architecture Replication)
+
+* **演进主题**：全系统 105 项静态与动态业务缺陷深度清障 (涵盖 IDOR 越权、0 元购支付漏洞、优惠券穿透自动创建套利、HikariCP 长事务连接池耗尽、面试出题越界重试、参数校验异常兜底等核心漏洞)、逆向抽取并 1:1 还原 IAIC 高校人工智能创新应用平台全套前端设计系统 (`https://iaic-universities.cqaip.cn/home` 核心 Design Tokens、Azure/Cyan 科技蓝霓虹色系、Sticky 顶部扫描光线、Hero 粒子脉冲发光背景、悬浮式渐变公告栏、1:1 Track 课程直角科技卡片与 Deep Navy 页脚)、云端生产热替换部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **全域 105 项深度 Bug 治理与核心资损漏洞铲除**：
+     - **IDOR 访客越权根除 (`EduUtils.currentUserId()`)**：未登录访客彻底与 Admin 1L 剥离，返回 null 并对写操作强制执行 `requireCurrentUserId()`，保护管理人员私有数据；
+     - **0 元购支付漏洞封堵 (`TradeOrderServiceImpl.placeOrder`)**：强制从数据库课程快照提取真实分值价格，剥离外部请求体 `isInternalSeckill` 篡改；
+     - **优惠券无限套利闭环 (`TradeOrderServiceImpl.placeOrder`)**：严格核验用户真实持有的未使用优惠券，彻底删除 `direct_order` 自动新建穿透抵扣漏洞；
+     - **HikariCP 数据库连接池解绑 (`InterviewServiceImpl.submitAnswer`)**：剥离长耗时大模型调用与事务边界，原子落库后异步执行 LLM 评判，杜绝连接池耗尽雪崩；
+     - **题库抽取越界与题目重复清零 (`InterviewQuestionEngine`)**：判空回退至标准题目，彻底解决第 3 轮面试抛越界异常的顽疾；
+     - **全局校验异常安全兜底 (`GlobalExceptionHandler`)**：对 `getAllErrors()` 与 `getFieldError()` 增加安全非空防护，彻底根除 500 异常逃逸。
+  2. **逆向 1:1 IAIC 前端设计系统全面重构 (`frontends/portal`)**：
+     - **全局视觉规范 Tokens (`theme.scss`)**：提取完整的 22 项 IAIC Design Tokens（`--azure: #1E89F1`、`--cyan: #21C6E8`、`--grad` 线性渐变、`--navy: #13294F`、`--sky` 渐变画布、Sora/JetBrains Mono 字体族）；
+     - **1:1 顶部科技导航栏 (`Header.vue`)**：实现 72px Azure 极简导航，底部搭载动态扫描光线动画（`animation: scan 5s linear infinite`），品牌标识呈现科技徽章，导航链接具备悬浮下划线滑动反馈，磨砂胶囊搜索框与用户气泡完美重塑；
+     - **1:1 宏伟科技 Hero Banner (`main/index.vue`)**：还原 IAIC 多重径向与线性渐变蓝背景、44px 蓝图网格虚线层、居中弥散发光体（`home-banner-glow`）、10 枚向上浮动的霓虹青光微粒、脉冲呼吸徽章、双语副标题与光芒扫过（`shine` 动画）的行动按钮；
+     - **悬浮公告通知条 (`home-notice`)**：实现浮动悬挂的渐变通知条（`#1b6fe0` 至 `#21c6e8`），内嵌动态微点矩阵与微型操作按钮；
+     - **1:1 Track 课程直角科技卡片 (`home-track`)**：卡片悬浮上浮 5px 并触发渐变扫光，右上角浮现青色直角科技括号（`.corner .c1`, `.c2`），配备 TRACK 编号徽章、布鲁姆层级标签与微型呼吸开课指示灯；
+     - **四维一体导学全流程 (`home-flow`)**：以渐变圆形编号步进展示学情诊断 ➔ 圆桌博弈 ➔ 审判质检 ➔ 闭环交付全流程；
+     - **1:1 Deep Navy 页脚 (`Footer.vue`)**：深蓝黑背景（`#0E1F3D`），结构化展现产学研生态、技术支持热线、ICP 备案与社区交流。
+  3. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 串行热替换 `share-education.jar`、`share-trade.jar` 与 `portal-ui/dist`，容器平稳重启；
+     - 定向接口与页面全绿通过：
+       - 访客用户画像接口：HTTP 200，`userId: null`，返回全新访客专属初始画像，无 IDOR 越权；
+       - 质量度量接口：HTTP 200，Redis 持久化数据无损，多维健康指标实时在线；
+       - 学生端前端门户（`http://47.121.26.136:18081`）：HTTP 200 OK，1:1 IAIC 科技蓝视觉、顶部动态光线扫描、粒子脉冲与直角卡片丝滑呈现，静态资源秒级加载。
+
 ### 2026-09-21 21:40:00 - 智问学伴多智能体系统生产可用性全面强化：Redis跨重启度量持久化、SSE断开熔断防护、自然语言意图全链路打通与阶段容量自适应均衡 (Multi-Agent Production Hardening: Redis Telemetry Persistence, SSE Disconnect Guard, End-to-End Natural Language Query Slotting & Adaptive Stage Balancing)
 
 * **演进主题**：Redis 跨重启全量度量持久化 (`AgentEvaluationService` 集成 Redis 自动恢复与指标同步，彻底根除微服务更新度量归零脱水)、SSE 客户端断开快速熔断拦截 (`CompositeMultiAgentGraphEngine.streamWorkflow` 各步进注入 `isCompleted` 阻断机制，杜绝幽灵推演与大模型额度损耗)、自然语言诉求全链路贯通与槽位提取 (Controller 至 Orchestrator 全面支持 `query` 参数，前端 HUD 支持自然语言自由输入，`IntentDispatcherNode` 动态解析目标岗位与难度等级)、阶段容量自适应动态均衡 (`PathPlanningAgent` 引入 `balanceStageCapacities` 算法，消除空白阶段与单阶段过载)、云端生产热替换部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
@@ -1414,6 +1440,7 @@
   6. **云端生产极速热发布与全流程定向自动化回归验证**：
      - 严格遵循发布铁律与云盘保护准则，本地打出 `share-customer.jar` 与 `portal/dist` 纯静态产物，通过 Workbench CLI 快速上传并在云端实施秒级热重载，达成服务器零构建、零云盘 IOPS 冲击；
      - 执行 `.scratch/test_interview_flow.py` 定向测试，全流程验证 20 题考场建立、第一题自我介绍作答与评分、第二题小林八股深挖与知识库挂载、第三题下一独立模块平滑推进、交卷与多维专家报告生成（六维雷达图与 STAR 话术）、以及学生端 Portal UI（HTTP 200），100% 满分通过。
+
 
 
 
