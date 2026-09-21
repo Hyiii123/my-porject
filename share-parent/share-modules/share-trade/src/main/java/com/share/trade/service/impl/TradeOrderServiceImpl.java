@@ -169,6 +169,15 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     }
 
     @Override
+    public String createOrderToken() {
+        Long userId = currentUserId();
+        String token = UUID.randomUUID().toString().replace("-", "");
+        String key = "trade:order:token:" + (userId != null ? userId : 0L) + ":" + token;
+        redisService.setCacheObject(key, "1", 30L, TimeUnit.MINUTES);
+        return token;
+    }
+
+    @Override
     public Map<String, Object> order(Long id) {
         return orderView(findOrder(id));
     }
@@ -230,6 +239,17 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     @Override
     @Transactional
     public Map<String, Object> placeOrder(Map<String, ?> body) {
+        // 幂等防重 Token 校验 (防止网络抖动或连击产生重复订单)
+        Object orderTokenObj = body == null ? null : body.get("orderToken");
+        if (orderTokenObj != null && StringUtils.hasText(String.valueOf(orderTokenObj))) {
+            Long currentUid = currentUserId();
+            String key = "trade:order:token:" + (currentUid != null ? currentUid : 0L) + ":" + String.valueOf(orderTokenObj).trim();
+            boolean deleted = Boolean.TRUE.equals(redisService.deleteObject(key));
+            if (!deleted) {
+                throw new ServiceException("订单正在提交或令牌已失效，请勿重复提交");
+            }
+        }
+
         List<Map<String, ?>> sourceItems = new ArrayList<>();
         boolean fromCart = false;
         Object itemObject = body == null ? null : body.get("items");

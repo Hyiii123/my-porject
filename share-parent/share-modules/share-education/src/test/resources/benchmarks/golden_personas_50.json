@@ -1,0 +1,1002 @@
+[
+  {
+    "personaId": 1001,
+    "name": "Java全栈架构师_BEGINNER",
+    "role": "Java全栈架构师",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "微服务",
+      "高并发",
+      "JVM调优"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1002,
+    "name": "Java全栈架构师_GRADUATE",
+    "role": "Java全栈架构师",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "微服务",
+      "高并发",
+      "JVM调优"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1003,
+    "name": "Java全栈架构师_MID_LEVEL",
+    "role": "Java全栈架构师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "微服务",
+      "高并发",
+      "JVM调优"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1004,
+    "name": "Java全栈架构师_ARCHITECT",
+    "role": "Java全栈架构师",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "微服务",
+      "高并发",
+      "JVM调优"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1005,
+    "name": "大语言模型应用工程师_BEGINNER",
+    "role": "大语言模型应用工程师",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "RAG",
+      "微调",
+      "Prompt工程"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1006,
+    "name": "大语言模型应用工程师_GRADUATE",
+    "role": "大语言模型应用工程师",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "RAG",
+      "微调",
+      "Prompt工程"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1007,
+    "name": "大语言模型应用工程师_MID_LEVEL",
+    "role": "大语言模型应用工程师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "RAG",
+      "微调",
+      "Prompt工程"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1008,
+    "name": "大语言模型应用工程师_ARCHITECT",
+    "role": "大语言模型应用工程师",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "RAG",
+      "微调",
+      "Prompt工程"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1009,
+    "name": "Go云原生架构师_BEGINNER",
+    "role": "Go云原生架构师",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "K8s",
+      "Go并发",
+      "gRPC"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1010,
+    "name": "Go云原生架构师_GRADUATE",
+    "role": "Go云原生架构师",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "K8s",
+      "Go并发",
+      "gRPC"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1011,
+    "name": "Go云原生架构师_MID_LEVEL",
+    "role": "Go云原生架构师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "K8s",
+      "Go并发",
+      "gRPC"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1012,
+    "name": "Go云原生架构师_ARCHITECT",
+    "role": "Go云原生架构师",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "K8s",
+      "Go并发",
+      "gRPC"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1013,
+    "name": "大数据开发工程师_BEGINNER",
+    "role": "大数据开发工程师",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "Flink",
+      "Spark",
+      "数仓"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1014,
+    "name": "大数据开发工程师_GRADUATE",
+    "role": "大数据开发工程师",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "Flink",
+      "Spark",
+      "数仓"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1015,
+    "name": "大数据开发工程师_MID_LEVEL",
+    "role": "大数据开发工程师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "Flink",
+      "Spark",
+      "数仓"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1016,
+    "name": "大数据开发工程师_ARCHITECT",
+    "role": "大数据开发工程师",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "Flink",
+      "Spark",
+      "数仓"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1017,
+    "name": "前端技术专家_BEGINNER",
+    "role": "前端技术专家",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "Vue3源码",
+      "TypeScript",
+      "工程化"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1018,
+    "name": "前端技术专家_GRADUATE",
+    "role": "前端技术专家",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "Vue3源码",
+      "TypeScript",
+      "工程化"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1019,
+    "name": "前端技术专家_MID_LEVEL",
+    "role": "前端技术专家",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "Vue3源码",
+      "TypeScript",
+      "工程化"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1020,
+    "name": "前端技术专家_ARCHITECT",
+    "role": "前端技术专家",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "Vue3源码",
+      "TypeScript",
+      "工程化"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1021,
+    "name": "移动端跨平台工程师_BEGINNER",
+    "role": "移动端跨平台工程师",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "Flutter",
+      "HarmonyOS",
+      "ArkTS"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1022,
+    "name": "移动端跨平台工程师_GRADUATE",
+    "role": "移动端跨平台工程师",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "Flutter",
+      "HarmonyOS",
+      "ArkTS"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1023,
+    "name": "移动端跨平台工程师_MID_LEVEL",
+    "role": "移动端跨平台工程师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "Flutter",
+      "HarmonyOS",
+      "ArkTS"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1024,
+    "name": "移动端跨平台工程师_ARCHITECT",
+    "role": "移动端跨平台工程师",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "Flutter",
+      "HarmonyOS",
+      "ArkTS"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1025,
+    "name": "网络安全渗透工程师_BEGINNER",
+    "role": "网络安全渗透工程师",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "Web安全",
+      "内网渗透",
+      "漏洞挖掘"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1026,
+    "name": "网络安全渗透工程师_GRADUATE",
+    "role": "网络安全渗透工程师",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "Web安全",
+      "内网渗透",
+      "漏洞挖掘"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1027,
+    "name": "网络安全渗透工程师_MID_LEVEL",
+    "role": "网络安全渗透工程师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "Web安全",
+      "内网渗透",
+      "漏洞挖掘"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1028,
+    "name": "网络安全渗透工程师_ARCHITECT",
+    "role": "网络安全渗透工程师",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "Web安全",
+      "内网渗透",
+      "漏洞挖掘"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1029,
+    "name": "Python全栈开发工程师_BEGINNER",
+    "role": "Python全栈开发工程师",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "FastAPI",
+      "异步编程",
+      "爬虫逆向"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1030,
+    "name": "Python全栈开发工程师_GRADUATE",
+    "role": "Python全栈开发工程师",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "FastAPI",
+      "异步编程",
+      "爬虫逆向"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1031,
+    "name": "Python全栈开发工程师_MID_LEVEL",
+    "role": "Python全栈开发工程师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "FastAPI",
+      "异步编程",
+      "爬虫逆向"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1032,
+    "name": "Python全栈开发工程师_ARCHITECT",
+    "role": "Python全栈开发工程师",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "FastAPI",
+      "异步编程",
+      "爬虫逆向"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1033,
+    "name": "嵌入式物联网工程师_BEGINNER",
+    "role": "嵌入式物联网工程师",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "RTOS",
+      "C/C++",
+      "Linux内核"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1034,
+    "name": "嵌入式物联网工程师_GRADUATE",
+    "role": "嵌入式物联网工程师",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "RTOS",
+      "C/C++",
+      "Linux内核"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1035,
+    "name": "嵌入式物联网工程师_MID_LEVEL",
+    "role": "嵌入式物联网工程师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "RTOS",
+      "C/C++",
+      "Linux内核"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1036,
+    "name": "嵌入式物联网工程师_ARCHITECT",
+    "role": "嵌入式物联网工程师",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "RTOS",
+      "C/C++",
+      "Linux内核"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1037,
+    "name": "测试开发专家(SDET)_BEGINNER",
+    "role": "测试开发专家(SDET)",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "自动化测试",
+      "性能压测",
+      "CI/CD"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1038,
+    "name": "测试开发专家(SDET)_GRADUATE",
+    "role": "测试开发专家(SDET)",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "自动化测试",
+      "性能压测",
+      "CI/CD"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1039,
+    "name": "测试开发专家(SDET)_MID_LEVEL",
+    "role": "测试开发专家(SDET)",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "自动化测试",
+      "性能压测",
+      "CI/CD"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1040,
+    "name": "测试开发专家(SDET)_ARCHITECT",
+    "role": "测试开发专家(SDET)",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "自动化测试",
+      "性能压测",
+      "CI/CD"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1041,
+    "name": "数据分析与BI专家_BEGINNER",
+    "role": "数据分析与BI专家",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "SQL建模",
+      "数据挖掘",
+      "指标体系"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1042,
+    "name": "数据分析与BI专家_GRADUATE",
+    "role": "数据分析与BI专家",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "SQL建模",
+      "数据挖掘",
+      "指标体系"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1043,
+    "name": "数据分析与BI专家_MID_LEVEL",
+    "role": "数据分析与BI专家",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "SQL建模",
+      "数据挖掘",
+      "指标体系"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1044,
+    "name": "数据分析与BI专家_ARCHITECT",
+    "role": "数据分析与BI专家",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "SQL建模",
+      "数据挖掘",
+      "指标体系"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1045,
+    "name": "DevOps平台架构师_BEGINNER",
+    "role": "DevOps平台架构师",
+    "tier": "BEGINNER",
+    "preferredDifficulty": 1,
+    "disciplineScore": 65,
+    "completedHours": 0,
+    "skillGaps": [
+      "Docker",
+      "Kubernetes",
+      "GitLab CI"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1046,
+    "name": "DevOps平台架构师_GRADUATE",
+    "role": "DevOps平台架构师",
+    "tier": "GRADUATE",
+    "preferredDifficulty": 1,
+    "disciplineScore": 75,
+    "completedHours": 15,
+    "skillGaps": [
+      "Docker",
+      "Kubernetes",
+      "GitLab CI"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": false,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1047,
+    "name": "DevOps平台架构师_MID_LEVEL",
+    "role": "DevOps平台架构师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 85,
+    "completedHours": 45,
+    "skillGaps": [
+      "Docker",
+      "Kubernetes",
+      "GitLab CI"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1048,
+    "name": "DevOps平台架构师_ARCHITECT",
+    "role": "DevOps平台架构师",
+    "tier": "ARCHITECT",
+    "preferredDifficulty": 3,
+    "disciplineScore": 95,
+    "completedHours": 120,
+    "skillGaps": [
+      "Docker",
+      "Kubernetes",
+      "GitLab CI"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1049,
+    "name": "Java全栈架构师_CUSTOM_48",
+    "role": "Java全栈架构师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 80,
+    "completedHours": 30,
+    "skillGaps": [
+      "微服务",
+      "高并发",
+      "JVM调优"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  },
+  {
+    "personaId": 1050,
+    "name": "大语言模型应用工程师_CUSTOM_49",
+    "role": "大语言模型应用工程师",
+    "tier": "MID_LEVEL",
+    "preferredDifficulty": 2,
+    "disciplineScore": 80,
+    "completedHours": 30,
+    "skillGaps": [
+      "RAG",
+      "微调",
+      "Prompt工程"
+    ],
+    "expectedOutcome": {
+      "mustHavePrerequisites": true,
+      "maxStageDifficultyJump": 1.4,
+      "requireCapstoneProject": true,
+      "minTargetCourses": 4
+    }
+  }
+]

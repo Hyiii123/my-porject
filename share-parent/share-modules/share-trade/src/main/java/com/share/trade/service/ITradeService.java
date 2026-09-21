@@ -41,6 +41,8 @@ public interface ITradeService {
     Map<String, Object> addCart(Map<String, ?> body);
     void removeCarts(String ids);
     Map<String, Object> listOrders(Map<String, ?> params, boolean admin);
+    String createOrderToken();
+
     Map<String, Object> order(Long id);
     Map<String, Object> prePlaceOrder(Map<String, ?> params);
     Map<String, Object> placeOrder(Map<String, ?> body);
@@ -71,3 +73,4 @@ public interface ITradeService {
     Map<String, Object> legacyRefundViewForApi(Long id);
     Map<String, Object> statistics();
 }
+

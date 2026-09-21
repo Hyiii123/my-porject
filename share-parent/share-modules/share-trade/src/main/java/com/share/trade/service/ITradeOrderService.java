@@ -17,6 +17,8 @@ public interface ITradeOrderService {
 
     Map<String, Object> listOrders(Map<String, ?> params, boolean admin);
 
+    String createOrderToken();
+
     Map<String, Object> order(Long id);
 
     Map<String, Object> prePlaceOrder(Map<String, ?> params);
@@ -47,3 +49,4 @@ public interface ITradeOrderService {
 
     Map<String, Object> courseSnapshot(Long courseId);
 }
+

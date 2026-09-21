@@ -149,6 +149,11 @@ public class TradeServiceImpl implements ITradeService {
     }
 
     @Override
+    public String createOrderToken() {
+        return orderService.createOrderToken();
+    }
+
+    @Override
     public Map<String, Object> order(Long id) {
         return orderService.order(id);
     }

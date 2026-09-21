@@ -117,6 +117,12 @@ public class TradeController extends BaseController {
     }
 
     @RequiresLogin
+    @GetMapping({"/orders/token", "/orders/idempotency-token"})
+    public AjaxResult orderToken() {
+        return success(Map.of("token", tradeService.createOrderToken()));
+    }
+
+    @RequiresLogin
     @GetMapping("/orders/page")
     public AjaxResult orders(@RequestParam Map<String, Object> params) {
         return success(tradeService.listOrders(params, false));

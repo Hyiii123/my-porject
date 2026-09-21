@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -155,6 +156,22 @@ public class EducationPortalController extends BaseController {
     /**
      * 获取多智能体系统自动化质量评测度量大屏数据 (Agent Evals & Observability Metrics)。
      */
+        @Autowired(required = false)
+    private com.share.education.ai.evals.EduLearningOutcomeTracker outcomeTracker;
+
+    /**
+     * 获取多智能体路线真实业务履约率与下游学习成效 (Downstream Outcome Telemetry)
+     */
+    @GetMapping({"/courses/recommendations/evals/outcome", "/courses/recommend/evals/outcome"})
+    public AjaxResult agentOutcomeFulfillment(@RequestParam(required = false) Long userId,
+                                             @RequestParam(required = false) List<Long> courseIds) {
+        Long targetUid = userId != null && userId > 0 ? userId : com.share.education.service.support.EduUtils.currentUserId();
+        if (outcomeTracker != null && targetUid != null) {
+            return success(outcomeTracker.calculateFulfillment(targetUid, courseIds != null ? courseIds : Collections.emptyList()));
+        }
+        return success(Map.of("pathFulfillmentRate", 0.0, "outcomeGrade", "待学习观察"));
+    }
+
     @GetMapping({"/courses/recommendations/evals/metrics", "/courses/recommend/evals/metrics"})
     public AjaxResult agentEvaluationMetrics() {
         return success(educationService.getAgentEvaluationMetrics());
@@ -637,4 +654,5 @@ public class EducationPortalController extends BaseController {
         return value instanceof Boolean b ? b : "true".equalsIgnoreCase(String.valueOf(value)) || "1".equals(String.valueOf(value));
     }
 }
+
 

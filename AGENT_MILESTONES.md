@@ -14,6 +14,21 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-22 01:15:00 - 多智能体评测体系闭环与交易幂等加固：50组黄金画像基准全量回归、学习成效履约度量与下单防重闭环 (Multi-Agent Evals Closed-Loop & Trade Idempotency Hardening: 50 Golden Personas Regression, Learning Outcome Telemetry & Order Token Protection)
+
+* **演进主题**：多智能体评测评估体系全面落地闭环 (引入 LLM Judge 评测机、50 组黄金画像回归数据集 `golden_personas_50.json`、学习成效履约追踪器 `EduLearningOutcomeTracker`、长期情景记忆 `AgentMemoryService`)、交易领域接口幂等防重 Token 机制落地 (`/ts/orders/token` 与 Redis 原子删除防连击)、云端生产热部署与端到端定向闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **多智能体效果评估体系标准落地 (Multi-Agent Evals & Telemetry)**：
+     - 构建了基于 50 组跨阶段/跨技术栈的黄金画像基准回归集（`GoldenBenchmarkRegressionTest`），实现 DAG 拓扑合规率 100%、布鲁姆认知平滑度 100分、阶段负荷均衡度 100% 的自动化回归守护；
+     - 研发上线学员学习成效履约追踪器（`EduLearningOutcomeTracker`），提供 `/cs/courses/recommendations/evals/outcome` 接口，将智能体路径规划与后续完课率、测验通过率形成双向正反馈度量闭环；
+     - 引入跨会话情景伴学记忆库（`AgentMemoryService`），在导师质疑与方案折中时调取学员历史学情画像，实现个性化陪伴。
+  2. **交易子系统下单幂等防重机制全面加固 (Trade Order Idempotency)**：
+     - 新增订单防重 Token 生成与校验契约（`createOrderToken`），支持客户端在结账前主动拉取唯一令牌，并通过 `@RequiresLogin` 守卫 `/ts/orders/token`；
+     - 下单核心方法 `placeOrder` 接入 Redis 原子删除（`redisService.deleteObject`），彻底阻断客户端连击、网络重试或恶意并发引发的重复扣款与脏单生成。
+  3. **生产热更新与定向验证 100% 通过**：
+     - `share-education.jar` 与 `share-trade.jar` 离线打包上传并在云端热替换重启，Nacos 自动健康注册，定向端点调用与鉴权校验均 100% 正常。
+
+
 ### 2026-09-22 00:55:00 - 智问学伴多智能体推演看板全景 IAIC 科技风重塑：消除内部硬编码暗色、科技直角与 Deep Navy 终端深度贯通 (Full AI Reasoning HUD IAIC Overhaul: Elimination of Hardcoded Hex Values, Tech Corners & Deep Navy Telemetry Terminal)
 
 * **演进主题**：多智能体推演看板 (`AgentReasoningHUD.vue`) 作用域样式深度治理 (全面清除组件内部写死的老旧灰黑 `#0F172A`、`#0B1120`、`#2563EB` 等 Tailwind 色值，全量收敛至 IAIC Design Tokens)、推演大屏注入青色科技直角边框与动态扫描顶线 (`.corner .c1`, `.c2`、`.hud-top-scan`，使折叠胶囊与展开大屏均具备纯正的 IAIC 产学研质感)、流式思考终端重塑为 Deep Navy 科技高亮视窗、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)

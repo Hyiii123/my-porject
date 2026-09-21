@@ -23,11 +23,14 @@ public class PedagogyMentorNode {
 
     private final UserProfileAgent userProfileAgent;
     private final com.share.education.ai.client.ThirdPartyAiClient aiClient;
+    private final com.share.education.ai.memory.AgentMemoryService memoryService;
 
     public PedagogyMentorNode(UserProfileAgent userProfileAgent,
-                              @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.ThirdPartyAiClient aiClient) {
+                              @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.ThirdPartyAiClient aiClient,
+                              @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.memory.AgentMemoryService memoryService) {
         this.userProfileAgent = userProfileAgent;
         this.aiClient = aiClient;
+        this.memoryService = memoryService;
     }
 
     /**
@@ -105,14 +108,18 @@ public class PedagogyMentorNode {
         double rawDisagreement = ((100.0 - discipline) / 100.0) * 0.45 + (hasSteepStage ? 0.35 : 0.15) + (completedHours < 10 ? 0.10 : 0.0);
         double calculatedDisagreement = Math.min(0.95, Math.max(0.40, Math.round(rawDisagreement * 100.0) / 100.0));
 
+        // 调取该学员跨会话长期情景记忆
+        String memContext = memoryService != null ? memoryService.retrieveEpisodicContext(state.getUserId(), state.getIntendedRole()) : "";
+
         // 尝试调用大模型动态立论质疑 (AI优先 + 规则保底)
         String dynamicArg = null;
         if (aiClient != null && aiClient.isAvailable()) {
             String sys = "你是一位资深的教育教学法专家与学情成长导师。你的立场是捍卫学员的认知承载力，警惕理论过陡、学时过重导致的劝退风险。请针对大厂技术总监提交的培养方案提出严正质疑与改进建议（不超过100字）。";
-            String usr = String.format("学员画像：目标【%s】，自律完课指数【%d分】，历史学时【%.1fh】，认知阶段【%s】。总监方案：总课时【%dh】，阶段2学时【%dh】。请提出你的质疑理由与软化坡度要求。",
+            String usr = String.format("学员画像：目标【%s】，自律完课指数【%d分】，历史学时【%.1fh】，认知阶段【%s】。总监方案：总课时【%dh】，阶段2学时【%dh】。%s 请提出你的质疑理由与软化坡度要求。",
                 profile != null && profile.getIntendedRole() != null ? profile.getIntendedRole() : "技术工程师",
                 discipline, completedHours, profile != null && profile.getCognitiveLevel() != null ? profile.getCognitiveLevel() : "筑基期",
-                draft != null && draft.getTotalEstimatedHours() != null ? draft.getTotalEstimatedHours() : 120, stage2Hours);
+                draft != null && draft.getTotalEstimatedHours() != null ? draft.getTotalEstimatedHours() : 120, stage2Hours,
+                org.springframework.util.StringUtils.hasText(memContext) ? memContext : "");
             dynamicArg = aiClient.generate(sys, usr);
         }
 
@@ -175,6 +182,11 @@ public class PedagogyMentorNode {
 
         state.recordTurn(turn);
         state.setDisagreementScore(0.10); // 分歧收敛
-        log.info("[PedagogyMentorNode] 签署认可折中方案，分歧度降至 0.10");
+        if (memoryService != null && state.getUserId() != null) {
+            memoryService.recordEpisode(state.getUserId(), state.getIntendedRole(),
+                "阶段2理论过陡已软化", "采纳过渡实战重排", 100);
+        }
+        log.info("[PedagogyMentorNode] 签署认可折中方案，分歧度降至 0.10 并存入长期伴学记忆");
     }
 }
+
