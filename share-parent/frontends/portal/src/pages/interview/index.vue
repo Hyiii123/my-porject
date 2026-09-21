@@ -241,7 +241,7 @@
             <div class="guide-title">Chrome / Edge 浏览器开启物理摄像头权限步骤：</div>
             <ol class="guide-steps">
               <li>在浏览器新建标签页，地址栏输入并回车：<code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code></li>
-              <li>在高亮配置项输入框中填入当前地址：<code>http://8.155.160.123:18081</code></li>
+              <li>在高亮配置项输入框中填入当前地址：<code>http://47.121.26.136:18081</code></li>
               <li>右侧下拉菜单选择 <b>Enabled</b>，点击浏览器右下角 <b>Relaunch</b> 按钮重启浏览器即可！</li>
             </ol>
             <div class="guide-action">
