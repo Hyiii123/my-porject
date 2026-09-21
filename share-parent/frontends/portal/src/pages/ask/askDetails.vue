@@ -152,7 +152,7 @@ const getQuestionsDetailsData = async () => {
         askInfo.value = data
       } else {
         ElMessage({
-          message:res.data.msg,
+          message: res?.msg || res?.message || '请求出错',
           type: 'error'
         });
       }
@@ -196,7 +196,7 @@ const getAllQuestionsData = async (val) => {
         loading.value = false
       } else {
         ElMessage({
-          message:res.data.msg,
+          message: res?.msg || res?.message || '请求出错',
           type: 'error'
         });
       }
@@ -274,7 +274,7 @@ const getReplyData = async (id, st) => {
        isReplay.value = id
       } else {
         ElMessage({
-          message:res.data.msg,
+          message: res?.msg || res?.message || '请求出错',
           type: 'error'
         });
       }
@@ -381,3 +381,4 @@ const likedHandle = async (item) => {
 }
 </script>
 <style lang="scss" src="./index.scss"></style>
+

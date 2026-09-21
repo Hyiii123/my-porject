@@ -1,6 +1,8 @@
 <!-- 课程展示卡片 - 首页、搜索页 -->
 <template>
   <div class="classCards" @click="goDetails(data.id)">
+    <div class="corner c1"></div>
+    <div class="corner c2"></div>
     <div class="image-wrapper">
       <img :src="data.coverUrl || data.courseCoverUrl || data.cover || defaultCover" alt="课程封面" class="cover-img" loading="lazy" @error="handleImgError" />
       <span v-if="data.categoryName" class="category-badge">{{ data.categoryName }}</span>
@@ -63,26 +65,43 @@ const goDetails = id => {
 <style lang="scss" scoped>
 .classCards {
   position: relative;
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 3px rgba(19, 41, 79, 0.05);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
-  &:hover {
-    border-color: #CBD5E1;
-    box-shadow: 0 8px 18px -4px rgba(15, 23, 42, 0.09);
-    transform: translateY(-2px);
+  .corner {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--cyan);
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: none;
+    z-index: 5;
 
+    &.c1 { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+    &.c2 { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+  }
+
+  &:hover {
+    border-color: rgba(43, 134, 240, 0.4);
+    box-shadow: var(--shadow);
+    transform: translateY(-4px);
+
+    .corner {
+      opacity: 0.75;
+    }
     .image-wrapper .cover-img {
-      transform: scale(1.03);
+      transform: scale(1.04);
     }
     .title {
-      color: var(--color-main);
+      color: var(--azure);
     }
   }
 
@@ -205,3 +224,4 @@ const goDetails = id => {
   }
 }
 </style>
+

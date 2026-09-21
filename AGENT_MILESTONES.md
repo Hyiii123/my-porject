@@ -14,6 +14,28 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-21 23:55:00 - 智问学伴技术问答社区全新重塑：由课程单表单升格为产学研互动中枢、详情动态热议打通与全站卡片 IAIC 深度统一 (Interactive Q&A Community Hub Overhaul, Dynamic Thread Linking & Sitewide IAIC Tech Card Elevation)
+
+* **演进主题**：问答社区页面架构重塑 (`ask/index.vue` 彻底告别以往缺少课程 ID 报 400 且显示空白禁用表单的死锁，升格为兼具关键字检索、四维标签筛选、问答列表流与多课程联动提问的完整 IAIC 问答中枢)、问答详情动态关联打通 (`askDetails.vue` 消除 `res.data.msg` 未定义报错，`RelatedQuestions.vue` 彻底废除写死静态假数据，动态联动 `/ls/questions/page` 实时推荐相关热议讨论并支持跳转)、通用课程卡片 IAIC 直角科技感覆盖 (`ClassCards.vue` 全量注入科技直角括号、卡片微浮升与高光渐变)、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **问答社区页面架构升格与死锁根除 (`ask/index.vue`)**：
+     - 彻底改变以往从导航点击直接进入单一课程提问表单的错误设计，重构为 IAIC 风格技术问答社区大厅；
+     - 集成 Hero 问答搜索栏与一键发起提问按钮，支持「全部问答」、「最新提问」、「最热讨论」、「待解答」四维标签快速切换；
+     - 问答卡片直观呈现提问者头像、发布时间、问题摘要、最新解答高光引述与赞评转指标；
+     - 提问弹窗深度联动课程库（`getFreeClassList`）与二级章节级联器（`getClassCourses`），未带课程参进入亦可自由选课提问。
+  2. **问答详情页安全防崩与动态推荐关联 (`askDetails.vue` & `RelatedQuestions.vue`)**：
+     - 根除接口异常时的 `res.data.msg` 空指针缺陷，保障网络错误时优雅提示；
+     - 侧边栏「相关问题」由以往写死文本重构为实时请求知识库热议问题，并支持点击直接载入对应问答详情。
+  3. **全站通用课程卡片 (`ClassCards.vue`) 1:1 IAIC 科技感覆盖**：
+     - 卡片四个角落配备青色直角科技光效（`.corner .c1`, `.c2`），鼠标悬浮时淡入点亮；
+     - 悬浮时上浮 4px、高光边缘加深、图片微放大，全方位统一了课程中心、课程搜索页及收藏页的视觉语言。
+  4. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 重新打包并热替换 `portal-ui` 静态资源产物，平稳重启 Nginx 容器；
+     - 定向接口与页面全绿通过：
+       - 学生端门户（`http://47.121.26.136:18081`）：点击「问答社区」，秒级进入 IAIC 问答互动大厅，多维度讨论流畅加载，提问弹窗课程与章节级联正常；
+       - 问答详情页：展示真实问题与回答流，相关推荐讨论点击流畅跳转；
+       - 课程中心与搜索卡片：IAIC 直角括号与科技蓝视觉统一呈现。
+
 ### 2026-09-21 23:20:00 - 智问学伴全域前端体验闭环：课程中心 404 根治、登录态跳页自销毁修复、登录页与业务管理端 IAIC 1:1 视觉深度统一 (Frontend Experience Closed-Loop: Course Center 404 Fix, Login Self-Destruct Redirection Remediation, Unified IAIC Redesign for Login & Business Admin)
 
 * **演进主题**：课程中心路由与 API 全量补全 (`base.js` 补齐 `/classList` 路由定义并注入 `PUBLIC_PATHS` 免登清单，`class.js` 补全 `getFreeClassList` 导出，彻底解决课程中心 404)、登录态自销毁重载根治 (`permission.js` 废除访问 `/login` 盲目 `logout` 逻辑，`LoginPass.vue` 废除硬编码 `location.reload()` 改为 Vue Router 平滑过渡，解决登录后弹回登录页的问题)、登录页面 1:1 IAIC 科技蓝视觉重构 (`login/index.vue`、`LoginPass.vue`、`LoginPhone.vue` 引入脉冲弥散粒子底板、科技直角边框、胶囊式切换器与扫光登录按钮)、业务管理端全域视觉对齐 (`frontends/business-admin` 引入 IAIC 全套 Design Tokens、Deep Navy 沉浸式侧边栏、Cyan 激活高亮边线与流光顶栏)、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
@@ -1464,6 +1486,7 @@
   6. **云端生产极速热发布与全流程定向自动化回归验证**：
      - 严格遵循发布铁律与云盘保护准则，本地打出 `share-customer.jar` 与 `portal/dist` 纯静态产物，通过 Workbench CLI 快速上传并在云端实施秒级热重载，达成服务器零构建、零云盘 IOPS 冲击；
      - 执行 `.scratch/test_interview_flow.py` 定向测试，全流程验证 20 题考场建立、第一题自我介绍作答与评分、第二题小林八股深挖与知识库挂载、第三题下一独立模块平滑推进、交卷与多维专家报告生成（六维雷达图与 STAR 话术）、以及学生端 Portal UI（HTTP 200），100% 满分通过。
+
 
 
 
