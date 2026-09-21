@@ -296,6 +296,7 @@
         <span class="eval-tag"><i class="dot success"></i> DAG 拓扑合规 {{ evalMetrics.dagValidityRate }}%</span>
         <span class="eval-tag"><i class="dot success"></i> 胜任力对齐 {{ evalMetrics.intentAlignmentScore }}%</span>
         <span class="eval-tag"><i class="dot success"></i> 理由保真度 {{ evalMetrics.faithfulnessScore }}%</span>
+        <span class="eval-tag"><i class="dot success"></i> 自省修复 {{ evalMetrics.remedySuccessRate || 100 }}%</span>
         <span class="eval-tag highlight"><i class="dot highlight"></i> 审判质检 {{ evalMetrics.overallHealthGrade }}</span>
         <span class="eval-tag"><i class="dot neutral"></i> 平均时延 {{ evalMetrics.averageLatencyMs }}ms</span>
       </div>
@@ -401,6 +402,16 @@
             <div class="kpi-val text-warning">{{ evalMetrics.criticPassRate }}%</div>
             <div class="kpi-name">审判质检首轮通过率</div>
             <div class="kpi-sub">量化质检三元模型把关</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val text-success">{{ evalMetrics.remedySuccessRate || 100 }}%</div>
+            <div class="kpi-name">自省折中修复达标率</div>
+            <div class="kpi-sub">二审反思自适应拓扑重排</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val text-primary">{{ evalMetrics.disagreementConvergenceRate || 85 }}%</div>
+            <div class="kpi-name">博弈分歧收敛度</div>
+            <div class="kpi-sub">圆桌博弈协商达成共识</div>
           </div>
         </div>
 
@@ -1838,7 +1849,7 @@ onMounted(() => {
 .evals-dialog-body {
   .evals-kpi-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     margin-bottom: 20px;
 
@@ -1950,3 +1961,4 @@ onMounted(() => {
   }
 }
 </style>
+

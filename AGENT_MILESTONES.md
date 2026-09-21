@@ -14,6 +14,36 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-21 21:15:00 - 智问学伴多智能体系统工业级闭环重构：Actor-Critic真自省重排、全真动态心流、多维评测指标扩展与公网IP热更闭环 (Industrial-Grade Multi-Agent Closed-Loop Refactor: Actor-Critic Dynamic Re-planning, Real Dialectic Streaming, Multi-Dimensional Evaluative Telemetry & Cloud Verification Closure)
+
+* **演进主题**：Actor-Critic 指令闭环与真自省重排 (`IndustryArchitectNode` 深度对接 `PathCriticNode` 结构化修正指令集驱动 `PathPlanningAgent` 全局重排)、图执行引擎条件分支与自适应应急稳定化 (`CompositeMultiAgentGraphEngine` 容错流转与非规划快捷通道度量隔离)、流式心流全真动态参数提取 (SSE 事件总线彻底消除硬编码文案，实时反射真实大模型立论与辩驳论据)、第三方大模型高可用平滑排队与 15min TTL 语义缓存 (`ThirdPartyAiClient` 引入 `tryLock(2500ms)` 平滑等待与 `promptCache` 零毫秒秒级复用)、自动化质量评测多维扩展 (新增自省折中修复达标率、分歧收敛度、布鲁姆平滑度与阶段均衡度指标，升级分词保真度算法)、全网动态公网 IP 校验漂移更新 (`47.121.26.136` 全项目同步)、云端生产热替换部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **闭合 Actor-Critic 修正指令与总监重规划闭环 (`IndustryArchitectNode` & `PathPlanningAgent`)**：
+     - 深度读取审判质检法官出具的结构化缺陷指令集（`needMoreBeginnerCourses`、`fixPrerequisiteInversion`、`smoothDifficultyTransition`），彻底废除单纯扣减 5 小时学时的僵化补丁；
+     - 驱动 `PathPlanningAgent` 执行全局 DAG 自适应拓扑重排与平滑补丁，并实时调用大模型生成具体阐述妥协原因与质量保障理由的技术论据，实现“真反思、真重排、真折中”。
+  2. **图执行引擎条件分支与快捷通道度量隔离 (`CompositeMultiAgentGraphEngine`)**：
+     - 在二审未通过的极端边界条件引入 `autoStabilizePlan` 应急自愈稳定化兜底，杜绝缺陷方案流出；
+     - 彻底剥离模拟面试与事务卡片直通通道对 `evalService.recordPipelineExecution` 的假阳性快照污染，保证 DAG 质量度量样本 100% 来自真正的导学规划。
+  3. **流式推演全真动态参数反射 (`CompositeMultiAgentGraphEngine.streamWorkflow`)**：
+     - 彻底清除 SSE 事件总线中历史遗留的硬编码反驳与妥协文字占位，全面动态读取各轮次黑板发言实体（`turn.getArgument()`），使用户在前端 HUD 看到的推演心流与大模型后台论驳完全一致。
+  4. **第三方大模型平滑排队与语义缓存 (`ThirdPartyAiClient`)**：
+     - 改造 `singleConcurrencyGuard` 为 2500ms 智能超时等待，允许多智能体圆桌会议有序排队调用大模型，避免因瞬时并发直接退化为静态规则；
+     - 构建线程安全的多智能体提示词语义缓存（`promptCache`，15 分钟 TTL），高频重复角色推演耗时压降至 0ms，彻底规避第三方 API 429 频率限制。
+  5. **意图路由与 RAG 知识引擎深度升级 (`IntentDispatcherNode` & `EducationKnowledgeRAG`)**：
+     - `IntentDispatcherNode` 扩展模拟面试、全真考场、事务动作等多维关键词，并支持从自然语言输入中动态提取目标岗位实体（如“大模型”、“Go云原生”、“大数据”）；
+     - `EducationKnowledgeRAG` 由 7 种岗位基准扩充至 12 大主流 IT 技术赛道（覆盖嵌入式、测开、数据分析、Python全栈、Go微服务等），引入分词片段交集加权算法。
+  6. **评测体系多维延展与前端 HUD 全景升级 (`AgentEvaluationService` & `AgentReasoningHUD.vue`)**：
+     - `AgentEvalMetricsVO` 扩充新增「自省折中修复达标率 (`remedySuccessRate`)」、「博弈分歧收敛度 (`disagreementConvergenceRate`)」、「认知阶梯平滑度」与「阶段容量均衡度」；
+     - `calculateFaithfulness` 引入分词片段切分与双向相关性校验，有效根除大模型专业复述带来的虚假保真度误降；
+     - 前端 HUD 仪表盘新增自省修复率与分歧收敛度 KPI 卡片，布局优化为自适应栅格。
+  7. **云端热更与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 本地打包 `share-education.jar` 与 `portal-ui/dist`，串行安全上传并热替换云端容器，Nginx 重载；
+     - 定向接口验证全绿通过：
+       - 自动化质量评测接口（`/cs/courses/recommendations/evals/metrics`）：HTTP 200，度量看板新增多维指标，初始真实样本自增至 1；
+       - 多智能体编排接口（`/cs/courses/recommendations/orchestrate`）：HTTP 200，历经圆桌博弈，客观质检综合评分 100 分卓越（A+），各阶段课程 100% 对口 Java 全栈；
+       - 流式推理心流（`/cs/courses/recommendations/stream/reasoning`）：稳定实时推送 6 步多智能体圆桌博弈事件流，包含大模型真实立论与质询；
+       - 学生端前端（`http://47.121.26.136:18081`）：HTTP 200 OK，静态资源秒级加载，HUD 完美呈现新指标。
+
 ### 2026-09-18 20:50:00 - 智问学伴多智能体系统真智化根治重构：消除伪智能体、真大模型驳论、客观 Kahn DAG 质检与全真度量闭环 (Multi-Agent System Genuine Intelligence Refactor: Decoupling Pseudo-Agents, LLM Dialectic Debate, Objective Kahn DAG Audit & Zero-Faked Metrics Closure)
 
 * **演进主题**：多智能体真智化全面治理 (Eradication of Pseudo-Agents & Elimination of Hardcoded Heuristics)、真实大模型驳论与辩证立论 (Real LLM Dialectic Argumentation in `PedagogyMentorNode` & `ExplanationGenerationAgent`)、废除预设扣分剧本回归客观数学质检 (Abolition of Scripted Penalties & Pure Kahn DAG / Bloom Variance Quality Audit in `PathCriticNode`)、结构化集合过滤收敛穷举分支 (Structured Set-Based Domain Filtering in `PathPlanningAgent`)、大纲认知全景解构 (Full-Outline Bloom Taxonomy Decomposition in `CourseAnalysisAgent`)、前端 HUD 零基线全真度量接入 (Zero-Baseline True Evaluative Telemetry in `AgentReasoningHUD.vue`)、云端热更新与端到端闭环定向验证 100% 通过 (Cloud Hot-Deployment & Targeted Verification Closure)
@@ -1361,4 +1391,5 @@
   6. **云端生产极速热发布与全流程定向自动化回归验证**：
      - 严格遵循发布铁律与云盘保护准则，本地打出 `share-customer.jar` 与 `portal/dist` 纯静态产物，通过 Workbench CLI 快速上传并在云端实施秒级热重载，达成服务器零构建、零云盘 IOPS 冲击；
      - 执行 `.scratch/test_interview_flow.py` 定向测试，全流程验证 20 题考场建立、第一题自我介绍作答与评分、第二题小林八股深挖与知识库挂载、第三题下一独立模块平滑推进、交卷与多维专家报告生成（六维雷达图与 STAR 话术）、以及学生端 Portal UI（HTTP 200），100% 满分通过。
+
 

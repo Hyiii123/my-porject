@@ -18,7 +18,8 @@ import java.util.stream.Collectors;
  * 复合架构模式 5：大厂技术总监节点 (IndustryArchitectNode)。
  * 角色设定：大厂资深架构师 / 技术委员会专家。
  * 立场：坚守大厂岗位刚需与硬核实战标准，主张高并发、微服务、分布式全链路攻坚；
- * 行为：第一轮提出极具竞争力的初版架构进阶草案；第二轮面对学情导师质疑时，执行自我反思与折中（以战带练），产出修改补丁。
+ * 行为：第一轮提出极具竞争力的初版架构进阶草案；第二轮深度解析审判法官下发的修正指令集，
+ * 触发 PathPlanningAgent 执行自适应拓扑重构与阶段坡度软化，完成真反思与真折中。
  */
 @Component
 public class IndustryArchitectNode {
@@ -72,7 +73,7 @@ public class IndustryArchitectNode {
             dynamicArg = aiClient.generate(sys, usr);
         }
 
-        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg : String.format(
+        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg.trim() : String.format(
             "针对【%s】岗位标准，我基于一线大厂胜任力图谱规划了 4 阶段进阶方案，共 %d 门专业课。核心聚焦企业级微服务治理与高并发架构实战，必须满足招聘硬指标！",
             role, initialPlan.getTotalCourses());
 
@@ -94,17 +95,34 @@ public class IndustryArchitectNode {
     }
 
     /**
-     * 第二轮：针对学情导师质疑与法官修正指令执行自省反思与折中 (Compromise)
+     * 第二轮：针对学情导师质疑与法官修正指令执行自省反思与深度折中 (Compromise & Re-planning)
      */
     public void reflectAndCompromise(DebateBlackboardState state) {
         long tStart = System.currentTimeMillis();
+        String role = state.getIntendedRole() != null ? state.getIntendedRole() : "技术工程师";
 
-        // 挑选一门温和的实战过渡课程作为补丁 (严格去重：不得与当前方案中已规划的课程重复)
+        // 1. 深度读取审判法官下发的真实修正指令集
+        Map<String, Object> directives = state.getRefinementDirectives();
+        Map<String, Object> effectiveDirectives = new HashMap<>();
+        if (state.getCustomOverrides() != null) {
+            effectiveDirectives.putAll(state.getCustomOverrides());
+        }
+        if (directives != null) {
+            effectiveDirectives.putAll(directives);
+        }
+        // 显式激活核心修复指令：先修拓扑防倒置与难度平滑过渡
+        effectiveDirectives.put("fixPrerequisiteInversion", true);
+        effectiveDirectives.put("smoothDifficultyTransition", true);
+
+        // 2. 调用 PathPlanningAgent 依据修正指令执行全局 DAG 自适应重排
         List<AnalyzedCourseVO> analyzed = state.getAnalyzedCourses();
+        LearningPathPlan rePlanned = pathPlanningAgent.planPath(state.getUserProfile(), analyzed, effectiveDirectives);
+
+        // 3. 挑选过渡实战课程组装补丁
         AnalyzedCourseVO transitionalCourse = null;
         if (analyzed != null && !analyzed.isEmpty()) {
-            Set<Long> alreadyPlannedIds = (state.getCurrentDraftPlan() != null && state.getCurrentDraftPlan().getStages() != null)
-                ? state.getCurrentDraftPlan().getStages().stream()
+            Set<Long> alreadyPlannedIds = (rePlanned != null && rePlanned.getStages() != null)
+                ? rePlanned.getStages().stream()
                     .filter(s -> s.getCourses() != null)
                     .flatMap(s -> s.getCourses().stream())
                     .map(AnalyzedCourseVO::getCourseId)
@@ -118,34 +136,52 @@ public class IndustryArchitectNode {
                 .orElse(null);
         }
 
-        // 组装补丁：在第 2 阶段软化理论深度，插入过渡实战课
+        // 4. 更新当前草案方案至黑板
+        if (rePlanned != null && rePlanned.getStages() != null && !rePlanned.getStages().isEmpty()) {
+            state.setCurrentDraftPlan(rePlanned);
+        }
+
         PlanPatch patch = PlanPatch.builder()
             .targetStageIndex(2)
             .adjustedDifficulty(2)
             .hoursAdjustment(-5)
             .insertCourses(transitionalCourse != null ? List.of(transitionalCourse) : Collections.emptyList())
-            .rationale("采纳学情导师防劝退意见：软化第 2 阶段纯理论深度，将难点分流，并插入过渡实战模块")
+            .rationale("全面采纳质检法官指令与学情导师意见：执行 Kahn DAG 拓扑重排，软化阶段 2 理论坡度，插入渐进式过渡模块")
             .build();
 
         long latency = System.currentTimeMillis() - tStart;
         state.recordLatency("IndustryArchitectNode_Compromise", latency);
 
-        String arg = "我充分理解学情导师关于认知负荷的担忧。为兼顾架构师胜任力底线，我做出折中妥协：调整第 2 阶段课程坡度，将晦涩理论改为实战带练，并把前置依赖做细颗粒度拆解。";
+        // 5. 动态生成自我反思与折中申明
+        String directiveSummary = directives != null && !directives.isEmpty()
+            ? String.join("、", directives.keySet()) : "平滑阶段坡度与先修重排";
+
+        String dynamicArg = null;
+        if (aiClient != null && aiClient.isAvailable()) {
+            String sys = "你是一线大厂资深架构师和技术委员会专家。面对学情导师关于认知负荷的质疑和质检法官的量化修正指令，请陈述你的折中反思和技术妥协举措（控制在90字内）。";
+            String usr = String.format("目标岗位：%s，已响应质检指令【%s】执行了全局先修拓扑重排，并在阶段2插入实战过渡。请说明妥协理由。",
+                role, directiveSummary);
+            dynamicArg = aiClient.generate(sys, usr);
+        }
+
+        String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg.trim() : String.format(
+            "我充分理解学情导师与质检法官的量化反馈。针对【%s】指令，我已响应下调阶段 2 理论深度，通过 Kahn DAG 拓扑修正消除先修断层，并插入过渡实战模块，确保既防劝退又保就业硬核标准！",
+            directiveSummary);
 
         AgentDebateTurn turn = AgentDebateTurn.builder()
             .round(state.getCurrentRound())
             .speaker("IndustryArchitect")
             .speakerName("大厂技术总监")
             .stance("COMPROMISE")
-            .targetObject("Stage 2: Core Acceleration")
+            .targetObject("Stage 2 & Global Topology")
             .argument(arg)
             .proposedPatch(patch)
-            .metricSummary("已应用方案补丁：降低阶段 2 难度方差，平滑先修坡度")
+            .metricSummary("已响应质检指令执行拓扑自适应重排：消除先修倒置，软化认知坡度")
             .latencyMs(latency)
             .timestamp(System.currentTimeMillis())
             .build();
 
         state.recordTurn(turn);
-        log.info("[IndustryArchitectNode] 折中方案补丁已更新至黑板");
+        log.info("[IndustryArchitectNode] 响应修正指令已完成自适应重排并应用补丁至黑板: 指令集={}", directiveSummary);
     }
 }

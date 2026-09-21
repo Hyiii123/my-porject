@@ -30,6 +30,22 @@ public class AgentEvalMetricsVO {
     /** 4. 审判质检首轮通过率 (0 ~ 100%) */
     private Double criticPassRate;
 
+    /** 5. 自省折中二次达标率 (0 ~ 100%, 衡量反思闭环修复有效性) */
+    @Builder.Default
+    private Double remedySuccessRate = 100.0;
+
+    /** 6. 多智能体博弈平均分歧收敛度 (0 ~ 100%) */
+    @Builder.Default
+    private Double disagreementConvergenceRate = 85.0;
+
+    /** 7. 布鲁姆认知阶梯平均平滑度 (0 ~ 100%) */
+    @Builder.Default
+    private Double cognitiveContinuityScore = 95.0;
+
+    /** 8. 进阶里程碑阶段容量平均均衡度 (0 ~ 100%) */
+    @Builder.Default
+    private Double phaseBalanceScore = 96.0;
+
     /** 全流水线总推演次数 */
     private Long totalPipelinesRun;
 

@@ -23,14 +23,17 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 全平台统一第三方大模型适配客户端 (Pixel API / gpt-5.6-luna)。
  *
  * <p>遵循统一第三方大模型规范，全平台共用同一个第三方 API 端点与密钥。
  * 密钥自动与客服微服务 (Redis key: customer:ai:secret) 共享对齐，实现全站单一真相源。
- * 具备高可用弹性熔断机制：若第三方 API 出现网络超时或抖动，瞬间无感降级至本地确定性知识图谱与拓扑规划规则。</p>
+ * 具备排队平滑等待、多智能体语义结果缓存与 20 秒快速熔断自愈能力。</p>
  */
 @Component
 @Primary
@@ -48,7 +51,10 @@ public class ThirdPartyAiClient {
 
     private static final long CIRCUIT_BREAKER_DURATION_MS = 20_000L; // 20秒快速自愈
     private final AtomicLong circuitBreakerOpenUntil = new AtomicLong(0L);
-    private final java.util.concurrent.locks.ReentrantLock singleConcurrencyGuard = new java.util.concurrent.locks.ReentrantLock();
+    private final ReentrantLock singleConcurrencyGuard = new ReentrantLock();
+
+    private record CacheItem(String content, long expireAt) {}
+    private final Map<String, CacheItem> promptCache = new ConcurrentHashMap<>();
 
     @Autowired
     public ThirdPartyAiClient(AiRecommendProperties properties,
@@ -99,7 +105,7 @@ public class ThirdPartyAiClient {
     }
 
     /**
-     * 统一调用第三方 Pixel 大模型 (gpt-5.6-luna)
+     * 统一调用第三方 Pixel 大模型 (gpt-5.6-luna)，集成多智能体语义缓存与并发排队
      *
      * @param systemPrompt 系统角色提示词
      * @param userPrompt   用户提示词与上下文
@@ -115,9 +121,25 @@ public class ThirdPartyAiClient {
             return null;
         }
 
-        // 单并发保护：第三方 Pixel 账号设有限制，严禁内部并发调用导致 429 限流
-        if (!singleConcurrencyGuard.tryLock()) {
-            log.info("[ThirdPartyAI] 检测到已有大模型请求进行中，基于单并发配额保护直接启用本地知识图谱规则");
+        // 1. 语义缓存速查 (TTL 15 分钟)：相同提示词在圆桌推演中毫秒级复用
+        String cacheKey = (systemPrompt != null ? systemPrompt : "") + "|||" + (userPrompt != null ? userPrompt : "");
+        CacheItem cached = promptCache.get(cacheKey);
+        if (cached != null && System.currentTimeMillis() < cached.expireAt()) {
+            log.info("[ThirdPartyAI] 命中多智能体语义缓存，耗时 0ms 直接交付");
+            return cached.content();
+        }
+
+        // 2. 单并发保护与平滑排队：允许在 2500ms 窗口内平滑等待上一个智能体调用完成
+        boolean acquired = false;
+        try {
+            acquired = singleConcurrencyGuard.tryLock(2500, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        }
+
+        if (!acquired) {
+            log.info("[ThirdPartyAI] 超过单并发保护等待阈值(2500ms)，平滑降级至本地确定性知识图谱规则");
             return null;
         }
 
@@ -141,21 +163,22 @@ public class ThirdPartyAiClient {
                 sysMsg.put("content", systemPrompt.trim());
                 messages.add(sysMsg);
             }
+
             Map<String, String> userMsg = new LinkedHashMap<>();
             userMsg.put("role", "user");
-            userMsg.put("content", StringUtils.hasText(userPrompt) ? userPrompt.trim() : "请分析");
+            userMsg.put("content", userPrompt != null ? userPrompt.trim() : "");
             messages.add(userMsg);
 
             Map<String, Object> requestBody = new LinkedHashMap<>();
             requestBody.put("model", model);
             requestBody.put("messages", messages);
-            requestBody.put("temperature", properties.getTemperature());
-            requestBody.put("max_tokens", 150);
+            requestBody.put("temperature", properties.getTemperature() > 0 ? properties.getTemperature() : 0.6);
+            requestBody.put("max_tokens", 350);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-            headers.setBearerAuth(apiKey);
+            headers.set("Authorization", "Bearer " + apiKey);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
@@ -164,8 +187,16 @@ public class ThirdPartyAiClient {
                 JsonNode root = objectMapper.readTree(response.getBody());
                 String content = extractContent(root);
                 if (StringUtils.hasText(content)) {
-                    log.info("[ThirdPartyAI] 成功调用第三方大模型 (Pixel / {}), 返回文本长度: {}", model, content.length());
-                    return content.trim();
+                    String clean = content.trim();
+                    log.info("[ThirdPartyAI] 成功调用第三方大模型 (Pixel / {}), 返回文本长度: {}", model, clean.length());
+
+                    // 写入语义缓存 (15 分钟)
+                    promptCache.put(cacheKey, new CacheItem(clean, System.currentTimeMillis() + 15 * 60 * 1000L));
+                    if (promptCache.size() > 400) {
+                        long now = System.currentTimeMillis();
+                        promptCache.entrySet().removeIf(e -> e.getValue().expireAt() < now);
+                    }
+                    return clean;
                 }
             }
         } catch (Exception ex) {
@@ -203,17 +234,5 @@ public class ThirdPartyAiClient {
             }
         }
         return null;
-    }
-
-    public ChatClient getChatClient() {
-        return chatClient;
-    }
-
-    public ChatModel getChatModel() {
-        return chatModel;
-    }
-
-    public AiRecommendProperties getProperties() {
-        return properties;
     }
 }
