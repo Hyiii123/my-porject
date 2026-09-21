@@ -159,6 +159,86 @@ public class EducationPortalController extends BaseController {
         @Autowired(required = false)
     private com.share.education.ai.evals.EduLearningOutcomeTracker outcomeTracker;
 
+    @Autowired(required = false)
+    private com.share.education.ai.tools.sandbox.CodeSandboxTool codeSandboxTool;
+
+    @Autowired(required = false)
+    private com.share.education.ai.tools.market.JobMarketRadarTool jobMarketRadarTool;
+
+    @Autowired(required = false)
+    private com.share.education.ai.tools.remediation.AdaptiveRemediationTool adaptiveRemediationTool;
+
+    @Autowired(required = false)
+    private com.share.education.ai.tools.registry.AgentToolRegistry toolRegistry;
+
+    /**
+     * 智能体安全代码沙箱执行端点 (Dynamic Code Sandbox Runner)
+     */
+    @PostMapping({"/courses/sandbox/run", "/interview/sandbox/run"})
+    public AjaxResult runCodeSandbox(@RequestBody com.share.education.ai.tools.sandbox.CodeExecutionRequest request) {
+        if (codeSandboxTool != null) {
+            long t0 = System.currentTimeMillis();
+            var result = codeSandboxTool.apply(request);
+            if (toolRegistry != null) {
+                toolRegistry.recordInvocation("codeSandboxTool", !"SECURITY_VIOLATION".equals(result.getStatus()) && !"COMPILE_ERROR".equals(result.getStatus()), System.currentTimeMillis() - t0);
+            }
+            return success(result);
+        }
+        return error("沙箱执行引擎未就绪");
+    }
+
+    /**
+     * 产业前沿招聘行情与技能需求雷达 (Job Market Radar)
+     */
+    @GetMapping({"/courses/ai/market/trends", "/courses/market/trends"})
+    public AjaxResult getJobMarketTrends(@RequestParam(required = false) String role) {
+        if (jobMarketRadarTool != null) {
+            if (StringUtils.hasText(role)) {
+                return success(jobMarketRadarTool.apply(new com.share.education.ai.tools.market.JobMarketQueryRequest(role)));
+            }
+            return success(jobMarketRadarTool.getAllTracks());
+        }
+        return success(Collections.emptyList());
+    }
+
+    /**
+     * 知识图谱最小前置闭包自适应诊断 (Adaptive Remediation Diagnostic)
+     */
+    @PostMapping({"/courses/ai/remediation/diagnose", "/courses/remediation/diagnose"})
+    public AjaxResult diagnoseRemediation(@RequestBody com.share.education.ai.tools.remediation.AdaptiveRemediationRequest request) {
+        if (adaptiveRemediationTool != null) {
+            long t0 = System.currentTimeMillis();
+            var plan = adaptiveRemediationTool.apply(request);
+            if (toolRegistry != null) {
+                toolRegistry.recordInvocation("adaptiveRemediationTool", true, System.currentTimeMillis() - t0);
+            }
+            return success(plan);
+        }
+        return error("自适应诊断引擎未就绪");
+    }
+
+    /**
+     * 智能体标准工具目录与 JSON Schema (Agent Tool Catalog)
+     */
+    @GetMapping({"/courses/ai/tools/catalog", "/courses/tools/catalog"})
+    public AjaxResult getToolCatalog() {
+        if (toolRegistry != null) {
+            return success(toolRegistry.listTools());
+        }
+        return success(Collections.emptyList());
+    }
+
+    /**
+     * 智能体工具在线调用度量大屏 (Agent Tool Telemetry)
+     */
+    @GetMapping({"/courses/ai/tools/telemetry", "/courses/tools/telemetry"})
+    public AjaxResult getToolTelemetry() {
+        if (toolRegistry != null) {
+            return success(toolRegistry.getTelemetry());
+        }
+        return success(Collections.emptyMap());
+    }
+
     /**
      * 获取多智能体路线真实业务履约率与下游学习成效 (Downstream Outcome Telemetry)
      */

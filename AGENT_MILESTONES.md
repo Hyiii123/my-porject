@@ -14,6 +14,27 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-22 01:40:00 - 智能体工具调用生态体系全景落地：动态代码沙箱、大厂行情雷达、知识图谱自适应补救闭包与度量大屏 (Agent Tool Ecosystem Overhaul: Dynamic Code Sandbox, Job Market Radar, Knowledge Closure Remediation & Tool Registry)
+
+* **演进主题**：全面落实 4.2 与 4.3 智能体工具中枢演进方案 (上线 Java/Python/JS 多语言安全隔离执行沙箱 `JavaSandboxRunner`、产业前沿岗位招聘与技术热度雷达 `JobMarketRadarTool`、错题最小前置闭包自适应诊断工具 `AdaptiveRemediationTool`、智能体统一工具注册中心 `AgentToolRegistry` 与度量大屏)、技术总监辩论节点深度接入大厂行情雷达、云端生产热部署与端到端定向闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **动态多语言安全隔离代码沙箱 (Code Sandbox Engine)**：
+     - 构建 `SandboxSecurityFilter` 词法安全门禁，严格封堵提权、进程派生、反射与网络越权（`System.exit`, `ProcessBuilder`, `Unsafe`, Socket 等）；
+     - 实现基于内存动态编译的 `JavaSandboxRunner`，搭配 4 线程隔离线程池与 3000ms 超时熔断保护，输出 `/courses/sandbox/run` 统一评测接口；
+     - 单元测试覆盖正常控制台输出捕获、恶意代码阻断（ExitCode 126）与超时安全中断。
+  2. **产业前沿岗位招聘与技能需求雷达 (Job Market Radar)**：
+     - 建立涵盖大模型、Java微服务高并发、云原生DevOps等 8 大技术赛道的动态行情数据库；
+     - 技术总监节点（`IndustryArchitectNode`）在博弈辩论立论时动态读取岗位需求指数、高频技术栈与平均薪资，使方案论证具备工业级事实支撑。
+  3. **知识图谱最小前置闭包自适应诊断工具 (Adaptive Remediation Diagnostic)**：
+     - 基于 `edu_knowledge_prerequisite` 图谱执行 BFS DAG 广度图遍历，向上反向穿透追踪学员做错题或产生认知阻滞的根因先修缺陷；
+     - 自动组装由浅入深的追溯补救微任务序列与建议补漏课，提供 `/courses/ai/remediation/diagnose` 接口。
+  4. **智能体标准工具注册中枢与度量大屏 (Agent Tool Registry & Telemetry)**：
+     - 统一注册 5 组 Spring AI Function Calling 标准工具（推荐算法、沙箱运行、招聘雷达、知识闭包、长期记忆）；
+     - 收集调用量、成功率、平均延迟指标，提供 `/courses/ai/tools/catalog` 与 `/courses/ai/tools/telemetry` 实时度量端点。
+  5. **生产热更新与定向验证 100% 通过**：
+     - `share-education.jar` 重新打包上传并在生产环境容器热替换重启，全量测试套件 `AgentToolsTestSuite` (5/5) 与黄金画像回归 (50/50) 零缺陷通过。
+
+
 ### 2026-09-22 01:15:00 - 多智能体评测体系闭环与交易幂等加固：50组黄金画像基准全量回归、学习成效履约度量与下单防重闭环 (Multi-Agent Evals Closed-Loop & Trade Idempotency Hardening: 50 Golden Personas Regression, Learning Outcome Telemetry & Order Token Protection)
 
 * **演进主题**：多智能体评测评估体系全面落地闭环 (引入 LLM Judge 评测机、50 组黄金画像回归数据集 `golden_personas_50.json`、学习成效履约追踪器 `EduLearningOutcomeTracker`、长期情景记忆 `AgentMemoryService`)、交易领域接口幂等防重 Token 机制落地 (`/ts/orders/token` 与 Redis 原子删除防连击)、云端生产热部署与端到端定向闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)

@@ -30,15 +30,18 @@ public class IndustryArchitectNode {
     private final CourseAnalysisAgent courseAnalysisAgent;
     private final PathPlanningAgent pathPlanningAgent;
     private final com.share.education.ai.client.ThirdPartyAiClient aiClient;
+    private final com.share.education.ai.tools.market.JobMarketRadarTool marketRadarTool;
 
     public IndustryArchitectNode(RecommendationAgent recommendationAgent,
                                  CourseAnalysisAgent courseAnalysisAgent,
                                  PathPlanningAgent pathPlanningAgent,
-                                 @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.ThirdPartyAiClient aiClient) {
+                                 @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.client.ThirdPartyAiClient aiClient,
+                                 @org.springframework.beans.factory.annotation.Autowired(required = false) com.share.education.ai.tools.market.JobMarketRadarTool marketRadarTool) {
         this.recommendationAgent = recommendationAgent;
         this.courseAnalysisAgent = courseAnalysisAgent;
         this.pathPlanningAgent = pathPlanningAgent;
         this.aiClient = aiClient;
+        this.marketRadarTool = marketRadarTool;
     }
 
     /**
@@ -64,18 +67,27 @@ public class IndustryArchitectNode {
         long latency = System.currentTimeMillis() - tStart;
         state.recordLatency("IndustryArchitectNode", latency);
 
+        // 调取产业前沿招聘行情雷达 (Live Market Tool)
+        com.share.education.ai.tools.market.JobMarketTrackInfo marketInfo = null;
+        if (marketRadarTool != null) {
+            marketInfo = marketRadarTool.apply(new com.share.education.ai.tools.market.JobMarketQueryRequest(role));
+        }
+
         // 4. 发起首轮发言 (支持大模型动态立论)
         String dynamicArg = null;
         if (aiClient != null && aiClient.isAvailable()) {
             String sys = "你是一线大厂资深架构师和技术委员会专家。你的职责是把关企业级硬核标准与技术胜任力。请针对目标岗位提出首版4阶段进阶方案的专业立论理由（不超过100字）。";
-            String usr = String.format("目标岗位：%s，已规划课程：%d门，预估学时：%dh。请说明你的设计初衷与大厂刚需。",
-                role, initialPlan.getTotalCourses(), initialPlan.getTotalEstimatedHours());
+            String marketText = marketInfo != null ? String.format("【前沿行情】市场热度【%d分】，平均薪资【%s】，高频技术栈【%s】。",
+                marketInfo.getDemandIndex(), marketInfo.getAvgSalaryRange(), String.join("/", marketInfo.getHotKeywords().subList(0, Math.min(4, marketInfo.getHotKeywords().size())))) : "";
+            String usr = String.format("目标岗位：%s，%s已规划课程：%d门，预估学时：%dh。请说明你的设计初衷与大厂刚需。",
+                role, marketText, initialPlan.getTotalCourses(), initialPlan.getTotalEstimatedHours());
             dynamicArg = aiClient.generate(sys, usr);
         }
 
+        String marketNote = marketInfo != null ? String.format("【招聘趋势：%s | 平均薪资：%s】", marketInfo.getDemandTrend(), marketInfo.getAvgSalaryRange()) : "";
         String arg = (dynamicArg != null && !dynamicArg.isBlank()) ? dynamicArg.trim() : String.format(
-            "针对【%s】岗位标准，我基于一线大厂胜任力图谱规划了 4 阶段进阶方案，共 %d 门专业课。核心聚焦企业级微服务治理与高并发架构实战，必须满足招聘硬指标！",
-            role, initialPlan.getTotalCourses());
+            "针对【%s】岗位标准 %s，我基于一线大厂胜任力图谱规划了 4 阶段进阶方案，共 %d 门专业课。核心聚焦企业级实战标准，必须满足招聘硬指标！",
+            role, marketNote, initialPlan.getTotalCourses());
 
         AgentDebateTurn turn = AgentDebateTurn.builder()
             .round(state.getCurrentRound())
