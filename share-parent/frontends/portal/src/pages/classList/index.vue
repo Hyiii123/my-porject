@@ -1,47 +1,67 @@
-<!-- 课程列表 -->
+<!-- 课程中心 - IAIC 风格 -->
 <template>
   <div class="mainWrapper">
-    <div class="container banner fx">
-      <div class="categorys bg-wt">
-        <!-- 头部分类 -->
-        <ClassCategory :data="classCategorys"></ClassCategory>
+    <!-- 1. 顶部 IAIC Hero Banner -->
+    <section class="classList-hero">
+      <div class="hero-glow"></div>
+      <div class="container hero-content">
+        <div class="home-eyebrow">
+          <span class="idx">01</span>
+          <span class="bar"></span>
+          <span>COMPREHENSIVE CURRICULUM ARCHITECTURE</span>
+        </div>
+        <h1 class="hero-title">全景前沿技术课程中心 · <span class="accent">产学研认证体系</span></h1>
+        <p class="hero-desc">
+          紧密对标一线大厂技术标准与国家胜任力模型，涵盖 Java 微服务架构、大模型微调与 RAG、Go 高并发云原生、大数据流批计算等核心技术链路。
+        </p>
       </div>
-      <!-- 头部幻灯片 -->
-      <Swiper :data="imags"></Swiper>
+    </section>
+
+    <!-- 2. 分类与轮播区 -->
+    <div class="container banner-section">
+      <div class="banner-card fx">
+        <div class="categorys">
+          <ClassCategory :data="classCategorys"></ClassCategory>
+        </div>
+        <div class="swiper-box fx-1">
+          <Swiper :data="imags"></Swiper>
+        </div>
+      </div>
     </div>
-    <!-- 直播公开课 -->
-    <div class="bg-wt pd-tp-30">
-      <OpenClass
-        title="直播公开课"
-        class="container bg-wt"
-        :data="freeClassData"
-      ></OpenClass>
+
+    <!-- 3. 直播公开课 -->
+    <div class="class-section-wrap">
+      <div class="container">
+        <OpenClass
+          title="🔥 直播公开课与名师实战"
+          :data="freeClassData"
+        ></OpenClass>
+      </div>
     </div>
-    <!-- 新课推荐 -->
-    <div class="pd-tp-30">
-      <OpenClass
-        title="新课推荐"
-        class="container"
-        :data="freeClassData"
-      ></OpenClass>
+
+    <!-- 4. 新课推荐 -->
+    <div class="class-section-wrap alt-bg">
+      <div class="container">
+        <OpenClass
+          title="✨ 2026 前沿新课推荐"
+          :data="freeClassData"
+        ></OpenClass>
+      </div>
     </div>
-    <!-- 广告位 -->
-    <div class="globalTopBanner" style="display: block;">
-      <img src="@/assets/adv.png" />
-    </div>
-    <!-- 精品好课 -->
-    <div class="bg-wt pd-tp-30">
-      <OpenClass
-        title="精品好课"
-        class="container bg-wt"
-        :data="freeClassData"
-      ></OpenClass>
+
+    <!-- 5. 产学研精品好课 -->
+    <div class="class-section-wrap">
+      <div class="container">
+        <OpenClass
+          title="🏆 产学研精品攻坚好课"
+          :data="freeClassData"
+        ></OpenClass>
+      </div>
     </div>
   </div>
 </template>
-<script setup>
-/** 数据导入 **/
 
+<script setup>
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { getClassCategorys, getFreeClassList } from "@/api/class.js";
@@ -52,108 +72,126 @@ import banner1 from "@/assets/banner1.jpg";
 import banner2 from "@/assets/banner2.jpg";
 import banner3 from "@/assets/banner3.jpg";
 
-// 分类数据
 const classCategorys = ref([]);
-// banner幻灯片图片
 const imags = [banner1, banner2, banner3];
-// 直播公开课的数据
 const freeClassData = ref([]);
 
-// mounted生命周期
+const getClassCategoryData = async () => {
+  try {
+    const res = await getClassCategorys();
+    if (res.code == 200 && Array.isArray(res.data)) {
+      classCategorys.value = res.data;
+    }
+  } catch (e) {
+    console.debug("分类加载失败:", e);
+  }
+};
+
+const getFreeClassListData = async () => {
+  try {
+    const res = await getFreeClassList({ pageNo: 1, pageSize: 8 });
+    if (res.code == 200 && res.data) {
+      const list = res.data.list || res.data.records || [];
+      freeClassData.value = list;
+    }
+  } catch (e) {
+    console.debug("公开课加载失败:", e);
+  }
+};
+
 onMounted(() => {
-  // 获取三级分类信息
   getClassCategoryData();
-  // 获取精品公开课
   getFreeClassListData();
 });
-
-/** 方法定义 **/
-
-// 获取三级分类信息
-const getClassCategoryData = async () => {
-  await getClassCategorys()
-    .then((res) => {
-      if (res.code == 200) {
-        classCategorys.value = res.data;
-      } else {
-        ElMessage(res.meg);
-      }
-    })
-    .catch(() => {
-      ElMessage("分类请求出错！");
-    });
-};
-// 精品公开课接口
-const getFreeClassListData = async () => {
-  await getFreeClassList()
-    .then((res) => {
-      if (res.code == 200) {
-        freeClassData.value = res.data;
-      } else {
-        ElMessage(res.meg);
-      }
-    })
-    .catch(() => {
-      ElMessage("分类请求出错！");
-    });
-};
-// 新课推荐
-const getNewClassListData = async () => {
-  await getClassCategorys()
-    .then((res) => {
-      if (res.code == 200) {
-        classCategorys.value = res.data;
-      } else {
-        ElMessage(res.meg);
-      }
-    })
-    .catch(() => {
-      ElMessage("分类请求出错！");
-    });
-};
-// 精品好课
-const getGoodClassListData = async () => {
-  await getClassCategorys()
-    .then((res) => {
-      if (res.code == 200) {
-        classCategorys.value = res.data;
-      } else {
-        ElMessage(res.meg);
-      }
-    })
-    .catch(() => {
-      ElMessage("分类请求出错！");
-    });
-};
 </script>
+
 <style lang="scss" scoped>
 .mainWrapper {
-  .banner {
-    padding: 20px 0;
-    .categorys {
-      position: relative;
-      width: 236px;
-      height: 388px;
-      border-radius: 8px;
-      z-index: 9;
+  background: var(--sky);
+  min-height: 100vh;
+  font-family: var(--cn);
+  padding-bottom: 60px;
+}
+
+.classList-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 48px 0 36px;
+  background: radial-gradient(60% 80% at 50% 0%, rgba(33, 198, 232, 0.14), transparent 60%),
+              radial-gradient(50% 70% at 5% 100%, rgba(43, 134, 240, 0.12), transparent 60%),
+              linear-gradient(135deg, #eaf4ff, #d6eaff 55%, #c8e0ff);
+  border-bottom: 1px solid var(--line);
+
+  .hero-glow {
+    position: absolute;
+    width: 600px;
+    height: 300px;
+    background: radial-gradient(ellipse, rgba(56, 182, 255, 0.3), transparent 65%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+
+  .hero-title {
+    font-size: clamp(28px, 3.6vw, 40px);
+    font-weight: 800;
+    color: var(--ink);
+    margin: 10px 0 8px;
+
+    .accent {
+      background: var(--grad);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
   }
-  .globalTopBanner{
-      width: 100%;
-      min-width: 1152px;
-      max-width: 2560px;
-      height: 72px;
-      overflow: hidden;
-      cursor: pointer;
-      position: relative;
-      img{
-        height: 100%;
-        display: block;
-        position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-      }
+
+  .hero-desc {
+    font-size: 15px;
+    color: var(--slate);
+    max-width: 720px;
+    margin: 0;
+    line-height: 1.7;
+  }
+}
+
+.banner-section {
+  margin-top: 24px;
+  margin-bottom: 36px;
+}
+
+.banner-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+
+  .categorys {
+    width: 240px;
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid var(--line);
+    z-index: 9;
+  }
+
+  .swiper-box {
+    overflow: hidden;
+  }
+}
+
+.class-section-wrap {
+  padding: 32px 0 16px;
+
+  &.alt-bg {
+    background: rgba(255, 255, 255, 0.6);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
   }
 }
 </style>

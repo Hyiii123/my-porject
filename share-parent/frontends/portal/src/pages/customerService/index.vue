@@ -2,10 +2,14 @@
   <main class="customer-service-page">
     <div class="service-container">
       <section class="service-hero">
-        <div>
-          <div class="hero-eyebrow"><el-icon><Service /></el-icon> 专属学习服务</div>
-          <h1>客服中心</h1>
-          <p>遇到课程、订单或账号问题？先问问小智，服务结束后还可以留下评价。</p>
+        <div class="hero-content">
+          <div class="home-eyebrow">
+            <span class="idx">01</span>
+            <span class="bar"></span>
+            <span>AI ASSISTANT & SEMANTIC INTENT ROUTER</span>
+          </div>
+          <h1>智能学伴在线客服 · <span class="accent">全天候学情答疑</span></h1>
+          <p>基于大模型意图路由与行业知识图谱，秒级解答课程、订单与学习疑难，支持会话归档与满意度评价。</p>
         </div>
       </section>
 
@@ -1595,8 +1599,9 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .customer-service-page {
   min-height: calc(100vh - 70px);
-  padding: 32px 0 48px;
-  background: #f5f7fb;
+  padding: 24px 0 48px;
+  background: var(--sky);
+  font-family: var(--cn);
 }
 
 .service-container {
@@ -1606,32 +1611,34 @@ onBeforeUnmount(() => {
 }
 
 .service-hero {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 26px;
-}
-
-.hero-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-  color: #2563EB;
-  font-size: 13px;
-  font-weight: 600;
+  background: radial-gradient(60% 80% at 50% 0%, rgba(33, 198, 232, 0.14), transparent 60%),
+              radial-gradient(50% 70% at 5% 100%, rgba(43, 134, 240, 0.12), transparent 60%),
+              linear-gradient(135deg, #eaf4ff, #d6eaff 55%, #c8e0ff);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 32px 36px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
 }
 
 .service-hero h1 {
-  color: #202943;
-  font-size: 32px;
-  line-height: 1.25;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 10px 0 8px;
+
+  .accent {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 }
 
 .service-hero p {
-  margin-top: 8px;
-  color: #7c849b;
-  font-size: 14px;
+  margin-top: 6px;
+  color: var(--slate);
+  font-size: 14.5px;
 }
 
 .mini-status-dot,
@@ -3229,3 +3236,4 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+

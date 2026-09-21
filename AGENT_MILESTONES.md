@@ -14,6 +14,28 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-22 00:20:00 - 智问学伴全域核心板块 1:1 IAIC 视觉深度收敛：课程中心、全真考场、智能客服与全局 Element 元件风格全面贯通 (Sitewide Core Sectors IAIC Visual Alignment: Course Center, AI Arena, Customer Service & Global Element Tokens)
+
+* **演进主题**：全站核心业务板块风格统合重塑 (`classList/index.vue`、`interview/index.vue`、`customerService/index.vue` 全量升级为 1:1 IAIC 科技蓝与轻灵微粒视觉规范，根除页面间割裂感)、全局基础标题元件与 Element Plus 变量收敛 (`MainTitle.vue` 全局注入渐变科技边线，`element/index.scss` 全局将 Element Plus Primary 覆盖为 `#1E89F1`，Success 覆盖为 `#1FB877`，Card 全量统一 16px 圆角与柔和投影)、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **全景前沿课程中心全面升级 (`classList/index.vue`)**：
+     - 引入 IAIC 科技蓝 Hero Banner（`.home-eyebrow` 编号徽章 + 蓝图网格底板 + 渐变标题），彻底替换原老旧轮播图；
+     - 整合分类与轮播图至 IAIC 统一卡片容器，下方直播课、新课推荐与精品好课全面对接 IAIC 科技直角括号卡片网格。
+  2. **AI 全真模拟考场深度风格对齐 (`interview/index.vue`)**：
+     - 将原灰黑冷峻风格升级为 IAIC 科技蓝径向发光底色与蓝白对比卡片；
+     - 题库底座、语义检定延迟等 4 项大厂指标卡片重构为白色圆角微浮雕卡片，文字呈现科技蓝高反差，配置卡与历史记录卡统一为 18px 圆角与柔和投影。
+  3. **智能助学客服中心全域重塑 (`customerService/index.vue`)**：
+     - 客服大厅 Header 升级为 IAIC 语义意图大厅风格，增加科技徽章与渐变标题；
+     - 会话历史侧边栏与消息交互全面采用深海蓝、浅蓝画布与气泡统一色调。
+  4. **全站通用标题元件与全局组件变量统合 (`MainTitle.vue` & `element/index.scss`)**：
+     - `MainTitle.vue` 注入 `var(--grad)` 渐变科技边条与悬浮平滑位移箭头；
+     - 全站 Element Plus 主色调全面收敛为 IAIC Azure/Cyan/Green，全局按钮、输入框、卡片均呈现统一质感。
+  5. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 串行打包并热更新 `portal-ui` 静态资源产物，平稳重启 Nginx 容器；
+     - 定向接口与页面全绿通过：
+       - 学生端门户（`http://47.121.26.136:18081`）：首页、课程中心、AI模拟考场、智能客服四大主板块视觉风格 100% 连贯统一，IAIC 科技蓝、扫描光线、粒子与直角卡片浑然一体；
+       - 各业务路由秒级跳转无卡顿。
+
 ### 2026-09-21 23:55:00 - 智问学伴技术问答社区全新重塑：由课程单表单升格为产学研互动中枢、详情动态热议打通与全站卡片 IAIC 深度统一 (Interactive Q&A Community Hub Overhaul, Dynamic Thread Linking & Sitewide IAIC Tech Card Elevation)
 
 * **演进主题**：问答社区页面架构重塑 (`ask/index.vue` 彻底告别以往缺少课程 ID 报 400 且显示空白禁用表单的死锁，升格为兼具关键字检索、四维标签筛选、问答列表流与多课程联动提问的完整 IAIC 问答中枢)、问答详情动态关联打通 (`askDetails.vue` 消除 `res.data.msg` 未定义报错，`RelatedQuestions.vue` 彻底废除写死静态假数据，动态联动 `/ls/questions/page` 实时推荐相关热议讨论并支持跳转)、通用课程卡片 IAIC 直角科技感覆盖 (`ClassCards.vue` 全量注入科技直角括号、卡片微浮升与高光渐变)、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
@@ -1486,6 +1508,7 @@
   6. **云端生产极速热发布与全流程定向自动化回归验证**：
      - 严格遵循发布铁律与云盘保护准则，本地打出 `share-customer.jar` 与 `portal/dist` 纯静态产物，通过 Workbench CLI 快速上传并在云端实施秒级热重载，达成服务器零构建、零云盘 IOPS 冲击；
      - 执行 `.scratch/test_interview_flow.py` 定向测试，全流程验证 20 题考场建立、第一题自我介绍作答与评分、第二题小林八股深挖与知识库挂载、第三题下一独立模块平滑推进、交卷与多维专家报告生成（六维雷达图与 STAR 话术）、以及学生端 Portal UI（HTTP 200），100% 满分通过。
+
 
 
 
