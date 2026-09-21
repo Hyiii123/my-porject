@@ -152,8 +152,8 @@ watchEffect(()=>{
   z-index: 999;
   width: 226px;
   height: 100vh;
-  background-color: #0F172A;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: var(--navy);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 
   &::-webkit-scrollbar {
     width: 4px;
@@ -180,15 +180,15 @@ watchEffect(()=>{
   .logo-icon {
     width: 36px;
     height: 36px;
-    background: #2563EB;
-    border-radius: 8px;
+    background: var(--grad);
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
     font-size: 18px;
-    font-weight: 700;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(33, 198, 232, 0.4);
   }
 
   .logo-text {
@@ -239,13 +239,13 @@ watchEffect(()=>{
       }
     }
     .is-active {
-      color: #60A5FA !important;
-      background-color: rgba(37, 99, 235, 0.16) !important;
-      font-weight: 600;
-      border-left: 3px solid #2563EB;
+      color: #FFFFFF !important;
+      background: linear-gradient(90deg, rgba(33, 198, 232, 0.22), rgba(43, 134, 240, 0.28)) !important;
+      font-weight: 700;
+      border-left: 3px solid var(--cyan);
       &:hover {
-        color: #60A5FA !important;
-        background-color: rgba(37, 99, 235, 0.22) !important;
+        color: #FFFFFF !important;
+        background: linear-gradient(90deg, rgba(33, 198, 232, 0.3), rgba(43, 134, 240, 0.36)) !important;
       }
     }
   }

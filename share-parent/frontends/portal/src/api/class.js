@@ -13,6 +13,14 @@ export const getClassCategorys = (params) =>
 		params
 	})
 
+// 获取公开课/精品课列表
+export const getFreeClassList = (params) =>
+	request({
+		url: `${COURSE_API_PREFIX}/courses/portal`,
+		method: 'get',
+		params
+	})
+
 // 获取课程推荐接口
 export const getRecommendClassList = (type) =>
 	request({
@@ -430,6 +438,7 @@ export const fetchReasoningStream = async ({ targetRole, query, onEvent, onError
 		else console.error('SSE 流式推演异常:', err)
 	}
 }
+
 
 
 

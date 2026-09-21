@@ -23,6 +23,21 @@ export default [
     ],
   },
   {
+    path: '/classList',
+    component: Layout,
+    name: 'classList',
+    redirect: '/classList/index',
+    meta: { title: '课程中心' },
+    children: [
+      {
+        path: 'index',
+        name: 'classListIndex',
+        component: () => import('@/pages/classList/index.vue'),
+        meta: { title: '课程中心' },
+      }
+    ],
+  },
+  {
     path: '/search',
     component: Layout,
     name: 'search',
@@ -222,3 +237,4 @@ export default [
     ],
   },
 ];
+

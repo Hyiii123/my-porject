@@ -1,4 +1,4 @@
-<!-- 登录页面 - QQ邮箱验证码登录 -->
+<!-- 登录页面 - QQ邮箱验证码登录 (IAIC 风格) -->
 <template>
   <div class="loginPhone">
     <el-form
@@ -6,45 +6,74 @@
       :model="fromData"
       :rules="rules"
       label-width="0px"
-      class="demo-dynamic"
+      class="iaic-login-form"
     >
-      <el-form-item prop="email" label="">
-        <el-input v-model="fromData.email" placeholder="请输入QQ邮箱（如 123456@qq.com）" clearable />
+      <el-form-item prop="email">
+        <el-input
+          v-model="fromData.email"
+          placeholder="请输入QQ邮箱（如 123456@qq.com）"
+          size="large"
+          class="iaic-input"
+          clearable
+        />
       </el-form-item>
-      <el-form-item prop="code" label="">
+      <el-form-item prop="code">
         <div class="code-row">
-          <el-input v-model="fromData.code" placeholder="请输入6位邮箱验证码" maxlength="6" clearable />
-          <el-button class="code-button" :disabled="codeLoading || codeCountdown > 0" :loading="codeLoading" @click="sendCode">
+          <el-input
+            v-model="fromData.code"
+            placeholder="请输入6位验证码"
+            maxlength="6"
+            size="large"
+            class="iaic-input code-input"
+            clearable
+            @keyup.enter="submitForm(formRef)"
+          />
+          <button
+            type="button"
+            class="iaic-btn-code"
+            :disabled="codeLoading || codeCountdown > 0"
+            @click="sendCode"
+          >
             {{ codeCountdown > 0 ? `${codeCountdown}s 后重发` : '获取验证码' }}
-          </el-button>
+          </button>
         </div>
       </el-form-item>
       <el-form-item class="marg-b-10">
         <div class="fx-sb">
-            <div>
-                <el-checkbox v-model="fromData.rememberMe" label="7天免登录" size="large" />
-            </div>
-            <div class="forgot-pass" @click="emit('goHandle', 'pass')">密码登录</div>
+          <div>
+            <el-checkbox v-model="fromData.rememberMe" label="7天免登录" size="default" />
+          </div>
+          <div class="forgot-pass" @click="emit('goHandle', 'pass')">账号密码登录</div>
         </div>
       </el-form-item>
       <el-form-item class="marg-bt-15">
-        <el-button type="primary" class="login-btn" :loading="loading" @click="submitForm(formRef)">登 录</el-button>
+        <button
+          type="button"
+          class="iaic-btn-submit"
+          :disabled="loading"
+          @click="submitForm(formRef)"
+        >
+          <span v-if="!loading">立即登录 ➔</span>
+          <span v-else>正在验证登录...</span>
+        </button>
       </el-form-item>
     </el-form>
     <div class="font-bt text-center" @click="goRegister">
-        没有账号？去注册
+      没有账号？<span class="reg-accent">去注册新用户</span>
     </div>
   </div>
 </template>
+
 <script setup>
 import { onBeforeUnmount, reactive, ref } from "vue";
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from "element-plus";
 import { emailLogin, getUserInfo, verifycode } from '@/api/user';
 import { useUserStore } from '@/store';
 
 const emit = defineEmits(['goHandle']);
 const router = useRouter();
+const route = useRoute();
 const store = useUserStore();
 const loading = ref(false);
 const codeLoading = ref(false);
@@ -130,20 +159,27 @@ const submitForm = async (formEl) => {
       code: fromData.code.trim()
     });
     if (response.code !== 200 || !response.data) {
-      throw new Error(response.msg || response.message || '登录失败');
+      throw new Error(response.msg || response.message || '登录失败，请检查验证码');
     }
     const token = response.data?.access_token || response.data?.token || response.data;
     await store.setToken(token);
     sessionStorage.setItem('token', token);
 
-    const userResponse = await getUserInfo();
-    if (userResponse.code === 200 && userResponse.data) {
-      await store.setUserInfo(userResponse.data);
-      sessionStorage.setItem('userInfo', JSON.stringify(userResponse.data));
+    try {
+      const userResponse = await getUserInfo();
+      if (userResponse && userResponse.code === 200 && userResponse.data) {
+        await store.setUserInfo(userResponse.data);
+        sessionStorage.setItem('userInfo', JSON.stringify(userResponse.data));
+        window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: userResponse.data }));
+      }
+    } catch (e) {
+      console.debug('UserInfo fetch fallback:', e);
     }
-    ElMessage.success('登录成功！');
-    window.location.href = '/#/main/index';
-    window.location.reload();
+
+    ElMessage.success('登录成功！欢迎回来');
+    const rawRedirect = route.query.redirect ? decodeURIComponent(route.query.redirect) : '/main/index';
+    const target = (rawRedirect === '/login' || rawRedirect.startsWith('/login')) ? '/main/index' : rawRedirect;
+    await router.push(target);
   } catch (error) {
     ElMessage.error(error.message || '登录失败，请检查验证码');
   } finally {
@@ -160,54 +196,134 @@ onBeforeUnmount(() => {
   if (countdownTimer) window.clearInterval(countdownTimer);
 });
 </script>
+
 <style lang="scss" scoped>
 .loginPhone {
-  margin-top: 24px;
+  margin-top: 10px;
 }
+
+.iaic-input {
+  :deep(.el-input__wrapper) {
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--sky);
+    box-shadow: none;
+    transition: all 0.2s ease;
+
+    &:hover, &.is-focus {
+      background: #fff;
+      border-color: var(--azure);
+      box-shadow: 0 0 0 1px var(--azure);
+    }
+  }
+}
+
 .code-row {
   display: flex;
   gap: 12px;
   width: 100%;
 }
-.code-row :deep(.el-input) {
+
+.code-input {
   flex: 1;
 }
-.code-button {
-  width: 118px;
+
+.iaic-btn-code {
+  width: 120px;
   height: 40px;
-  flex-shrink: 0;
+  border-radius: 10px;
+  border: 1px solid var(--azure);
+  background: var(--sky-2);
+  color: var(--azure);
   font-size: 13px;
-  border-radius: 6px;
-  border-color: #CBD5E1;
-  color: #334155;
-  background-color: #F8FAFC;
-  &:hover {
-    color: #2563EB;
-    border-color: #2563EB;
-    background-color: #EFF6FF;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: var(--azure);
+    color: #fff;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    border-color: var(--line);
+    color: var(--slate-2);
+    background: var(--sky);
   }
 }
-.login-btn {
+
+.fx-sb {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
-  height: 40px;
-  font-size: 15px;
-  font-weight: 500;
-  border-radius: 6px;
-  background-color: #2563EB !important;
-  border-color: #2563EB !important;
-  color: #FFFFFF !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.15);
-  &:hover, &:focus {
-    background-color: #1D4ED8 !important;
-    border-color: #1D4ED8 !important;
-    color: #FFFFFF !important;
-    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.forgot-pass {
+  color: var(--slate);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--azure);
   }
-  &:active {
-    background-color: #1E40AF !important;
-    border-color: #1E40AF !important;
-    color: #FFFFFF !important;
+}
+
+.iaic-btn-submit {
+  width: 100%;
+  height: 44px;
+  border-radius: 22px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #38b6ff, #2a8fff);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(42, 143, 255, 0.4);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
+
+  &:after {
+    content: "";
+    position: absolute;
+    top: 0; left: -75%;
+    width: 50%; height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    transform: skew(-20deg);
+    animation: shine 3s infinite;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(42, 143, 255, 0.55);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    transform: none;
+    background: linear-gradient(90deg, #8b98aa, #6f7d91);
+    box-shadow: none;
+    &:after { display: none; }
+  }
+}
+
+.font-bt {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--slate);
+  cursor: pointer;
+  text-align: center;
+
+  .reg-accent {
+    color: var(--azure);
+    font-weight: 600;
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
 </style>

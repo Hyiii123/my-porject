@@ -14,19 +14,18 @@ NProgress.configure({ showSpinner: false });
 
 const { whiteListRouters } = permissionStore;
 
-const PUBLIC_PATHS = ['/', '/login', '/main', '/search', '/details', '/customer-service', '/points', '/result', '/askDetails'];
+const PUBLIC_PATHS = ['/', '/login', '/main', '/search', '/classList', '/details', '/customer-service', '/points', '/result', '/askDetails', '/interview'];
 const isPublicRoute = (path) => PUBLIC_PATHS.some((p) => path === p || path.startsWith(p === '/' ? '///' : p + '/'));
 
 // 登录状态效验
 router.beforeEach(async (to, from, next) => {
   NProgress.start();
-  const { token } = userStore;
+  const token = sessionStorage.getItem('token') || userStore.token;
 
   if (token) {
     if (to.path === '/login') {
-      userStore.logout();
-      permissionStore.restore();
-      next();
+      next('/main/index');
+      NProgress.done();
       return;
     }
     next();
@@ -44,3 +43,4 @@ router.beforeEach(async (to, from, next) => {
 router.afterEach(() => {
   NProgress.done();
 });
+

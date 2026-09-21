@@ -14,6 +14,30 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-21 23:20:00 - 智问学伴全域前端体验闭环：课程中心 404 根治、登录态跳页自销毁修复、登录页与业务管理端 IAIC 1:1 视觉深度统一 (Frontend Experience Closed-Loop: Course Center 404 Fix, Login Self-Destruct Redirection Remediation, Unified IAIC Redesign for Login & Business Admin)
+
+* **演进主题**：课程中心路由与 API 全量补全 (`base.js` 补齐 `/classList` 路由定义并注入 `PUBLIC_PATHS` 免登清单，`class.js` 补全 `getFreeClassList` 导出，彻底解决课程中心 404)、登录态自销毁重载根治 (`permission.js` 废除访问 `/login` 盲目 `logout` 逻辑，`LoginPass.vue` 废除硬编码 `location.reload()` 改为 Vue Router 平滑过渡，解决登录后弹回登录页的问题)、登录页面 1:1 IAIC 科技蓝视觉重构 (`login/index.vue`、`LoginPass.vue`、`LoginPhone.vue` 引入脉冲弥散粒子底板、科技直角边框、胶囊式切换器与扫光登录按钮)、业务管理端全域视觉对齐 (`frontends/business-admin` 引入 IAIC 全套 Design Tokens、Deep Navy 沉浸式侧边栏、Cyan 激活高亮边线与流光顶栏)、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **课程中心 404 彻底根除与公开访问保障**：
+     - 在 `router/modules/base.js` 注册 `/classList` 路由映射至 `@/pages/classList/index.vue`；
+     - 在 `src/api/class.js` 补充导出 `getFreeClassList` 接口（对齐 `/cs/courses/portal`），并在 `permission.js` 加入 `PUBLIC_PATHS`，访客免登录即可畅通浏览全站精品课程。
+  2. **登录流程死循环自销毁缺陷根治**：
+     - 根除 `src/permission.js` 中历史遗留的 `if (to.path === '/login') userStore.logout()` 缺陷，当已登录用户访问登录页时自动重定向至主页 `/main/index`，保护 SessionStorage 会话；
+     - 优化 `LoginPass.vue` 与 `LoginPhone.vue`，用 `router.push(target)` 替代原本的 `window.location.reload()`，杜绝页面重载竞态导致 Session 丢失。
+  3. **登录页面 1:1 IAIC 产学研科技感深度重塑**：
+     - 还原 IAIC 多重径向渐变背景与 44px 蓝图网格虚线层，嵌入 8 枚轻灵漂浮的青光微粒（`floatUp` 动画）；
+     - 登录卡片采用科技直角边框（`.corner .c1`, `.c2`），顶部呈现 `var(--grad)` 渐变徽章；
+     - 切换器重构为 Segmented Pill 胶囊，登录按钮挂载 3s 扫光流星动画（`shine` 关键帧）。
+  4. **业务管理端 (`business-admin`) 全域视觉统一**：
+     - 引入全套 IAIC Design Tokens（`--azure`、`--cyan`、`--navy`、`--sky`），将原本普通后台灰黑风格升级为 IAIC 产学研科技风；
+     - 侧边栏全面升级为 Deep Navy (`#13294F`) 沉浸式设计，选中的菜单项呈现青色激光边线（`3px solid var(--cyan)`）与青蓝渐变激活背景；
+     - 顶栏加入动态扫描光线（`admin-nav-scan`）与自适应面包屑。
+  5. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 串行打包并热更新 `portal-ui` 与 `business-admin-ui`；
+     - 定向接口与页面全绿通过：
+       - 学生端门户（`http://47.121.26.136:18081`）：HTTP 200 OK，点击顶部「课程中心」瞬时秒开（无 404），登录页质感全面升级，登录体验丝滑顺畅；
+       - 业务管理端（`http://47.121.26.136:18082`）：HTTP 200 OK，Deep Navy 侧边栏与 IAIC 风格完整统一。
+
 ### 2026-09-21 22:35:00 - 智问学伴系统全域 105 项 Bug 深度治理与 IAIC 产学研科技前端 1:1 逆向重塑 (System-Wide 105-Bug Remediation, High-Risk Exploit Eradication & 1:1 IAIC Visual Design Architecture Replication)
 
 * **演进主题**：全系统 105 项静态与动态业务缺陷深度清障 (涵盖 IDOR 越权、0 元购支付漏洞、优惠券穿透自动创建套利、HikariCP 长事务连接池耗尽、面试出题越界重试、参数校验异常兜底等核心漏洞)、逆向抽取并 1:1 还原 IAIC 高校人工智能创新应用平台全套前端设计系统 (`https://iaic-universities.cqaip.cn/home` 核心 Design Tokens、Azure/Cyan 科技蓝霓虹色系、Sticky 顶部扫描光线、Hero 粒子脉冲发光背景、悬浮式渐变公告栏、1:1 Track 课程直角科技卡片与 Deep Navy 页脚)、云端生产热替换部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
@@ -1440,6 +1464,7 @@
   6. **云端生产极速热发布与全流程定向自动化回归验证**：
      - 严格遵循发布铁律与云盘保护准则，本地打出 `share-customer.jar` 与 `portal/dist` 纯静态产物，通过 Workbench CLI 快速上传并在云端实施秒级热重载，达成服务器零构建、零云盘 IOPS 冲击；
      - 执行 `.scratch/test_interview_flow.py` 定向测试，全流程验证 20 题考场建立、第一题自我介绍作答与评分、第二题小林八股深挖与知识库挂载、第三题下一独立模块平滑推进、交卷与多维专家报告生成（六维雷达图与 STAR 话术）、以及学生端 Portal UI（HTTP 200），100% 满分通过。
+
 
 
 

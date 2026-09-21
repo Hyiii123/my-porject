@@ -1,5 +1,6 @@
 <template>
   <header class="bg-wt">
+    <div class="admin-nav-scan"></div>
     <div class="fx headerInfo">
       <div class="fx-1 marg-lt-20">
         <div class="fx" v-show="route.meta.title != '首页'">
@@ -179,3 +180,4 @@ header {
   }
 }
 </style>
+
