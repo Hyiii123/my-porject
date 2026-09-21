@@ -14,6 +14,25 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-22 00:40:00 - 智问学伴业务管理端全域 100% IAIC 科技风重塑：登录页霓虹粒子焕新、工作台科技大屏与全模块表格表单深度统一 (Business Admin Sitewide 100% IAIC Redesign: Login Particle Remodel, Dashboard Telemetry Header & Enterprise Tables Unification)
+
+* **演进主题**：业务管理端首屏登录与全局视觉体系 100% 贯通重构 (`business-admin/src/pages/login/index.vue` 彻底废除旧版纯黑 `#0f172a` 背景与老式 2024 版权，全量导入 IAIC 蓝图网格虚线层、居中弥散发光体、8 枚浮动青光微粒、科技直角边框与渐变徽章；工作台大盘新增 IAIC 编号徽章与大标题；全局覆盖 `.searchForm`、`.tableBox` 与表格头为 16px 圆角与 `var(--sky-2)` 科技蓝背景)、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **业务管理端登录页全新重塑 (`business-admin/src/pages/login/index.vue`)**：
+     - 彻底消除与主站割裂的旧黑底登录界面，1:1 复制 IAIC 产学研科技蓝视觉；
+     - 登录卡片配备青色科技直角边框（`.corner .c1`, `.c2`）、蓝青渐变 Logo 徽章与扫光安全登录按钮；
+     - 优化登录跳转与 Token 持久化存储。
+  2. **业务管理端全模块（课程、题库、营销、问答、订单、用户、客服）组件级统一样式覆盖**：
+     - 在 `src/style/index.scss` 中全局统一 `.searchForm`、`.tableBox`、`.tableWrapper` 与 `.radius` 为 16px 圆角、`var(--line)` 精致边线与柔和投影；
+     - 全局覆盖 Element Plus 表格：表头统一为科技浅蓝 `var(--sky-2)`，表头字体加粗为 `var(--navy)`；
+     - 全局覆盖操作按钮：主按钮统一为渐变科技蓝（`linear-gradient(90deg, #38b6ff, #2a8fff)`）。
+  3. **管理工作台科技大屏升级 (`business-admin/src/pages/main/index.vue`)**：
+     - 顶部新增 IAIC 科技大屏 Header，呈现编号徽章（`01 / ENTERPRISE OPERATIONS & AI TELEMETRY`）与渐变高亮大标题。
+  4. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 串行打包并热更新 `business-admin-ui`，平稳重启 Nginx 容器；
+     - 定向验证全绿通过：
+       - 业务管理端（`http://47.121.26.136:18082`）：首屏登录页秒级呈现 IAIC 蓝图粒子与玻璃拟态卡片，登录后进入工作台与各子页面，深海蓝侧边栏、表单搜索框、数据表格与操作按钮均 100% 呈现 IAIC 科技蓝风格，体验与用户端高度统一。
+
 ### 2026-09-22 00:20:00 - 智问学伴全域核心板块 1:1 IAIC 视觉深度收敛：课程中心、全真考场、智能客服与全局 Element 元件风格全面贯通 (Sitewide Core Sectors IAIC Visual Alignment: Course Center, AI Arena, Customer Service & Global Element Tokens)
 
 * **演进主题**：全站核心业务板块风格统合重塑 (`classList/index.vue`、`interview/index.vue`、`customerService/index.vue` 全量升级为 1:1 IAIC 科技蓝与轻灵微粒视觉规范，根除页面间割裂感)、全局基础标题元件与 Element Plus 变量收敛 (`MainTitle.vue` 全局注入渐变科技边线，`element/index.scss` 全局将 Element Plus Primary 覆盖为 `#1E89F1`，Success 覆盖为 `#1FB877`，Card 全量统一 16px 圆角与柔和投影)、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
@@ -1508,6 +1527,7 @@
   6. **云端生产极速热发布与全流程定向自动化回归验证**：
      - 严格遵循发布铁律与云盘保护准则，本地打出 `share-customer.jar` 与 `portal/dist` 纯静态产物，通过 Workbench CLI 快速上传并在云端实施秒级热重载，达成服务器零构建、零云盘 IOPS 冲击；
      - 执行 `.scratch/test_interview_flow.py` 定向测试，全流程验证 20 题考场建立、第一题自我介绍作答与评分、第二题小林八股深挖与知识库挂载、第三题下一独立模块平滑推进、交卷与多维专家报告生成（六维雷达图与 STAR 话术）、以及学生端 Portal UI（HTTP 200），100% 满分通过。
+
 
 
 

@@ -2,13 +2,13 @@
 @forward 'element-plus/theme-chalk/src/common/var.scss' with (
   $colors: (
     'primary': (
-      'base': #2563EB,
+      'base': #1E89F1,
     ),
     'active': (
-      'base': #2563EB,
+      'base': #1E89F1,
     ),
     'success': (
-      'base': #059669,
+      'base': #1FB877,
     ),
     'warning': (
       'base': #D97706,
@@ -26,12 +26,12 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &--primary {
-    background-color: #2563EB !important;
-    border-color: #2563EB !important;
+    background-color: #1E89F1 !important;
+    border-color: #1E89F1 !important;
     color: #FFFFFF !important;
     &:hover, &:focus {
-      background-color: #1D4ED8 !important;
-      border-color: #1D4ED8 !important;
+      background-color: #1366D6 !important;
+      border-color: #1366D6 !important;
       color: #FFFFFF !important;
     }
     &:active {
@@ -46,8 +46,8 @@
     border-color: #CBD5E1 !important;
     color: #334155 !important;
     &:hover, &:focus {
-      color: #2563EB !important;
-      border-color: #2563EB !important;
+      color: #1E89F1 !important;
+      border-color: #1E89F1 !important;
       background-color: #EFF6FF !important;
     }
     &:active {
@@ -76,7 +76,7 @@
   font-weight: 400;
 }
 .el-menu-item.is-active {
-  color: #2563EB;
+  color: #1E89F1;
 }
 .el-form-item {
   margin-bottom: 20px;
@@ -1396,4 +1396,25 @@ input[type='number'] {
 }
 .el-loading-spinner .path {
   stroke: #fff !important;
+}
+
+
+// IAIC 管理端卡片与表格规范
+.el-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--line) !important;
+  background: var(--card) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.el-table {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+
+  th.el-table__cell {
+    background-color: var(--sky-2) !important;
+    color: var(--navy) !important;
+    font-weight: 700;
+  }
 }

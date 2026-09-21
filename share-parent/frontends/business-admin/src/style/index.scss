@@ -1472,3 +1472,36 @@ a {
     padding: 110px 0;
   }
 }
+
+
+// IAIC 全局管理端视觉覆盖规范
+.bg-wt {
+  background-color: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.radius {
+  border-radius: 16px !important;
+}
+
+.searchForm {
+  border-radius: 16px !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.tableBox, .tableWrapper {
+  border-radius: 16px !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.primary,
+.addBox .el-button--primary {
+  background: linear-gradient(90deg, #38b6ff, #2a8fff) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(42, 143, 255, 0.3) !important;
+  border-radius: 20px !important;
+}

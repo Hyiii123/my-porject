@@ -1,5 +1,16 @@
 <template>
   <div class="dashboard-container">
+    <!-- IAIC 工作台科技大屏 Banner -->
+    <div class="admin-dashboard-hero">
+      <div class="home-eyebrow">
+        <span class="idx">01</span>
+        <span class="bar"></span>
+        <span>ENTERPRISE OPERATIONS & AI TELEMETRY</span>
+      </div>
+      <h1 class="hero-title">智问学伴 · <span class="accent">业务协同管理工作台</span></h1>
+      <p class="hero-desc">全站课程资产、学员认知画像、多智能体导学推演、订单交易履约与客服大模型实时可观测大盘</p>
+    </div>
+
     <div class="stat-cards">
       <el-card v-for="(item, index) in statCards" :key="index" class="stat-card" shadow="never" v-loading="loading">
         <div class="stat-card-content">
@@ -317,5 +328,62 @@ onMounted(loadDashboard)
 @media (max-width: 768px) {
   .stat-cards { grid-template-columns: 1fr; }
   .todo-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<style scoped lang="scss">
+.admin-dashboard-hero {
+  background: radial-gradient(60% 80% at 50% 0%, rgba(33, 198, 232, 0.14), transparent 60%),
+              radial-gradient(50% 70% at 5% 100%, rgba(43, 134, 240, 0.12), transparent 60%),
+              linear-gradient(135deg, #eaf4ff, #d6eaff 55%, #c8e0ff);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 24px 30px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+
+.hero-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 8px 0 6px;
+  letter-spacing: -0.01em;
+
+  .accent {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+.hero-desc {
+  font-size: 13.5px;
+  color: var(--slate);
+  margin: 0;
+}
+
+.home-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono, monospace);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--azure);
+
+  .idx {
+    color: var(--cyan);
+    font-weight: 800;
+  }
+  .bar {
+    width: 22px;
+    height: 2px;
+    background: var(--grad);
+    border-radius: 2px;
+  }
 }
 </style>
