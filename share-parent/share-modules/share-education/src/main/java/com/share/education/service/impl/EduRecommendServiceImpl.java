@@ -1,5 +1,7 @@
 package com.share.education.service.impl;
 
+import com.share.common.core.exception.ServiceException;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.share.common.security.utils.SecurityUtils;
@@ -226,6 +228,9 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
     @Override
     public Map<String, Object> getUserPortrait(Long userId) {
         Long targetUid = userId != null && userId > 0 ? userId : currentUserId();
+        if (targetUid == null) {
+            return guestPortraitView();
+        }
         EduUserPortrait portrait = portraitMapper.selectOne(new LambdaQueryWrapper<EduUserPortrait>()
                 .eq(EduUserPortrait::getUserId, targetUid)
                 .orderByDesc(EduUserPortrait::getUpdateTime)
@@ -240,6 +245,9 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
     @Override
     public Map<String, Object> updateUserPortraitPreferences(Long userId, Map<String, Object> body) {
         Long targetUid = userId != null && userId > 0 ? userId : currentUserId();
+        if (targetUid == null) {
+            throw new ServiceException("未登录访客无法设置画像偏好，请先登录");
+        }
         EduUserPortrait portrait = portraitMapper.selectOne(new LambdaQueryWrapper<EduUserPortrait>()
                 .eq(EduUserPortrait::getUserId, targetUid)
                 .orderByDesc(EduUserPortrait::getUpdateTime)
@@ -410,6 +418,22 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
         return portrait;
     }
 
+    private Map<String, Object> guestPortraitView() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", null);
+        result.put("userId", null);
+        result.put("intendedRole", "全栈开发工程师");
+        result.put("preferredDifficulty", 2);
+        result.put("difficultyName", "中级进阶 (Intermediate)");
+        result.put("learningStyle", "systematic");
+        result.put("completionRate", 70.0);
+        result.put("totalStudyHours", 0.0);
+        result.put("skillWeights", Map.of("Java", 50, "Python", 40, "Vue", 40));
+        result.put("tags", List.of("探索者", "全能视野"));
+        result.put("priceSensitivity", "medium");
+        return result;
+    }
+
     @Override
     public Map<String, Object> portraitView(EduUserPortrait item) {
         Map<String, Object> result = new LinkedHashMap<>();
@@ -477,4 +501,6 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
         return result;
     }
 }
+
+
 

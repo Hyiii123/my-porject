@@ -133,6 +133,13 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
                 + (order.getOrderStatus() == 4 ? "（订单已超时关闭）" : order.getOrderStatus() == 1 ? "（订单已支付）" : ""));
 
         LocalDateTime now = LocalDateTime.now();
+        if (order.getExpireTime() != null && now.isAfter(order.getExpireTime())) {
+            orderMapper.update(null, new LambdaUpdateWrapper<TrOrder>()
+                    .set(TrOrder::getOrderStatus, 4)
+                    .set(TrOrder::getUpdateTime, now)
+                    .eq(TrOrder::getId, order.getId()));
+            throw new ServiceException("该订单已超过15分钟支付有效期，已自动超时关闭");
+        }
         TrPaymentOrder payment = paymentMapper.selectOne(new LambdaQueryWrapper<TrPaymentOrder>()
                 .eq(TrPaymentOrder::getOrderId, orderId).orderByDesc(TrPaymentOrder::getCreateTime).last("limit 1"));
         if (payment == null) {
@@ -494,3 +501,4 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
         };
     }
 }
+

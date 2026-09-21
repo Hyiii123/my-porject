@@ -130,7 +130,6 @@ public class InterviewServiceImpl implements IInterviewService {
     }
 
     @Override
-    @Transactional
     public InterviewTurn submitAnswer(SubmitAnswerRequest request) {
         if (request.getSessionId() == null || request.getTurnId() == null) {
             throw new ServiceException("请求参数不完整");
@@ -593,3 +592,4 @@ public class InterviewServiceImpl implements IInterviewService {
         return StringUtils.hasText(name) ? name : "学员";
     }
 }
+

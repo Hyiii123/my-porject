@@ -93,6 +93,11 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     public Map<String, Object> addCart(Map<String, ?> body) {
         Long courseId = longValue(body == null ? null : body.get("courseId"));
         require(courseId != null, "课程编号不能为空");
+        Map<String, Object> snapshot = courseSnapshot(courseId);
+        require(snapshot != null && !snapshot.isEmpty(), "课程不存在");
+        if (snapshot.containsKey("status")) {
+            require(Objects.equals(snapshot.get("status"), 1) || Objects.equals(snapshot.get("status"), "1"), "该课程已下架或暂未开放购买");
+        }
         TrCart value = cartMapper.selectOne(new LambdaQueryWrapper<TrCart>()
                 .eq(TrCart::getUserId, currentUserId())
                 .eq(TrCart::getCourseId, courseId));
@@ -105,12 +110,13 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
             value.setQuantity(1);
             value.setCreateTime(now);
             value.setUpdateTime(now);
-            fillCartSnapshot(value, courseSnapshot(courseId));
+            fillCartSnapshot(value, snapshot);
             cartMapper.insert(value);
         } else {
-            value.setQuantity(defaultValue(value.getQuantity(), 1) + 1);
+            // 在线课程为虚拟数字商品，单用户限购 1 份，不可重复累加数量
+            value.setQuantity(1);
             value.setUpdateTime(now);
-            fillCartSnapshot(value, courseSnapshot(courseId));
+            fillCartSnapshot(value, snapshot);
             cartMapper.updateById(value);
         }
         return cartView(value);
@@ -265,13 +271,13 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
             Long courseId = longValue(source.get("courseId"));
             require(courseId != null, "订单课程编号不能为空");
             Map<String, Object> snapshot = courseSnapshot(courseId);
-            boolean isInternalSeckill = bool(source.get("isInternalSeckill"));
-            boolean isCourseFree = isInternalSeckill || bool(snapshot.get("free")) || bool(snapshot.get("isFree"))
+            require(snapshot != null && !snapshot.isEmpty(), "课程不存在");
+            // 安全防御：严格禁止客户端伪造 isInternalSeckill 实施 0 元购绕过 (BUG-FIX)
+            boolean isCourseFree = bool(snapshot.get("free")) || bool(snapshot.get("isFree"))
                     || (snapshot.containsKey("price") && number(snapshot, "price", -1) == 0);
             long cents = isCourseFree ? 0 : number(snapshot, "price", defaultPriceCents(courseId));
             BigDecimal amount = BigDecimal.valueOf(cents).movePointLeft(2);
-            String courseName = isInternalSeckill ? defaultText(source.get("courseName"), "⚡限时秒杀 " + courseId)
-                    : isCourseFree ? defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), "免费课程 " + courseId))
+            String courseName = isCourseFree ? defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), "免费课程 " + courseId))
                     : defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), "课程 " + courseId));
             String cover = defaultText(snapshot.get("cover"), defaultText(snapshot.get("coverUrl"), defaultText(source.get("cover"), null)));
             TrOrderItem item = new TrOrderItem();
@@ -280,9 +286,10 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
             item.setCourseName(courseName);
             item.setCourseCoverUrl(cover);
             item.setUnitPrice(amount);
-            item.setQuantity(Math.max(1, (int) number(source, "quantity", 1)));
+            // 在线虚拟课程每门购买数量固定为 1
+            item.setQuantity(1);
             item.setDiscountAmount(BigDecimal.ZERO);
-            item.setPayableAmount(amount.multiply(BigDecimal.valueOf(item.getQuantity())));
+            item.setPayableAmount(amount);
             item.setCreateTime(LocalDateTime.now());
             items.add(item);
             total = total.add(item.getPayableAmount());
@@ -297,21 +304,19 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
                     .eq(MktUserCoupon::getId, couponParam)
                     .eq(MktUserCoupon::getUserId, currentUserId())
                     .eq(MktUserCoupon::getStatus, 0));
-            if (targetUserCoupon != null) {
-                coupon = couponMapper.selectById(targetUserCoupon.getCouponId());
-            } else {
+            if (targetUserCoupon == null) {
                 targetUserCoupon = userCouponMapper.selectOne(new LambdaQueryWrapper<MktUserCoupon>()
                         .eq(MktUserCoupon::getCouponId, couponParam)
                         .eq(MktUserCoupon::getUserId, currentUserId())
                         .eq(MktUserCoupon::getStatus, 0)
                         .orderByDesc(MktUserCoupon::getReceivedAt)
                         .last("limit 1"));
-                if (targetUserCoupon != null) {
-                    coupon = couponMapper.selectById(targetUserCoupon.getCouponId());
-                } else {
-                    coupon = couponMapper.selectById(couponParam);
-                }
             }
+            if (targetUserCoupon == null) {
+                throw new ServiceException("未找到您名下可用的有效优惠券，或该优惠券已被使用");
+            }
+            coupon = couponMapper.selectById(targetUserCoupon.getCouponId());
+            require(coupon != null && Integer.valueOf(1).equals(coupon.getStatus()), "该优惠券已下架或失效");
         }
 
         BigDecimal discountAmount = couponService.discount(total, coupon);
@@ -828,3 +833,4 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         return result;
     }
 }
+

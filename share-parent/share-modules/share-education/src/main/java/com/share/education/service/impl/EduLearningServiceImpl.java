@@ -84,7 +84,7 @@ public class EduLearningServiceImpl implements IEduLearningService {
     @Override
     @Transactional
     public Map<String, Object> enrollCourse(Long courseId) {
-        return enrollCourseForUser(currentUserId(), courseId);
+        return enrollCourseForUser(requireCurrentUserId(), courseId);
     }
 
     @Override
@@ -126,7 +126,7 @@ public class EduLearningServiceImpl implements IEduLearningService {
     @Override
     @Transactional
     public Map<String, Object> revokeCourse(Long courseId) {
-        return revokeCourseForUser(currentUserId(), courseId);
+        return revokeCourseForUser(requireCurrentUserId(), courseId);
     }
 
     @Override
@@ -148,7 +148,7 @@ public class EduLearningServiceImpl implements IEduLearningService {
     @Transactional
     public Map<String, Object> restartLearning(Long courseId) {
         EduCourse course = courseService.requireCourse(courseId);
-        Long userId = currentUserId();
+        Long userId = requireCurrentUserId();
         List<EduLearningRecord> records = learningMapper.selectList(new LambdaQueryWrapper<EduLearningRecord>()
                 .eq(EduLearningRecord::getUserId, userId)
                 .eq(EduLearningRecord::getCourseId, courseId)
@@ -190,6 +190,9 @@ public class EduLearningServiceImpl implements IEduLearningService {
     @Override
     public Map<String, Object> learningPage(long pageNo, long pageSize, boolean current) {
         Long userId = currentUserId();
+        if (userId == null) {
+            return pageView(0, Collections.emptyList());
+        }
         List<EduLearningRecord> allRecords = learningMapper.selectList(new LambdaQueryWrapper<EduLearningRecord>()
                 .eq(EduLearningRecord::getUserId, userId)
                 .orderByDesc(EduLearningRecord::getLastLearnTime)
@@ -517,3 +520,4 @@ public class EduLearningServiceImpl implements IEduLearningService {
         return result;
     }
 }
+

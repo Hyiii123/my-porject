@@ -130,7 +130,7 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         LocalDateTime now = LocalDateTime.now();
         if (value.getId() == null) {
             value.setId(newId());
-            value.setUserId(currentUserId());
+            value.setUserId(requireCurrentUserId());
             value.setViewCount(0);
             value.setReplyCount(0);
             value.setLikeCount(0);
@@ -143,7 +143,8 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
             questionMapper.insert(value);
         } else {
             EduQuestion old = requireQuestion(value.getId());
-            if (!Objects.equals(old.getUserId(), currentUserId()) && !SecurityUtils.isAdmin(currentUserId())) {
+            Long uid = requireCurrentUserId();
+            if (!Objects.equals(old.getUserId(), uid) && !SecurityUtils.isAdmin(uid)) {
                 throw new ServiceException("只能编辑自己的问题");
             }
             value.setUserId(old.getUserId());
@@ -157,7 +158,8 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
     @Transactional
     public void removeQuestion(Long id) {
         EduQuestion value = requireQuestion(id);
-        if (!Objects.equals(value.getUserId(), currentUserId()) && !SecurityUtils.isAdmin(currentUserId())) {
+        Long uid = requireCurrentUserId();
+        if (!Objects.equals(value.getUserId(), uid) && !SecurityUtils.isAdmin(uid)) {
             throw new ServiceException("只能删除自己的问题");
         }
         questionMapper.deleteById(id);
@@ -217,7 +219,7 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         requireQuestion(value.getQuestionId());
         LocalDateTime now = LocalDateTime.now();
         value.setId(newId());
-        value.setUserId(currentUserId());
+        value.setUserId(requireCurrentUserId());
         value.setLikeCount(0);
         value.setHidden(0);
         value.setStatus(ENABLED);
@@ -272,7 +274,7 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         LocalDateTime now = LocalDateTime.now();
         if (value.getId() == null) {
             value.setId(newId());
-            value.setUserId(currentUserId());
+            value.setUserId(requireCurrentUserId());
             value.setTitle(StringUtils.hasText(value.getTitle()) ? value.getTitle() : "学习笔记");
             value.setVisibility(defaultValue(value.getVisibility(), 1));
             value.setLikeCount(0);
@@ -286,7 +288,8 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
             noteMapper.insert(value);
         } else {
             EduNote old = requireNote(value.getId());
-            if (!Objects.equals(old.getUserId(), currentUserId()) && !SecurityUtils.isAdmin(currentUserId())) {
+            Long uid = requireCurrentUserId();
+            if (!Objects.equals(old.getUserId(), uid) && !SecurityUtils.isAdmin(uid)) {
                 throw new ServiceException("只能编辑自己的笔记");
             }
             value.setUserId(old.getUserId());
@@ -300,7 +303,8 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
     @Transactional
     public void removeNote(Long id) {
         EduNote value = requireNote(id);
-        if (!Objects.equals(value.getUserId(), currentUserId()) && !SecurityUtils.isAdmin(currentUserId())) {
+        Long uid = requireCurrentUserId();
+        if (!Objects.equals(value.getUserId(), uid) && !SecurityUtils.isAdmin(uid)) {
             throw new ServiceException("只能删除自己的笔记");
         }
         noteMapper.deleteById(id);
@@ -333,7 +337,7 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
     @Transactional
     public boolean collectNote(Long noteId, boolean collect) {
         EduNote note = requireNote(noteId);
-        Long userId = currentUserId();
+        Long userId = requireCurrentUserId();
         EduNoteCollect old = noteCollectMapper.selectOne(new LambdaQueryWrapper<EduNoteCollect>()
                 .eq(EduNoteCollect::getNoteId, noteId).eq(EduNoteCollect::getUserId, userId));
         if (collect && old == null) {
@@ -357,7 +361,7 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
     public boolean like(String bizType, Long bizId, boolean liked) {
         if ("COURSE".equalsIgnoreCase(bizType)) {
             courseService.requireCourse(bizId);
-            Long userId = currentUserId();
+            Long userId = requireCurrentUserId();
             String userSetKey = "edu:course:likes:users:" + bizId;
             String rankingZSetKey = "edu:course:likes:zset";
 
@@ -587,3 +591,4 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         return Map.of("name", Objects.equals(userId, currentUserId()) ? currentUserName() : "学习者" + userId, "avatar", "");
     }
 }
+

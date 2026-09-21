@@ -540,7 +540,16 @@ public class InterviewQuestionEngine {
                 best = item;
             }
         }
-        return (best != null) ? best : list.get(0);
+        if (best != null) {
+            return best;
+        }
+        for (CustomerKnowledge item : list) {
+            String q = item.getQuestion() != null ? item.getQuestion().trim() : "";
+            if (usedQuestions == null || !usedQuestions.contains(q)) {
+                return item;
+            }
+        }
+        return null;
     }
 
     private String resolveFundamentalFallback(JobTrack track, int index) {
@@ -757,3 +766,4 @@ public class InterviewQuestionEngine {
         return s.trim();
     }
 }
+

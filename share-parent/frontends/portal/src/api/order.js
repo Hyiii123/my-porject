@@ -84,11 +84,13 @@ request({
 })		
 
 // 批量将课程从购物车中删除
-export const delCarts = (data) =>
-	request({
-		url: `${TRADE_API_PREFIX}/carts?ids=${data.join(',')}`,
+export const delCarts = (data) => {
+	const ids = Array.isArray(data) ? data.join(',') : (data || '')
+	return request({
+		url: `${TRADE_API_PREFIX}/carts?ids=${encodeURIComponent(ids)}`,
 		method: 'delete'
-	})		
+	})
+}		
 
 
 /** 支付相关接口 **/ 	
@@ -138,3 +140,4 @@ export const refundsDetails = (id) =>
 		url: `${TRADE_API_PREFIX}/refund-apply/detail/${id}`,
 		method: 'get'
 	})		
+

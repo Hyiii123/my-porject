@@ -36,7 +36,15 @@ public final class EduUtils {
 
     public static Long currentUserId() {
         Long value = SecurityUtils.getUserId();
-        return value == null || value < 1 ? 1L : value;
+        return value == null || value < 1 ? null : value;
+    }
+
+    public static Long requireCurrentUserId() {
+        Long value = SecurityUtils.getUserId();
+        if (value == null || value < 1) {
+            throw new ServiceException("当前操作需要登录，请先登录");
+        }
+        return value;
     }
 
     public static String currentUserName() {
@@ -275,3 +283,4 @@ public final class EduUtils {
         return result;
     }
 }
+

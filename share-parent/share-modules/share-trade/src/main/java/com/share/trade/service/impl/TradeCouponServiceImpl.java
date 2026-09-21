@@ -212,6 +212,11 @@ public class TradeCouponServiceImpl implements ITradeCouponService {
         require(coupon.getEndTime() == null || !now.isAfter(coupon.getEndTime()), "优惠券已过期");
 
         Long userId = currentUserId();
+        require(userId != null, "请先登录后再领取优惠券");
+        String lockKey = "trade:lock:coupon:receive:" + couponId + ":" + userId;
+        boolean locked = Boolean.TRUE.equals(redisService.setCacheObjectIfAbsent(lockKey, "1", 5L, TimeUnit.SECONDS));
+        require(locked, "正在领取中，请勿频繁点击");
+
         String userSetKey = "trade:seckill:coupon:users:" + couponId;
         String stockKey = "trade:seckill:coupon:stock:" + couponId;
 
@@ -277,6 +282,8 @@ public class TradeCouponServiceImpl implements ITradeCouponService {
                 redisService.decrement(stockKey, -1);
             }
             throw e;
+        } finally {
+            redisService.deleteObject(lockKey);
         }
     }
 
@@ -488,3 +495,4 @@ public class TradeCouponServiceImpl implements ITradeCouponService {
         return result;
     }
 }
+
