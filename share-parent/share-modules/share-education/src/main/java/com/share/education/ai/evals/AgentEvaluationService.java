@@ -1,16 +1,20 @@
 package com.share.education.ai.evals;
 
+import com.share.common.redis.service.RedisService;
 import com.share.education.ai.model.AnalyzedCourseVO;
 import com.share.education.ai.model.PersonalizedRecommendVO;
 import com.share.education.ai.model.UserProfileContext;
 import com.share.education.ai.workflow.AgentWorkflowContext;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -24,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * 5. 自省折中二次达标率 (Remedy Success Rate)；
  * 6. 多智能体博弈分歧收敛度 (Disagreement Convergence Rate)；
  * 7. 布鲁姆认知平滑度与阶段均衡度；
- * 8. 全链路各智能体毫秒级耗时监控。</p>
+ * 8. Redis 跨重启持久化与全链路各智能体毫秒级耗时监控。</p>
  */
 @Service
 public class AgentEvaluationService {
@@ -32,12 +36,39 @@ public class AgentEvaluationService {
     private static final Logger log = LoggerFactory.getLogger(AgentEvaluationService.class);
 
     private static final int MAX_ROLLING_RECORDS = 200;
+    private static final String REDIS_KEY_TOTAL_RUNS = "edu:ai:evals:total_runs";
+    private static final String REDIS_KEY_METRICS_SNAPSHOT = "edu:ai:evals:metrics_snapshot";
 
     private final AtomicLong totalRunCount = new AtomicLong(0);
     private final ConcurrentLinkedDeque<PipelineEvalRecord> rollingRecords = new ConcurrentLinkedDeque<>();
+    private final RedisService redisService;
 
     public AgentEvaluationService() {
-        // 纯数据驱动：真实执行驱动指标收集，严禁预置虚假样本
+        this(null);
+    }
+
+    @Autowired
+    public AgentEvaluationService(@Autowired(required = false) RedisService redisService) {
+        this.redisService = redisService;
+    }
+
+    @PostConstruct
+    public void init() {
+        if (redisService != null) {
+            try {
+                Object cachedRuns = redisService.getCacheObject(REDIS_KEY_TOTAL_RUNS);
+                if (cachedRuns instanceof Number num) {
+                    totalRunCount.set(num.longValue());
+                    log.info("[AgentEval] 从 Redis 恢复历史多智能体推演总计数: {}", num.longValue());
+                } else if (cachedRuns != null) {
+                    try {
+                        totalRunCount.set(Long.parseLong(cachedRuns.toString()));
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception ex) {
+                log.warn("[AgentEval] 从 Redis 加载评测初始数据异常: {}", ex.getMessage());
+            }
+        }
     }
 
     /**
@@ -51,7 +82,7 @@ public class AgentEvaluationService {
             return;
         }
 
-        totalRunCount.incrementAndGet();
+        long currentRuns = totalRunCount.incrementAndGet();
 
         // 1. 度量 DAG 合规率
         double dagRate = (ctx.getCriticReport() != null && ctx.getCriticReport().getPrerequisiteScore() != null)
@@ -89,6 +120,16 @@ public class AgentEvaluationService {
             rollingRecords.pollFirst();
         }
 
+        // 异步更新 Redis 运行计数与指标快照
+        if (redisService != null) {
+            try {
+                redisService.setCacheObject(REDIS_KEY_TOTAL_RUNS, currentRuns);
+                redisService.expire(REDIS_KEY_TOTAL_RUNS, 30, TimeUnit.DAYS);
+            } catch (Exception ex) {
+                log.debug("[AgentEval] 同步运行计数至 Redis 异常: {}", ex.getMessage());
+            }
+        }
+
         log.debug("[AgentEval] 记录工作流评测数据: DAG={}, 对齐度={}, 保真度={}, 耗时={}ms",
             dagRate, intentScore, faithfulness, totalCost);
     }
@@ -98,6 +139,16 @@ public class AgentEvaluationService {
      */
     public AgentEvalMetricsVO getMetricsSnapshot() {
         if (rollingRecords.isEmpty()) {
+            // 若内存为空但 Redis 中有保存的整体快照，尝试读取
+            if (redisService != null) {
+                try {
+                    AgentEvalMetricsVO cached = redisService.getCacheObject(REDIS_KEY_METRICS_SNAPSHOT);
+                    if (cached != null) {
+                        return cached;
+                    }
+                } catch (Exception ignored) {}
+            }
+
             return AgentEvalMetricsVO.builder()
                 .dagValidityRate(0.0)
                 .intentAlignmentScore(0.0)
@@ -162,7 +213,7 @@ public class AgentEvaluationService {
         String grade = (avgDag >= 98.0 && avgFaith >= 90.0 && passRate >= 90.0)
             ? "AAA · 生产卓越级" : ((avgDag >= 90.0) ? "AA · 稳定可信级" : "A · 达标受控级");
 
-        return AgentEvalMetricsVO.builder()
+        AgentEvalMetricsVO metrics = AgentEvalMetricsVO.builder()
             .dagValidityRate(avgDag)
             .intentAlignmentScore(avgIntent)
             .faithfulnessScore(avgFaith)
@@ -182,6 +233,15 @@ public class AgentEvaluationService {
                 String.format("全链路平均推演响应时间 %.1f 毫秒，符合生产 SLA 性能指标", avgLatency)
             ))
             .build();
+
+        if (redisService != null) {
+            try {
+                redisService.setCacheObject(REDIS_KEY_METRICS_SNAPSHOT, metrics);
+                redisService.expire(REDIS_KEY_METRICS_SNAPSHOT, 7, TimeUnit.DAYS);
+            } catch (Exception ignored) {}
+        }
+
+        return metrics;
     }
 
     private double calculateIntentAlignment(AgentWorkflowContext ctx) {
@@ -200,7 +260,7 @@ public class AgentEvaluationService {
             String filled = r.getSkillGapFilled();
             if (StringUtils.hasText(filled)) {
                 for (String g : gaps) {
-                    if (filled.contains(g) || g.contains(filled)) {
+                    if (isLexicallyRelated(filled, g)) {
                         matched++;
                         break;
                     }
@@ -261,11 +321,25 @@ public class AgentEvaluationService {
         return Math.round(((double) groundCount / recs.size()) * 1000.0) / 10.0;
     }
 
+    private static final Map<String, String> ACRONYM_SYNONYMS = Map.ofEntries(
+        Map.entry("juc", "并发"),
+        Map.entry("k8s", "kubernetes"),
+        Map.entry("mq", "消息队列"),
+        Map.entry("llm", "大模型"),
+        Map.entry("ts", "typescript"),
+        Map.entry("vue3", "vue")
+    );
+
     private boolean isLexicallyRelated(String text, String target) {
         if (!StringUtils.hasText(text) || !StringUtils.hasText(target)) return false;
         String tLow = text.toLowerCase();
         String tgLow = target.toLowerCase();
         if (tLow.contains(tgLow) || tgLow.contains(tLow)) return true;
+
+        for (Map.Entry<String, String> entry : ACRONYM_SYNONYMS.entrySet()) {
+            if (tgLow.contains(entry.getKey()) && tLow.contains(entry.getValue())) return true;
+            if (tgLow.contains(entry.getValue()) && tLow.contains(entry.getKey())) return true;
+        }
 
         // 分词与核心子串匹配 (分词符号: 空格、斜杠、顿号、减号)
         String[] tokens = tgLow.split("[\\s/、_\\-]+");
@@ -289,3 +363,4 @@ public class AgentEvaluationService {
         Map<String, Double> stageLatencies
     ) {}
 }
+

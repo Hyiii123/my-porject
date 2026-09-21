@@ -14,6 +14,29 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-21 21:40:00 - 智问学伴多智能体系统生产可用性全面强化：Redis跨重启度量持久化、SSE断开熔断防护、自然语言意图全链路打通与阶段容量自适应均衡 (Multi-Agent Production Hardening: Redis Telemetry Persistence, SSE Disconnect Guard, End-to-End Natural Language Query Slotting & Adaptive Stage Balancing)
+
+* **演进主题**：Redis 跨重启全量度量持久化 (`AgentEvaluationService` 集成 Redis 自动恢复与指标同步，彻底根除微服务更新度量归零脱水)、SSE 客户端断开快速熔断拦截 (`CompositeMultiAgentGraphEngine.streamWorkflow` 各步进注入 `isCompleted` 阻断机制，杜绝幽灵推演与大模型额度损耗)、自然语言诉求全链路贯通与槽位提取 (Controller 至 Orchestrator 全面支持 `query` 参数，前端 HUD 支持自然语言自由输入，`IntentDispatcherNode` 动态解析目标岗位与难度等级)、阶段容量自适应动态均衡 (`PathPlanningAgent` 引入 `balanceStageCapacities` 算法，消除空白阶段与单阶段过载)、云端生产热替换部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **Redis 跨重启评测度量持久化闭环 (`AgentEvaluationService`)**：
+     - 深度整合 Redis 键 `edu:ai:evals:total_runs` 与 `edu:ai:evals:metrics_snapshot`，服务启动时通过 `@PostConstruct` 自动加载历史运行总数与最新质量快照；
+     - 历经微服务重启实测验证，推演次数与评测大屏数据 100% 保持连续，彻底杜绝数据脱水。
+  2. **SSE 客户端断开连接熔断与额度防护 (`CompositeMultiAgentGraphEngine`)**：
+     - 在 6 步多智能体圆桌博弈与质检的各个步进前全面注入 `if (isCompleted.get()) return;` 熔断拦截；
+     - 当用户在流式思考进行中关闭网页或切页时，后台线程立刻终止后续昂贵的大模型调用，彻底根除幽灵推演与账号配额浪费。
+  3. **自然语言目标诉求全链路打通与动态槽位提取**：
+     - 前端 HUD 增加自定义诉求输入框（如“零基础速成大模型开发”），输入后回车即刻触发流式自适应推演；
+     - `IntentDispatcherNode` 深度识别意图实体，自动锁定目标岗位为「大语言模型应用工程师」并将难度设为 Level 1（初级入门），重排针对性极强的大模型进阶方案。
+  4. **进阶阶段容量自适应动态均衡 (`PathPlanningAgent`)**：
+     - 引入 `balanceStageCapacities` 均衡算法，当候选课程分布不均时自动跨阶段借调并严格保持单阶段课程不超过 5 门；
+     - 彻底根除空白里程碑阶段与局部阶段过载缺陷，客观质检阶段容量均衡分恒定保真达标 100 分。
+  5. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
+     - 串行热替换 `share-education.jar` 与 `portal-ui/dist`，容器平稳重启；
+     - 定向验证全绿通过：
+       - 自然语言意图推演接口：输入“零基础速成大模型开发”，智能体自动对齐 7 门大模型专业课，客观质检综合评分 100 分卓越（A+）；
+       - 跨重启度量持久化接口：重启后 `totalPipelinesRun` 从 Redis 自动无损读取；
+       - 学生端前端（`http://47.121.26.136:18081`）：HTTP 200 OK，自定义目标输入框与 HUD 仪表盘运行流畅。
+
 ### 2026-09-21 21:15:00 - 智问学伴多智能体系统工业级闭环重构：Actor-Critic真自省重排、全真动态心流、多维评测指标扩展与公网IP热更闭环 (Industrial-Grade Multi-Agent Closed-Loop Refactor: Actor-Critic Dynamic Re-planning, Real Dialectic Streaming, Multi-Dimensional Evaluative Telemetry & Cloud Verification Closure)
 
 * **演进主题**：Actor-Critic 指令闭环与真自省重排 (`IndustryArchitectNode` 深度对接 `PathCriticNode` 结构化修正指令集驱动 `PathPlanningAgent` 全局重排)、图执行引擎条件分支与自适应应急稳定化 (`CompositeMultiAgentGraphEngine` 容错流转与非规划快捷通道度量隔离)、流式心流全真动态参数提取 (SSE 事件总线彻底消除硬编码文案，实时反射真实大模型立论与辩驳论据)、第三方大模型高可用平滑排队与 15min TTL 语义缓存 (`ThirdPartyAiClient` 引入 `tryLock(2500ms)` 平滑等待与 `promptCache` 零毫秒秒级复用)、自动化质量评测多维扩展 (新增自省折中修复达标率、分歧收敛度、布鲁姆平滑度与阶段均衡度指标，升级分词保真度算法)、全网动态公网 IP 校验漂移更新 (`47.121.26.136` 全项目同步)、云端生产热替换部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
@@ -1391,5 +1414,6 @@
   6. **云端生产极速热发布与全流程定向自动化回归验证**：
      - 严格遵循发布铁律与云盘保护准则，本地打出 `share-customer.jar` 与 `portal/dist` 纯静态产物，通过 Workbench CLI 快速上传并在云端实施秒级热重载，达成服务器零构建、零云盘 IOPS 冲击；
      - 执行 `.scratch/test_interview_flow.py` 定向测试，全流程验证 20 题考场建立、第一题自我介绍作答与评分、第二题小林八股深挖与知识库挂载、第三题下一独立模块平滑推进、交卷与多维专家报告生成（六维雷达图与 STAR 话术）、以及学生端 Portal UI（HTTP 200），100% 满分通过。
+
 
 

@@ -85,8 +85,22 @@ public class IntentDispatcherNode {
             }
         }
 
+        // 3.5 难度意向实体动态提取
+        if (state.getCustomOverrides() != null && !state.getCustomOverrides().containsKey("preferredDifficulty")) {
+            if (lower.contains("零基础") || lower.contains("小白") || lower.contains("初学") || lower.contains("入门")) {
+                state.getCustomOverrides().put("preferredDifficulty", 1);
+                state.getCustomOverrides().put("difficulty", 1);
+                log.info("[IntentDispatcherNode] 从输入意图识别初级难度偏好 (Level 1)");
+            } else if (lower.contains("高并发") || lower.contains("架构师") || lower.contains("专家") || lower.contains("底层源码")) {
+                state.getCustomOverrides().put("preferredDifficulty", 3);
+                state.getCustomOverrides().put("difficulty", 3);
+                log.info("[IntentDispatcherNode] 从输入意图识别高阶架构难度偏好 (Level 3)");
+            }
+        }
+
         // 4. 成长路线与导学规划意图 (激活圆桌博弈子图)
         log.info("[IntentDispatcherNode] 命中导学规划意图，激活多智能体圆桌博弈子图: {}", state.getIntendedRole());
         return ROUTE_MULTI_AGENT_DEBATE;
     }
 }
+

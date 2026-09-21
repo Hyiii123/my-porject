@@ -297,8 +297,18 @@ public class EducationServiceImpl implements IEducationService {
     }
 
     @Override
+    public SseEmitter streamPersonalizedReasoning(String targetRole, String query) {
+        return recommendService.streamPersonalizedReasoning(targetRole, query);
+    }
+
+    @Override
     public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty) {
         return recommendService.orchestrateAgentRecommend(userId, targetRole, limit, difficulty);
+    }
+
+    @Override
+    public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty, String query) {
+        return recommendService.orchestrateAgentRecommend(userId, targetRole, limit, difficulty, query);
     }
 
     @Override
@@ -597,3 +607,4 @@ public class EducationServiceImpl implements IEducationService {
         return dashboardService.dashboardPrevious(current);
     }
 }
+

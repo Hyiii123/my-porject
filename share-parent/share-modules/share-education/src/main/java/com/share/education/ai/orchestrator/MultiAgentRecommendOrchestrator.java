@@ -165,11 +165,19 @@ public class MultiAgentRecommendOrchestrator {
     }
 
     public Map<String, Object> orchestrate(Long userId, String targetRole, Integer limit, Integer difficulty) {
+        return orchestrate(userId, targetRole, limit, difficulty, null);
+    }
+
+    public Map<String, Object> orchestrate(Long userId, String targetRole, Integer limit, Integer difficulty, String query) {
         int safeLimit = limit != null && limit > 0 ? Math.min(limit, 10) : 4;
         Map<String, Object> overrides = new LinkedHashMap<>();
         if (targetRole != null && !targetRole.isBlank()) {
             overrides.put("targetRole", targetRole.trim());
             overrides.put("customRole", targetRole.trim());
+        }
+        if (query != null && !query.isBlank()) {
+            overrides.put("query", query.trim());
+            overrides.put("userPrompt", query.trim());
         }
         if (difficulty != null && difficulty > 0) {
             overrides.put("preferredDifficulty", difficulty);
@@ -278,16 +286,26 @@ public class MultiAgentRecommendOrchestrator {
      * @param emitter Spring SseEmitter 实例
      */
     public void streamReasoning(Long userId, String targetRole, SseEmitter emitter) {
+        streamReasoning(userId, targetRole, null, emitter);
+    }
+
+    public void streamReasoning(Long userId, String targetRole, String query, SseEmitter emitter) {
         Map<String, Object> customOverrides = new HashMap<>();
         if (targetRole != null && !targetRole.isBlank()) {
             customOverrides.put("customRole", targetRole.trim());
             customOverrides.put("targetRole", targetRole.trim());
         }
+        if (query != null && !query.isBlank()) {
+            customOverrides.put("query", query.trim());
+            customOverrides.put("userPrompt", query.trim());
+        }
+
+        String intendedRole = targetRole != null && !targetRole.isBlank() ? targetRole.trim() : "Java全栈架构师";
 
         DebateBlackboardState state = DebateBlackboardState.builder()
             .sessionId(UUID.randomUUID().toString())
             .userId(userId)
-            .intendedRole(targetRole != null && !targetRole.isBlank() ? targetRole.trim() : "Java全栈架构师")
+            .intendedRole(intendedRole)
             .probeAnswers(Collections.emptyMap())
             .customOverrides(customOverrides)
             .build();
@@ -325,3 +343,4 @@ public class MultiAgentRecommendOrchestrator {
         return null;
     }
 }
+

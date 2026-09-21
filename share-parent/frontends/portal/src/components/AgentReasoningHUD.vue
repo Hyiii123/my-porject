@@ -80,6 +80,17 @@
               <el-option label="Web前端技术专家" value="前端技术专家" />
             </el-select>
           </div>
+          <div class="custom-query-wrap">
+            <el-input
+              v-model="customQuery"
+              size="small"
+              placeholder="自定义目标诉求 (如：零基础攻坚大模型)"
+              clearable
+              class="custom-query-input"
+              @keyup.enter="triggerRecalculate"
+              :disabled="isRecalculating"
+            />
+          </div>
           <el-button
             type="primary"
             size="small"
@@ -448,6 +459,8 @@ import { ElMessage } from 'element-plus'
 const router = useRouter()
 const route = useRoute()
 
+const customQuery = ref('')
+
 const props = defineProps({
   userPortrait: {
     type: Object,
@@ -644,6 +657,7 @@ const triggerRecalculate = async () => {
   try {
     await fetchReasoningStream({
       targetRole: selectedRole.value,
+      query: customQuery.value,
       onEvent: (event) => {
         const curTime = new Date()
         const curTimeStr = `${String(curTime.getHours()).padStart(2, '0')}:${String(curTime.getMinutes()).padStart(2, '0')}:${String(curTime.getSeconds()).padStart(2, '0')}`
@@ -1961,4 +1975,5 @@ onMounted(() => {
   }
 }
 </style>
+
 

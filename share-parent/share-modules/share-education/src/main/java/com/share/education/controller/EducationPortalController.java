@@ -115,8 +115,9 @@ public class EducationPortalController extends BaseController {
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String targetRole,
             @RequestParam(required = false, defaultValue = "4") Integer limit,
-            @RequestParam(required = false) Integer difficulty) {
-        return success(educationService.orchestrateAgentRecommend(userId, targetRole, limit, difficulty));
+            @RequestParam(required = false) Integer difficulty,
+            @RequestParam(required = false) String query) {
+        return success(educationService.orchestrateAgentRecommend(userId, targetRole, limit, difficulty, query));
     }
 
     /**
@@ -164,8 +165,9 @@ public class EducationPortalController extends BaseController {
      */
     @GetMapping(value = {"/courses/recommendations/stream/reasoning", "/courses/recommend/stream/reasoning"},
                 produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamPersonalizedReasoning(@RequestParam(required = false) String targetRole) {
-        return educationService.streamPersonalizedReasoning(targetRole);
+    public SseEmitter streamPersonalizedReasoning(@RequestParam(required = false) String targetRole,
+                                                 @RequestParam(required = false) String query) {
+        return educationService.streamPersonalizedReasoning(targetRole, query);
     }
 
     @GetMapping("/user/portrait")
@@ -635,3 +637,4 @@ public class EducationPortalController extends BaseController {
         return value instanceof Boolean b ? b : "true".equalsIgnoreCase(String.valueOf(value)) || "1".equals(String.valueOf(value));
     }
 }
+

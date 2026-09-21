@@ -71,7 +71,13 @@ public interface IEducationService {
     Map<String, Object> submitActiveProbingAnswers(Map<String, String> answers);
     AgentEvalMetricsVO getAgentEvaluationMetrics();
     SseEmitter streamPersonalizedReasoning(String targetRole);
+    default SseEmitter streamPersonalizedReasoning(String targetRole, String query) {
+        return streamPersonalizedReasoning(targetRole);
+    }
     Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty);
+    default Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty, String query) {
+        return orchestrateAgentRecommend(userId, targetRole, limit, difficulty);
+    }
     default Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit) {
         return orchestrateAgentRecommend(userId, targetRole, limit, null);
     }
@@ -144,3 +150,4 @@ public interface IEducationService {
     EduDashboardDaily dashboardToday();
     EduDashboardDaily dashboardPrevious(EduDashboardDaily current);
 }
+

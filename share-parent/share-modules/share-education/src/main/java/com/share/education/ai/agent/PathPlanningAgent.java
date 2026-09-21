@@ -229,6 +229,9 @@ public class PathPlanningAgent {
             smoothStageTransitions(stage1Courses, stage2Courses, stage3Courses, stage4Courses);
         }
 
+        // 动态阶段容量自适应均衡 (防止单阶段超载或空阶段导致质检扣分)
+        balanceStageCapacities(stage1Courses, stage2Courses, stage3Courses, stage4Courses);
+
         // 数据驱动构建阶段定义
         record StageDef(String name, String goal, int hoursPerCourse, List<AnalyzedCourseVO> courseList) {}
         StageDef[] stageDefs = {
@@ -298,6 +301,43 @@ public class PathPlanningAgent {
         s2.sort(diffAsc);
         s3.sort(diffAsc);
         s4.sort(diffAsc);
+    }
+
+    private void balanceStageCapacities(List<AnalyzedCourseVO> s1,
+                                       List<AnalyzedCourseVO> s2,
+                                       List<AnalyzedCourseVO> s3,
+                                       List<AnalyzedCourseVO> s4) {
+        List<List<AnalyzedCourseVO>> allStages = List.of(s1, s2, s3, s4);
+        int total = s1.size() + s2.size() + s3.size() + s4.size();
+        if (total < 4) return;
+
+        // 1. 确保每个阶段不为空
+        for (int i = 0; i < 4; i++) {
+            List<AnalyzedCourseVO> curr = allStages.get(i);
+            if (curr.isEmpty()) {
+                for (int j = 0; j < 4; j++) {
+                    List<AnalyzedCourseVO> donor = allStages.get(j);
+                    if (donor.size() > 1) {
+                        AnalyzedCourseVO courseToMove = (j > i) ? donor.remove(0) : donor.remove(donor.size() - 1);
+                        curr.add(courseToMove);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 2. 避免任一阶段超过 5 门课 (防止局部过载)
+        for (int i = 3; i >= 1; i--) {
+            List<AnalyzedCourseVO> curr = allStages.get(i);
+            while (curr.size() > 5) {
+                List<AnalyzedCourseVO> prev = allStages.get(i - 1);
+                if (prev.size() < 5) {
+                    prev.add(curr.remove(0));
+                } else {
+                    break;
+                }
+            }
+        }
     }
 
     private boolean isPrerequisite(AnalyzedCourseVO c1, AnalyzedCourseVO c2) {
@@ -447,3 +487,4 @@ public class PathPlanningAgent {
         }
     }
 }
+

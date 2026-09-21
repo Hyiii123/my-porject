@@ -357,11 +357,12 @@ request({
 })
 
 // 下一代 L5 智能体流式思考与推演 SSE 端点
-export const fetchReasoningStream = async ({ targetRole, onEvent, onError, onDone }) => {
+export const fetchReasoningStream = async ({ targetRole, query, onEvent, onError, onDone }) => {
 	const rawBase = (import.meta.env.VITE_API_BASE_URL || '').trim()
 	const baseUrl = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase
 	const token = sessionStorage.getItem('token')
-	const url = `${baseUrl}${COURSE_API_PREFIX}/courses/recommendations/stream/reasoning?targetRole=${encodeURIComponent(targetRole || '')}`
+	const qPart = query ? `&query=${encodeURIComponent(query)}` : ''
+	const url = `${baseUrl}${COURSE_API_PREFIX}/courses/recommendations/stream/reasoning?targetRole=${encodeURIComponent(targetRole || '')}${qPart}`
 
 	try {
 		const headers = {
@@ -429,5 +430,6 @@ export const fetchReasoningStream = async ({ targetRole, onEvent, onError, onDon
 		else console.error('SSE 流式推演异常:', err)
 	}
 }
+
 
 

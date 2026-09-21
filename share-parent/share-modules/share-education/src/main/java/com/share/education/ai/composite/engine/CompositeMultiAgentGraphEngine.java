@@ -167,6 +167,7 @@ public class CompositeMultiAgentGraphEngine {
                         state.getIntendedRole(), route),
                     route, 5L), isCompleted);
 
+                if (isCompleted.get()) return;
                 // STEP 1: 画像与探针检测
                 pedagogyMentorNode.initializeProfile(state);
                 sendTurnEvent(emitter, AgentReasoningEvent.of("PROFILE_BUILT", "PedagogyMentorAgent", 1,
@@ -174,12 +175,14 @@ public class CompositeMultiAgentGraphEngine {
                         state.getUserProfile().getIntendedRole(), String.join("、", state.getUserProfile().getSkillGaps())),
                     state.getUserProfile(), 12L), isCompleted);
 
+                if (isCompleted.get()) return;
                 // STEP 2: 圆桌辩论正式开场
                 consensusArbiterNode.openRoundtable(state);
                 sendTurnEvent(emitter, AgentReasoningEvent.of("CANDIDATES_RECALLED", "ConsensusArbiterAgent", 2,
                     "圆桌首席仲裁者宣布：多智能体专家圆桌辩论正式启动，已召集大厂技术总监、学情导师与审判法官！",
                     state.getIntendedRole(), 8L), isCompleted);
 
+                if (isCompleted.get()) return;
                 // STEP 3: 大厂总监率先提案
                 industryArchitectNode.proposeInitialPlan(state);
                 AgentDebateTurn proposeTurn = findLatestTurn(state, "IndustryArchitect");
@@ -190,6 +193,7 @@ public class CompositeMultiAgentGraphEngine {
                 sendTurnEvent(emitter, AgentReasoningEvent.of("COURSE_ANALYSIS", "IndustryArchitectAgent", 3,
                     proposeMsg, state.getCurrentDraftPlan(), 25L), isCompleted);
 
+                if (isCompleted.get()) return;
                 // STEP 4: 学情导师严正反驳 (Challenge) - 动态读取真实立论内容
                 pedagogyMentorNode.evaluateAndChallenge(state);
                 AgentDebateTurn challengeTurn = findLatestTurn(state, "PedagogyMentor");
@@ -199,6 +203,7 @@ public class CompositeMultiAgentGraphEngine {
                 sendTurnEvent(emitter, AgentReasoningEvent.of("PATH_PLANNED", "PedagogyMentorAgent", 4,
                     challengeMsg, challengeTurn, 18L), isCompleted);
 
+                if (isCompleted.get()) return;
                 // STEP 5: 审判法官初审
                 boolean passR1 = pathCriticNode.auditCurrentPlan(state);
 
@@ -208,6 +213,7 @@ public class CompositeMultiAgentGraphEngine {
                             state.getCriticReport().getOverallScore()),
                         state.getCriticReport(), 20L), isCompleted);
 
+                    if (isCompleted.get()) return;
                     // STEP 6: 仲裁者引导第二轮折中
                     consensusArbiterNode.guideCompromise(state);
                     AgentDebateTurn guideTurn = findLatestTurn(state, "ConsensusArbiter");
@@ -215,6 +221,7 @@ public class CompositeMultiAgentGraphEngine {
                     sendTurnEvent(emitter, AgentReasoningEvent.of("ARBITER_GUIDE", "ConsensusArbiterAgent", 5,
                         guideMsg, guideTurn, 10L), isCompleted);
 
+                    if (isCompleted.get()) return;
                     // STEP 7: 总监自省与折中重排 (Compromise) - 动态呈现反思论据
                     industryArchitectNode.reflectAndCompromise(state);
                     AgentDebateTurn compromiseTurn = findLatestTurn(state, "IndustryArchitect");
@@ -224,6 +231,7 @@ public class CompositeMultiAgentGraphEngine {
                     sendTurnEvent(emitter, AgentReasoningEvent.of("ARCHITECT_COMPROMISE", "IndustryArchitectAgent", 5,
                         compromiseMsg, compromiseTurn, 16L), isCompleted);
 
+                    if (isCompleted.get()) return;
                     // STEP 8: 导师认可签字 (Approve) - 动态呈现认可论据
                     pedagogyMentorNode.reviewCompromise(state);
                     AgentDebateTurn approveTurn = findLatestTurn(state, "PedagogyMentor");
@@ -250,6 +258,7 @@ public class CompositeMultiAgentGraphEngine {
                         state.getCriticReport(), 15L), isCompleted);
                 }
 
+                if (isCompleted.get()) return;
                 // STEP 10: 仲裁者盖章共识 - 动态呈现终局决议
                 consensusArbiterNode.sealConsensus(state);
                 AgentDebateTurn consensusTurn = findLatestTurn(state, "ConsensusArbiter");
@@ -259,6 +268,7 @@ public class CompositeMultiAgentGraphEngine {
                 sendTurnEvent(emitter, AgentReasoningEvent.of("CONSENSUS_SEALED", "ConsensusArbiterAgent", 6,
                     consensusMsg, state.getConsensusSummary(), 10L), isCompleted);
 
+                if (isCompleted.get()) return;
                 // STEP 11: 方案合成与交付
                 List<PersonalizedRecommendVO> recs = explanationSynthesisNode.synthesizeDelivery(state, limit);
                 recordSnapshot(state, workflowStart);
@@ -478,3 +488,4 @@ public class CompositeMultiAgentGraphEngine {
         }
     }
 }
+

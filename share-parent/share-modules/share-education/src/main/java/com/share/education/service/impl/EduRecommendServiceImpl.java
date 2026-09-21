@@ -199,18 +199,28 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
 
     @Override
     public SseEmitter streamPersonalizedReasoning(String targetRole) {
+        return streamPersonalizedReasoning(targetRole, null);
+    }
+
+    @Override
+    public SseEmitter streamPersonalizedReasoning(String targetRole, String query) {
         Long currentUid = null;
         try {
             currentUid = SecurityUtils.getUserId();
         } catch (Exception ignored) {}
         SseEmitter emitter = new SseEmitter(60000L);
-        multiAgentOrchestrator.streamReasoning(currentUid, targetRole, emitter);
+        multiAgentOrchestrator.streamReasoning(currentUid, targetRole, query, emitter);
         return emitter;
     }
 
     @Override
     public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty) {
-        return multiAgentOrchestrator.orchestrate(userId, targetRole, limit, difficulty);
+        return orchestrateAgentRecommend(userId, targetRole, limit, difficulty, null);
+    }
+
+    @Override
+    public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty, String query) {
+        return multiAgentOrchestrator.orchestrate(userId, targetRole, limit, difficulty, query);
     }
 
     @Override
@@ -467,3 +477,4 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
         return result;
     }
 }
+
