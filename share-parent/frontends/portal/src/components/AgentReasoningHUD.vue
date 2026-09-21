@@ -54,6 +54,9 @@
 
     <!-- 2. 展开态：完整 HUD 全景呈现 -->
     <div v-else class="agent-hud-container">
+      <div class="corner c1"></div>
+      <div class="corner c2"></div>
+      <div class="hud-top-scan"></div>
       <!-- 顶部标题与目标定位 -->
       <div class="hud-header">
         <div class="hud-title-area">
@@ -390,7 +393,7 @@
       class="evals-dialog"
     >
       <div class="evals-dialog-body">
-        <div v-if="!evalMetrics || evalMetrics.totalPipelinesRun === 0" class="evals-empty-banner" style="margin-bottom: 16px; padding: 10px 14px; background: rgba(59, 130, 246, 0.08); border-radius: 8px; color: #60a5fa; font-size: 13px;">
+        <div v-if="!evalMetrics || evalMetrics.totalPipelinesRun === 0" class="evals-empty-banner" style="margin-bottom: 16px; padding: 10px 14px; background: rgba(59, 130, 246, 0.08); border-radius: 8px; color: var(--cyan); font-size: 13px;">
           ℹ️ 当前服务尚未产生推演采样记录。点击 HUD 顶部的「智能体重新规划」触发推演后，将自动展示实时 SLA 阶段时延与客观质检得分。
         </div>
         <div class="evals-kpi-grid">
@@ -820,8 +823,8 @@ onMounted(() => {
 
 /* 1. 折叠态：极简胶囊呼吸条 (高度约 54px，首屏清爽) */
 .hud-collapsed-bar {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F0F7FF 100%);
-  border: 1px solid #BFDBFE;
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--sky-2) 100%);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 10px 20px;
   box-shadow: 0 2px 12px -2px rgba(37, 99, 235, 0.08);
@@ -833,12 +836,12 @@ onMounted(() => {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    border-color: #3B82F6;
+    border-color: var(--azure);
     box-shadow: 0 4px 18px -2px rgba(37, 99, 235, 0.16);
     transform: translateY(-1px);
 
     .expand-btn {
-      background: #1D4ED8;
+      background: var(--blue-deep);
       box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
     }
   }
@@ -853,9 +856,9 @@ onMounted(() => {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #EFF6FF;
-      border: 1px solid #BFDBFE;
-      color: #2563EB;
+      background: var(--sky-2);
+      border: 1px solid var(--line);
+      color: var(--azure);
       padding: 3px 10px;
       border-radius: 20px;
       font-size: 12px;
@@ -864,9 +867,9 @@ onMounted(() => {
       .pulse-dot {
         width: 6px;
         height: 6px;
-        background: #10B981;
+        background: var(--green);
         border-radius: 50%;
-        box-shadow: 0 0 6px #10B981;
+        box-shadow: 0 0 6px var(--green);
         animation: pulse 2s infinite;
       }
     }
@@ -880,7 +883,7 @@ onMounted(() => {
       .collapsed-title {
         font-size: 14px;
         font-weight: 700;
-        color: #0F172A;
+        color: #0E1F3D;
       }
 
       .role-tag {
@@ -890,9 +893,9 @@ onMounted(() => {
 
       .eval-pill {
         font-size: 12px;
-        color: #059669;
-        background: #ECFDF5;
-        border: 1px solid #A7F3D0;
+        color: var(--green);
+        background: var(--green-bg);
+        border: 1px solid rgba(31, 184, 119, 0.4);
         padding: 2px 8px;
         border-radius: 12px;
         font-weight: 500;
@@ -930,7 +933,7 @@ onMounted(() => {
   background: #FFFFFF;
   border-radius: 16px;
   padding: 22px 26px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--line);
   box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05);
   margin-bottom: 0;
   position: relative;
@@ -967,9 +970,9 @@ onMounted(() => {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #EFF6FF;
-    border: 1px solid #BFDBFE;
-    color: #2563EB;
+    background: var(--sky-2);
+    border: 1px solid var(--line);
+    color: var(--azure);
     padding: 3px 10px;
     border-radius: 20px;
     font-size: 12px;
@@ -978,9 +981,9 @@ onMounted(() => {
     .pulse-dot {
       width: 6px;
       height: 6px;
-      background: #10B981;
+      background: var(--green);
       border-radius: 50%;
-      box-shadow: 0 0 6px #10B981;
+      box-shadow: 0 0 6px var(--green);
       animation: pulse 2s infinite;
     }
   }
@@ -989,7 +992,7 @@ onMounted(() => {
     margin: 0;
     font-size: 17px;
     font-weight: 700;
-    color: #0F172A;
+    color: #0E1F3D;
     letter-spacing: 0.2px;
   }
 }
@@ -1033,12 +1036,12 @@ onMounted(() => {
     height: 32px;
     font-size: 12px;
     color: #64748B;
-    background: #F1F5F9;
-    border: 1px solid #CBD5E1;
+    background: var(--sky-2);
+    border: 1px solid var(--line-2);
 
     &:hover {
-      color: #0F172A;
-      background: #E2E8F0;
+      color: #0E1F3D;
+      background: var(--line);
       border-color: #94A3B8;
     }
   }
@@ -1053,8 +1056,8 @@ onMounted(() => {
   position: relative;
 
   .agent-node {
-    background: #F8FAFC;
-    border: 1px solid #E2E8F0;
+    background: var(--sky);
+    border: 1px solid var(--line);
     border-radius: 12px;
     padding: 12px 10px;
     display: flex;
@@ -1066,15 +1069,15 @@ onMounted(() => {
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-      border-color: #3B82F6;
-      background: #EFF6FF;
+      border-color: var(--azure);
+      background: var(--sky-2);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
     }
 
     &.active {
-      border-color: #2563EB;
-      background: #EFF6FF;
+      border-color: var(--azure);
+      background: var(--sky-2);
       box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
     }
 
@@ -1083,8 +1086,8 @@ onMounted(() => {
     }
 
     &.processing {
-      border-color: #10B981;
-      background: #ECFDF5;
+      border-color: var(--green);
+      background: var(--green-bg);
       animation: glow 1.2s infinite alternate;
     }
 
@@ -1113,7 +1116,7 @@ onMounted(() => {
       .node-name {
         font-size: 13px;
         font-weight: 700;
-        color: #1E293B;
+        color: #13294F;
         margin-bottom: 2px;
         white-space: nowrap;
         overflow: hidden;
@@ -1133,8 +1136,8 @@ onMounted(() => {
         display: inline-block;
         font-size: 10px;
         font-weight: 600;
-        color: #2563EB;
-        background: #DBEAFE;
+        color: var(--azure);
+        background: var(--sky-3);
         padding: 1px 6px;
         border-radius: 10px;
       }
@@ -1146,7 +1149,7 @@ onMounted(() => {
       top: 50%;
       transform: translateY(-50%);
       z-index: 2;
-      color: #CBD5E1;
+      color: var(--line-2);
       font-size: 13px;
       font-weight: 700;
       pointer-events: none;
@@ -1156,8 +1159,8 @@ onMounted(() => {
 
 /* DeepSeek 风格：流式思考折叠卡片 */
 .thinking-stream-card {
-  background: #0F172A;
-  border: 1px solid #1E293B;
+  background: #0E1F3D;
+  border: 1px solid #13294F;
   border-radius: 12px;
   margin-bottom: 16px;
   overflow: hidden;
@@ -1165,7 +1168,7 @@ onMounted(() => {
   transition: all 0.3s ease;
 
   &.active {
-    border-color: #38BDF8;
+    border-color: var(--cyan);
     box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
   }
 
@@ -1174,13 +1177,13 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    background: #1E293B;
+    background: #13294F;
     cursor: pointer;
     user-select: none;
     transition: background 0.2s;
 
     &:hover {
-      background: #273549;
+      background: #193666;
     }
 
     .thinking-title-box {
@@ -1188,17 +1191,17 @@ onMounted(() => {
       align-items: center;
       gap: 10px;
       font-size: 13px;
-      color: #F1F5F9;
+      color: var(--sky-2);
 
       .thinking-indicator {
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: #10B981;
+        background: var(--green);
 
         &.pulsating {
-          background: #38BDF8;
-          box-shadow: 0 0 8px #38BDF8;
+          background: var(--cyan);
+          box-shadow: 0 0 8px var(--cyan);
           animation: pulse 1.2s infinite;
         }
       }
@@ -1247,7 +1250,7 @@ onMounted(() => {
     max-height: 240px;
     overflow-y: auto;
     padding: 14px 18px;
-    background: #0B1120;
+    background: #091528;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: 12px;
     line-height: 1.6;
@@ -1256,7 +1259,7 @@ onMounted(() => {
       width: 5px;
     }
     &::-webkit-scrollbar-thumb {
-      background: #334155;
+      background: #1E3A6E;
       border-radius: 3px;
     }
 
@@ -1276,11 +1279,11 @@ onMounted(() => {
         flex-direction: column;
         gap: 3px;
         padding-left: 10px;
-        border-left: 2px solid #334155;
+        border-left: 2px solid #1E3A6E;
         transition: all 0.2s;
 
         &:hover {
-          border-left-color: #38BDF8;
+          border-left-color: var(--cyan);
           background: rgba(255, 255, 255, 0.02);
         }
 
@@ -1295,8 +1298,8 @@ onMounted(() => {
           }
 
           .log-agent-badge {
-            background: #1E293B;
-            color: #38BDF8;
+            background: #13294F;
+            color: var(--cyan);
             font-weight: 600;
             padding: 1px 6px;
             border-radius: 4px;
@@ -1304,7 +1307,7 @@ onMounted(() => {
           }
 
           .log-stage-tag {
-            color: #10B981;
+            color: var(--green);
             font-weight: 600;
             font-size: 10px;
           }
@@ -1314,10 +1317,10 @@ onMounted(() => {
           display: flex;
           align-items: flex-start;
           gap: 6px;
-          color: #E2E8F0;
+          color: var(--line);
 
           .log-bullet {
-            color: #38BDF8;
+            color: var(--cyan);
             font-weight: 700;
           }
 
@@ -1339,7 +1342,7 @@ onMounted(() => {
         }
 
         &.log-type-stream_done {
-          border-left-color: #10B981;
+          border-left-color: var(--green);
           .log-meta .log-agent-badge {
             color: #34D399;
           }
@@ -1355,7 +1358,7 @@ onMounted(() => {
         border-radius: 6px;
         padding: 6px 12px;
         margin-top: 6px;
-        color: #E2E8F0;
+        color: var(--line);
         font-size: 11px;
 
         .done-check {
@@ -1365,7 +1368,7 @@ onMounted(() => {
 
         .done-summary {
           flex: 1;
-          color: #F1F5F9;
+          color: var(--sky-2);
         }
       }
     }
@@ -1374,8 +1377,8 @@ onMounted(() => {
 
 /* 智能体推演交付成果面板 */
 .delivery-result-showcase {
-  background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%);
-  border: 1px solid #BFDBFE;
+  background: linear-gradient(135deg, var(--sky) 0%, var(--sky-2) 100%);
+  border: 1px solid var(--line);
   border-radius: 14px;
   padding: 16px 20px;
   margin-bottom: 18px;
@@ -1402,7 +1405,7 @@ onMounted(() => {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: #10B981;
+        background: var(--green);
         color: #FFFFFF;
         font-size: 13px;
         font-weight: 700;
@@ -1449,7 +1452,7 @@ onMounted(() => {
 
     .delivery-stage-box {
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--line);
       border-radius: 10px;
       padding: 12px 16px;
 
@@ -1459,7 +1462,7 @@ onMounted(() => {
         gap: 6px;
         font-size: 13px;
         font-weight: 700;
-        color: #1E293B;
+        color: #13294F;
         margin-bottom: 10px;
 
         .box-subtitle {
@@ -1480,8 +1483,8 @@ onMounted(() => {
         .stage-chip {
           flex: 1;
           min-width: 140px;
-          background: #F8FAFC;
-          border: 1px solid #E2E8F0;
+          background: var(--sky);
+          border: 1px solid var(--line);
           border-radius: 8px;
           padding: 8px 12px;
           cursor: pointer;
@@ -1489,22 +1492,22 @@ onMounted(() => {
           transition: all 0.2s ease;
 
           &:hover {
-            border-color: #3B82F6;
-            background: #EFF6FF;
+            border-color: var(--azure);
+            background: var(--sky-2);
             transform: translateY(-2px);
           }
 
           .chip-index {
             font-size: 10px;
             font-weight: 700;
-            color: #3B82F6;
+            color: var(--azure);
             letter-spacing: 0.5px;
           }
 
           .chip-name {
             font-size: 13px;
             font-weight: 700;
-            color: #0F172A;
+            color: #0E1F3D;
             margin: 2px 0;
           }
 
@@ -1518,7 +1521,7 @@ onMounted(() => {
             right: -10px;
             top: 50%;
             transform: translateY(-50%);
-            color: #CBD5E1;
+            color: var(--line-2);
             font-weight: bold;
             pointer-events: none;
           }
@@ -1528,7 +1531,7 @@ onMounted(() => {
 
     .delivery-courses-box {
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--line);
       border-radius: 10px;
       padding: 12px 16px;
 
@@ -1538,7 +1541,7 @@ onMounted(() => {
         gap: 6px;
         font-size: 13px;
         font-weight: 700;
-        color: #1E293B;
+        color: #13294F;
         margin-bottom: 10px;
       }
 
@@ -1552,8 +1555,8 @@ onMounted(() => {
         }
 
         .rec-mini-card {
-          background: #F8FAFC;
-          border: 1px solid #E2E8F0;
+          background: var(--sky);
+          border: 1px solid var(--line);
           border-radius: 8px;
           padding: 10px;
           cursor: pointer;
@@ -1563,7 +1566,7 @@ onMounted(() => {
           justify-content: space-between;
 
           &:hover {
-            border-color: #2563EB;
+            border-color: var(--azure);
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
             transform: translateY(-2px);
           }
@@ -1578,7 +1581,7 @@ onMounted(() => {
             .mini-title {
               font-size: 12px;
               font-weight: 700;
-              color: #0F172A;
+              color: #0E1F3D;
               line-height: 1.4;
               display: -webkit-box;
               -webkit-line-clamp: 2;
@@ -1589,8 +1592,8 @@ onMounted(() => {
             .mini-score {
               font-size: 10px;
               font-weight: 700;
-              color: #10B981;
-              background: #ECFDF5;
+              color: var(--green);
+              background: var(--green-bg);
               padding: 1px 4px;
               border-radius: 4px;
               white-space: nowrap;
@@ -1651,9 +1654,9 @@ onMounted(() => {
 
 /* 学情快照卡片 */
 .portrait-summary-strip {
-  background: #F8FAFC;
+  background: var(--sky);
   border-radius: 10px;
-  border: 1px dashed #CBD5E1;
+  border: 1px dashed var(--line-2);
   display: flex;
   align-items: center;
   padding: 8px 14px;
@@ -1669,7 +1672,7 @@ onMounted(() => {
 
     .strip-icon { font-size: 13px; }
     .strip-label { color: #64748B; font-weight: 600; }
-    .strip-val { color: #334155; }
+    .strip-val { color: #1E3A6E; }
 
     &.highlight .strip-val {
       color: #0F766E;
@@ -1728,7 +1731,7 @@ onMounted(() => {
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        &.success { background: #10B981; }
+        &.success { background: var(--green); }
         &.highlight { background: #8B5CF6; }
         &.neutral { background: #6B7280; }
       }
@@ -1750,8 +1753,8 @@ onMounted(() => {
 /* 详情透视弹窗 */
 .agent-dialog-body {
   .dialog-banner {
-    background: #F1F5F9;
-    border: 1px solid #E2E8F0;
+    background: var(--sky-2);
+    border: 1px solid var(--line);
     border-radius: 8px;
     padding: 14px 16px;
     margin-bottom: 16px;
@@ -1776,7 +1779,7 @@ onMounted(() => {
     .section-label {
       margin: 0 0 6px 0;
       font-size: 13px;
-      color: #0F172A;
+      color: #0E1F3D;
       font-weight: 600;
     }
 
@@ -1788,9 +1791,9 @@ onMounted(() => {
     }
 
     .code-box {
-      background: #F8FAFC;
-      color: #1E293B;
-      border: 1px solid #E2E8F0;
+      background: var(--sky);
+      color: #13294F;
+      border: 1px solid var(--line);
       border-radius: 6px;
       padding: 10px 12px;
       font-family: 'Fira Code', monospace, Consolas;
@@ -1817,8 +1820,8 @@ onMounted(() => {
   }
 
   .probe-q-item {
-    background: #F8FAFC;
-    border: 1px solid #E2E8F0;
+    background: var(--sky);
+    border: 1px solid var(--line);
     border-radius: 8px;
     padding: 14px;
     margin-bottom: 14px;
@@ -1826,7 +1829,7 @@ onMounted(() => {
     .probe-q-title {
       font-size: 14px;
       font-weight: 700;
-      color: #0F172A;
+      color: #0E1F3D;
       margin-bottom: 4px;
     }
 
@@ -1846,13 +1849,13 @@ onMounted(() => {
         margin: 0;
         padding: 8px 12px;
         background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        border: 1px solid var(--line);
         border-radius: 6px;
         height: auto;
         display: flex;
         align-items: flex-start;
 
-        .opt-label { font-size: 13px; font-weight: 600; color: #1E293B; }
+        .opt-label { font-size: 13px; font-weight: 600; color: #13294F; }
         .opt-desc { font-size: 11px; color: #64748B; margin-top: 2px; }
       }
     }
@@ -1868,19 +1871,19 @@ onMounted(() => {
     margin-bottom: 20px;
 
     .kpi-card {
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
+      background: var(--sky);
+      border: 1px solid var(--line);
       border-radius: 8px;
       padding: 14px 12px;
       text-align: center;
 
       .kpi-val { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-      .text-success { color: #10B981; }
-      .text-primary { color: #2563EB; }
+      .text-success { color: var(--green); }
+      .text-primary { color: var(--azure); }
       .text-info { color: #0EA5E9; }
       .text-warning { color: #F59E0B; }
 
-      .kpi-name { font-size: 12px; font-weight: 600; color: #1E293B; margin-bottom: 2px; }
+      .kpi-name { font-size: 12px; font-weight: 600; color: #13294F; margin-bottom: 2px; }
       .kpi-sub { font-size: 10px; color: #94A3B8; }
     }
   }
@@ -1891,13 +1894,13 @@ onMounted(() => {
     .section-title {
       font-size: 13px;
       font-weight: 700;
-      color: #0F172A;
+      color: #0E1F3D;
       margin-bottom: 10px;
     }
 
     .latency-list {
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
+      background: var(--sky);
+      border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px 14px;
 
@@ -1913,18 +1916,18 @@ onMounted(() => {
         .stage-name { width: 170px; color: #475569; font-weight: 500; }
         .stage-bar-wrap {
           flex: 1;
-          background: #E2E8F0;
+          background: var(--line);
           height: 6px;
           border-radius: 3px;
           overflow: hidden;
 
           .stage-bar {
             height: 100%;
-            background: #3B82F6;
+            background: var(--azure);
             border-radius: 3px;
           }
         }
-        .stage-time { width: 60px; text-align: right; font-weight: 600; color: #1E293B; }
+        .stage-time { width: 60px; text-align: right; font-weight: 600; color: #13294F; }
       }
     }
 
@@ -1944,8 +1947,8 @@ onMounted(() => {
 }
 
 @keyframes glow {
-  from { box-shadow: 0 0 4px #10B981; }
-  to { box-shadow: 0 0 14px #10B981; }
+  from { box-shadow: 0 0 4px var(--green); }
+  to { box-shadow: 0 0 14px var(--green); }
 }
 
 @media (max-width: 1024px) {
@@ -1974,6 +1977,53 @@ onMounted(() => {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* IAIC 直角科技光效与流光顶线 */
+.agent-hud-container {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border-radius: 20px !important;
+
+  .corner {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--cyan);
+    opacity: 0.85;
+    pointer-events: none;
+    z-index: 10;
+
+    &.c1 { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+    &.c2 { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+  }
+
+  .hud-top-scan {
+    position: absolute;
+    top: 0; left: 0;
+    height: 2px;
+    width: 100%;
+    background: linear-gradient(90deg, transparent, var(--azure), var(--cyan), transparent);
+    opacity: 0.8;
+  }
+}
+
+.recalc-btn {
+  background: linear-gradient(90deg, #38b6ff, #2a8fff) !important;
+  border-color: transparent !important;
+  border-radius: 20px !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(42, 143, 255, 0.4) !important;
+}
+
+.hud-collapsed-bar {
+  border-radius: 16px !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow) !important;
+  background: var(--card) !important;
+}
+
 </style>
 
 
