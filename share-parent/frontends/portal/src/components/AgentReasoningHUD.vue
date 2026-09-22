@@ -122,6 +122,41 @@
         </div>
       </div>
 
+      <!-- 产业端招聘雷达实时对齐快照 (Job Market Radar Snapshot) -->
+      <div v-if="marketRadarInfo" class="hud-market-radar-banner">
+        <div class="radar-col radar-title-col">
+          <div class="radar-badge">
+            <span class="live-dot"></span>
+            <span>大厂招聘雷达强对齐</span>
+          </div>
+          <div class="radar-role">{{ marketRadarInfo.trackName }}</div>
+        </div>
+        <div class="radar-col radar-metric-col">
+          <span class="metric-label">市场需求指数</span>
+          <div class="metric-val text-cyan">
+            <span class="num">{{ marketRadarInfo.demandIndex }}</span>
+            <span class="unit">分</span>
+            <span class="trend-chip">{{ marketRadarInfo.demandTrend }}</span>
+          </div>
+        </div>
+        <div class="radar-col radar-metric-col">
+          <span class="metric-label">大厂薪资指导</span>
+          <div class="metric-val text-green">{{ marketRadarInfo.avgSalaryRange }}</div>
+        </div>
+        <div class="radar-col radar-skills-col">
+          <span class="metric-label">企业核心高频技术栈</span>
+          <div class="skill-chips">
+            <span v-for="(kw, kIdx) in (marketRadarInfo.hotKeywords || []).slice(0, 5)" :key="kIdx" class="chip">
+              {{ kw }}
+            </span>
+          </div>
+        </div>
+        <div class="radar-col radar-bloom-col">
+          <span class="metric-label">目标认知深度</span>
+          <div class="bloom-badge">{{ marketRadarInfo.targetBloomLevel }}</div>
+        </div>
+      </div>
+
     <!-- 6 大 Agent 协同流动画展示 (含审判反思智能体) -->
     <div class="agent-pipeline-track">
       <div
@@ -456,7 +491,7 @@
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { getActiveProbingQuestions, submitActiveProbingAnswers, getAgentEvaluationMetrics, fetchReasoningStream } from '@/api/class'
+import { getActiveProbingQuestions, submitActiveProbingAnswers, getAgentEvaluationMetrics, fetchReasoningStream, getJobMarketTrends } from '@/api/class'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -474,6 +509,18 @@ const props = defineProps({
 const emit = defineEmits(['recalculate', 'calibrated', 'view-path'])
 
 const selectedRole = ref('Java全栈架构师')
+const marketRadarInfo = ref(null)
+
+const fetchMarketRadar = async (role) => {
+  try {
+    const res = await getJobMarketTrends(role || selectedRole.value)
+    if (res.code == 200 && res.data) {
+      marketRadarInfo.value = res.data
+    }
+  } catch (e) {
+    console.debug('获取招聘雷达失败:', e)
+  }
+}
 const isRecalculating = ref(false)
 const isExpanded = ref(false)
 
@@ -784,6 +831,7 @@ const fetchEvalMetrics = async () => {
 
 onMounted(() => {
   fetchEvalMetrics()
+  fetchMarketRadar(selectedRole.value)
   // 检测 URL query 是否由外部（如 AI 客服多智能体导学卡片）联动带入 targetRole
   const targetRoleQuery = route?.query?.targetRole
   if (targetRoleQuery && typeof targetRoleQuery === 'string') {
@@ -2022,6 +2070,134 @@ onMounted(() => {
   border: 1px solid var(--line) !important;
   box-shadow: var(--shadow) !important;
   background: var(--card) !important;
+}
+
+
+/* 产业招聘雷达快照横幅 (IAIC 科技风) */
+.hud-market-radar-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: #0E1F3D;
+  border: 1px solid rgba(33, 198, 232, 0.25);
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin: 14px 0 16px;
+  color: #fff;
+  box-shadow: inset 0 0 16px rgba(33, 198, 232, 0.08);
+
+  .radar-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .metric-label {
+      font-size: 11px;
+      color: rgba(220, 235, 255, 0.65);
+      font-weight: 500;
+      letter-spacing: 0.04em;
+    }
+  }
+
+  .radar-title-col {
+    min-width: 140px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    padding-right: 16px;
+
+    .radar-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10.5px;
+      color: var(--cyan);
+      font-weight: 700;
+
+      .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 6px var(--green);
+        animation: pulse 1.5s infinite;
+      }
+    }
+
+    .radar-role {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 2px;
+    }
+  }
+
+  .radar-metric-col {
+    .metric-val {
+      font-size: 13.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+
+      &.text-cyan { color: var(--cyan); }
+      &.text-green { color: var(--green); }
+
+      .num { font-size: 17px; font-family: var(--mono); }
+      .unit { font-size: 11px; }
+      .trend-chip {
+        font-size: 10px;
+        color: #fff;
+        background: rgba(33, 198, 232, 0.2);
+        padding: 1px 6px;
+        border-radius: 4px;
+        margin-left: 4px;
+      }
+    }
+  }
+
+  .radar-skills-col {
+    flex: 1;
+    .skill-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+
+      .chip {
+        font-size: 11px;
+        font-family: var(--mono);
+        color: #E2E8F0;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 2px 7px;
+        border-radius: 4px;
+      }
+    }
+  }
+
+  .radar-bloom-col {
+    min-width: 110px;
+    text-align: right;
+    align-items: flex-end;
+
+    .bloom-badge {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(90deg, #1E89F1, #21C6E8);
+      padding: 3px 9px;
+      border-radius: 12px;
+      margin-top: 2px;
+      box-shadow: 0 2px 8px rgba(30, 137, 241, 0.4);
+    }
+  }
+}
+
+@media (max-width: 1024px) {
+  .hud-market-radar-banner {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 }
 
 </style>

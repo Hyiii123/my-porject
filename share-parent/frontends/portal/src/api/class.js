@@ -442,3 +442,11 @@ export const fetchReasoningStream = async ({ targetRole, query, onEvent, onError
 
 
 
+
+// 获取大厂产业招聘行情与前沿技术热度雷达
+export const getJobMarketTrends = (role) =>
+  request({
+    url: `${COURSE_API_PREFIX}/courses/ai/market/trends`,
+    method: 'get',
+    params: { role }
+  })

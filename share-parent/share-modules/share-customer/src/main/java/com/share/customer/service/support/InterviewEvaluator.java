@@ -155,6 +155,36 @@ public class InterviewEvaluator {
     }
 
     public void auditCodeSubmission(InterviewCodeSubmission submission) {
+        String code = submission.getUserCode();
+        // 1. 安全前置词法与提权阻断 (Sandbox Security Gate)
+        if (StringUtils.hasText(code)) {
+            for (String forbidden : List.of("System.exit", "Runtime.getRuntime", "ProcessBuilder", "sun.misc.Unsafe", "Thread.stop", "java.io.File", "Socket", "eval(", "exec(")) {
+                if (code.contains(forbidden)) {
+                    submission.setExecutionStatus("security_violation");
+                    submission.setTimeComplexity("N/A");
+                    submission.setSpaceComplexity("N/A");
+                    submission.setPassedTestCases(0);
+                    submission.setTotalTestCases(10);
+                    submission.setCodeSmells("【安全沙箱拦截】检测到高危系统调用或越权操作 (" + forbidden + ")，代码已被强制终止执行！");
+                    submission.setRefactoredCode("// 安全示范：企业级生产代码严禁直接操作底层进程或宿主文件系统\n// 请遵循无副作用纯算法函数式设计规范");
+                    return;
+                }
+            }
+            // 2. 括号平衡与基本语法静态审计
+            long openBraces = code.chars().filter(ch -> ch == '{').count();
+            long closeBraces = code.chars().filter(ch -> ch == '}').count();
+            if (openBraces != closeBraces) {
+                submission.setExecutionStatus("compile_error");
+                submission.setTimeComplexity("N/A");
+                submission.setSpaceComplexity("N/A");
+                submission.setPassedTestCases(0);
+                submission.setTotalTestCases(10);
+                submission.setCodeSmells(String.format("【编译未通过】代码结构未闭合，大括号不匹配 (开括号 %d 个，闭括号 %d 个)。", openBraces, closeBraces));
+                submission.setRefactoredCode("// 修复建议：检查代码块结构，确保所有方法与类的大括号成对闭合\n" + code);
+                return;
+            }
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.append("请作为资深架构师兼 LeetCode 评测判题沙箱，对学员提交的代码进行多维评测与重构：\n");
         sb.append("【题目】：").append(submission.getProblemTitle()).append("\n");

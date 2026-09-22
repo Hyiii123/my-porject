@@ -151,11 +151,6 @@ public class ThirdPartyAiClient {
             baseUrl = baseUrl.trim().replaceAll("/v1/?$", "");
             String url = baseUrl + "/v1/chat/completions";
 
-            String model = properties.getModel();
-            if (!StringUtils.hasText(model)) {
-                model = "gpt-5.6-luna";
-            }
-
             List<Map<String, String>> messages = new ArrayList<>();
             if (StringUtils.hasText(systemPrompt)) {
                 Map<String, String> sysMsg = new LinkedHashMap<>();
@@ -169,34 +164,47 @@ public class ThirdPartyAiClient {
             userMsg.put("content", userPrompt != null ? userPrompt.trim() : "");
             messages.add(userMsg);
 
-            Map<String, Object> requestBody = new LinkedHashMap<>();
-            requestBody.put("model", model);
-            requestBody.put("messages", messages);
-            requestBody.put("temperature", properties.getTemperature() > 0 ? properties.getTemperature() : 0.6);
-            requestBody.put("max_tokens", 350);
-
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(List.of(MediaType.APPLICATION_JSON));
             headers.set("Authorization", "Bearer " + apiKey);
 
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            // 多通道智能轮询模型备用池 (主通道 + 降级备用通道)
+            List<String> modelCandidates = new ArrayList<>();
+            if (StringUtils.hasText(properties.getModel())) {
+                modelCandidates.add(properties.getModel().trim());
+            }
+            for (String fallbackModel : List.of("gpt-5.6-luna", "deepseek-v3", "qwen-turbo")) {
+                if (!modelCandidates.contains(fallbackModel)) {
+                    modelCandidates.add(fallbackModel);
+                }
+            }
 
-            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                JsonNode root = objectMapper.readTree(response.getBody());
-                String content = extractContent(root);
-                if (StringUtils.hasText(content)) {
-                    String clean = content.trim();
-                    log.info("[ThirdPartyAI] 成功调用第三方大模型 (Pixel / {}), 返回文本长度: {}", model, clean.length());
+            for (String model : modelCandidates) {
+                try {
+                    Map<String, Object> requestBody = new LinkedHashMap<>();
+                    requestBody.put("model", model);
+                    requestBody.put("messages", messages);
+                    requestBody.put("temperature", properties.getTemperature() > 0 ? properties.getTemperature() : 0.6);
+                    requestBody.put("max_tokens", 350);
 
-                    // 写入语义缓存 (15 分钟)
-                    promptCache.put(cacheKey, new CacheItem(clean, System.currentTimeMillis() + 15 * 60 * 1000L));
-                    if (promptCache.size() > 400) {
-                        long now = System.currentTimeMillis();
-                        promptCache.entrySet().removeIf(e -> e.getValue().expireAt() < now);
+                    HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+                    ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+                    if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                        JsonNode root = objectMapper.readTree(response.getBody());
+                        String content = extractContent(root);
+                        if (StringUtils.hasText(content)) {
+                            String clean = content.trim();
+                            log.info("[ThirdPartyAI] 成功调用第三方大模型通道 ({} / {}), 字符数: {}", baseUrl, model, clean.length());
+                            promptCache.put(cacheKey, new CacheItem(clean, System.currentTimeMillis() + 15 * 60 * 1000L));
+                            if (promptCache.size() > 400) {
+                                promptCache.clear();
+                            }
+                            return clean;
+                        }
                     }
-                    return clean;
+                } catch (Exception channelEx) {
+                    log.warn("[ThirdPartyAI] 候选模型 [{}] 调用失败，尝试智能轮询下一备用通道: {}", model, channelEx.getMessage());
                 }
             }
         } catch (Exception ex) {
