@@ -171,6 +171,35 @@ public class EducationPortalController extends BaseController {
     @Autowired(required = false)
     private com.share.education.ai.tools.registry.AgentToolRegistry toolRegistry;
 
+    @Autowired(required = false)
+    private com.share.education.ai.rag.HybridGraphRagEngine hybridGraphRagEngine;
+
+    /**
+     * 混合检索 (Dense + BM25 RRF 融合) 与 Graph RAG 图拓扑增强端点
+     */
+    @GetMapping({"/courses/ai/rag/hybrid-search", "/courses/rag/search"})
+    public AjaxResult hybridRagSearch(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        if (hybridGraphRagEngine != null) {
+            Long targetUid = userId != null && userId > 0 ? userId : com.share.education.service.support.EduUtils.currentUserId();
+            return success(hybridGraphRagEngine.retrieve(query, targetUid, limit));
+        }
+        return error("混合图检索引擎未就绪");
+    }
+
+    /**
+     * Graph RAG 多跳先修依赖图拓扑路径分析
+     */
+    @GetMapping({"/courses/ai/rag/graph-path", "/courses/rag/path"})
+    public AjaxResult graphPrerequisitePath(@RequestParam(required = false) String concept) {
+        if (hybridGraphRagEngine != null) {
+            return success(hybridGraphRagEngine.retrieve(concept, null, 5));
+        }
+        return error("知识图谱拓扑服务未就绪");
+    }
+
     /**
      * 智能体安全代码沙箱执行端点 (Dynamic Code Sandbox Runner)
      */
