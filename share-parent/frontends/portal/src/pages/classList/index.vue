@@ -173,11 +173,11 @@ onMounted(() => {
   box-shadow: var(--shadow);
 
   .categorys {
-    width: 240px;
+    width: 260px;
     flex-shrink: 0;
     background: #fff;
     border-right: 1px solid var(--line);
-    z-index: 9;
+    z-index: 10;
   }
 
   .swiper-box {

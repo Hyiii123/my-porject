@@ -31,13 +31,14 @@ const props = defineProps({
 </script>
 <style lang="scss" scoped>
 .swiperWrapper {
-      padding-left: 20px;
-      border-radius: 8px;
+      padding-left: 0;
       overflow: hidden;
+      height: 420px;
       img {
         width: 100%;
-        height: 388px;
-        border-radius: 8px;
+        height: 420px;
+        object-fit: cover;
+        display: block;
       }
       :deep(.swiper){
         border-radius: 8px;
