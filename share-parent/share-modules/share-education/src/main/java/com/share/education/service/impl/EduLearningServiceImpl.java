@@ -47,6 +47,9 @@ public class EduLearningServiceImpl implements IEduLearningService {
     @Autowired(required = false)
     private RocketMQTemplate rocketMQTemplate;
 
+    @Autowired(required = false)
+    private com.share.common.redis.service.RedisService redisService;
+
     public EduLearningServiceImpl(EduLearningRecordMapper learningMapper,
                                   EduLearningPlanMapper planMapper,
                                   EduCourseMapper courseMapper,
@@ -193,6 +196,13 @@ public class EduLearningServiceImpl implements IEduLearningService {
         if (userId == null) {
             return pageView(0, Collections.emptyList());
         }
+        String cacheKey = "edu:learning:page:" + userId + ":" + pageNo + ":" + pageSize + ":" + current;
+        if (redisService != null) {
+            Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+            if (cached != null && !cached.isEmpty()) {
+                return cached;
+            }
+        }
         List<EduLearningRecord> allRecords = learningMapper.selectList(new LambdaQueryWrapper<EduLearningRecord>()
                 .eq(EduLearningRecord::getUserId, userId)
                 .orderByDesc(EduLearningRecord::getLastLearnTime)
@@ -247,7 +257,11 @@ public class EduLearningServiceImpl implements IEduLearningService {
         int toIndex = Math.min(fromIndex + safePageSize, (int) total);
         List<EduLearningRecord> pagedList = distinctList.subList(fromIndex, toIndex);
 
-        return pageView(total, pagedList.stream().map(this::learningView).toList());
+        Map<String, Object> result = pageView(total, pagedList.stream().map(this::learningView).toList());
+        if (redisService != null && result != null) {
+            redisService.setCacheObject(cacheKey, result, 30L, java.util.concurrent.TimeUnit.SECONDS);
+        }
+        return result;
     }
 
     @Override

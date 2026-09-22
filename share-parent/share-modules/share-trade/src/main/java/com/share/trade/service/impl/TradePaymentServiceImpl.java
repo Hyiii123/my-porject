@@ -32,6 +32,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static com.share.trade.service.support.TradeUtils.*;
 
@@ -56,6 +57,9 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
 
     @Autowired(required = false)
     private RocketMQTemplate rocketMQTemplate;
+
+    @Autowired(required = false)
+    private com.share.common.redis.service.RedisService redisService;
 
     public TradePaymentServiceImpl(TrOrderMapper orderMapper,
                                    TrOrderItemMapper itemMapper,
@@ -391,6 +395,13 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
 
     @Override
     public Map<String, Object> statistics() {
+        String cacheKey = "trade:stats:overview";
+        if (redisService != null) {
+            Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+            if (cached != null && !cached.isEmpty()) {
+                return cached;
+            }
+        }
         Map<String, Object> stats = orderMapper.selectOrderStats();
         if (stats == null) stats = Map.of();
         BigDecimal totalRefundAmount = refundMapper.selectTotalRefundAmount();
@@ -414,6 +425,9 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
         result.put("totalRevenue", paidAmount);
         result.put("totalCoupons", couponMapper.selectCount(new LambdaQueryWrapper<>()));
         result.put("refunds", refundMapper.selectCount(new LambdaQueryWrapper<>()));
+        if (redisService != null && !result.isEmpty()) {
+            redisService.setCacheObject(cacheKey, result, 60L, TimeUnit.SECONDS);
+        }
         return result;
     }
 

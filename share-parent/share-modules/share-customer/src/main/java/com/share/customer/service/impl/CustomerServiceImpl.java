@@ -621,6 +621,13 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public CustomerStatisticsVO statistics() {
+        String cacheKey = "customer:stats:overview";
+        try {
+            CustomerStatisticsVO cached = redisService.getCacheObject(cacheKey);
+            if (cached != null) {
+                return cached;
+            }
+        } catch (Exception ignored) {}
         LocalDateTime dayStart = LocalDate.now().atStartOfDay();
         CustomerStatisticsVO value = new CustomerStatisticsVO();
         value.setTotalSessions(sessionMapper.selectCount(new LambdaQueryWrapper<>()));
@@ -648,6 +655,9 @@ public class CustomerServiceImpl implements ICustomerService {
         value.setAverageMessages(totalSessions == 0 ? 0 : (int) Math.round((double) value.getTotalMessages() / totalSessions));
         value.setTopQuestions(topQuestions());
         value.setTrend(trend());
+        try {
+            redisService.setCacheObject(cacheKey, value, 60L, TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
         return value;
     }
 

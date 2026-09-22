@@ -42,6 +42,14 @@ public class SysUserOnlineController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(String ipaddr, String userName)
     {
+        boolean isSimple = (StringUtils.isEmpty(ipaddr) && StringUtils.isEmpty(userName));
+        String cacheKey = "monitor:online:list:cached";
+        if (isSimple && redisService != null) {
+            List<SysUserOnline> cached = redisService.getCacheObject(cacheKey);
+            if (cached != null) {
+                return getDataTable(cached);
+            }
+        }
         Collection<String> keys = redisService.keys(CacheConstants.LOGIN_TOKEN_KEY + "*");
         List<SysUserOnline> userOnlineList = new ArrayList<SysUserOnline>();
         for (String key : keys)
@@ -66,6 +74,9 @@ public class SysUserOnlineController extends BaseController
         }
         Collections.reverse(userOnlineList);
         userOnlineList.removeAll(Collections.singleton(null));
+        if (isSimple && redisService != null && !userOnlineList.isEmpty()) {
+            redisService.setCacheObject(cacheKey, userOnlineList, 10L, java.util.concurrent.TimeUnit.SECONDS);
+        }
         return getDataTable(userOnlineList);
     }
 

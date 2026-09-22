@@ -49,6 +49,9 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
     private final ObjectMapper objectMapper;
     private final IEduCourseService courseService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.share.common.redis.service.RedisService redisService;
+
     public EduRecommendServiceImpl(EduCourseRecommendMapper recommendMapper,
                                   EduCourseMapper courseMapper,
                                   EduUserPortraitMapper portraitMapper,
@@ -118,6 +121,14 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
 
         List<PersonalizedRecommendVO> recommendList = multiAgentOrchestrator.recommendCourses(currentUid, safeLimit);
         List<Map<String, Object>> result = new ArrayList<>();
+
+        String cacheKey = "edu:recommend:personalized:" + (currentUid != null ? currentUid : 0L) + ":" + safeLimit;
+        if (redisService != null) {
+            List<Map<String, Object>> cached = redisService.getCacheObject(cacheKey);
+            if (cached != null && !cached.isEmpty()) {
+                return cached;
+            }
+        }
 
         for (PersonalizedRecommendVO vo : recommendList) {
             EduCourse c = courseMapper.selectById(vo.getId());
@@ -222,7 +233,19 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
 
     @Override
     public Map<String, Object> orchestrateAgentRecommend(Long userId, String targetRole, Integer limit, Integer difficulty, String query) {
-        return multiAgentOrchestrator.orchestrate(userId, targetRole, limit, difficulty, query);
+        Long targetUid = userId != null ? userId : currentUserId();
+        String cacheKey = "edu:recommend:orchestrate:" + (targetUid != null ? targetUid : 0L) + ":" + (targetRole != null ? targetRole : "default") + ":" + limit;
+        if (redisService != null) {
+            Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+            if (cached != null && !cached.isEmpty()) {
+                return cached;
+            }
+        }
+        Map<String, Object> result = multiAgentOrchestrator.orchestrate(userId, targetRole, limit, difficulty, query);
+        if (redisService != null && result != null && !result.isEmpty()) {
+            redisService.setCacheObject(cacheKey, result, 10L, java.util.concurrent.TimeUnit.MINUTES);
+        }
+        return result;
     }
 
     @Override

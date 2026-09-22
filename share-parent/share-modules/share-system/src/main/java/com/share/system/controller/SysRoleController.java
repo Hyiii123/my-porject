@@ -183,9 +183,11 @@ public class SysRoleController extends BaseController
      */
     @RequiresPermissions("system:role:list")
     @GetMapping("/authUser/unallocatedList")
-    public TableDataInfo unallocatedList(SysUser user)
+    public TableDataInfo unallocatedList(SysUser user,
+                                        @org.springframework.web.bind.annotation.RequestParam(defaultValue = "1") int pageNum,
+                                        @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int pageSize)
     {
-        startPage();
+        com.github.pagehelper.PageHelper.startPage(pageNum, Math.min(pageSize, 100));
         List<SysUser> list = userService.selectUnallocatedList(user);
         return getDataTable(list);
     }
