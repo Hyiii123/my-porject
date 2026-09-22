@@ -82,7 +82,14 @@
               <el-dropdown-menu class="home-dropdown-menu">
                 <div class="home-user-dropdown-head">
                   <div class="home-user-avatar home-user-avatar-lg">
-                    <span>{{ (userInfo.nickname || userInfo.name || '智')[0] }}</span>
+                    <img
+                      v-if="userInfo.avatar && userInfo.avatar !== defaultAvatar"
+                      :src="formatAvatarUrl(userInfo.avatar)"
+                      alt="avatar"
+                      class="avatar-img"
+                      @error="handleAvatarError"
+                    />
+                    <span v-else>{{ (userInfo.nickname || userInfo.name || '智')[0] }}</span>
                   </div>
                   <div class="home-user-info">
                     <div class="home-user-name">{{ userInfo.nickname || userInfo.name || '学习者' }}</div>
