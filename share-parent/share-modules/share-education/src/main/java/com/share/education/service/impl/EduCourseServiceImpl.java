@@ -21,6 +21,9 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.function.Function;
+import java.util.concurrent.TimeUnit;
 
 import static com.share.education.service.support.EduUtils.*;
 
@@ -652,26 +655,50 @@ public class EduCourseServiceImpl implements IEduCourseService {
             }
         }
 
+        String cacheKey = "edu:course:likes:rendered:" + safeLimit;
+        List<Map<String, Object>> cached = redisService.getCacheObject(cacheKey);
+        if (cached != null && !cached.isEmpty()) {
+            return cached;
+        }
+
         Set<TypedTuple<Object>> rankingTuples = redisService.zReverseRangeWithScores(rankingKey, 0, safeLimit - 1);
         List<Map<String, Object>> result = new ArrayList<>();
         if (rankingTuples == null || rankingTuples.isEmpty()) {
             return result;
         }
 
-        int rank = 1;
+        List<Long> courseIds = new ArrayList<>();
+        Map<Long, Long> scoreMap = new HashMap<>();
         for (TypedTuple<Object> tuple : rankingTuples) {
             if (tuple.getValue() == null) continue;
             Long courseId = longValue(tuple.getValue());
             if (courseId == null) continue;
-            EduCourse course = courseMapper.selectById(courseId);
-            if (course == null || !Integer.valueOf(ENABLED).equals(course.getStatus())) continue;
-
-            Map<String, Object> view = courseView(course);
-            view.put("rank", rank++);
+            courseIds.add(courseId);
             long likes = tuple.getScore() != null ? Math.max(0, tuple.getScore().longValue()) : 0L;
-            view.put("likes", likes);
-            view.put("likeCount", likes);
-            result.add(view);
+            scoreMap.put(courseId, likes);
+        }
+
+        if (!courseIds.isEmpty()) {
+            List<EduCourse> courseList = courseMapper.selectBatchIds(courseIds);
+            Map<Long, EduCourse> courseMap = courseList.stream()
+                    .filter(c -> Integer.valueOf(ENABLED).equals(c.getStatus()))
+                    .collect(Collectors.toMap(EduCourse::getId, Function.identity(), (a, b) -> a));
+
+            int rank = 1;
+            for (Long cId : courseIds) {
+                EduCourse c = courseMap.get(cId);
+                if (c == null) continue;
+                Map<String, Object> view = courseView(c);
+                view.put("rank", rank++);
+                long likes = scoreMap.getOrDefault(cId, 0L);
+                view.put("likes", likes);
+                view.put("likeCount", likes);
+                result.add(view);
+            }
+        }
+
+        if (!result.isEmpty()) {
+            redisService.setCacheObject(cacheKey, result, 60L, TimeUnit.SECONDS);
         }
         return result;
     }

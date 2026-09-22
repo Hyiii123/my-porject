@@ -65,16 +65,20 @@ public class LegacyZhiwenUserController extends BaseController {
 
     @RequiresPermissions("system:user:list")
     @GetMapping({"/users", "/users/"})
-    public TableDataInfo users(SysUser query, @RequestParam(required = false) String type) {
+    public TableDataInfo users(SysUser query, @RequestParam(required = false) String type,
+                              @RequestParam(defaultValue = "1") int pageNum,
+                              @RequestParam(defaultValue = "10") int pageSize) {
         applyLegacyType(query, type);
-        startPage();
+        com.github.pagehelper.PageHelper.startPage(pageNum, Math.min(pageSize, 100));
         List<SysUser> users = userService.selectUserList(query);
         return table(users);
     }
 
     @RequiresPermissions("system:user:list")
     @GetMapping({"/students/page", "/teachers/page", "/staffs/page"})
-    public TableDataInfo roleUsers(SysUser query, HttpServletRequest request) {
+    public TableDataInfo roleUsers(SysUser query, HttpServletRequest request,
+                                  @RequestParam(defaultValue = "1") int pageNum,
+                                  @RequestParam(defaultValue = "10") int pageSize) {
         String path = request.getRequestURI();
         if (path.endsWith("/students/page")) {
             query.setUserType("01");
@@ -89,7 +93,7 @@ public class LegacyZhiwenUserController extends BaseController {
         } else if ("0".equals(query.getStatus())) {
             query.setStatus("1");
         }
-        startPage();
+        com.github.pagehelper.PageHelper.startPage(pageNum, Math.min(pageSize, 100));
         List<SysUser> users = userService.selectUserList(query);
         return table(users);
     }

@@ -29,6 +29,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class EducationDashboardController extends BaseController {
     private final IEducationService educationService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.share.common.redis.service.RedisService redisService;
+
     public EducationDashboardController(IEducationService educationService) {
         this.educationService = educationService;
     }
@@ -123,6 +126,12 @@ public class EducationDashboardController extends BaseController {
     @GetMapping("/top10")
     @SuppressWarnings("unchecked")
     public AjaxResult top10() {
+        if (redisService != null) {
+            Map<String, Object> cached = redisService.getCacheObject("edu:dashboard:top10:cache");
+            if (cached != null && !cached.isEmpty()) {
+                return success(cached);
+            }
+        }
         Map<String, Object> page = educationService.portalCourses(Map.of(
                 "pageNo", 1L, "pageSize", 10L, "sortBy", "learners"));
         List<Map<String, Object>> list = page.get("list") instanceof List<?> values
@@ -132,6 +141,9 @@ public class EducationDashboardController extends BaseController {
         result.put("rows", list);
         result.put("courses", list);
         result.put("total", page.getOrDefault("total", list.size()));
+        if (redisService != null && !result.isEmpty()) {
+            redisService.setCacheObject("edu:dashboard:top10:cache", result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+        }
         return success(result);
     }
 

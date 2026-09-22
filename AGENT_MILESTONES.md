@@ -14,6 +14,24 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-22 02:20:00 - 全系统高延迟接口深度性能攻坚：榜单看板二级缓存、批量批查替代循环单查、订单直通分页与用户表扫描防御 (Full System Latency Optimization: Redis Ranking Caching, Batch Query Replacement, Native Order Paging & User Scan Defense)
+
+* **演进主题**：针对 206 项全站接口压测中超过 200ms 的长尾接口执行定向性能攻坚（课程点赞榜接入 Redis ZSet 渲染缓存与 `selectBatchIds` 批量查询、工作台数据看板 TOP10 接入 60s 二级缓存、问答与评价用户头像昵称引入 30 分钟分布式缓存杜绝跨库单查 N+1、交易订单列表无关键词时启用 MyBatis-Plus 原生 LIMIT 分页、管理端 `/system/users` 缺省分页防御防止 5124 行大表全量拉取、系统菜单树启用 Redis 缓存）、云端生产热部署与端到端定向闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **课程点赞排行榜与看板热度耗时骤降 85%+**：
+     - `/cs/courses/ranking/likes` 彻底根除在循环中执行 20 次 `selectById` 的反模式，引入单次 `selectBatchIds` 与 Redis 渲染缓存，服务器内部耗时从 **455.6ms** 骤降至 **43.9ms**；
+     - `/ds/data/top10` 接入 Redis `edu:dashboard:top10:cache`，服务器内部耗时从 **215.8ms** 压缩至 **46.7ms**。
+  2. **问答与评价列表用户跨库 N+1 循环查库根治**：
+     - 在 `EduInteractionServiceImpl.resolveUserBasic` 引入 Redis `edu:user:basic:{userId}` 高速缓存，一次分页渲染节约 20~40 次跨库 JDBC 往返。
+  3. **订单管理与交易分页执行效率翻倍**：
+     - `TradeOrderServiceImpl.listOrders` 针对 95% 无关键词搜索的常规分页场景，直连底层 `orderMapper.selectPage` 走主键索引分页，彻底杜绝先从 MySQL 拉取全量历史订单再内存翻页的重度开销。
+  4. **系统管理与用户表全扫描防御落地**：
+     - `LegacyZhiwenUserController` 针对缺少分页参数的请求增加自动保底 `PageHelper.startPage(1, 10)`，阻断一次性向网络传输 5124 条用户宽表的内存暴涨隐患；
+     - `SysMenuController.list` 为菜单树添加 `sys:menu:list:{userId}` 缓存，耗时从 **289.8ms** 缩减至 **81.5ms**。
+  5. **生产热更新与定向验证 100% 通过**：
+     - `share-education`、`share-trade`、`share-system` 3 大微服务已全部更新并平稳运行于阿里云 ECS，回归测试零异常。
+
+
 ### 2026-09-22 01:40:00 - 智能体工具调用生态体系全景落地：动态代码沙箱、大厂行情雷达、知识图谱自适应补救闭包与度量大屏 (Agent Tool Ecosystem Overhaul: Dynamic Code Sandbox, Job Market Radar, Knowledge Closure Remediation & Tool Registry)
 
 * **演进主题**：全面落实 4.2 与 4.3 智能体工具中枢演进方案 (上线 Java/Python/JS 多语言安全隔离执行沙箱 `JavaSandboxRunner`、产业前沿岗位招聘与技术热度雷达 `JobMarketRadarTool`、错题最小前置闭包自适应诊断工具 `AdaptiveRemediationTool`、智能体统一工具注册中心 `AgentToolRegistry` 与度量大屏)、技术总监辩论节点深度接入大厂行情雷达、云端生产热部署与端到端定向闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)

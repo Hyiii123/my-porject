@@ -142,6 +142,26 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         Integer status = intValue(params == null ? null : params.get("status"));
         Long userId = admin ? longValue(params == null ? null : params.get("userId")) : currentUserId();
 
+        // 高性能优化：当无关键词深层扫描时，直接走数据库原生 LIMIT 分页，杜绝全表拉取与 N+1 循环
+        if (!StringUtils.hasText(keyword)) {
+            com.baomidou.mybatisplus.extension.plugins.pagination.Page<TrOrder> page =
+                    new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(safePage(pageNo), safeSize(pageSize));
+            LambdaQueryWrapper<TrOrder> q = new LambdaQueryWrapper<TrOrder>()
+                    .eq(userId != null, TrOrder::getUserId, userId)
+                    .eq(StringUtils.hasText(orderNo), TrOrder::getOrderNo, orderNo)
+                    .orderByDesc(TrOrder::getCreateTime);
+            if (status != null) {
+                Integer newStatus = status == 5 ? 4 : status;
+                q.eq(TrOrder::getOrderStatus, newStatus);
+            }
+            orderMapper.selectPage(page, q);
+            for (TrOrder order : page.getRecords()) {
+                checkAndExpireOrder(order);
+            }
+            List<Map<String, Object>> pagedRows = page.getRecords().stream().map(this::orderView).toList();
+            return pageView(page.getTotal(), pagedRows);
+        }
+
         List<TrOrder> rows = orderMapper.selectList(new LambdaQueryWrapper<TrOrder>()
                 .eq(userId != null, TrOrder::getUserId, userId)
                 .eq(StringUtils.hasText(orderNo), TrOrder::getOrderNo, orderNo)

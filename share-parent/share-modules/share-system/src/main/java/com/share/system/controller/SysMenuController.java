@@ -37,12 +37,26 @@ public class SysMenuController extends BaseController
     /**
      * 获取菜单列表
      */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.share.common.redis.service.RedisService redisService;
+
     @RequiresPermissions("system:menu:list")
     @GetMapping("/list")
     public AjaxResult list(SysMenu menu)
     {
         Long userId = SecurityUtils.getUserId();
+        boolean isSimpleQuery = (menu == null || (menu.getMenuName() == null && menu.getStatus() == null && menu.getVisible() == null));
+        String cacheKey = "sys:menu:list:" + (userId != null ? userId : 0L);
+        if (isSimpleQuery && redisService != null) {
+            List<SysMenu> cached = redisService.getCacheObject(cacheKey);
+            if (cached != null && !cached.isEmpty()) {
+                return success(cached);
+            }
+        }
         List<SysMenu> menus = menuService.selectMenuList(menu, userId);
+        if (isSimpleQuery && redisService != null && menus != null && !menus.isEmpty()) {
+            redisService.setCacheObject(cacheKey, menus, 10L, java.util.concurrent.TimeUnit.MINUTES);
+        }
         return success(menus);
     }
 

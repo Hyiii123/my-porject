@@ -574,6 +574,14 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
 
     private Map<String, String> resolveUserBasic(Long userId) {
         if (userId == null) return Map.of("name", "匿名用户", "avatar", "");
+        String cacheKey = "edu:user:basic:" + userId;
+        if (redisService != null) {
+            Map<String, String> cached = redisService.getCacheObject(cacheKey);
+            if (cached != null && !cached.isEmpty()) {
+                return cached;
+            }
+        }
+        Map<String, String> resolved = null;
         if (jdbcTemplate != null) {
             try {
                 List<Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -584,11 +592,17 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
                     String user = (String) r.get("user_name");
                     String avatar = (String) r.get("avatar");
                     String displayName = StringUtils.hasText(nick) ? nick : (StringUtils.hasText(user) ? user : "学习者");
-                    return Map.of("name", displayName, "avatar", avatar != null ? avatar : "");
+                    resolved = Map.of("name", displayName, "avatar", avatar != null ? avatar : "");
                 }
             } catch (Exception ignored) {}
         }
-        return Map.of("name", Objects.equals(userId, currentUserId()) ? currentUserName() : "学习者" + userId, "avatar", "");
+        if (resolved == null) {
+            resolved = Map.of("name", Objects.equals(userId, currentUserId()) ? currentUserName() : "学习者" + userId, "avatar", "");
+        }
+        if (redisService != null) {
+            redisService.setCacheObject(cacheKey, resolved, 30L, java.util.concurrent.TimeUnit.MINUTES);
+        }
+        return resolved;
     }
 }
 
