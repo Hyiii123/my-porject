@@ -1,7 +1,9 @@
 <template>
   <header class="home-nav">
-    <!-- 顶部动态扫描光线 -->
-    <div class="home-nav-scan"></div>
+    <!-- 顶部动态扫描光线 (独立轨道裁剪溢出，彻底消除横向滚动条晃动) -->
+    <div class="home-nav-scan-track">
+      <div class="home-nav-scan"></div>
+    </div>
 
     <div class="home-wrap home-nav-inner">
       <!-- 品牌标识 -->
@@ -283,11 +285,21 @@ onUnmounted(() => {
   width: 100%;
 }
 
-.home-nav-scan {
+.home-nav-scan-track {
   position: absolute;
   left: 0;
   bottom: 0;
+  width: 100%;
   height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-nav-scan {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
   width: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
   opacity: 0.55;
