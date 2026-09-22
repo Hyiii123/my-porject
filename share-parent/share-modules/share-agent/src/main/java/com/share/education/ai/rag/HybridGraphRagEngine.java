@@ -1,13 +1,12 @@
 package com.share.education.ai.rag;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.share.education.ai.rag.bm25.Bm25SearchEngine;
 import com.share.education.ai.rag.graph.KnowledgeGraphRagService;
 import com.share.education.ai.rag.model.HybridRagResult;
-import com.share.education.domain.EduCourse;
-import com.share.education.mapper.EduCourseMapper;
+import com.share.education.ai.rag.provider.ICourseDocumentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -32,16 +31,23 @@ public class HybridGraphRagEngine {
     private final Bm25SearchEngine bm25Engine;
     private final KnowledgeGraphRagService graphRagService;
     private final EducationKnowledgeRAG careerRag;
-    private final EduCourseMapper courseMapper;
+    private final ICourseDocumentProvider courseProvider;
 
     public HybridGraphRagEngine(Bm25SearchEngine bm25Engine,
                                 KnowledgeGraphRagService graphRagService,
+                                EducationKnowledgeRAG careerRag) {
+        this(bm25Engine, graphRagService, careerRag, null);
+    }
+
+    @Autowired
+    public HybridGraphRagEngine(Bm25SearchEngine bm25Engine,
+                                KnowledgeGraphRagService graphRagService,
                                 EducationKnowledgeRAG careerRag,
-                                @org.springframework.beans.factory.annotation.Autowired(required = false) EduCourseMapper courseMapper) {
+                                @Autowired(required = false) ICourseDocumentProvider courseProvider) {
         this.bm25Engine = bm25Engine;
         this.graphRagService = graphRagService;
         this.careerRag = careerRag;
-        this.courseMapper = courseMapper;
+        this.courseProvider = courseProvider;
     }
 
     /**
@@ -64,8 +70,11 @@ public class HybridGraphRagEngine {
         List<Map<String, Object>> bm25Hits = bm25Engine.search(cleanQuery, safeLimit * 2);
         result.setBm25Hits(bm25Hits);
 
-        // 2. Dense 密集语义候选多路召回 (基于数据库模糊与语义拓展模拟 Dense 召回)
+        // 2. Dense 密集语义候选多路召回
         List<Map<String, Object>> denseHits = retrieveDenseCandidates(cleanQuery, safeLimit * 2);
+        if (denseHits.isEmpty()) {
+            denseHits = new ArrayList<>(bm25Hits);
+        }
         result.setDenseHits(denseHits);
 
         // 3. Reciprocal Rank Fusion (RRF 倒数排名融合算法)
@@ -99,10 +108,10 @@ public class HybridGraphRagEngine {
                 .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
                 .limit(safeLimit)
                 .map(e -> {
-                    Map<String, Object> c = new LinkedHashMap<>(courseDetails.get(e.getKey()));
-                    c.put("rrfScore", Math.round(e.getValue() * 10000.0) / 10000.0);
-                    c.put("retrievalType", "Hybrid (Dense + BM25 RRF)");
-                    return c;
+                    Map<String, Object> item = new LinkedHashMap<>(courseDetails.get(e.getKey()));
+                    item.put("rrfScore", Math.round(e.getValue() * 10000.0) / 10000.0);
+                    item.put("retrievalType", "Hybrid (Dense + BM25 RRF)");
+                    return item;
                 })
                 .collect(Collectors.toList());
         result.setFusedCourses(fused);
@@ -129,28 +138,13 @@ public class HybridGraphRagEngine {
     }
 
     private List<Map<String, Object>> retrieveDenseCandidates(String query, int limit) {
-        if (courseMapper == null) return Collections.emptyList();
+        if (courseProvider == null) {
+            return Collections.emptyList();
+        }
         try {
-            List<EduCourse> candidates = courseMapper.selectList(new LambdaQueryWrapper<EduCourse>()
-                    .eq(EduCourse::getStatus, 1)
-                    .and(w -> w.like(EduCourse::getCourseName, query)
-                            .or().like(EduCourse::getTargetRole, query)
-                            .or().like(EduCourse::getSkills, query))
-                    .orderByDesc(EduCourse::getLearnerCount)
-                    .last("limit " + limit));
-
-            return candidates.stream().map(c -> {
-                Map<String, Object> map = new LinkedHashMap<>();
-                map.put("id", c.getId());
-                map.put("denseScore", 0.95);
-                map.put("title", c.getCourseName());
-                map.put("courseName", c.getCourseName());
-                map.put("skills", c.getSkills());
-                map.put("price", c.getPrice());
-                map.put("cover", c.getCoverUrl());
-                return map;
-            }).collect(Collectors.toList());
+            return courseProvider.searchDenseCandidates(query, limit);
         } catch (Exception ex) {
+            log.warn("[HybridGraphRagEngine] SPI 密集候选检索异常: {}", ex.getMessage());
             return Collections.emptyList();
         }
     }

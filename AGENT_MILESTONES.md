@@ -1665,3 +1665,31 @@
 
 
 
+
+### 2026-09-22 17:30:00 - 独立多智能体与大模型领域模块抽离 (share-modules/share-agent 架构彻底解耦、SPI 插件化与零回归热发布)
+
+- **背景与目标**：
+  应业务架构演进与跨模块智能体能力复用诉求，将原本与教育业务强耦合的多智能体协同子系统、Spring AI 官方客户端池、Agent Tools 工具生态、混合 RAG（BM25 + Dense + RRF）以及情境记忆评估体系彻底剥离，独立抽象为 `share-modules/share-agent` 领域模块，作为高内聚、低耦合、开箱即用的企业级智能体底座。
+- **架构重构与领域抽象**：
+  1. **独立模块工程构建**：在 `share-parent/share-modules/` 下建立 `share-agent` 模块，完成根 POM 与父级 POM 依赖聚合及模块化依赖版本对齐；
+  2. **智能体全景能力迁移**：
+     - **Spring AI 核心客户端池**：迁移 `SpringAiConfiguration`、`ThirdPartyAiClient` 与 `DashScopeAiClient`，保持官方 Spring AI ChatClient 与多候选模型（GPT-5.6-Luna、DeepSeek-V3、通义千问）自动故障转移候选池；
+     - **Agent Tools 注册与调度体系**：迁移 `AgentToolRegistry`、`CodeSandboxTool`、`JavaSandboxRunner`（AST 静态语法与敏感操作黑名单拦截）、`JobMarketRadarTool`、`AdaptiveRemediationTool` 与工具元数据契约；
+     - **下一代混合检索与图谱 RAG (Hybrid Search & Graph RAG)**：迁移原生 Okapi BM25 稀疏检索引擎、多跳 Kahn DAG 先修拓扑图遍历推理引擎 `KnowledgeGraphRagService`、RRF 倒数排名融合中枢 `HybridGraphRagEngine` 与行业胜任力标杆知识库 `EducationKnowledgeRAG`；
+     - **情境记忆与评测中枢**：迁移 `AgentMemoryService`（学员阻滞与导师建议向量记忆回显）、`AgentEvaluationService` 与 `LlmJudgeService`（量化评估模型）；
+     - **量化审判反思智能体**：迁移纯无状态领域推理的 `PathCriticAgent`，保持严格的 DAG 拓扑合规性、布鲁姆梯级平滑度与学时均衡性多维质检评分；
+  3. **SPI 插件式数据提供者解耦**：
+     - 在 `share-agent` 中定义 `ICourseDocumentProvider`（全量文档与密集检索接口）与 `IKnowledgeGraphDataProvider`（先修拓扑图谱与学情掌握度接口）；
+     - 在 `share-education` 中实现 `EducationCourseDocumentProvider` 与 `EducationKnowledgeGraphDataProvider`，实现领域微服务与通用智能体模块的双向解耦；无数据库依赖时智能体模块自适应降级为内存基准常识拓扑；
+  4. **依赖治理与冲突根治**：
+     - 深度治理 `mybatis-plus-boot-starter:3.5.3.1` (Spring Boot 2) 与 `mybatis-plus-spring-boot3-starter:3.5.6` 的传递依赖冲突，根治 Spring Boot 3.2 下因 `ddlApplicationRunner` 返回 NullBean 引发的容器启动异常。
+- **线上发布与定向范围验证 (Rule 8)**：
+  1. 本地执行全量离线编译打包 `share-education.jar` 并验证 `share-agent-3.6.3.jar` 内嵌正常，零报错；
+  2. 通过 Workbench 上传并秒级重载 `zhiwen-education` 容器，Spring Boot 3.2.4 零报错一次性就绪；
+  3. 定向验证 5 大关键业务端点全部 200 OK 通过：
+     - `GET /cs/courses/ai/rag/hybrid-search?query=Seata&limit=3`：BM25 + Dense + RRF 融合与 3 跳先修拓扑毫秒级输出；
+     - `GET /cs/courses/ai/tools/catalog`：5 组核心工具集正常对外暴露；
+     - `POST /cs/courses/sandbox/run`：Java 沙箱安全校验通过，成功执行输出控制台文本；
+     - `GET /cs/courses/ai/market/trends`：大语言模型应用工程师赛道行情雷达正常命中；
+     - `POST /cs/courses/ai/remediation/diagnose`：知识图谱自适应补救诊断与 7 步追溯微课清单精准返回；
+     - `GET /cs/courses/recommendations/orchestrate`：多智能体圆桌博弈与审判反思全流程闭环达成。

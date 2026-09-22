@@ -231,6 +231,13 @@
                 <version>${share.version}</version>
             </dependency>
 
+            <!-- 独立抽离的多智能体与大模型领域模块 -->
+            <dependency>
+                <groupId>com.share</groupId>
+                <artifactId>share-agent</artifactId>
+                <version>${share.version}</version>
+            </dependency>
+
             <!--knife4j-->
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>

@@ -1,11 +1,11 @@
 package com.share.education.ai.rag.bm25;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.share.education.domain.EduCourse;
-import com.share.education.mapper.EduCourseMapper;
+import com.share.education.ai.model.CourseDocItem;
+import com.share.education.ai.rag.provider.ICourseDocumentProvider;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * 原生 Okapi BM25 稀疏倒排检索引擎。
  *
  * <p>专为技术术语、版本号、框架名词（如 "Seata 2.0", "RocketMQ Dledger", "Vue3 Composition API", "SpringCloud Alibaba"）
- * 提供极速、精准的稀疏关键词召回，与 Dense 密集向量形成强互补。</p>
+ * 提供极速、精准的稀疏关键词召回，与 Dense 密集语义形成强互补。</p>
  */
 @Component
 public class Bm25SearchEngine {
@@ -29,7 +29,7 @@ public class Bm25SearchEngine {
     private static final double B = 0.75;
     private static final Pattern TOKEN_SPLIT = Pattern.compile("[\\s,，、/|+-_]+");
 
-    private final EduCourseMapper courseMapper;
+    private final ICourseDocumentProvider courseProvider;
 
     /** 倒排索引表: Term -> Map<DocId, TermFrequency> */
     private final Map<String, Map<Long, Integer>> invertedIndex = new ConcurrentHashMap<>();
@@ -37,34 +37,40 @@ public class Bm25SearchEngine {
     /** 文档长度表: DocId -> DocumentLength */
     private final Map<Long, Integer> docLengths = new ConcurrentHashMap<>();
 
-    /** 文档实体元数据缓存: DocId -> Course */
-    private final Map<Long, EduCourse> docCache = new ConcurrentHashMap<>();
+    /** 文档实体元数据缓存: DocId -> CourseDocItem */
+    private final Map<Long, CourseDocItem> docCache = new ConcurrentHashMap<>();
 
     private double avgDocLength = 0.0;
     private int totalDocs = 0;
 
-    public Bm25SearchEngine(@org.springframework.beans.factory.annotation.Autowired(required = false) EduCourseMapper courseMapper) {
-        this.courseMapper = courseMapper;
+    public Bm25SearchEngine() {
+        this(null);
+    }
+
+    @Autowired(required = false)
+    public Bm25SearchEngine(ICourseDocumentProvider courseProvider) {
+        this.courseProvider = courseProvider;
     }
 
     @PostConstruct
     public void initIndex() {
-        if (courseMapper == null) {
-            log.info("[Bm25Engine] courseMapper 未注入，跳过数据库预热");
+        if (courseProvider == null) {
+            log.info("[Bm25SearchEngine] 未配置 ICourseDocumentProvider，等待外部或测试装载索引");
             return;
         }
         try {
-            List<EduCourse> courses = courseMapper.selectList(
-                    new LambdaQueryWrapper<EduCourse>().eq(EduCourse::getStatus, 1));
-            buildIndex(courses);
-            log.info("[Bm25Engine] 成功为 {} 门生产课程构建 Okapi BM25 倒排索引表，平均文档词长: {:.1f}",
-                    courses.size(), avgDocLength);
+            List<CourseDocItem> courses = courseProvider.loadAllActiveCourses();
+            if (courses != null && !courses.isEmpty()) {
+                buildIndex(courses);
+                log.info("[Bm25SearchEngine] 成功通过 SPI 装载 {} 门课程倒排索引表，平均文档词长: {:.1f}",
+                        totalDocs, avgDocLength);
+            }
         } catch (Exception ex) {
-            log.warn("[Bm25Engine] 初始化索引构建异常: {}", ex.getMessage());
+            log.warn("[Bm25SearchEngine] 初始化倒排索引异常: {}", ex.getMessage());
         }
     }
 
-    public synchronized void buildIndex(List<EduCourse> courses) {
+    public synchronized void buildIndex(List<CourseDocItem> courses) {
         invertedIndex.clear();
         docLengths.clear();
         docCache.clear();
@@ -76,36 +82,26 @@ public class Bm25SearchEngine {
         }
 
         long totalLenSum = 0;
-        for (EduCourse c : courses) {
+        for (CourseDocItem c : courses) {
             if (c == null || c.getId() == null) continue;
             docCache.put(c.getId(), c);
 
-            String text = String.join(" ",
-                    Optional.ofNullable(c.getCourseName()).orElse(""),
-                    Optional.ofNullable(c.getDescription()).orElse(""),
-                    Optional.ofNullable(c.getShortDescription()).orElse(""),
-                    Optional.ofNullable(c.getSkills()).orElse(""),
-                    Optional.ofNullable(c.getTargetRole()).orElse(""),
-                    Optional.ofNullable(c.getPrerequisites()).orElse("")
-            );
-
+            String text = ((c.getCourseName() != null ? c.getCourseName() : "") + " " +
+                    (c.getSkills() != null ? c.getSkills() : "")).toLowerCase();
             List<String> tokens = tokenize(text);
-            docLengths.put(c.getId(), tokens.size());
-            totalLenSum += tokens.size();
+            int docLen = tokens.size();
+            docLengths.put(c.getId(), docLen);
+            totalLenSum += docLen;
 
-            Map<String, Integer> tf = new HashMap<>();
-            for (String t : tokens) {
-                tf.put(t, tf.getOrDefault(t, 0) + 1);
-            }
-
-            for (Map.Entry<String, Integer> entry : tf.entrySet()) {
-                invertedIndex.computeIfAbsent(entry.getKey(), k -> new ConcurrentHashMap<>())
-                        .put(c.getId(), entry.getValue());
+            for (String token : tokens) {
+                invertedIndex.computeIfAbsent(token, k -> new HashMap<>())
+                        .merge(c.getId(), 1, Integer::sum);
             }
         }
 
         totalDocs = docLengths.size();
         avgDocLength = totalDocs > 0 ? (double) totalLenSum / totalDocs : 0.0;
+        log.info("[Bm25SearchEngine] 成功构建 {} 个文档项的 BM25 倒排索引，平均长度: {:.1f}", totalDocs, avgDocLength);
     }
 
     /**
@@ -120,15 +116,15 @@ public class Bm25SearchEngine {
             return Collections.emptyList();
         }
 
-        List<String> queryTokens = tokenize(query);
-        if (queryTokens.isEmpty()) {
+        List<String> qTokens = tokenize(query.toLowerCase());
+        if (qTokens.isEmpty()) {
             return Collections.emptyList();
         }
 
         Map<Long, Double> scores = new HashMap<>();
 
-        for (String qToken : queryTokens) {
-            Map<Long, Integer> postings = invertedIndex.get(qToken);
+        for (String qTerm : qTokens) {
+            Map<Long, Integer> postings = invertedIndex.get(qTerm);
             if (postings == null || postings.isEmpty()) {
                 continue;
             }
@@ -151,38 +147,34 @@ public class Bm25SearchEngine {
             }
         }
 
-        if (scores.isEmpty()) {
-            return Collections.emptyList();
-        }
-
         return scores.entrySet().stream()
                 .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
                 .limit(limit > 0 ? limit : 10)
                 .map(e -> {
                     Map<String, Object> item = new LinkedHashMap<>();
-                    EduCourse c = docCache.get(e.getKey());
+                    CourseDocItem c = docCache.get(e.getKey());
                     item.put("id", e.getKey());
                     item.put("bm25Score", Math.round(e.getValue() * 100.0) / 100.0);
                     item.put("title", c != null ? c.getCourseName() : "课程 #" + e.getKey());
                     item.put("courseName", c != null ? c.getCourseName() : "课程 #" + e.getKey());
                     item.put("skills", c != null ? c.getSkills() : "");
-                    item.put("price", c != null ? c.getPrice() : 0);
+                    item.put("price", c != null ? c.getPrice() : null);
                     item.put("cover", c != null ? c.getCoverUrl() : "");
                     return item;
                 })
                 .collect(Collectors.toList());
     }
 
-    public static List<String> tokenize(String text) {
+    private List<String> tokenize(String text) {
         if (!StringUtils.hasText(text)) return Collections.emptyList();
-        List<String> tokens = new ArrayList<>();
-        String[] words = TOKEN_SPLIT.split(text.trim().toLowerCase());
-        for (String w : words) {
-            w = w.trim();
-            if (w.length() >= 2) {
-                tokens.add(w);
+        String[] raw = TOKEN_SPLIT.split(text);
+        List<String> list = new ArrayList<>();
+        for (String s : raw) {
+            String clean = s.trim();
+            if (clean.length() >= 2) {
+                list.add(clean);
             }
         }
-        return tokens;
+        return list;
     }
 }

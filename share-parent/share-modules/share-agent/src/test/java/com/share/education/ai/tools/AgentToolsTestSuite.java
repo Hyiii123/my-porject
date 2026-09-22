@@ -74,7 +74,7 @@ public class AgentToolsTestSuite {
     @Test
     @DisplayName("测试4：知识图谱先修闭包与自适应补救诊断")
     public void testAdaptiveRemediation() {
-        AdaptiveRemediationTool remediationTool = new AdaptiveRemediationTool(null);
+        AdaptiveRemediationTool remediationTool = new AdaptiveRemediationTool(new com.share.education.ai.rag.graph.KnowledgeGraphRagService());
         RemediationPlanDTO plan = remediationTool.apply(new AdaptiveRemediationRequest(1001L, "分布式微服务生产集群治理"));
 
         assertNotNull(plan);

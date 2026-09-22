@@ -30,6 +30,17 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- 引入独立抽离的多智能体核心领域模块 -->
+        <dependency>
+            <groupId>com.share</groupId>
+            <artifactId>share-agent</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.baomidou</groupId>
+                    <artifactId>mybatis-plus-boot-starter</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <!-- 官方 Spring AI 1.0.0 GA OpenAI Starter，直连 DashScope / 通义千问 OpenAI 兼容端 -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

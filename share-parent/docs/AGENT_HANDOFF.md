@@ -45,6 +45,7 @@ docker compose -p tianji-share ps
 | `share-common` | 公共库 | core、security、redis、log、datasource、datascope、seata 等，不放领域业务 |
 | `share-modules/share-system` | 系统服务 | 用户、角色、菜单、字典、日志等若依基础能力，schema 为 `share` |
 | `share-modules/share-user` | 用户服务 | 原有用户相关业务；与系统服务的兼容接口要先确认调用方再改 |
+| `share-modules/share-agent` | 独立多智能体核心模块 | Spring AI 集成、多模型容灾、Agent Tools 体系、Hybrid BM25+Dense 检索、Graph RAG 拓扑推理、情境记忆与评测大模型，向业务层提供纯 SPI 扩展 |
 | `share-modules/share-education` | 教育服务 | 课程、教师、目录、学习、考试、问答、笔记、签到、积分、教育工作台，schema 为 `tj_education` |
 | `share-modules/share-trade` | 交易服务 | 购物车、订单、演示支付、优惠券、退款、统计，schema 为 `tj_trade` |
 | `share-modules/share-customer` | 客服服务 | AI 客服、FAQ、知识库、会话、评价、统计，schema 为 `tj_customer` |
@@ -61,7 +62,7 @@ docker compose -p tianji-share ps
 | `sql` | 基础 schema 与增量迁移 | 初始 SQL 和 `sql/migrations/V*.sql` Flyway 迁移 |
 | `deploy/smoke-test.ps1` | 自动冒烟测试 | 只读和可写 API 链路验证 |
 
-根 `share-modules/pom.xml` 当前只聚合 `system`、`gen`、`job`、`file`、`user`、`customer`、`education`、`trade`。**不要恢复 `share-device`**，也不要再加 `/device/**` 网关路由。
+根 `share-modules/pom.xml` 当前聚合 `system`、`gen`、`job`、`file`、`user`、`customer`、`agent`、`education`、`trade`、`mq` 等。**不要恢复 `share-device`**，也不要再加 `/device/**` 网关路由。
 
 ## 3. 服务、容器与端口
 

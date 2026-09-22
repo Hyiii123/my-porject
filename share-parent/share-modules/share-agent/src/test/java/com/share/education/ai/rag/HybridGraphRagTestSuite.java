@@ -1,41 +1,28 @@
 package com.share.education.ai.rag;
 
+import com.share.education.ai.model.CourseDocItem;
 import com.share.education.ai.rag.bm25.Bm25SearchEngine;
 import com.share.education.ai.rag.graph.KnowledgeGraphRagService;
 import com.share.education.ai.rag.model.HybridRagResult;
-import com.share.education.domain.EduCourse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * 混合检索与 Graph RAG 引擎全景单元测试套件。
- */
 public class HybridGraphRagTestSuite {
 
     @Test
     @DisplayName("测试1：Okapi BM25 稀疏精确倒排索引分词与打分排序")
     public void testBm25SparseSearch() {
-        Bm25SearchEngine engine = new Bm25SearchEngine(null);
+        Bm25SearchEngine engine = new Bm25SearchEngine();
 
-        EduCourse c1 = new EduCourse();
-        c1.setId(101L);
-        c1.setCourseName("SpringCloud 微服务架构与高并发实战");
-        c1.setSkills("SpringCloud, Nacos, Sentinel, Seata, 微服务");
-
-        EduCourse c2 = new EduCourse();
-        c2.setId(102L);
-        c2.setCourseName("Vue3 组合式 API 现代前端全栈开发");
-        c2.setSkills("Vue3, TypeScript, Vite, Pinia, Web前端");
-
-        EduCourse c3 = new EduCourse();
-        c3.setId(103L);
-        c3.setCourseName("大语言模型应用开发与 LoRA 微调实战");
-        c3.setSkills("LLM, LangChain, RAG, LoRA, Python, Prompt");
+        CourseDocItem c1 = new CourseDocItem(101L, "SpringCloud 微服务架构与高并发实战", "SpringCloud, Nacos, Sentinel, Seata, 微服务", BigDecimal.valueOf(199), "");
+        CourseDocItem c2 = new CourseDocItem(102L, "Vue3 组合式 API 现代前端全栈开发", "Vue3, TypeScript, Vite, Pinia, Web前端", BigDecimal.valueOf(199), "");
+        CourseDocItem c3 = new CourseDocItem(103L, "大语言模型应用开发与 LoRA 微调实战", "LLM, LangChain, RAG, LoRA, Python, Prompt", BigDecimal.valueOf(299), "");
 
         engine.buildIndex(List.of(c1, c2, c3));
 
@@ -56,7 +43,7 @@ public class HybridGraphRagTestSuite {
     @Test
     @DisplayName("测试2：Graph RAG 先修拓扑图链路推演与证据上下文组装")
     public void testGraphRagTraversalAndContext() {
-        KnowledgeGraphRagService graphService = new KnowledgeGraphRagService(null, null);
+        KnowledgeGraphRagService graphService = new KnowledgeGraphRagService();
 
         List<String> chain = graphService.computePrerequisiteChain("分布式微服务集群治理");
         assertNotNull(chain);
@@ -75,24 +62,17 @@ public class HybridGraphRagTestSuite {
     @Test
     @DisplayName("测试3：Dense + BM25 RRF 倒数排名融合与全流程检索")
     public void testHybridRrfSearch() {
-        Bm25SearchEngine bm25 = new Bm25SearchEngine(null);
+        Bm25SearchEngine bm25 = new Bm25SearchEngine();
 
-        EduCourse c1 = new EduCourse();
-        c1.setId(201L);
-        c1.setCourseName("企业级分布式事务 Seata 与高并发");
-        c1.setSkills("Seata, MySQL, 分布式锁, 高并发");
-
-        EduCourse c2 = new EduCourse();
-        c2.setId(202L);
-        c2.setCourseName("Docker 容器化与 Kubernetes 生产集群编排");
-        c2.setSkills("Docker, K8s, DevOps, Linux");
+        CourseDocItem c1 = new CourseDocItem(201L, "企业级分布式事务 Seata 与高并发", "Seata, MySQL, 分布式锁, 高并发", BigDecimal.valueOf(199), "");
+        CourseDocItem c2 = new CourseDocItem(202L, "Docker 容器化与 Kubernetes 生产集群编排", "Docker, K8s, DevOps, Linux", BigDecimal.valueOf(199), "");
 
         bm25.buildIndex(List.of(c1, c2));
 
-        KnowledgeGraphRagService graph = new KnowledgeGraphRagService(null, null);
+        KnowledgeGraphRagService graph = new KnowledgeGraphRagService();
         EducationKnowledgeRAG career = new EducationKnowledgeRAG();
 
-        HybridGraphRagEngine engine = new HybridGraphRagEngine(bm25, graph, career, null);
+        HybridGraphRagEngine engine = new HybridGraphRagEngine(bm25, graph, career);
         HybridRagResult result = engine.retrieve("Seata 分布式事务", 1001L, 5);
 
         assertNotNull(result);

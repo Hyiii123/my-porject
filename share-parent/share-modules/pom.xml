@@ -15,6 +15,7 @@
         <module>share-file</module>
         <module>share-user</module>
         <module>share-customer</module>
+        <module>share-agent</module>
         <module>share-education</module>
         <module>share-trade</module>
         <module>share-mq</module>
