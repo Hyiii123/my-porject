@@ -8,15 +8,15 @@
       <span v-if="data.categoryName" class="category-badge">{{ data.categoryName }}</span>
     </div>
     <div class="card-content">
-      <div class="title" :title="data.name" v-html="data.name"></div>
+      <div class="title" :title="data.title || data.courseName || data.name" v-html="data.title || data.courseName || data.name"></div>
 
       <div class="meta-info">
-        <span class="teacher" v-if="data.teacher">讲师：{{ data.teacher }}</span>
-        <span class="sections" v-if="data.sections">共 {{ data.sections }} 节</span>
+        <span class="teacher" v-if="data.teacherName || data.teacher">讲师：{{ data.teacherName || data.teacher }}</span>
+        <span class="sections" v-if="data.lessonCount || data.lessons || data.sections">共 {{ data.lessonCount || data.lessons || data.sections }} 节</span>
       </div>
 
       <div class="card-footer">
-        <span class="learners">{{ data.sold || 0 }} 人在学</span>
+        <span class="learners">{{ data.learnerCount || data.learners || data.sold || 0 }} 人在学</span>
         <div class="price-wrapper">
           <span v-if="Number(data.price) > 0" class="price">
             <small>¥</small>{{ (Number(data.price) / 100).toFixed(2) }}

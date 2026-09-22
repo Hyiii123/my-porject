@@ -34,7 +34,7 @@
       <div class="container">
         <OpenClass
           title="🔥 直播公开课与名师实战"
-          :data="freeClassData"
+          :data="liveClassData"
         ></OpenClass>
       </div>
     </div>
@@ -44,7 +44,7 @@
       <div class="container">
         <OpenClass
           title="✨ 2026 前沿新课推荐"
-          :data="freeClassData"
+          :data="newClassData"
         ></OpenClass>
       </div>
     </div>
@@ -54,7 +54,7 @@
       <div class="container">
         <OpenClass
           title="🏆 产学研精品攻坚好课"
-          :data="freeClassData"
+          :data="featuredClassData"
         ></OpenClass>
       </div>
     </div>
@@ -72,9 +72,23 @@ import banner1 from "@/assets/banner1.jpg";
 import banner2 from "@/assets/banner2.jpg";
 import banner3 from "@/assets/banner3.jpg";
 
+import { computed } from "vue";
+
 const classCategorys = ref([]);
 const imags = [banner1, banner2, banner3];
 const freeClassData = ref([]);
+
+const liveClassData = computed(() => {
+  return freeClassData.value.slice(0, 4);
+});
+
+const newClassData = computed(() => {
+  return freeClassData.value.length > 4 ? freeClassData.value.slice(4, 8) : freeClassData.value;
+});
+
+const featuredClassData = computed(() => {
+  return freeClassData.value.length > 8 ? freeClassData.value.slice(8, 12) : freeClassData.value.slice(0, 4);
+});
 
 const getClassCategoryData = async () => {
   try {
@@ -89,7 +103,7 @@ const getClassCategoryData = async () => {
 
 const getFreeClassListData = async () => {
   try {
-    const res = await getFreeClassList({ pageNo: 1, pageSize: 8 });
+    const res = await getFreeClassList({ pageNo: 1, pageSize: 12 });
     if (res.code == 200 && res.data) {
       const list = res.data.list || res.data.records || [];
       freeClassData.value = list;
