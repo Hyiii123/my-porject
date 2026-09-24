@@ -649,6 +649,13 @@ const currentAnswer = ref('')
 
 // ==================== 手撕代码与沙箱评测逻辑 ====================
 const answerMode = ref('voice') // 'voice' | 'code'
+
+// 监听作答模式切换，切换到手撕代码时若麦克风正在录音则自动安全暂停收音
+watch(answerMode, (newMode) => {
+  if (newMode === 'code' && isRecording.value) {
+    stopSpeechRecordingOnly()
+  }
+})
 const liveCodeLang = ref('java')
 const liveSandboxTesting = ref(false)
 const liveSandboxResult = ref(null)

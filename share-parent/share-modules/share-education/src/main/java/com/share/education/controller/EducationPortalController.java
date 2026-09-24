@@ -283,7 +283,8 @@ public class EducationPortalController extends BaseController {
     @GetMapping({"/courses/ai/bkt/mastery", "/courses/bkt/mastery"})
     public AjaxResult getBktMasteryProfile(@RequestParam(required = false) Long userId) {
         if (knowledgeTracingService != null) {
-            Long uid = userId != null ? userId : 1L;
+            Long currentUid = com.share.education.service.support.EduUtils.currentUserId();
+            Long uid = userId != null && userId > 0 ? userId : (currentUid != null ? currentUid : 1L);
             return success(knowledgeTracingService.getLearnerMasteryProfile(uid));
         }
         return error("知识追踪服务未就绪");
@@ -298,7 +299,8 @@ public class EducationPortalController extends BaseController {
             @RequestParam String skillId,
             @RequestParam(defaultValue = "true") boolean correct) {
         if (knowledgeTracingService != null) {
-            Long uid = userId != null ? userId : 1L;
+            Long currentUid = com.share.education.service.support.EduUtils.currentUserId();
+            Long uid = userId != null && userId > 0 ? userId : (currentUid != null ? currentUid : 1L);
             return success(knowledgeTracingService.updateSkillObservation(uid, skillId, correct));
         }
         return error("知识追踪服务未就绪");
@@ -315,7 +317,8 @@ public class EducationPortalController extends BaseController {
             @RequestParam(defaultValue = "加强分布式事务底层原理学习") String directive,
             @RequestParam(defaultValue = "72") int score) {
         if (agentMemoryService != null) {
-            Long uid = userId != null ? userId : 1L;
+            Long currentUid = com.share.education.service.support.EduUtils.currentUserId();
+            Long uid = userId != null && userId > 0 ? userId : (currentUid != null ? currentUid : 1L);
             agentMemoryService.recordEpisode(uid, role, hurdle, directive, score);
             return success(agentMemoryService.getMemoryProfile(uid));
         }
@@ -328,7 +331,8 @@ public class EducationPortalController extends BaseController {
     @GetMapping({"/courses/ai/memory/profile", "/courses/memory/profile"})
     public AjaxResult getEbbinghausMemoryProfile(@RequestParam(required = false) Long userId) {
         if (agentMemoryService != null) {
-            Long uid = userId != null ? userId : 1L;
+            Long currentUid = com.share.education.service.support.EduUtils.currentUserId();
+            Long uid = userId != null && userId > 0 ? userId : (currentUid != null ? currentUid : 1L);
             return success(agentMemoryService.getMemoryProfile(uid));
         }
         return error("智能体记忆中枢未就绪");

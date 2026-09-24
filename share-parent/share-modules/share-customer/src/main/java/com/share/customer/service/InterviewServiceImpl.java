@@ -484,9 +484,16 @@ public class InterviewServiceImpl implements IInterviewService {
         }
         assertOwner(session);
 
+        if (session.getStatus() != null && session.getStatus() != 1) {
+            throw new ServiceException("当前面试场次已结束，无法继续获取考官提示");
+        }
+
         InterviewTurn turn = null;
         if (turnId != null) {
             turn = turnMapper.selectById(turnId);
+            if (turn != null && !turn.getSessionId().equals(session.getId())) {
+                throw new ServiceException("问答轮次不匹配当前面试场次");
+            }
         }
         if (turn == null && session.getCurrentTurn() != null) {
             turn = turnMapper.selectOne(new LambdaQueryWrapper<InterviewTurn>()

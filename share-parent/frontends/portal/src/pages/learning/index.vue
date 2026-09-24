@@ -365,7 +365,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight, ArrowDown, VideoPlay, Document } from '@element-plus/icons-vue'
@@ -975,6 +975,13 @@ const runSandbox = async () => {
 }
 
 onMounted(() => { loadCourse(); startWatermarkDrift(); })
+
+onBeforeUnmount(() => {
+  if (watermarkTimer) {
+    clearInterval(watermarkTimer)
+    watermarkTimer = null
+  }
+})
 </script>
 
 <style scoped>

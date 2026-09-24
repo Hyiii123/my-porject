@@ -173,17 +173,39 @@ public class AgentMemoryService {
         }
         try {
             String key = REDIS_PREFIX_MEMORY + userId;
-            List<MemoryEpisode> list = redisService.getCacheList(key);
-            if (list != null) {
-                // 动态基于当前时钟重算艾宾浩斯指标
-                for (MemoryEpisode ep : list) {
-                    ep.computeEbbinghausMetrics();
+            List<?> rawList = redisService.getCacheList(key);
+            if (rawList != null) {
+                List<MemoryEpisode> result = new ArrayList<>();
+                for (Object item : rawList) {
+                    if (item instanceof MemoryEpisode ep) {
+                        ep.computeEbbinghausMetrics();
+                        result.add(ep);
+                    } else if (item instanceof Map<?, ?> map) {
+                        MemoryEpisode ep = parseEpisodeMap(map);
+                        if (ep != null) {
+                            ep.computeEbbinghausMetrics();
+                            result.add(ep);
+                        }
+                    }
                 }
-                return list;
+                return result;
             }
         } catch (Exception ex) {
             log.debug("[AgentMemory] 读取画像异常: {}", ex.getMessage());
         }
         return Collections.emptyList();
+    }
+
+    private MemoryEpisode parseEpisodeMap(Map<?, ?> map) {
+        try {
+            long ts = map.containsKey("timestamp") && map.get("timestamp") instanceof Number num ? num.longValue() : System.currentTimeMillis();
+            String role = map.containsKey("role") && map.get("role") != null ? map.get("role").toString() : "";
+            String hurdle = map.containsKey("keyHurdle") && map.get("keyHurdle") != null ? map.get("keyHurdle").toString() : "";
+            String directive = map.containsKey("compromiseDirective") && map.get("compromiseDirective") != null ? map.get("compromiseDirective").toString() : "";
+            int score = map.containsKey("finalScore") && map.get("finalScore") instanceof Number num ? num.intValue() : 70;
+            return new MemoryEpisode(ts, role, hurdle, directive, score);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

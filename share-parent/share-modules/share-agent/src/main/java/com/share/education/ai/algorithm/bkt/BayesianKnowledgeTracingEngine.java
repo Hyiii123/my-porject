@@ -48,6 +48,10 @@ public class BayesianKnowledgeTracingEngine {
 
         // P(L_t) = P(L_{t-1} | obs) + (1 - P(L_{t-1} | obs)) * P(T)
         double updatedMastery = posteriorGivenObs + ((1.0 - posteriorGivenObs) * pT);
+        // 关键防御 (BKT Degeneracy Defense)：作答错误时，掌握度严禁发生反向暴涨超过初始先验
+        if (!correct && updatedMastery >= prior) {
+            updatedMastery = Math.min(prior * 0.85, posteriorGivenObs);
+        }
         return Math.round(Math.max(0.0, Math.min(1.0, updatedMastery)) * 1000.0) / 1000.0;
     }
 

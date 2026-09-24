@@ -99,9 +99,21 @@ public class KnowledgeTracingService {
         String key = REDIS_PREFIX_BKT + userId;
         if (redisService != null) {
             try {
-                Map<String, KnowledgePointMasteryVO> cached = redisService.getCacheMap(key);
+                Map<?, ?> cached = redisService.getCacheMap(key);
                 if (cached != null && !cached.isEmpty()) {
-                    return new HashMap<>(cached);
+                    Map<String, KnowledgePointMasteryVO> converted = new ConcurrentHashMap<>();
+                    for (Map.Entry<?, ?> entry : cached.entrySet()) {
+                        String k = String.valueOf(entry.getKey());
+                        Object v = entry.getValue();
+                        if (v instanceof KnowledgePointMasteryVO vo) {
+                            converted.put(k, vo);
+                        } else if (v instanceof Map<?, ?> valMap) {
+                            converted.put(k, parseMasteryMap(k, valMap));
+                        }
+                    }
+                    if (!converted.isEmpty()) {
+                        return converted;
+                    }
                 }
             } catch (Exception ex) {
                 log.debug("[BKT] Redis读取异常: {}", ex.getMessage());
@@ -124,6 +136,23 @@ public class KnowledgeTracingService {
             saveUserMap(userId, local);
         }
         return local;
+    }
+
+    private KnowledgePointMasteryVO parseMasteryMap(String skillId, Map<?, ?> map) {
+        String name = map.containsKey("skillName") && map.get("skillName") != null ? map.get("skillName").toString() : skillId;
+        String cat = map.containsKey("category") && map.get("category") != null ? map.get("category").toString() : "专业技能";
+        double prob = 0.35;
+        if (map.containsKey("masteryProbability") && map.get("masteryProbability") instanceof Number num) {
+            prob = num.doubleValue();
+        }
+        String status = map.containsKey("status") && map.get("status") != null ? map.get("status").toString() : bktEngine.resolveStatus(prob);
+        long lastTime = System.currentTimeMillis();
+        if (map.containsKey("lastPracticeTime") && map.get("lastPracticeTime") instanceof Number num) {
+            lastTime = num.longValue();
+        }
+        int attempts = map.containsKey("attemptCount") && map.get("attemptCount") instanceof Number num ? num.intValue() : 0;
+        int correct = map.containsKey("correctCount") && map.get("correctCount") instanceof Number num ? num.intValue() : 0;
+        return new KnowledgePointMasteryVO(skillId, name, cat, prob, status, lastTime, attempts, correct);
     }
 
     private void saveUserMap(Long userId, Map<String, KnowledgePointMasteryVO> map) {
