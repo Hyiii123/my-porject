@@ -70,6 +70,23 @@ public class InterviewController extends BaseController {
     }
 
     /**
+     * 获取苏格拉底式启发提示（不剧透最终代码，引导性突破算法瓶颈）
+     */
+    @RequiresLogin
+    @GetMapping("/hint")
+    public AjaxResult getHint(
+            @RequestParam Long sessionId,
+            @RequestParam(required = false) Long turnId,
+            @RequestParam(defaultValue = "1") int hintLevel,
+            @RequestParam(required = false) String currentCode) {
+        String hint = interviewService.getSocraticHint(sessionId, turnId, hintLevel, currentCode);
+        Map<String, Object> data = new HashMap<>();
+        data.put("hintLevel", hintLevel);
+        data.put("hint", hint);
+        return success(data);
+    }
+
+    /**
      * 终局交卷 / 裁定（生成多维能力诊断大屏报告）。
      */
     @RequiresLogin

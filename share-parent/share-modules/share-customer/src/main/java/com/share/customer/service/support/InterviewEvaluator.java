@@ -229,6 +229,35 @@ public class InterviewEvaluator {
         submission.setRefactoredCode("// 规范工程重构：增加空参校验与并发安全保障\n" + submission.getUserCode());
     }
 
+    public String generateSocraticHint(String question, String currentCode, int hintLevel) {
+        String levelDesc;
+        switch (hintLevel) {
+            case 1 -> levelDesc = "Level 1: 算法核心思路与数据结构选型启发（指出解决该题的经典思想，如双指针/单调栈/动态规划状态定义）";
+            case 2 -> levelDesc = "Level 2: 边界用例与异常防御提示（指出容易遗漏的特殊测试用例，如空集合、极值、越界或重复元素）";
+            case 3 -> levelDesc = "Level 3: 代码结构微调与关键步骤推演（指出当前代码的关键缺陷或时空复杂度优化切入点）";
+            default -> levelDesc = "综合算法提示";
+        }
+        String prompt = "你是一位经验丰富但坚持【苏格拉底式启发教学】的大厂资深技术面试官。\n"
+                + "当前考题：【" + question + "】\n"
+                + (StringUtils.hasText(currentCode) ? "候选人当前编写的代码/草稿：\n" + currentCode + "\n" : "候选人暂未动笔，正在思考。\n")
+                + "启发等级：【" + levelDesc + "】\n\n"
+                + "【启发铁律】：\n"
+                + "1. 严禁直接输出完整的标准答案代码，严禁剥夺候选人自主解题的机会；\n"
+                + "2. 用 1~2 句精炼且极具启发性的提问或建议，引导候选人发现关键思路或识别陷阱；\n"
+                + "3. 语言友好、专业，带有大厂架构师的引导风范。\n\n"
+                + "请直接输出启发内容：";
+        String aiRes = callAi(prompt, null);
+        if (StringUtils.hasText(aiRes)) {
+            return aiRes.trim();
+        }
+        return switch (hintLevel) {
+            case 1 -> "💡 面试官提示：先不要急于落笔，分析题目输入规模与约束条件。如果是查找/排序类题目，思考哈希表、双指针或二分能否将复杂度压缩至 O(N) 或 O(logN)？";
+            case 2 -> "💡 面试官提示：注意边界情况防御：输入为 null、长度为 0、包含负数或重复元素时，你的核心循环和数组访问是否会发生越界或 NPE？";
+            case 3 -> "💡 面试官提示：检查核心转移方程或循环不变式，确保每一步状态更新后指针/计数器正确推进，避免死循环。";
+            default -> "💡 面试官提示：建议理清主干算法流程，先写出伪代码逻辑再细化实现。";
+        };
+    }
+
     public InterviewReport generateFinalReport(InterviewSession session, List<InterviewTurn> turns,
                                               List<InterviewCodeSubmission> codes, int avgScore) {
         InterviewQuestionEngine.JobTrack track = questionEngine.detectJobTrack(session.getTargetJob());

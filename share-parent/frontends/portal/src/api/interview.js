@@ -10,6 +10,14 @@ export const submitInterviewAnswer = (data) =>
 export const submitInterviewCode = (data) =>
   request({ url: '/customer/interview/code', method: 'post', data, timeout: 60000 })
 
+// 沙箱在线试跑（实时测试代码，不推进考题轮次）
+export const runInterviewSandbox = (data) =>
+  request({ url: '/cs/courses/sandbox/run', method: 'post', data, timeout: 15000 })
+
+// 获取考官苏格拉底式启发提示（分级渐进引导，不直接剧透代码）
+export const getInterviewHint = (params) =>
+  request({ url: '/customer/interview/hint', method: 'get', params, timeout: 20000 })
+
 export const finishInterview = (sessionId) =>
   request({ url: `/customer/interview/finish/${sessionId}`, method: 'post', timeout: 60000 })
 

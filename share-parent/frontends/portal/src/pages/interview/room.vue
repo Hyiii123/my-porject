@@ -352,8 +352,22 @@
             </div>
           </div>
 
+          <!-- 答题模式切换栏：口述音视频问答 VS 算法手撕代码实战 -->
+          <div class="answering-mode-bar">
+            <div class="mode-toggles">
+              <el-radio-group v-model="answerMode" size="small">
+                <el-radio-button label="voice">🎙️ 口述语音问答</el-radio-button>
+                <el-radio-button label="code">💻 手撕代码实战 (沙箱评测)</el-radio-button>
+              </el-radio-group>
+            </div>
+            <div class="mode-hint" v-if="answerMode === 'code'">
+              <span class="live-pulse"></span>
+              <span>沙箱与考官苏格拉底式启发已就绪</span>
+            </div>
+          </div>
+
           <!-- 候选人口述语音实时转写工作台 (取消纯键盘打字，全面采用语音口述) -->
-          <div class="candidate-voice-console">
+          <div v-if="answerMode === 'voice'" class="candidate-voice-console">
             <div class="console-header">
               <div class="title-with-wave">
                 <span class="record-dot" :class="{ pulsing: isRecording }"></span>
@@ -439,6 +453,87 @@
                   清空重说
                 </el-button>
               </template>
+            </div>
+          </div>
+
+          <!-- 候选人手撕代码与沙箱评测工作台 -->
+          <div v-else class="candidate-coding-console">
+            <!-- 编码工具栏 -->
+            <div class="coding-toolbar">
+              <div class="tool-left">
+                <el-radio-group v-model="liveCodeLang" size="small" @change="handleLiveLangChange">
+                  <el-radio-button label="java">☕ Java (JDK 17)</el-radio-button>
+                  <el-radio-button label="python">🐍 Python 3</el-radio-button>
+                  <el-radio-button label="javascript">⚡ JS (Node)</el-radio-button>
+                </el-radio-group>
+                <el-dropdown trigger="click" @command="fetchSocraticHint" class="hint-dropdown">
+                  <el-button size="small" type="warning" plain :loading="hintLoading">
+                    💡 考官启发提示 ▼
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="1">Level 1: 算法核心思路与选型启发</el-dropdown-item>
+                      <el-dropdown-item command="2">Level 2: 边界用例与异常防御提示</el-dropdown-item>
+                      <el-dropdown-item command="3">Level 3: 代码结构微调与复杂度优化</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+              <div class="tool-right">
+                <el-button size="small" @click="resetLiveCode">🔄 模板</el-button>
+                <el-button type="primary" size="small" :loading="liveSandboxTesting" @click="testRunSandbox">
+                  ⚡ 沙箱测试试跑
+                </el-button>
+                <el-button type="success" size="small" :loading="submittingAnswer" :disabled="isCompleted" @click="handleInterviewCodeSubmit">
+                  🚀 提交本题代码 ➔
+                </el-button>
+              </div>
+            </div>
+
+            <!-- 苏格拉底式考官启发卡片 -->
+            <div v-if="currentHintText" class="socratic-hint-banner">
+              <div class="hint-banner-header">
+                <span class="hint-tag">💡 考官 Level {{ hintLevel }} 启发提示（不剧透最终代码）：</span>
+                <el-button link type="info" size="small" @click="currentHintText = ''">✕ 关闭</el-button>
+              </div>
+              <div class="hint-banner-body">{{ currentHintText }}</div>
+            </div>
+
+            <!-- 代码编辑框 -->
+            <div class="coding-editor-wrapper">
+              <div class="code-editor-header">
+                <span class="file-name">Solution.{{ liveCodeLang === 'java' ? 'java' : (liveCodeLang === 'python' ? 'py' : 'js') }}</span>
+                <span class="editor-sub">支持内存动态编译、时空复杂度推演与防注入沙箱</span>
+              </div>
+              <el-input
+                v-model="liveCode"
+                type="textarea"
+                :rows="11"
+                class="code-textarea"
+                placeholder="在此编写算法与解题代码..."
+                spellcheck="false"
+              />
+            </div>
+
+            <!-- 沙箱测试实时输出面板 -->
+            <div class="live-sandbox-panel" v-if="liveSandboxResult || liveSandboxTesting">
+              <div class="sandbox-panel-header">
+                <span class="panel-title">🖥️ 实时测试沙箱输出：</span>
+                <div class="panel-meta" v-if="liveSandboxResult">
+                  <el-tag :type="liveSandboxResult.status === 'SUCCESS' ? 'success' : (liveSandboxResult.status === 'SECURITY_VIOLATION' ? 'danger' : 'warning')" size="small">
+                    {{ liveSandboxResult.status }}
+                  </el-tag>
+                  <span class="meta-time" v-if="liveSandboxResult.executionTimeMs">⏱️ {{ liveSandboxResult.executionTimeMs }}ms</span>
+                  <span class="meta-exit">Exit: {{ liveSandboxResult.exitCode ?? 0 }}</span>
+                  <el-button link type="info" size="small" @click="liveSandboxResult = null">✕</el-button>
+                </div>
+              </div>
+              <div class="sandbox-panel-body">
+                <div v-if="liveSandboxTesting" class="testing-tip">
+                  <span class="pulse-point"></span> 沙箱隔离运行测试用例中...
+                </div>
+                <pre v-else class="output-pre"><code :class="{ 'error-out': liveSandboxResult.status !== 'SUCCESS' }">{{ liveSandboxResult.stdout || liveSandboxResult.stderr || '[沙箱执行完毕，无控制台打印]' }}</code></pre>
+              </div>
             </div>
           </div>
         </div>
@@ -529,6 +624,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getInterviewDetail,
   submitInterviewAnswer,
+  submitInterviewCode,
+  runInterviewSandbox,
+  getInterviewHint,
   finishInterview
 } from '@/api/interview.js'
 import { createVirtualCameraStream } from '@/utils/virtualCamera.js'
@@ -548,6 +646,124 @@ const sessionData = ref({
 })
 
 const currentAnswer = ref('')
+
+// ==================== 手撕代码与沙箱评测逻辑 ====================
+const answerMode = ref('voice') // 'voice' | 'code'
+const liveCodeLang = ref('java')
+const liveSandboxTesting = ref(false)
+const liveSandboxResult = ref(null)
+const hintLoading = ref(false)
+const currentHintText = ref('')
+const hintLevel = ref(1)
+
+const interviewCodeTemplates = {
+  java: `public class Solution {\n    public static void main(String[] args) {\n        // 编写解题逻辑与测试用例\n        System.out.println("Solution initialized");\n    }\n}`,
+  python: `def solve():\n    # 编写解题逻辑与测试用例\n    print("Solution initialized")\n\nif __name__ == '__main__':\n    solve()`,
+  javascript: `function solve() {\n    // 编写解题逻辑与测试用例\n    console.log("Solution initialized");\n}\nsolve();`
+}
+
+const liveCode = ref(interviewCodeTemplates.java)
+
+const handleLiveLangChange = (lang) => {
+  liveCode.value = interviewCodeTemplates[lang] || ''
+  liveSandboxResult.value = null
+}
+
+const resetLiveCode = () => {
+  liveCode.value = interviewCodeTemplates[liveCodeLang.value] || ''
+  liveSandboxResult.value = null
+}
+
+const fetchSocraticHint = async (cmd) => {
+  const lvl = Number(cmd) || 1
+  try {
+    hintLoading.value = true
+    hintLevel.value = lvl
+    const res = await getInterviewHint({
+      sessionId: String(sessionId),
+      turnId: currentTurn.value?.id,
+      hintLevel: lvl,
+      currentCode: liveCode.value
+    })
+    if (res && res.code === 200 && res.data) {
+      currentHintText.value = res.data.hint
+      ElMessage.success(`已获取考官 Level ${lvl} 启发式提示！`)
+    } else {
+      ElMessage.warning(res?.msg || '获取提示失败')
+    }
+  } catch (err) {
+    ElMessage.error('调用启发式接口失败: ' + (err.message || '网络异常'))
+  } finally {
+    hintLoading.value = false
+  }
+}
+
+const testRunSandbox = async () => {
+  if (!liveCode.value.trim()) {
+    ElMessage.warning('请输入待测试的代码！')
+    return
+  }
+  try {
+    liveSandboxTesting.value = true
+    liveSandboxResult.value = null
+    const res = await runInterviewSandbox({
+      language: liveCodeLang.value,
+      sourceCode: liveCode.value
+    })
+    if (res && res.code === 200 && res.data) {
+      liveSandboxResult.value = res.data
+      if (res.data.status === 'SUCCESS') {
+        ElMessage.success('沙箱测试通过！')
+      } else {
+        ElMessage.warning('沙箱测试未通过: ' + res.data.status)
+      }
+    } else {
+      ElMessage.error(res?.msg || '沙箱执行出错')
+    }
+  } catch (err) {
+    ElMessage.error('沙箱执行异常: ' + (err.message || '网络错误'))
+  } finally {
+    liveSandboxTesting.value = false
+  }
+}
+
+const handleInterviewCodeSubmit = async () => {
+  if (!liveCode.value.trim()) {
+    ElMessage.warning('代码内容不能为空！')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      '确定提交当前手撕代码？提交后 AI 考官将执行深度时空复杂度推演与架构异味审计，并推进至下一轮考题。',
+      '提交手撕代码确认',
+      { confirmButtonText: '确定提交', cancelButtonText: '继续调试', type: 'info' }
+    )
+    submittingAnswer.value = true
+    const res = await submitInterviewCode({
+      sessionId: String(sessionId),
+      turnId: currentTurn.value?.id,
+      problemTitle: currentTurn.value?.question || '算法设计与手撕代码',
+      language: liveCodeLang.value,
+      userCode: liveCode.value
+    })
+    if (res && res.code === 200 && res.data) {
+      ElMessage.success('手撕代码提交成功，已完成沙箱评测与考官审计！')
+      liveCode.value = interviewCodeTemplates[liveCodeLang.value]
+      liveSandboxResult.value = null
+      currentHintText.value = ''
+      answerMode.value = 'voice'
+      await loadSession()
+    } else {
+      ElMessage.error(res?.msg || '提交代码失败')
+    }
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error('提交代码异常: ' + (e.message || '网络错误'))
+    }
+  } finally {
+    submittingAnswer.value = false
+  }
+}
 
 // 计时器
 const timerSeconds = ref(0)
@@ -2056,4 +2272,198 @@ onBeforeUnmount(() => {
   color: #64748b;
   margin-bottom: 10px;
 }
+
+/* ==================== 答题模式切换栏与手撕代码工作台样式 ==================== */
+.answering-mode-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.mode-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #0369a1;
+}
+
+.live-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0284c7;
+  animation: pulse-dot 1.2s infinite;
+}
+
+.candidate-coding-console {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.coding-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.tool-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hint-dropdown {
+  margin-left: 4px;
+}
+
+.socratic-hint-banner {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.hint-banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.hint-tag {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.hint-banner-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #78350f;
+}
+
+.coding-editor-wrapper {
+  background: #0f172a;
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+  overflow: hidden;
+}
+
+.code-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e293b;
+  padding: 8px 14px;
+  border-bottom: 1px solid #334155;
+}
+
+.file-name {
+  color: #38bdf8;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.editor-sub {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.code-textarea :deep(.el-textarea__inner) {
+  background: #0b1120 !important;
+  color: #f1f5f9 !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace !important;
+  font-size: 13.5px !important;
+  line-height: 1.6 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 12px 14px !important;
+}
+
+.live-sandbox-panel {
+  background: #090d16;
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+  overflow: hidden;
+}
+
+.sandbox-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #131c2e;
+  padding: 6px 12px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.panel-title {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.panel-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.meta-time {
+  color: #38bdf8;
+}
+
+.meta-exit {
+  color: #94a3b8;
+}
+
+.sandbox-panel-body {
+  padding: 10px 14px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.testing-tip {
+  color: #38bdf8;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulse-point {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+  animation: pulse-dot 1.2s infinite;
+}
+
+.output-pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #a7f3d0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.output-pre code.error-out {
+  color: #fca5a5;
+}
+
 </style>

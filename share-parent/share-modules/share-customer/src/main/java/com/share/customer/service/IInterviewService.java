@@ -61,4 +61,9 @@ public interface IInterviewService {
      * @return 清理成功的场次数目
      */
     int cleanStagnantSessions(int expireHours);
+
+    /**
+     * 获取苏格拉底式启发提示（引导式答题，不剧透标准答案代码）。
+     */
+    String getSocraticHint(Long sessionId, Long turnId, int hintLevel, String currentCode);
 }

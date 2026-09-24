@@ -14,6 +14,25 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-24 03:50:00 - 全真沉浸式在线代码沙箱与苏格拉底式启发学习生态全景交付：课程页云端微 IDE、考场手撕代码实时评测与分级启发式引导 (Interactive Code Sandbox & Socratic Interview Tutoring Ecology Delivery: Course Micro-IDE, Live Code Sandbox & Multi-Level Socratic Hinting)
+
+* **演进主题**：针对系统实践教学与高阶考评痛点实施第一阶段核心功能交付（课程学习页内嵌在线实战代码沙箱微 IDE `learning/index.vue`、AI 全真模拟考场手撕代码工作台 `room.vue` 与口述/编码双模态答题切换、基于沙箱引擎 `JavaSandboxRunner` 的实时测试试跑与语法/时空复杂度审计、微服务接口 `InterviewController.getHint` 与苏格拉底式三级启发提示生成 `InterviewEvaluator.generateSocraticHint`、云端热更新部署与端到端闭环验证 100% 通过）(Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **课程学习页沉浸式云端微 IDE (Course Learning Sandbox IDE)**：
+     - 在 `learning/index.vue` 课程详情内嵌第 5 大核心标签页「⚡ 在线实战沙箱」；
+     - 支持 Java 17、Python 3、JavaScript 三大语言环境与预置代码模板（经典算法、集合与高并发验证、Hello World）；
+     - 集成暗色科技终端，直连后端 `/cs/courses/sandbox/run`，学员看课同时可实时验证代码，秒级返回控制台标准输出（stdout/stderr）、执行耗时与 Exit Code。
+  2. **AI 全真模拟面试手撕代码实战控制台 (Interview Live Coding Console)**：
+     - 在 `room.vue` 候选人工作区新增「🎙️ 口述问答」与「💻 手撕代码」双模态自由切换；
+     - 深度接入安全沙箱，支持免推进轮次的「⚡ 沙箱实时测试试跑」，实时检验算法正确性与越权阻断；
+     - 提供「🚀 提交本题代码」完整作答链路，触发沙箱 10 个测试用例判定、时空复杂度推演及代码异味重构建议，自动推进轮次并计入终局能力大屏报告。
+  3. **苏格拉底式多轮启发提示系统 (Socratic Multi-Level Hinting)**：
+     - 新增 `/customer/interview/hint` 接口与 `InterviewEvaluator.generateSocraticHint`；
+     - 遵循启发式教学铁律，坚决杜绝直接剧透完整答案代码，提供 Level 1（算法思路与数据结构选型）、Level 2（边界用例与异常防御）、Level 3（代码结构与复杂度优化）三级渐进式提示，有效化解学员答题卡壳困境。
+  4. **全链路端到端实测验证 100% 通过**：
+     - 经针对性定向冒烟测试，沙箱执行耗时仅 12ms，安全越权拦截精准（ExitCode 126），Socratic 启发提示响应正常，代码提交后正确完成评分并流转；
+     - 前端最新生产 Bundle（`index.097b85fd.js`）平滑加载运行。
+
 ### 2026-09-22 04:00:00 - 混合检索与图检索增强核心架构全面交付：Okapi BM25 稀疏索引、RRF 倒数排名融合与 Graph RAG 先修图拓扑闭包 (Hybrid Search & Graph RAG Architecture Delivery: Okapi BM25, Reciprocal Rank Fusion & DAG Prerequisite Closure)
 
 * **演进主题**：全面落地第 3 战略维度「知识检索与混合 RAG（Hybrid Search & Graph RAG）升级」（上线原生 Okapi BM25 稀疏倒排检索引擎 `Bm25SearchEngine`、工业级 Reciprocal Rank Fusion 倒数排名融合算法 `HybridGraphRagEngine`、基于先修网络的 Graph RAG 多跳知识链与断层诊断服务 `KnowledgeGraphRagService`、开放 `/courses/ai/rag/hybrid-search` 接口）、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)

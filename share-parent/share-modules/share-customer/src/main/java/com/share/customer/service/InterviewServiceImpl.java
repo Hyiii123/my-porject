@@ -476,6 +476,28 @@ public class InterviewServiceImpl implements IInterviewService {
         return expiredIds.size();
     }
 
+    @Override
+    public String getSocraticHint(Long sessionId, Long turnId, int hintLevel, String currentCode) {
+        InterviewSession session = sessionMapper.selectById(sessionId);
+        if (session == null) {
+            throw new ServiceException("面试场次不存在");
+        }
+        assertOwner(session);
+
+        InterviewTurn turn = null;
+        if (turnId != null) {
+            turn = turnMapper.selectById(turnId);
+        }
+        if (turn == null && session.getCurrentTurn() != null) {
+            turn = turnMapper.selectOne(new LambdaQueryWrapper<InterviewTurn>()
+                    .eq(InterviewTurn::getSessionId, session.getId())
+                    .eq(InterviewTurn::getTurnNum, session.getCurrentTurn()));
+        }
+
+        String question = (turn != null && StringUtils.hasText(turn.getQuestion())) ? turn.getQuestion() : "通用算法与架构设计考题";
+        return evaluator.generateSocraticHint(question, currentCode, hintLevel);
+    }
+
     @Scheduled(cron = "0 0 3 * * ?")
     public void scheduleCleanStagnantSessions() {
         try {

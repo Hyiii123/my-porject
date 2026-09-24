@@ -91,3 +91,12 @@ request({
 	method: 'post',
 	data: params
 })
+
+// 智能体安全代码沙箱在线执行
+export const runCodeSandbox = (data) =>
+  request({
+    url: `${COURSE_API_PREFIX}/courses/sandbox/run`,
+    method: 'post',
+    data,
+    timeout: 15000
+  })

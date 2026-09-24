@@ -234,6 +234,73 @@
               </div>
             </div>
           </el-tab-pane>
+
+          <!-- ⚡ 在线实战沙箱 Tab -->
+          <el-tab-pane label="⚡ 在线实战沙箱" name="sandbox">
+            <div class="sandbox-tab-content">
+              <!-- 工具栏 -->
+              <div class="sandbox-toolbar">
+                <div class="tool-left">
+                  <el-radio-group v-model="sandboxLang" size="small" @change="handleSandboxLangChange">
+                    <el-radio-button label="java">☕ Java (JDK 17)</el-radio-button>
+                    <el-radio-button label="python">🐍 Python 3</el-radio-button>
+                    <el-radio-button label="javascript">⚡ JS (Node)</el-radio-button>
+                  </el-radio-group>
+                  <el-select v-model="selectedTemplate" placeholder="选择预置代码" size="small" class="tmpl-select" @change="applyTemplate">
+                    <el-option label="经典算法与数据结构" value="algorithm" />
+                    <el-option label="集合与高并发验证" value="concurrent" />
+                    <el-option label="基础 Hello World" value="hello" />
+                  </el-select>
+                </div>
+                <div class="tool-right">
+                  <el-button size="small" @click="resetSandboxCode">🔄 重置模板</el-button>
+                  <el-button type="primary" size="small" :loading="sandboxRunning" @click="runSandbox">
+                    ⚡ 运行沙箱代码
+                  </el-button>
+                </div>
+              </div>
+
+              <!-- 主工作区：代码编辑与控制台 -->
+              <div class="sandbox-workspace">
+                <div class="editor-pane">
+                  <div class="editor-header">
+                    <span class="file-name">Solution.{{ sandboxLang === 'java' ? 'java' : (sandboxLang === 'python' ? 'py' : 'js') }}</span>
+                    <span class="editor-hint">💡 支持在线内存动态编译、超时熔断与底层词法提权审计</span>
+                  </div>
+                  <el-input
+                    v-model="sandboxCode"
+                    type="textarea"
+                    :rows="13"
+                    class="code-textarea"
+                    placeholder="在此编写算法与验证代码..."
+                    spellcheck="false"
+                  />
+                </div>
+
+                <div class="console-pane">
+                  <div class="console-header">
+                    <span class="con-title">🖥️ 隔离执行终端输出</span>
+                    <div class="console-meta" v-if="sandboxResult">
+                      <el-tag :type="sandboxResult.status === 'SUCCESS' ? 'success' : (sandboxResult.status === 'SECURITY_VIOLATION' ? 'danger' : 'warning')" size="small">
+                        {{ sandboxResult.status }}
+                      </el-tag>
+                      <span class="meta-time" v-if="sandboxResult.executionTimeMs">⏱️ {{ sandboxResult.executionTimeMs }}ms</span>
+                      <span class="meta-exit">Exit: {{ sandboxResult.exitCode ?? 0 }}</span>
+                    </div>
+                  </div>
+                  <div class="console-body" :class="{ 'empty': !sandboxResult && !sandboxRunning }">
+                    <div v-if="sandboxRunning" class="running-indicator">
+                      <span class="pulse-dot"></span> 正在沙箱容器内隔离编译与执行...
+                    </div>
+                    <pre v-else-if="sandboxResult" class="output-pre"><code :class="{ 'error-out': sandboxResult.status !== 'SUCCESS' }">{{ sandboxResult.stdout || sandboxResult.stderr || '[沙箱执行完成，无控制台打印]' }}</code></pre>
+                    <div v-else class="con-placeholder">
+                      点击上方「⚡ 运行沙箱代码」，代码将在后端轻量隔离沙箱中动态编译并实时输出控制台打印。
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
         </el-tabs>
       </div>
 
@@ -276,7 +343,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight, ArrowDown, VideoPlay, Document } from '@element-plus/icons-vue'
-import { getClassDetails, getAskList, getReply, postQuestions } from '@/api/classDetails.js'
+import { getClassDetails, getAskList, getReply, postQuestions, runCodeSandbox } from '@/api/classDetails.js'
 import { getCourseLearning, getLearningClassDetails, getMediasSignature, addPlayLog, getLearningLog } from '@/api/class.js'
 import { getAllNotes, addNotes } from '@/api/notes.js'
 import { getSubject, postSubject } from '@/api/subject.js'
@@ -762,6 +829,76 @@ const handleSubmitQuiz = async () => {
     ElMessage.error(err?.message || '测验提交失败，请登录后重试')
   } finally {
     quizSubmitting.value = false
+  }
+}
+
+
+// ==================== 在线实战沙箱逻辑 ====================
+const sandboxLang = ref('java')
+const selectedTemplate = ref('algorithm')
+const sandboxRunning = ref(false)
+const sandboxResult = ref(null)
+
+const codeTemplates = {
+  java: {
+    hello: `public class Solution {\n    public static void main(String[] args) {\n        System.out.println("Hello Zhiwen Online Sandbox!");\n    }\n}`,
+    algorithm: `import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        int[] nums = {2, 7, 11, 15};\n        int target = 9;\n        int[] res = twoSum(nums, target);\n        System.out.println("TwoSum 索引结果: " + Arrays.toString(res));\n    }\n\n    public static int[] twoSum(int[] nums, int target) {\n        Map<Integer, Integer> map = new HashMap<>();\n        for (int i = 0; i < nums.length; i++) {\n            int complement = target - nums[i];\n            if (map.containsKey(complement)) {\n                return new int[]{map.get(complement), i};\n            }\n            map.put(nums[i], i);\n        }\n        return new int[0];\n    }\n}`,
+    concurrent: `import java.util.concurrent.*;\nimport java.util.concurrent.atomic.*;\n\npublic class Solution {\n    public static void main(String[] args) throws Exception {\n        AtomicInteger counter = new AtomicInteger(0);\n        CountDownLatch latch = new CountDownLatch(5);\n        for (int i = 0; i < 5; i++) {\n            new Thread(() -> {\n                counter.incrementAndGet();\n                latch.countDown();\n            }).start();\n        }\n        latch.await(2, TimeUnit.SECONDS);\n        System.out.println("高并发 AtomicInteger 最终计数值: " + counter.get());\n    }\n}`
+  },
+  python: {
+    hello: `print("Hello Zhiwen Online Sandbox!")`,
+    algorithm: `def two_sum(nums, target):\n    lookup = {}\n    for i, num in enumerate(nums):\n        if target - num in lookup:\n            return [lookup[target - num], i]\n        lookup[num] = i\n    return []\n\nprint("TwoSum 索引结果:", two_sum([2, 7, 11, 15], 9))`,
+    concurrent: `print("Python 3 多线程与并发环境就绪")`
+  },
+  javascript: {
+    hello: `console.log("Hello Zhiwen Online Sandbox!");`,
+    algorithm: `function twoSum(nums, target) {\n    const map = new Map();\n    for (let i = 0; i < nums.length; i++) {\n        const diff = target - nums[i];\n        if (map.has(diff)) return [map.get(diff), i];\n        map.set(nums[i], i);\n    }\n    return [];\n}\nconsole.log("TwoSum 索引结果:", twoSum([2, 7, 11, 15], 9));`,
+    concurrent: `console.log("Node.js V8 异步事件循环就绪");`
+  }
+}
+
+const sandboxCode = ref(codeTemplates.java.algorithm)
+
+const handleSandboxLangChange = (lang) => {
+  sandboxCode.value = codeTemplates[lang]?.[selectedTemplate.value] || codeTemplates[lang]?.hello || ''
+  sandboxResult.value = null
+}
+
+const applyTemplate = (tmpl) => {
+  sandboxCode.value = codeTemplates[sandboxLang.value]?.[tmpl] || codeTemplates[sandboxLang.value]?.hello || ''
+  sandboxResult.value = null
+}
+
+const resetSandboxCode = () => {
+  applyTemplate(selectedTemplate.value)
+}
+
+const runSandbox = async () => {
+  if (!sandboxCode.value.trim()) {
+    ElMessage.warning('请输入待执行的代码！')
+    return
+  }
+  try {
+    sandboxRunning.value = true
+    sandboxResult.value = null
+    const res = await runCodeSandbox({
+      language: sandboxLang.value,
+      sourceCode: sandboxCode.value
+    })
+    if (res && res.code === 200 && res.data) {
+      sandboxResult.value = res.data
+      if (res.data.status === 'SUCCESS') {
+        ElMessage.success('沙箱执行成功！')
+      } else {
+        ElMessage.warning('沙箱已拦截或编译未通过: ' + res.data.status)
+      }
+    } else {
+      ElMessage.error(res?.msg || '沙箱执行异常')
+    }
+  } catch (err) {
+    ElMessage.error('调用沙箱服务失败: ' + (err.message || '网络异常'))
+  } finally {
+    sandboxRunning.value = false
   }
 }
 
@@ -1331,4 +1468,169 @@ onMounted(loadCourse)
     position: static;
   }
 }
+
+/* ==================== 在线实战沙箱样式 ==================== */
+.sandbox-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sandbox-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.tool-left {
+  display: flex;
+  align-items: center;
+}
+
+.tmpl-select {
+  width: 170px;
+  margin-left: 12px;
+}
+
+.sandbox-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.editor-pane {
+  background: #0f172a;
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+  overflow: hidden;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e293b;
+  padding: 8px 16px;
+  border-bottom: 1px solid #334155;
+}
+
+.file-name {
+  color: #38bdf8;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.editor-hint {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.code-textarea :deep(.el-textarea__inner) {
+  background: #0b1120 !important;
+  color: #f1f5f9 !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace !important;
+  font-size: 13.5px !important;
+  line-height: 1.6 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 14px 16px !important;
+}
+
+.console-pane {
+  background: #090d16;
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+  overflow: hidden;
+}
+
+.console-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #131c2e;
+  padding: 8px 14px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.con-title {
+  color: #cbd5e1;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.console-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.meta-time {
+  color: #38bdf8;
+}
+
+.meta-exit {
+  color: #94a3b8;
+}
+
+.console-body {
+  padding: 14px;
+  min-height: 100px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.console-body.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.con-placeholder {
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+}
+
+.running-indicator {
+  color: #38bdf8;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #38bdf8;
+  border-radius: 50%;
+  animation: pulse-dot 1.2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.output-pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #a7f3d0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.output-pre code.error-out {
+  color: #fca5a5;
+}
+
 </style>
