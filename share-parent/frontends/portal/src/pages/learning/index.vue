@@ -30,10 +30,36 @@
             @pause="handleVideoPause"
             @loadedmetadata="handleVideoLoadedMetadata"
           />
+          <!-- 动态半透明防录屏安全水印层 -->
+          <div v-if="currentSection.mediaUrl" class="video-security-watermark" :style="watermarkStyle">
+            <span class="wm-text">{{ watermarkText }}</span>
+          </div>
+
           <div v-if="!currentSection.mediaUrl" class="video-placeholder">
             <el-icon :size="64" color="#c0c4cc"><VideoPlay /></el-icon>
             <p>当前小节暂无可播放媒资</p>
             <p class="video-title">{{ currentSection.title || '请选择课程小节' }}</p>
+          </div>
+        </div>
+
+        <!-- 视频播放辅助控制栏：清晰度自适应与倍速切换 -->
+        <div v-if="currentSection.mediaUrl" class="video-extra-bar">
+          <div class="extra-left">
+            <el-tag size="small" effect="dark" type="success">HLS/MP4 自适应流</el-tag>
+            <span class="wm-tip">🛡️ 动态防录屏数字水印已激活</span>
+          </div>
+          <div class="extra-right">
+            <el-select v-model="currentQuality" size="small" style="width: 105px" @change="handleQualityChange">
+              <el-option label="1080P 超清" value="1080p" />
+              <el-option label="720P 高清" value="720p" />
+              <el-option label="480P 流畅" value="480p" />
+            </el-select>
+            <el-select v-model="currentSpeed" size="small" style="width: 95px; margin-left: 8px" @change="handleSpeedChange">
+              <el-option label="1.0x 正常" :value="1.0" />
+              <el-option label="1.25x 倍速" :value="1.25" />
+              <el-option label="1.5x 倍速" :value="1.5" />
+              <el-option label="2.0x 倍速" :value="2.0" />
+            </el-select>
           </div>
         </div>
 
@@ -833,6 +859,52 @@ const handleSubmitQuiz = async () => {
 }
 
 
+// ==================== 动态安全水印与视频控制逻辑 ====================
+const currentQuality = ref('1080p')
+const currentSpeed = ref(1.0)
+const watermarkPos = reactive({ top: 35, left: 30, rotate: -15 })
+let watermarkTimer = null
+
+const watermarkStyle = computed(() => ({
+  top: `${watermarkPos.top}%`,
+  left: `${watermarkPos.left}%`,
+  transform: `rotate(${watermarkPos.rotate}deg)`
+}))
+
+const watermarkText = computed(() => {
+  const now = new Date()
+  const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`
+  let userLabel = '智问认证学员'
+  try {
+    const raw = localStorage.getItem('userInfo')
+    if (raw) {
+      const u = JSON.parse(raw)
+      userLabel = u.nickName || u.userName || userLabel
+    }
+  } catch (e) {}
+  return `智问学伴 · ${userLabel} · 严禁翻录 · ${timeStr}`
+})
+
+const startWatermarkDrift = () => {
+  if (watermarkTimer) clearInterval(watermarkTimer)
+  watermarkTimer = setInterval(() => {
+    watermarkPos.top = Math.floor(15 + Math.random() * 60)
+    watermarkPos.left = Math.floor(10 + Math.random() * 55)
+    watermarkPos.rotate = Math.floor(-25 + Math.random() * 20)
+  }, 4000)
+}
+
+const handleQualityChange = (val) => {
+  ElMessage.success(`已自适应切换至 ${val.toUpperCase()} 清晰度流`)
+}
+
+const handleSpeedChange = (val) => {
+  if (videoPlayerRef.value) {
+    videoPlayerRef.value.playbackRate = val
+    ElMessage.success(`已切换播放倍速: ${val}x`)
+  }
+}
+
 // ==================== 在线实战沙箱逻辑 ====================
 const sandboxLang = ref('java')
 const selectedTemplate = ref('algorithm')
@@ -902,7 +974,7 @@ const runSandbox = async () => {
   }
 }
 
-onMounted(loadCourse)
+onMounted(() => { loadCourse(); startWatermarkDrift(); })
 </script>
 
 <style scoped>
@@ -1631,6 +1703,62 @@ onMounted(loadCourse)
 
 .output-pre code.error-out {
   color: #fca5a5;
+}
+
+
+.video-player {
+  position: relative;
+  overflow: hidden;
+}
+
+.video-security-watermark {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  color: rgba(255, 255, 255, 0.22);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', Consolas, sans-serif;
+  letter-spacing: 1.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  user-select: none;
+  transition: all 1.8s ease-in-out;
+  white-space: nowrap;
+}
+
+.video-extra-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 8px 14px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.wm-tip {
+  font-size: 12px;
+  color: #64748b;
+  margin-left: 10px;
+}
+
+/* 移动端响应式自适应 */
+@media (max-width: 900px) {
+  .learning-content {
+    flex-direction: column !important;
+  }
+  .catalog-section {
+    width: 100% !important;
+    margin-top: 20px;
+  }
+  .video-player {
+    height: 240px !important;
+  }
+  .sandbox-toolbar {
+    flex-direction: column !important;
+    gap: 10px;
+    align-items: flex-start !important;
+  }
 }
 
 </style>

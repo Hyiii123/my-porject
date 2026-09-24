@@ -2466,4 +2466,34 @@ onBeforeUnmount(() => {
   color: #fca5a5;
 }
 
+
+/* ==================== 移动端轻量自适应媒体查询 ==================== */
+@media (max-width: 992px) {
+  .room-main-layout {
+    flex-direction: column !important;
+  }
+  .interviewer-card, .candidate-card {
+    width: 100% !important;
+  }
+  .interview-hud {
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 10px 14px !important;
+  }
+  .stage-hud {
+    display: none !important;
+  }
+  .depth-hud {
+    font-size: 11px !important;
+  }
+  .coding-toolbar {
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+  }
+  .candidate-video-elem {
+    max-height: 200px !important;
+  }
+}
+
 </style>

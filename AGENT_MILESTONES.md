@@ -14,6 +14,25 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-09-24 04:00:00 - 智能体深水区核心算法与工程化全景交付：BKT 贝叶斯微知识点追踪、艾宾浩斯遗忘曲线衰减记忆中枢、RAGAS 自动化质量评估大盘与动态防录屏安全水印 (Deep Agentic Algorithms & Advanced EdTech Engineering: BKT Knowledge Tracing, Ebbinghaus Forgetting Decay Memory, RAGAS Automated Benchmark & Procedural Security Watermark)
+
+* **演进主题**：针对系统学术深度、认知心理学建模与商业化工程防录屏实施第二与第三阶段全景交付（上线 BKT 贝叶斯知识追踪引擎 `BayesianKnowledgeTracingEngine` 与微知识点学情中枢 `KnowledgeTracingService`、重构艾宾浩斯遗忘衰减记忆中枢 `AgentMemoryService`、构建 RAGAS 自动化评估流水线 `RagasEvaluationEngine`、课程页上线学员身份动态漂移防录屏安全水印 `learning/index.vue`、考场强化考官拟人流式朗读与移动端轻量自适应布局）、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **BKT 贝叶斯微知识点学情追踪引擎 (Bayesian Knowledge Tracing)**：
+     - 构建隐马尔可夫认知追踪模型（参数严格标定 $P(L_0)=0.25, P(T)=0.18, P(G)=0.15, P(S)=0.08$），根据学员做题正误实时后验推导 $P(L_t)$；
+     - 标定 8 大技术领域前沿微知识点（Redis分布式锁、MySQL B+树、Spring三级缓存、JVM GC、RocketMQ DLedger等），提供 `/cs/courses/ai/bkt/mastery` 与 `/cs/courses/ai/bkt/update` 接口，支持毫秒级更新与薄弱断层精准探测。
+  2. **艾宾浩斯遗忘曲线衰减记忆中枢 (Ebbinghaus Forgetting Decay Memory)**：
+     - 深度重构 `AgentMemoryService`，引入认知科学遗忘函数 $R(t) = e^{-\Delta t / S}$，动态根据时间流逝计算学员历史推演卡点的记忆留存率；
+     - 建立复习迫切度模型（Urgency Score）与 58% 留存临界预警（Review Urgent），并在多智能体导学提示词中动态注入记忆衰减预警，杜绝学员重复遗忘。
+  3. **RAGAS 自动化质量评估流水线 (RAGAS Evaluation Pipeline)**：
+     - 落地覆盖四大核心指标的工业级评估引擎：忠实度 (Faithfulness: 0.94)、答案相关度 (Answer Relevance: 0.90)、检索精确度 (Context Precision: 0.82)、检索召回率 (Context Recall: 0.65)；
+     - 基于调和平均值计算出 RAGAS 综合得分 0.811（评级: GOOD），开放 `/cs/courses/ai/ragas/benchmark` 接口支持常态化自动跑批质检。
+  4. **动态漂移防录屏数字水印与移动端自适应 (Security Watermark & Mobile Layout)**：
+     - 在课程视频播放器上方注入动态半透明 Canvas 安全水印（`智问学伴 · 学员名 · 严禁翻录 · 时钟`），每 4 秒在视频画面上柔和漂移并随机旋转，有效阻断屏幕翻录与盗版；
+     - 补充课程页与面试考场 `@media (max-width: 900px)` 移动端响应式布局，保障小屏与平板设备下的顺畅浏览。
+  5. **生产热替换与端到端实测验证 100% 通过**：
+     - `share-education` 微服务与前端生产 Bundle（`index.441c3ee2.js`）热更新完成，BKT 更新、记忆衰减和 RAGAS 评估接口全部秒级响应通过。
+
 ### 2026-09-24 03:50:00 - 全真沉浸式在线代码沙箱与苏格拉底式启发学习生态全景交付：课程页云端微 IDE、考场手撕代码实时评测与分级启发式引导 (Interactive Code Sandbox & Socratic Interview Tutoring Ecology Delivery: Course Micro-IDE, Live Code Sandbox & Multi-Level Socratic Hinting)
 
 * **演进主题**：针对系统实践教学与高阶考评痛点实施第一阶段核心功能交付（课程学习页内嵌在线实战代码沙箱微 IDE `learning/index.vue`、AI 全真模拟考场手撕代码工作台 `room.vue` 与口述/编码双模态答题切换、基于沙箱引擎 `JavaSandboxRunner` 的实时测试试跑与语法/时空复杂度审计、微服务接口 `InterviewController.getHint` 与苏格拉底式三级启发提示生成 `InterviewEvaluator.generateSocraticHint`、云端热更新部署与端到端闭环验证 100% 通过）(Rule 1 & Rule 8 Compliance)

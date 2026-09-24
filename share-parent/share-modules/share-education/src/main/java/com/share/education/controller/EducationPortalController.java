@@ -174,6 +174,15 @@ public class EducationPortalController extends BaseController {
     @Autowired(required = false)
     private com.share.education.ai.rag.HybridGraphRagEngine hybridGraphRagEngine;
 
+    @Autowired(required = false)
+    private com.share.education.ai.algorithm.bkt.KnowledgeTracingService knowledgeTracingService;
+
+    @Autowired(required = false)
+    private com.share.education.ai.memory.AgentMemoryService agentMemoryService;
+
+    @Autowired(required = false)
+    private com.share.education.ai.evals.ragas.RagasEvaluationEngine ragasEvaluationEngine;
+
     /**
      * 混合检索 (Dense + BM25 RRF 融合) 与 Graph RAG 图拓扑增强端点
      */
@@ -266,6 +275,74 @@ public class EducationPortalController extends BaseController {
             return success(toolRegistry.getTelemetry());
         }
         return success(Collections.emptyMap());
+    }
+
+    /**
+     * BKT 贝叶斯微知识点掌握度画像 (Bayesian Knowledge Tracing Mastery Profile)
+     */
+    @GetMapping({"/courses/ai/bkt/mastery", "/courses/bkt/mastery"})
+    public AjaxResult getBktMasteryProfile(@RequestParam(required = false) Long userId) {
+        if (knowledgeTracingService != null) {
+            Long uid = userId != null ? userId : 1L;
+            return success(knowledgeTracingService.getLearnerMasteryProfile(uid));
+        }
+        return error("知识追踪服务未就绪");
+    }
+
+    /**
+     * BKT 知识点答题反馈与后验概率迭代更新
+     */
+    @PostMapping({"/courses/ai/bkt/update", "/courses/bkt/update"})
+    public AjaxResult updateBktSkill(
+            @RequestParam(required = false) Long userId,
+            @RequestParam String skillId,
+            @RequestParam(defaultValue = "true") boolean correct) {
+        if (knowledgeTracingService != null) {
+            Long uid = userId != null ? userId : 1L;
+            return success(knowledgeTracingService.updateSkillObservation(uid, skillId, correct));
+        }
+        return error("知识追踪服务未就绪");
+    }
+
+    /**
+     * 记录/模拟一条学员艾宾浩斯记忆事件
+     */
+    @PostMapping({"/courses/ai/memory/record", "/courses/memory/record"})
+    public AjaxResult recordMemoryEpisode(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(defaultValue = "Java高并发架构师") String role,
+            @RequestParam(defaultValue = "Seata 2.0 分布式事务与二阶段提交") String hurdle,
+            @RequestParam(defaultValue = "加强分布式事务底层原理学习") String directive,
+            @RequestParam(defaultValue = "72") int score) {
+        if (agentMemoryService != null) {
+            Long uid = userId != null ? userId : 1L;
+            agentMemoryService.recordEpisode(uid, role, hurdle, directive, score);
+            return success(agentMemoryService.getMemoryProfile(uid));
+        }
+        return error("智能体记忆中枢未就绪");
+    }
+
+    /**
+     * 艾宾浩斯遗忘衰减记忆中枢与复习临界告警画像
+     */
+    @GetMapping({"/courses/ai/memory/profile", "/courses/memory/profile"})
+    public AjaxResult getEbbinghausMemoryProfile(@RequestParam(required = false) Long userId) {
+        if (agentMemoryService != null) {
+            Long uid = userId != null ? userId : 1L;
+            return success(agentMemoryService.getMemoryProfile(uid));
+        }
+        return error("智能体记忆中枢未就绪");
+    }
+
+    /**
+     * RAGAS 自动化质量评估大盘跑批
+     */
+    @GetMapping({"/courses/ai/ragas/benchmark", "/courses/ragas/benchmark"})
+    public AjaxResult runRagasBenchmark() {
+        if (ragasEvaluationEngine != null) {
+            return success(ragasEvaluationEngine.evaluateBenchmark());
+        }
+        return error("RAGAS 评测引擎未就绪");
     }
 
     /**
