@@ -141,7 +141,7 @@
   4. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
      - 串行打包并热更新 `portal-ui` 静态资源产物，平稳重启 Nginx 容器；
      - 定向验证全绿通过：
-       - 学生端门户（`http://47.121.26.136:18081`）：首页「L5 级多智能体协同导学中心」推演看板无论在折叠胶囊态还是展开全屏态，均完美呈现 IAIC 蓝白科技风与 Deep Navy 思考终端，彻底消除了原有的生硬割裂感。
+       - 学生端门户（`http://47.120.79.118:18081`）：首页「L5 级多智能体协同导学中心」推演看板无论在折叠胶囊态还是展开全屏态，均完美呈现 IAIC 蓝白科技风与 Deep Navy 思考终端，彻底消除了原有的生硬割裂感。
 
 ### 2026-09-22 00:40:00 - 智问学伴业务管理端全域 100% IAIC 科技风重塑：登录页霓虹粒子焕新、工作台科技大屏与全模块表格表单深度统一 (Business Admin Sitewide 100% IAIC Redesign: Login Particle Remodel, Dashboard Telemetry Header & Enterprise Tables Unification)
 
@@ -160,7 +160,7 @@
   4. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
      - 串行打包并热更新 `business-admin-ui`，平稳重启 Nginx 容器；
      - 定向验证全绿通过：
-       - 业务管理端（`http://47.121.26.136:18082`）：首屏登录页秒级呈现 IAIC 蓝图粒子与玻璃拟态卡片，登录后进入工作台与各子页面，深海蓝侧边栏、表单搜索框、数据表格与操作按钮均 100% 呈现 IAIC 科技蓝风格，体验与用户端高度统一。
+       - 业务管理端（`http://47.120.79.118:18082`）：首屏登录页秒级呈现 IAIC 蓝图粒子与玻璃拟态卡片，登录后进入工作台与各子页面，深海蓝侧边栏、表单搜索框、数据表格与操作按钮均 100% 呈现 IAIC 科技蓝风格，体验与用户端高度统一。
 
 ### 2026-09-22 00:20:00 - 智问学伴全域核心板块 1:1 IAIC 视觉深度收敛：课程中心、全真考场、智能客服与全局 Element 元件风格全面贯通 (Sitewide Core Sectors IAIC Visual Alignment: Course Center, AI Arena, Customer Service & Global Element Tokens)
 
@@ -181,7 +181,7 @@
   5. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
      - 串行打包并热更新 `portal-ui` 静态资源产物，平稳重启 Nginx 容器；
      - 定向接口与页面全绿通过：
-       - 学生端门户（`http://47.121.26.136:18081`）：首页、课程中心、AI模拟考场、智能客服四大主板块视觉风格 100% 连贯统一，IAIC 科技蓝、扫描光线、粒子与直角卡片浑然一体；
+       - 学生端门户（`http://47.120.79.118:18081`）：首页、课程中心、AI模拟考场、智能客服四大主板块视觉风格 100% 连贯统一，IAIC 科技蓝、扫描光线、粒子与直角卡片浑然一体；
        - 各业务路由秒级跳转无卡顿。
 
 ### 2026-09-21 23:55:00 - 智问学伴技术问答社区全新重塑：由课程单表单升格为产学研互动中枢、详情动态热议打通与全站卡片 IAIC 深度统一 (Interactive Q&A Community Hub Overhaul, Dynamic Thread Linking & Sitewide IAIC Tech Card Elevation)
@@ -202,7 +202,7 @@
   4. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
      - 重新打包并热替换 `portal-ui` 静态资源产物，平稳重启 Nginx 容器；
      - 定向接口与页面全绿通过：
-       - 学生端门户（`http://47.121.26.136:18081`）：点击「问答社区」，秒级进入 IAIC 问答互动大厅，多维度讨论流畅加载，提问弹窗课程与章节级联正常；
+       - 学生端门户（`http://47.120.79.118:18081`）：点击「问答社区」，秒级进入 IAIC 问答互动大厅，多维度讨论流畅加载，提问弹窗课程与章节级联正常；
        - 问答详情页：展示真实问题与回答流，相关推荐讨论点击流畅跳转；
        - 课程中心与搜索卡片：IAIC 直角括号与科技蓝视觉统一呈现。
 
@@ -227,8 +227,8 @@
   5. **云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)**：
      - 串行打包并热更新 `portal-ui` 与 `business-admin-ui`；
      - 定向接口与页面全绿通过：
-       - 学生端门户（`http://47.121.26.136:18081`）：HTTP 200 OK，点击顶部「课程中心」瞬时秒开（无 404），登录页质感全面升级，登录体验丝滑顺畅；
-       - 业务管理端（`http://47.121.26.136:18082`）：HTTP 200 OK，Deep Navy 侧边栏与 IAIC 风格完整统一。
+       - 学生端门户（`http://47.120.79.118:18081`）：HTTP 200 OK，点击顶部「课程中心」瞬时秒开（无 404），登录页质感全面升级，登录体验丝滑顺畅；
+       - 业务管理端（`http://47.120.79.118:18082`）：HTTP 200 OK，Deep Navy 侧边栏与 IAIC 风格完整统一。
 
 ### 2026-09-21 22:35:00 - 智问学伴系统全域 105 项 Bug 深度治理与 IAIC 产学研科技前端 1:1 逆向重塑 (System-Wide 105-Bug Remediation, High-Risk Exploit Eradication & 1:1 IAIC Visual Design Architecture Replication)
 
@@ -254,7 +254,7 @@
      - 定向接口与页面全绿通过：
        - 访客用户画像接口：HTTP 200，`userId: null`，返回全新访客专属初始画像，无 IDOR 越权；
        - 质量度量接口：HTTP 200，Redis 持久化数据无损，多维健康指标实时在线；
-       - 学生端前端门户（`http://47.121.26.136:18081`）：HTTP 200 OK，1:1 IAIC 科技蓝视觉、顶部动态光线扫描、粒子脉冲与直角卡片丝滑呈现，静态资源秒级加载。
+       - 学生端前端门户（`http://47.120.79.118:18081`）：HTTP 200 OK，1:1 IAIC 科技蓝视觉、顶部动态光线扫描、粒子脉冲与直角卡片丝滑呈现，静态资源秒级加载。
 
 ### 2026-09-21 21:40:00 - 智问学伴多智能体系统生产可用性全面强化：Redis跨重启度量持久化、SSE断开熔断防护、自然语言意图全链路打通与阶段容量自适应均衡 (Multi-Agent Production Hardening: Redis Telemetry Persistence, SSE Disconnect Guard, End-to-End Natural Language Query Slotting & Adaptive Stage Balancing)
 
@@ -277,11 +277,11 @@
      - 定向验证全绿通过：
        - 自然语言意图推演接口：输入“零基础速成大模型开发”，智能体自动对齐 7 门大模型专业课，客观质检综合评分 100 分卓越（A+）；
        - 跨重启度量持久化接口：重启后 `totalPipelinesRun` 从 Redis 自动无损读取；
-       - 学生端前端（`http://47.121.26.136:18081`）：HTTP 200 OK，自定义目标输入框与 HUD 仪表盘运行流畅。
+       - 学生端前端（`http://47.120.79.118:18081`）：HTTP 200 OK，自定义目标输入框与 HUD 仪表盘运行流畅。
 
 ### 2026-09-21 21:15:00 - 智问学伴多智能体系统工业级闭环重构：Actor-Critic真自省重排、全真动态心流、多维评测指标扩展与公网IP热更闭环 (Industrial-Grade Multi-Agent Closed-Loop Refactor: Actor-Critic Dynamic Re-planning, Real Dialectic Streaming, Multi-Dimensional Evaluative Telemetry & Cloud Verification Closure)
 
-* **演进主题**：Actor-Critic 指令闭环与真自省重排 (`IndustryArchitectNode` 深度对接 `PathCriticNode` 结构化修正指令集驱动 `PathPlanningAgent` 全局重排)、图执行引擎条件分支与自适应应急稳定化 (`CompositeMultiAgentGraphEngine` 容错流转与非规划快捷通道度量隔离)、流式心流全真动态参数提取 (SSE 事件总线彻底消除硬编码文案，实时反射真实大模型立论与辩驳论据)、第三方大模型高可用平滑排队与 15min TTL 语义缓存 (`ThirdPartyAiClient` 引入 `tryLock(2500ms)` 平滑等待与 `promptCache` 零毫秒秒级复用)、自动化质量评测多维扩展 (新增自省折中修复达标率、分歧收敛度、布鲁姆平滑度与阶段均衡度指标，升级分词保真度算法)、全网动态公网 IP 校验漂移更新 (`47.121.26.136` 全项目同步)、云端生产热替换部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
+* **演进主题**：Actor-Critic 指令闭环与真自省重排 (`IndustryArchitectNode` 深度对接 `PathCriticNode` 结构化修正指令集驱动 `PathPlanningAgent` 全局重排)、图执行引擎条件分支与自适应应急稳定化 (`CompositeMultiAgentGraphEngine` 容错流转与非规划快捷通道度量隔离)、流式心流全真动态参数提取 (SSE 事件总线彻底消除硬编码文案，实时反射真实大模型立论与辩驳论据)、第三方大模型高可用平滑排队与 15min TTL 语义缓存 (`ThirdPartyAiClient` 引入 `tryLock(2500ms)` 平滑等待与 `promptCache` 零毫秒秒级复用)、自动化质量评测多维扩展 (新增自省折中修复达标率、分歧收敛度、布鲁姆平滑度与阶段均衡度指标，升级分词保真度算法)、全网动态公网 IP 校验漂移更新 (`47.120.79.118` 全项目同步)、云端生产热替换部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)
 * **核心成果**：
   1. **闭合 Actor-Critic 修正指令与总监重规划闭环 (`IndustryArchitectNode` & `PathPlanningAgent`)**：
      - 深度读取审判质检法官出具的结构化缺陷指令集（`needMoreBeginnerCourses`、`fixPrerequisiteInversion`、`smoothDifficultyTransition`），彻底废除单纯扣减 5 小时学时的僵化补丁；
@@ -307,7 +307,7 @@
        - 自动化质量评测接口（`/cs/courses/recommendations/evals/metrics`）：HTTP 200，度量看板新增多维指标，初始真实样本自增至 1；
        - 多智能体编排接口（`/cs/courses/recommendations/orchestrate`）：HTTP 200，历经圆桌博弈，客观质检综合评分 100 分卓越（A+），各阶段课程 100% 对口 Java 全栈；
        - 流式推理心流（`/cs/courses/recommendations/stream/reasoning`）：稳定实时推送 6 步多智能体圆桌博弈事件流，包含大模型真实立论与质询；
-       - 学生端前端（`http://47.121.26.136:18081`）：HTTP 200 OK，静态资源秒级加载，HUD 完美呈现新指标。
+       - 学生端前端（`http://47.120.79.118:18081`）：HTTP 200 OK，静态资源秒级加载，HUD 完美呈现新指标。
 
 ### 2026-09-18 20:50:00 - 智问学伴多智能体系统真智化根治重构：消除伪智能体、真大模型驳论、客观 Kahn DAG 质检与全真度量闭环 (Multi-Agent System Genuine Intelligence Refactor: Decoupling Pseudo-Agents, LLM Dialectic Debate, Objective Kahn DAG Audit & Zero-Faked Metrics Closure)
 
