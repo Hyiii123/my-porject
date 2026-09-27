@@ -43,7 +43,7 @@ get_public_ip() {
         ip=$(curl -s --connect-timeout 2 https://api.ipify.org 2>/dev/null)
     fi
     if [ -z "$ip" ]; then
-        ip="47.120.79.118"
+        ip="47.120.73.251"
     fi
     echo "$ip"
 }
