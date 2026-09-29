@@ -195,6 +195,13 @@ public class TokenController
                 return R.fail("当前支持 QQ 邮箱登录与注册，请输入 @qq.com 邮箱");
             }
 
+            // 60秒发送冷却流控，防止短信/邮件接口被恶意轰炸
+            String rateLimitKey = "zhiwen:auth:emailcode:limit:" + normalizedEmail.toLowerCase();
+            if (redisService.getCacheObject(rateLimitKey) != null)
+            {
+                return R.fail("验证码发送过于频繁，请等待 60 秒后再试");
+            }
+
             // 生成强随机 6 位数字验证码
             int randomNum = new java.security.SecureRandom().nextInt(900000) + 100000;
             String code = String.valueOf(randomNum);
@@ -202,6 +209,8 @@ public class TokenController
             // 写入 Redis，有效期 5 分钟
             redisService.setCacheObject(EMAIL_CODE_PREFIX + normalizedEmail.toLowerCase(), code,
                     EMAIL_CODE_TTL_SECONDS, TimeUnit.SECONDS);
+            // 写入 60 秒防刷流控标记
+            redisService.setCacheObject(rateLimitKey, "1", 60L, TimeUnit.SECONDS);
 
             // 调用 QQ 邮箱 SMTP 服务发送邮件
             boolean sent = qqMailService.sendVerificationCode(normalizedEmail, code);
@@ -225,6 +234,12 @@ public class TokenController
                 merged.get("phonenumber"), merged.get("mobile"));
         if (phone != null)
         {
+            String rateLimitPhoneKey = "zhiwen:auth:phonecode:limit:" + phone.trim();
+            if (redisService.getCacheObject(rateLimitPhoneKey) != null)
+            {
+                return R.fail("验证码发送过于频繁，请等待 60 秒后再试");
+            }
+            redisService.setCacheObject(rateLimitPhoneKey, "1", 60L, TimeUnit.SECONDS);
             sysLoginService.issuePhoneCode(phone);
         }
         Map<String, String> result = new LinkedHashMap<>();
