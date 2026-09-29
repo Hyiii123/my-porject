@@ -188,6 +188,7 @@
 | **72** | **问答与笔记删除缺少级联清理及访客点赞未校验登录异常** | 1. `EduInteractionServiceImpl.removeQuestion` 与 `removeNote` 在删除问题或笔记时未级联删除关联的回答 (`edu_reply`)、点赞 (`edu_question_like`/`edu_note_like`) 与收藏记录，导致大量孤儿脏数据残留在数据库中；<br>2. `like` 接口在处理笔记与问题点赞时使用 `currentUserId()` 未强制校验登录，未登录访客点赞时插入空 `user_id` 触发数据库非空约束崩溃。 | 1. 在 `removeQuestion` 与 `removeNote` 中引入关联表批量级联清除；<br>2. 在 `like` 统一前置强制登录断言 `requireCurrentUserId()`，未登录请求直接拦截返回 401。 |
 | **73** | **课程详情页秒杀成功后未跳转收银台导致订单未支付超时关闭缺陷** | `classDetails/index.vue` 的 `handleSeckill` 在秒杀接口返回待支付订单（`orderStatus=0`）后，直接提示“秒杀成功，已为您开通课程权限”并设置 `isBuyed.value = true`，未将学员重定向至收银台支付（`/pay/payment?orderId=...`），导致学员未实际完成付款、课程权限未开通，且 15 分钟后订单被超时自动取消。 | 修正 `handleSeckill` 逻辑：秒杀成功拿到订单 ID 后，提示“⚡ 秒杀抢购成功，正在前往收银台支付...”，并自动平滑重定向至 `/pay/payment` 收银台完成付款。 |
 | **74** | **前端组件读取 `res.data.msg` 在后端报错时触发 `Cannot read properties of null` 崩溃** | 历史 Vue 组件多处在请求失败分支中使用 `ElMessage.error(res.data.msg)`，而后端报错报文为 `{code: 500, msg: "...", data: null}`，此时访问 `res.data.msg` 触发 TypeError 导致前端控制台白屏或报错丢失。 | 在 `portal` 与 `business-admin` 的 `request.js` 统一拦截器中增加双向兼容防御：若 `response.data.data` 为 null 或对象，自动注入或挂载 `msg` 属性，使组件无论读取 `res.msg` 还是 `res.data.msg` 均能安全取到错误提示。 |
+| **75** | **管理端 Header 面包屑多级路由数组越界崩溃（`route.matched[1]` 缺失判空）** | `Header.vue` 模板直接链式访问 `route.matched[0].meta.title` 与 `route.matched[1].meta.title`，当访客进入 404 或无二级嵌套的扁平路由时，`route.matched[1]` 为 undefined，直接触发模板渲染崩溃报错 `TypeError: Cannot read properties of undefined (reading 'meta')`。 | 增加多级可选链与条件渲染保护：`v-if="route.matched && route.matched[1]"` 并使用 `route.matched[1]?.meta?.title`，确保任意路由层级均可平滑展示面包屑。 |
 
 ---
 

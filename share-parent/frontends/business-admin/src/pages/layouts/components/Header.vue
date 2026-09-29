@@ -9,22 +9,24 @@
           </span> -->
           <!-- <span class="line"> / </span> -->
           <span
+            v-if="route.matched && route.matched[0]"
             class="textDefault1"
             @click="() => $router.push({ path: route.matched[0].path })"
-            >{{ route.matched[0].meta.title }}</span
+            >{{ route.matched[0]?.meta?.title }}</span
           >
-          <span class="line" > / </span>
+          <span v-if="route.matched && route.matched[0] && (route.meta?.fmeta || route.matched[1])" class="line" > / </span>
           <span
             v-if="route.meta && route.meta.fmeta"
             class="textDefault1"
             @click="() => $router.push({ path: route.meta.fmeta.path })"
             >{{ route.meta.fmeta.title }}</span
           >
-          <span v-if="route.meta && route.meta.fmeta" class="line" > / </span>
+          <span v-if="route.meta && route.meta.fmeta && route.matched && route.matched[1]" class="line" > / </span>
           <span
+            v-if="route.matched && route.matched[1]"
             class="textDefault1 ft-cl-des"
             @click="() => $router.push({ path: route.matched[1].path })"
-            >{{ route.matched[1].meta.title }}</span
+            >{{ route.matched[1]?.meta?.title }}</span
           >
         </div>
         <div class="fx" v-show="route.meta.title == '首页'">
