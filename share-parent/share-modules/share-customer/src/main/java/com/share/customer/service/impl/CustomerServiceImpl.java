@@ -187,7 +187,7 @@ public class CustomerServiceImpl implements ICustomerService {
     public void deleteMySession(Long sessionId) {
         CustomerSession session = getSession(sessionId);
         assertOwner(session);
-        sessionMapper.deleteById(sessionId);
+        deleteSessionCascade(Collections.singletonList(sessionId));
     }
 
     @Override
@@ -1005,7 +1005,7 @@ public class CustomerServiceImpl implements ICustomerService {
         int batchSize = 200;
         for (int i = 0; i < expiredIds.size(); i += batchSize) {
             List<Long> subList = expiredIds.subList(i, Math.min(i + batchSize, expiredIds.size()));
-            sessionMapper.deleteBatchIds(subList);
+            deleteSessionCascade(subList);
             totalDeleted += subList.size();
         }
         log.info("【客服活跃会话治理】成功自动清理 {} 个超过 {} 天无对话的活跃会话: {}", totalDeleted, days, expiredIds);
@@ -1030,12 +1030,23 @@ public class CustomerServiceImpl implements ICustomerService {
         int batchSize = 200;
         for (int i = 0; i < expiredIds.size(); i += batchSize) {
             List<Long> subList = expiredIds.subList(i, Math.min(i + batchSize, expiredIds.size()));
-            sessionMapper.deleteBatchIds(subList);
+            deleteSessionCascade(subList);
             totalDeleted += subList.size();
         }
         log.info("【客服活跃会话治理】已自动清理学员 (userId: {}) 的 {} 个超过 {} 天无对话的活跃会话: {}",
                 userId, totalDeleted, days, expiredIds);
         return totalDeleted;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteSessionCascade(List<Long> sessionIds) {
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return;
+        }
+        messageMapper.delete(new LambdaQueryWrapper<CustomerMessage>().in(CustomerMessage::getSessionId, sessionIds));
+        evaluationMapper.delete(new LambdaQueryWrapper<CustomerEvaluation>().in(CustomerEvaluation::getSessionId, sessionIds));
+        aiCallLogMapper.delete(new LambdaQueryWrapper<CustomerAiCallLog>().in(CustomerAiCallLog::getSessionId, sessionIds));
+        sessionMapper.deleteBatchIds(sessionIds);
     }
 
     private record LocalAnswer(int score, String answer, Long id, boolean faq) {}

@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 public class JavaSandboxRunner {
 
     private static final Logger log = LoggerFactory.getLogger(JavaSandboxRunner.class);
+    private static final Object SYSTEM_STREAM_LOCK = new Object();
     private final ExecutorService sandboxPool = Executors.newFixedThreadPool(4, r -> {
         Thread t = new Thread(r, "Sandbox-Worker-" + System.currentTimeMillis());
         t.setDaemon(true);
@@ -138,8 +139,6 @@ public class JavaSandboxRunner {
 
         ByteArrayOutputStream outBaos = new ByteArrayOutputStream();
         ByteArrayOutputStream errBaos = new ByteArrayOutputStream();
-        PrintStream originalOut = System.out;
-        PrintStream originalErr = System.err;
 
         try {
             Class<?> clazz = memoryClassLoader.loadClass(className);
@@ -159,15 +158,24 @@ public class JavaSandboxRunner {
                 return CodeExecutionResult.compileError("未找到 public static void main(String[] args) 入口函数");
             }
 
-            System.setOut(new PrintStream(outBaos, true, StandardCharsets.UTF_8));
-            System.setErr(new PrintStream(errBaos, true, StandardCharsets.UTF_8));
+            synchronized (SYSTEM_STREAM_LOCK) {
+                PrintStream currentSysOut = System.out;
+                PrintStream currentSysErr = System.err;
+                try {
+                    System.setOut(new PrintStream(outBaos, true, StandardCharsets.UTF_8));
+                    System.setErr(new PrintStream(errBaos, true, StandardCharsets.UTF_8));
 
-            mainMethod.setAccessible(true);
-            if (mainMethod.getParameterCount() == 1) {
-                mainMethod.invoke(null, (Object) new String[]{});
-            } else {
-                Object instance = clazz.getDeclaredConstructor().newInstance();
-                mainMethod.invoke(instance);
+                    mainMethod.setAccessible(true);
+                    if (mainMethod.getParameterCount() == 1) {
+                        mainMethod.invoke(null, (Object) new String[]{});
+                    } else {
+                        Object instance = clazz.getDeclaredConstructor().newInstance();
+                        mainMethod.invoke(instance);
+                    }
+                } finally {
+                    System.setOut(currentSysOut);
+                    System.setErr(currentSysErr);
+                }
             }
 
             long elapsed = System.currentTimeMillis() - tStart;
@@ -182,27 +190,40 @@ public class JavaSandboxRunner {
             long elapsed = System.currentTimeMillis() - tStart;
             Throwable cause = t.getCause() != null ? t.getCause() : t;
             return CodeExecutionResult.runtimeError(cause.toString(), elapsed);
-        } finally {
-            System.setOut(originalOut);
-            System.setErr(originalErr);
         }
     }
 
     private CodeExecutionResult executeScriptSafely(String binary, String code, long tStart) {
+        Process proc = null;
         try {
             ProcessBuilder pb = new ProcessBuilder(binary, "-c", code);
             pb.redirectErrorStream(false);
-            Process proc = pb.start();
+            proc = pb.start();
+            boolean finished = proc.waitFor(3000, TimeUnit.MILLISECONDS);
+            if (!finished) {
+                proc.destroyForcibly();
+                long elapsed = System.currentTimeMillis() - tStart;
+                return CodeExecutionResult.timeout(elapsed);
+            }
             String stdout = new String(proc.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             String stderr = new String(proc.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
-            int exit = proc.waitFor();
+            int exit = proc.exitValue();
             long elapsed = System.currentTimeMillis() - tStart;
             if (exit == 0) {
                 return CodeExecutionResult.success(stdout, elapsed);
             } else {
                 return CodeExecutionResult.runtimeError(stderr, elapsed);
             }
+        } catch (InterruptedException ie) {
+            if (proc != null) {
+                proc.destroyForcibly();
+            }
+            Thread.currentThread().interrupt();
+            return CodeExecutionResult.timeout(System.currentTimeMillis() - tStart);
         } catch (Exception ex) {
+            if (proc != null) {
+                proc.destroyForcibly();
+            }
             return simulateExecution(code, tStart);
         }
     }

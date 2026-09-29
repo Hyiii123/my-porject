@@ -295,6 +295,12 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
         value.setVersion(0);
         value.setDelFlag(0);
         refundMapper.insert(value);
+
+        // 同步更新订单状态为 2 (申请退款中)
+        order.setOrderStatus(2);
+        order.setUpdateTime(LocalDateTime.now());
+        orderMapper.updateById(order);
+
         return refundView(value);
     }
 
@@ -373,6 +379,14 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
                 sendOrderRefundedMessage(order, value.getRefundAmount());
 
                 orderService.revokePurchasedCourses(order);
+            }
+        } else {
+            // 退款申请驳回：恢复订单状态为已支付状态 (1)
+            TrOrder order = orderMapper.selectById(value.getOrderId());
+            if (order != null && Integer.valueOf(2).equals(order.getOrderStatus())) {
+                order.setOrderStatus(1);
+                order.setUpdateTime(LocalDateTime.now());
+                orderMapper.updateById(order);
             }
         }
         return legacyRefundView(value);

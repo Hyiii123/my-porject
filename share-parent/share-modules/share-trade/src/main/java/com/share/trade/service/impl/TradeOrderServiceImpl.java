@@ -88,11 +88,34 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
                 .stream().map(this::cartView).toList();
     }
 
+    /**
+     * 校验用户是否已购买/已拥有该课程 (避免重复加入购物车或重复下单)
+     */
+    private boolean hasPurchasedCourse(Long userId, Long courseId) {
+        if (userId == null || courseId == null) {
+            return false;
+        }
+        List<TrOrderItem> items = itemMapper.selectList(new LambdaQueryWrapper<TrOrderItem>()
+                .eq(TrOrderItem::getCourseId, courseId));
+        if (items.isEmpty()) {
+            return false;
+        }
+        List<Long> orderIds = items.stream().map(TrOrderItem::getOrderId).distinct().toList();
+        Long count = orderMapper.selectCount(new LambdaQueryWrapper<TrOrder>()
+                .eq(TrOrder::getUserId, userId)
+                .in(TrOrder::getOrderStatus, Arrays.asList(1, 2))
+                .in(TrOrder::getId, orderIds));
+        return count != null && count > 0;
+    }
+
     @Override
     @Transactional
     public Map<String, Object> addCart(Map<String, ?> body) {
         Long courseId = longValue(body == null ? null : body.get("courseId"));
         require(courseId != null, "课程编号不能为空");
+        if (hasPurchasedCourse(currentUserId(), courseId)) {
+            throw new ServiceException("您已拥有该课程，无需重复加入购物车");
+        }
         Map<String, Object> snapshot = courseSnapshot(courseId);
         require(snapshot != null && !snapshot.isEmpty(), "课程不存在");
         if (snapshot.containsKey("status")) {
@@ -259,6 +282,11 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     @Override
     @Transactional
     public Map<String, Object> placeOrder(Map<String, ?> body) {
+        return doPlaceOrder(body, false);
+    }
+
+    @Transactional
+    public Map<String, Object> doPlaceOrder(Map<String, ?> body, boolean isInternalSeckill) {
         // 幂等防重 Token 校验 (防止网络抖动或连击产生重复订单)
         Object orderTokenObj = body == null ? null : body.get("orderToken");
         if (orderTokenObj != null && StringUtils.hasText(String.valueOf(orderTokenObj))) {
@@ -315,10 +343,22 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
             // 安全防御：严格禁止客户端伪造 isInternalSeckill 实施 0 元购绕过 (BUG-FIX)
             boolean isCourseFree = bool(snapshot.get("free")) || bool(snapshot.get("isFree"))
                     || (snapshot.containsKey("price") && number(snapshot, "price", -1) == 0);
-            long cents = isCourseFree ? 0 : number(snapshot, "price", defaultPriceCents(courseId));
+            long cents;
+            String courseName;
+            if (isInternalSeckill) {
+                cents = 990; // 9.90 元限时秒杀特惠
+                courseName = "⚡限时秒杀·智问精品课 #" + courseId;
+            } else {
+                cents = isCourseFree ? 0 : number(snapshot, "price", defaultPriceCents(courseId));
+                courseName = isCourseFree ? defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), "免费课程 " + courseId))
+                        : defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), "课程 " + courseId));
+            }
+
+            if (hasPurchasedCourse(currentUserId(), courseId)) {
+                throw new ServiceException("您已拥有课程【" + courseName + "】，请勿重复购买");
+            }
+
             BigDecimal amount = BigDecimal.valueOf(cents).movePointLeft(2);
-            String courseName = isCourseFree ? defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), "免费课程 " + courseId))
-                    : defaultText(snapshot.get("title"), defaultText(snapshot.get("courseName"), "课程 " + courseId));
             String cover = defaultText(snapshot.get("cover"), defaultText(snapshot.get("coverUrl"), defaultText(source.get("cover"), null)));
             TrOrderItem item = new TrOrderItem();
             item.setId(newId());
@@ -384,6 +424,14 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         for (TrOrderItem item : items) {
             item.setOrderId(order.getId());
             itemMapper.insert(item);
+        }
+
+        // 订单创建成功后，统一清理当前用户购物车中已购买的课程项
+        List<Long> purchasedCourseIds = items.stream().map(TrOrderItem::getCourseId).filter(Objects::nonNull).toList();
+        if (!purchasedCourseIds.isEmpty()) {
+            cartMapper.delete(new LambdaQueryWrapper<TrCart>()
+                    .eq(TrCart::getUserId, currentUserId())
+                    .in(TrCart::getCourseId, purchasedCourseIds));
         }
 
         if (fromCart) {
@@ -476,11 +524,20 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     @Transactional
     public Map<String, Object> freeCourse(Long courseId) {
         require(courseId != null, "课程编号不能为空");
+        Map<String, Object> snapshot = courseSnapshot(courseId);
+        require(snapshot != null && !snapshot.isEmpty(), "课程不存在");
+        boolean isCourseFree = bool(snapshot.get("free")) || bool(snapshot.get("isFree"))
+                || (snapshot.containsKey("price") && number(snapshot, "price", -1) == 0);
+        require(isCourseFree, "该课程为付费精品课，不可免费领取，请通过正常下单与支付流程购买");
+
+        if (hasPurchasedCourse(currentUserId(), courseId)) {
+            throw new ServiceException("您已拥有该课程，无需重复领取");
+        }
+
         Map<String, Object> direct = new LinkedHashMap<>();
         direct.put("courseId", courseId);
-        direct.put("isInternalSeckill", true);
         direct.put("price", 0);
-        Map<String, Object> result = placeOrder(Map.of("items", List.of(direct)));
+        Map<String, Object> result = doPlaceOrder(Map.of("items", List.of(direct)), false);
         Long orderId = longValue(result.get("id"));
         TrOrder order = orderMapper.selectById(orderId);
         if (order != null) {
@@ -524,12 +581,11 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         try {
             Map<String, Object> direct = new LinkedHashMap<>();
             direct.put("courseId", courseId);
-            direct.put("isInternalSeckill", true);
             direct.put("courseName", "⚡限时秒杀·智问精品课 #" + courseId);
             direct.put("price", 990);
             direct.put("originalPrice", defaultPriceCents(courseId));
 
-            Map<String, Object> result = placeOrder(Map.of("items", List.of(direct)));
+            Map<String, Object> result = doPlaceOrder(Map.of("items", List.of(direct)), true);
             redisService.sAdd(userKey, String.valueOf(userId));
             return result;
         } catch (Exception e) {
@@ -679,6 +735,11 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
                 uc.setUsedOrderId(null);
                 uc.setUpdateTime(now);
                 userCouponMapper.updateById(uc);
+                if (uc.getCouponId() != null) {
+                    couponMapper.update(null, new LambdaUpdateWrapper<MktCoupon>()
+                            .setSql("used_count = GREATEST(0, COALESCE(used_count, 0) - 1)")
+                            .eq(MktCoupon::getId, uc.getCouponId()));
+                }
             }
         }
     }
@@ -832,6 +893,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         return db == null ? 1 : switch (db) {
             case 0 -> 1;
             case 1 -> 4;
+            case 2 -> 2;
             case 3 -> 6;
             case 4 -> 3;
             default -> 3;
@@ -841,7 +903,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     private String oldStatusName(int value) {
         return switch (value) {
             case 1 -> "待支付";
-            case 2 -> "已支付";
+            case 2 -> "退款中";
             case 3 -> "已关闭";
             case 4 -> "已完成";
             case 5 -> "已报名";
