@@ -116,8 +116,8 @@ watchEffect(()=>{
         const regA = new RegExp(item.path)
         // 非首页 在当前的路由下查找 
         if (cpath.search(regA) != -1){
-          defaultOpeneds.value == [index.toString()] ? null : defaultOpeneds.value = [index.toString()]
-          item.children.forEach((val, ind) => {
+          defaultOpeneds.value = [index.toString()];
+          (item.children || []).forEach((val, ind) => {
             if (val.path == cpath){
               activeIndex.value == `${index}-${ind}` ? null : activeIndex.value = `${index}-${ind}`
             } 
@@ -131,8 +131,8 @@ watchEffect(()=>{
       const regA = new RegExp(item.path)
       // 非首页 在当前的路由下查找 
       if (path.search(regA) != -1){
-        defaultOpeneds.value == [index.toString()] ? null : defaultOpeneds.value = [index.toString()]
-        item.children.forEach((val, ind) => {
+        defaultOpeneds.value = [index.toString()];
+        (item.children || []).forEach((val, ind) => {
           if (val.path == route.path){
             activeIndex.value == `${index}-${ind}` ? null : activeIndex.value = `${index}-${ind}`
           } 

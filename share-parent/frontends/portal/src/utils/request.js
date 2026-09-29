@@ -20,10 +20,13 @@ const instance = axios.create({
 instance.interceptors.request.use((config) => {
   const TOKEN = sessionStorage.getItem('token');
   config.headers = {
-    "Content-Type": "application/json",
-    "authorization": TOKEN
+    ...(config.headers || {}),
+    "Content-Type": "application/json"
+  };
+  if (TOKEN && TOKEN !== 'null' && TOKEN !== 'undefined') {
+    config.headers["authorization"] = TOKEN;
   }
-  return config
+  return config;
 });
 
 // 响应拦截器

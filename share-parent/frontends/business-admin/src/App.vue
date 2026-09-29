@@ -32,13 +32,17 @@ onMounted(() => {
           if (res.code === 200) {
             store.setCategoryTree(res.data);
             let map = {};
-            res.data.forEach(f => {
-              map[f.id] = {id:f.id, name:f.name}
-              f.children.forEach(s => {
-                map[s.id] = {id:s.id, name:s.name, parentId: s.parentId}
-                s.children.forEach(t => map[t.id] = {id:t.id, name:t.name, parentId:t.parentId})
-              })
-            })
+            (Array.isArray(res.data) ? res.data : []).forEach(f => {
+              map[f.id] = {id:f.id, name:f.name};
+              if (Array.isArray(f.children)) {
+                f.children.forEach(s => {
+                  map[s.id] = {id:s.id, name:s.name, parentId: s.parentId};
+                  if (Array.isArray(s.children)) {
+                    s.children.forEach(t => map[t.id] = {id:t.id, name:t.name, parentId:t.parentId});
+                  }
+                });
+              }
+            });
             store.setCategoryMap(map);
           }
         })

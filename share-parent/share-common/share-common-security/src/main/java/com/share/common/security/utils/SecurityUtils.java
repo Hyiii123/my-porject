@@ -71,10 +71,18 @@ public class SecurityUtils
      */
     public static String replaceTokenPrefix(String token)
     {
-        // 如果前端设置了令牌前缀，则裁剪掉前缀
-        if (StringUtils.isNotEmpty(token) && token.startsWith(TokenConstants.PREFIX))
+        if (StringUtils.isEmpty(token) || "null".equalsIgnoreCase(token.trim()) || "undefined".equalsIgnoreCase(token.trim()))
         {
-            token = token.replaceFirst(TokenConstants.PREFIX, "");
+            return StringUtils.EMPTY;
+        }
+        // 如果前端设置了令牌前缀，则裁剪掉前缀
+        if (token.startsWith(TokenConstants.PREFIX))
+        {
+            token = token.replaceFirst(TokenConstants.PREFIX, "").trim();
+        }
+        if (StringUtils.isEmpty(token) || "null".equalsIgnoreCase(token.trim()) || "undefined".equalsIgnoreCase(token.trim()))
+        {
+            return StringUtils.EMPTY;
         }
         return token;
     }

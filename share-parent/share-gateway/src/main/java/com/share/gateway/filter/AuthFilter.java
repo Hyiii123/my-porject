@@ -125,10 +125,18 @@ public class AuthFilter implements GlobalFilter, Ordered
     private String getToken(ServerHttpRequest request)
     {
         String token = request.getHeaders().getFirst(TokenConstants.AUTHENTICATION);
-        // 如果前端设置了令牌前缀，则裁剪掉前缀
-        if (StringUtils.isNotEmpty(token) && token.startsWith(TokenConstants.PREFIX))
+        if (StringUtils.isEmpty(token) || "null".equalsIgnoreCase(token.trim()) || "undefined".equalsIgnoreCase(token.trim()))
         {
-            token = token.replaceFirst(TokenConstants.PREFIX, StringUtils.EMPTY);
+            return null;
+        }
+        // 如果前端设置了令牌前缀，则裁剪掉前缀
+        if (token.startsWith(TokenConstants.PREFIX))
+        {
+            token = token.replaceFirst(TokenConstants.PREFIX, StringUtils.EMPTY).trim();
+        }
+        if (StringUtils.isEmpty(token) || "null".equalsIgnoreCase(token.trim()) || "undefined".equalsIgnoreCase(token.trim()))
+        {
+            return null;
         }
         return token;
     }

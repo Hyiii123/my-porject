@@ -22,11 +22,13 @@ export const getFreeClassList = (params) =>
 	})
 
 // 获取课程推荐接口
-export const getRecommendClassList = (type) =>
-	request({
-		url: `${SEARCH_API_PREFIX}/recommend/${type}`,
-		method: 'get'
-	})
+export const getRecommendClassList = (type = 'home') => {
+  const resolvedType = typeof type === 'object' && type !== null ? (type.type || 'home') : (type || 'home');
+  return request({
+    url: `${SEARCH_API_PREFIX}/recommend/${resolvedType}`,
+    method: 'get'
+  });
+}
 
 // 获取课程列表 - 分类id 查询对应的列表 （倒序 十条）
 export const getClassList = (id) =>
@@ -43,11 +45,15 @@ export const getLearningPlan = (id) =>
 	})
 
 // 查询当前用户学习的指定课程信息，返回null则代表没有购买	
-export const getCourseLearning = (courseId) =>
-request({
-	url: `${LEARNING_API_PREFIX}/lessons/${courseId}`,
-	method: 'get'
-})	
+export const getCourseLearning = (courseId) => {
+	if (!courseId || courseId === 'undefined') {
+		return Promise.resolve({ code: 400, data: null, msg: '课程ID不能为空' });
+	}
+	return request({
+		url: `${LEARNING_API_PREFIX}/lessons/${courseId}`,
+		method: 'get'
+	});
+}	
 // 课程搜索
 export const classSeach = (params) =>
 	request({

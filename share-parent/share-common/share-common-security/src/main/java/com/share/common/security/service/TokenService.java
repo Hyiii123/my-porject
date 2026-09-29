@@ -101,11 +101,14 @@ public class TokenService
         LoginUser user = null;
         try
         {
-            if (StringUtils.isNotEmpty(token))
+            if (StringUtils.isNotEmpty(token) && !"null".equalsIgnoreCase(token.trim()) && !"undefined".equalsIgnoreCase(token.trim()))
             {
                 String userkey = JwtUtils.getUserKey(token);
-                user = redisService.getCacheObject(getTokenKey(userkey));
-                return user;
+                if (StringUtils.isNotEmpty(userkey))
+                {
+                    user = redisService.getCacheObject(getTokenKey(userkey));
+                    return user;
+                }
             }
         }
         catch (Exception e)

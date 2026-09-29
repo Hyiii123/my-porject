@@ -22,8 +22,10 @@ instance.interceptors.request.use((config) => {
   const TOKEN = sessionStorage.getItem(TOKEN_NAME);
   config.headers = {
     ...(config.headers || {}),
-    "authorization": TOKEN,
   };
+  if (TOKEN && TOKEN !== "null" && TOKEN !== "undefined") {
+    config.headers["authorization"] = TOKEN;
+  }
   // FormData 需要让浏览器自动设置 multipart boundary，不能强制为 JSON。
   if (typeof FormData !== "undefined" && config.data instanceof FormData) {
     delete config.headers["Content-Type"];

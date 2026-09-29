@@ -299,7 +299,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Reading } from '@element-plus/icons-vue'
 import AgentReasoningHUD from '@/components/AgentReasoningHUD.vue'
-import { getRecommendClassList, getCourseLearning } from '@/api/class.js'
+import { getRecommendClassList, getMyLearning } from '@/api/class.js'
 
 const router = useRouter()
 
@@ -356,7 +356,7 @@ const goLearning = (record) => {
 
 const loadInitialData = async () => {
   try {
-    const recRes = await getRecommendClassList({ limit: 6 })
+    const recRes = await getRecommendClassList('home')
     if (recRes && recRes.code === 200 && Array.isArray(recRes.data)) {
       personalizedCourses.value = recRes.data
     }
@@ -367,7 +367,7 @@ const loadInitialData = async () => {
   const token = sessionStorage.getItem('token')
   if (token) {
     try {
-      const learnRes = await getCourseLearning()
+      const learnRes = await getMyLearning()
       if (learnRes && learnRes.code === 200 && learnRes.data) {
         recentLearning.value = learnRes.data
       }

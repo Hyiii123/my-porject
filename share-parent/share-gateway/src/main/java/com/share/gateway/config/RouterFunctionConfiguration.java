@@ -26,6 +26,10 @@ public class RouterFunctionConfiguration
     {
         return RouterFunctions.route(
                 RequestPredicates.GET("/code").and(RequestPredicates.accept(MediaType.TEXT_PLAIN)),
-                validateCodeHandler);
+                validateCodeHandler)
+                .andRoute(RequestPredicates.GET("/").or(RequestPredicates.GET("/health")),
+                        request -> org.springframework.web.reactive.function.server.ServerResponse.ok()
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(com.share.common.core.web.domain.AjaxResult.success("Zhiwen Gateway is running")));
     }
 }

@@ -37,7 +37,18 @@ public class JwtUtils
      */
     public static Claims parseToken(String token)
     {
-        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+        if (token == null || token.trim().isEmpty() || "null".equalsIgnoreCase(token.trim()) || "undefined".equalsIgnoreCase(token.trim()))
+        {
+            return null;
+        }
+        try
+        {
+            return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
     }
 
     /**
