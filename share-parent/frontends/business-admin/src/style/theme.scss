@@ -1,39 +1,51 @@
 :root {
-  // --- 逆向 1:1 IAIC 高校人工智能创新应用平台视觉规范 Design Tokens ---
-  --azure: #1E89F1;
-  --blue: #2B7CF8;
-  --blue-deep: #1366D6;
-  --cyan: #21C6E8;
-  --grad: linear-gradient(120deg, #21C6E8 0%, #2B86F0 100%);
-  --grad-soft: linear-gradient(120deg, rgba(33, 198, 232, .14), rgba(43, 134, 240, .14));
-  --navy: #13294F;
-  --navy-2: #16294C;
-  --ink: #0E1F3D;
-  --slate: #56688A;
-  --slate-2: #8595AE;
-  --sky: #F2F8FE;
-  --sky-2: #E9F2FD;
-  --sky-3: #DCEBFB;
-  --card: #FFFFFF;
-  --line: #E4EDF8;
-  --line-2: #D5E3F5;
-  --green: #1FB877;
-  --green-bg: #E7F7F0;
-  --shadow: 0 1px 2px rgba(19, 41, 79, .04), 0 18px 42px -24px rgba(27, 98, 214, .3);
-  --shadow-lg: 0 24px 60px -28px rgba(27, 98, 214, .45);
+  // === 智问学伴业务管理端 高级 Executive Obsidian Design Tokens ===
+  --brand-cyan: #38BDF8;
+  --brand-blue: #6366F1;
+  --brand-indigo: #4F46E5;
+  --brand-emerald: #10B981;
+  --brand-amber: #F59E0B;
+  --brand-rose: #F43F5E;
+
+  --grad: linear-gradient(135deg, #38BDF8 0%, #3B82F6 100%);
+  --grad-soft: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+  
+  --azure: #38BDF8;
+  --blue: #6366F1;
+  --blue-deep: #4F46E5;
+  --cyan: #06B6D4;
+  --navy: #F8FAFC;
+  --navy-2: #0B0F19;
+  --ink: #FFFFFF;
+  --slate: #94A3B8;
+  --slate-2: #64748B;
+  --sky: #080B11;
+  --sky-2: #0E131F;
+  --sky-3: #141B2D;
+  --card: rgba(16, 23, 38, 0.72);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.12);
+  --green: #10B981;
+  --green-bg: rgba(16, 185, 129, 0.15);
+  --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 12px 32px -6px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 30px -4px rgba(0, 0, 0, 0.7), 0 20px 48px -8px rgba(0, 0, 0, 0.85);
+
+  --display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --cn: 'PingFang SC', 'Microsoft YaHei', 'Source Han Sans SC', 'Noto Sans SC', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
 
   // 映射业务管理端原有 Token
-  --color-main: var(--azure);
-  --color-hover: var(--blue-deep);
-  --color-active: #0d4fa8;
-  --color-primary-light: var(--sky-2);
+  --color-main: var(--brand-cyan);
+  --color-hover: #7DD3FC;
+  --color-active: #0284C7;
+  --color-primary-light: rgba(56, 189, 248, 0.12);
 
-  --color-success: var(--green);
-  --color-warning: #D97706;
-  --color-error: #DC2626;
-  --color-error2: #EF4444;
-  --color-error2hover: #B91C1C;
-  --color-fonttip: #DC2626;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #F43F5E;
+  --color-error2: #FB7185;
+  --color-error2hover: #E11D48;
+  --color-fonttip: #F43F5E;
 
   // 背景底板
   --color-background: var(--sky);
@@ -42,30 +54,30 @@
   --color-rawerbackground: var(--card);
 
   // 按钮与标签交互色
-  --color-btnbackground: var(--azure);
-  --color-btnhoverbackground: var(--blue-deep);
-  --color-tabBtnbackground: var(--sky-2);
-  --color-btnselectbackground: var(--sky-3);
-  --color-btnSubbackground: var(--sky);
-  --color-tabheadbackground: var(--sky-2);
+  --color-btnbackground: linear-gradient(135deg, #0284C7 0%, #2563EB 100%);
+  --color-btnhoverbackground: linear-gradient(135deg, #0369A1 0%, #1D4ED8 100%);
+  --color-tabBtnbackground: rgba(255, 255, 255, 0.05);
+  --color-btnselectbackground: rgba(56, 189, 248, 0.15);
+  --color-btnSubbackground: rgba(255, 255, 255, 0.05);
+  --color-tabheadbackground: rgba(14, 20, 34, 0.85);
   --color-tabbackground: var(--card);
-  --color-tabhoverbackground: var(--sky-2);
+  --color-tabhoverbackground: rgba(56, 189, 248, 0.1);
   --color-tabborder: var(--line);
-  --color-seletebackground: var(--sky-2);
-  --color-forbidden: var(--line);
+  --color-seletebackground: rgba(56, 189, 248, 0.15);
+  --color-forbidden: rgba(255, 255, 255, 0.08);
   --color-tabsgbg: var(--sky);
 
   // 文字阶梯
-  --color-font1: var(--ink);
-  --color-font2: var(--navy);
-  --color-font3: var(--slate);
-  --color-font4: var(--slate-2);
-  --color-font5: var(--slate);
+  --color-font1: #FFFFFF;
+  --color-font2: #F8FAFC;
+  --color-font3: #CBD5E1;
+  --color-font4: #94A3B8;
+  --color-font5: #64748B;
   --color-font6: var(--line);
-  --color-font7: var(--ink);
+  --color-font7: #FFFFFF;
   --color-font8: var(--line);
-  --color-font9: var(--slate-2);
-  --color-black: var(--ink);
+  --color-font9: #94A3B8;
+  --color-black: #FFFFFF;
   --color-white: #FFFFFF;
 
   // 字阶
@@ -75,9 +87,9 @@
   --font-size16: 16px;
 
   // 视觉规范 Token
-  --radius-sm: 6px;
-  --radius-base: 8px;
-  --radius-md: 12px;
+  --radius-sm: 8px;
+  --radius-base: 12px;
+  --radius-md: 16px;
   --border-subtle: 1px solid var(--line);
   --shadow-subtle: var(--shadow);
   --shadow-hover: var(--shadow-lg);

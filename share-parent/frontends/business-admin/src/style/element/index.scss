@@ -1418,3 +1418,94 @@ input[type='number'] {
     font-weight: 700;
   }
 }
+
+
+// === 高阶 Executive Obsidian 后台皮肤 ===
+.el-card {
+  background: rgba(16, 23, 38, 0.72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  color: #F8FAFC !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 24px -4px rgba(0, 0, 0, 0.6) !important;
+}
+
+.el-table {
+  background-color: transparent !important;
+  color: #F8FAFC !important;
+  --el-table-bg-color: transparent !important;
+  --el-table-tr-bg-color: transparent !important;
+  --el-table-header-bg-color: rgba(14, 20, 34, 0.85) !important;
+  --el-table-header-text-color: #CBD5E1 !important;
+  --el-table-row-hover-bg-color: rgba(56, 189, 248, 0.08) !important;
+  --el-table-border-color: rgba(255, 255, 255, 0.08) !important;
+
+  th.el-table__cell {
+    background-color: rgba(14, 20, 34, 0.85) !important;
+    font-weight: 700 !important;
+    font-size: 13.5px !important;
+    color: #F8FAFC !important;
+  }
+
+  td.el-table__cell {
+    color: #E2E8F0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+}
+
+.el-input__wrapper, .el-textarea__inner {
+  background-color: rgba(15, 23, 42, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35) !important;
+  border-radius: 8px !important;
+
+  .el-input__inner {
+    color: #F8FAFC !important;
+    &::placeholder {
+      color: #64748B !important;
+    }
+  }
+
+  &:hover {
+    border-color: rgba(56, 189, 248, 0.35) !important;
+  }
+
+  &.is-focus, &:focus-within {
+    border-color: #38BDF8 !important;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+  }
+}
+
+.el-pagination {
+  button, .el-pager li {
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: #CBD5E1 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 6px !important;
+    margin: 0 3px !important;
+
+    &:hover {
+      color: #38BDF8 !important;
+      border-color: rgba(56, 189, 248, 0.4) !important;
+    }
+
+    &.is-active {
+      background: rgba(56, 189, 248, 0.2) !important;
+      border-color: #38BDF8 !important;
+      color: #38BDF8 !important;
+      font-weight: 700 !important;
+    }
+  }
+}
+
+.el-dialog {
+  background: rgba(15, 23, 42, 0.95) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.85) !important;
+
+  .el-dialog__title {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+  }
+}

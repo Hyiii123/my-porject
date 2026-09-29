@@ -152,7 +152,7 @@ watchEffect(()=>{
   z-index: 999;
   width: 226px;
   height: 100vh;
-  background-color: var(--navy);
+  background-color: #07090F !important;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 
   &::-webkit-scrollbar {
@@ -180,7 +180,7 @@ watchEffect(()=>{
   .logo-icon {
     width: 36px;
     height: 36px;
-    background: var(--grad);
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(99, 102, 241, 0.25) 100%); border: 1px solid rgba(56, 189, 248, 0.45); color: #38BDF8;
     border-radius: 10px;
     display: flex;
     align-items: center;

@@ -65,23 +65,25 @@ const goDetails = id => {
 <style lang="scss" scoped>
 .classCards {
   position: relative;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  background: rgba(16, 23, 38, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
   overflow: hidden;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 3px rgba(19, 41, 79, 0.05);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
   .corner {
     position: absolute;
     width: 12px;
     height: 12px;
-    border: 2px solid var(--cyan);
+    border: 2px solid #38BDF8;
     opacity: 0;
-    transition: opacity 0.25s;
+    transition: opacity 0.25s ease;
     pointer-events: none;
     z-index: 5;
 
@@ -90,73 +92,77 @@ const goDetails = id => {
   }
 
   &:hover {
-    border-color: rgba(43, 134, 240, 0.4);
-    box-shadow: var(--shadow);
+    border-color: rgba(56, 189, 248, 0.45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 20px 48px -10px rgba(14, 165, 233, 0.3);
     transform: translateY(-4px);
 
     .corner {
-      opacity: 0.75;
+      opacity: 0.85;
     }
     .image-wrapper .cover-img {
-      transform: scale(1.04);
+      transform: scale(1.05);
     }
     .title {
-      color: var(--azure);
+      color: #38BDF8;
     }
   }
 
   .image-wrapper {
     width: 100%;
-    height: 156px;
+    height: 160px;
     position: relative;
     overflow: hidden;
-    background: #F1F5F9;
+    background: #0B0F19;
 
     .cover-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: transform 0.3s ease;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .category-badge {
       position: absolute;
       top: 10px;
       left: 10px;
-      background: rgba(15, 23, 42, 0.7);
-      backdrop-filter: blur(4px);
-      color: #FFFFFF;
+      background: rgba(7, 9, 14, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
+      color: #38BDF8;
       font-size: 11px;
-      font-weight: 500;
-      padding: 2px 8px;
-      border-radius: 4px;
+      font-family: var(--mono);
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 6px;
+      letter-spacing: 0.04em;
     }
   }
 
   .card-content {
-    padding: 14px;
+    padding: 16px 18px;
     display: flex;
     flex-direction: column;
     flex: 1;
 
     .title {
-      font-size: 14px;
+      font-size: 14.5px;
       font-weight: 600;
       line-height: 1.45;
-      color: #0F172A;
+      color: #F8FAFC;
       margin-bottom: 8px;
-      height: 40px;
+      height: 42px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
       text-overflow: ellipsis;
       transition: color 0.2s ease;
+      letter-spacing: -0.01em;
 
       :deep(em) {
         font-style: normal;
-        color: var(--color-main);
+        color: #38BDF8;
         font-weight: 700;
       }
     }
@@ -166,8 +172,8 @@ const goDetails = id => {
       align-items: center;
       gap: 8px;
       font-size: 12px;
-      color: #64748B;
-      margin-bottom: 12px;
+      color: #94A3B8;
+      margin-bottom: 14px;
 
       .teacher {
         max-width: 120px;
@@ -178,11 +184,13 @@ const goDetails = id => {
       .sections {
         position: relative;
         padding-left: 8px;
+        font-family: var(--mono);
+        color: #64748B;
         &::before {
           content: '•';
           position: absolute;
           left: 0;
-          color: #CBD5E1;
+          color: rgba(255, 255, 255, 0.2);
         }
       }
     }
@@ -192,36 +200,38 @@ const goDetails = id => {
       align-items: center;
       justify-content: space-between;
       margin-top: auto;
-      padding-top: 10px;
-      border-top: 1px solid #F1F5F9;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
 
       .learners {
-        font-size: 12px;
-        color: #94A3B8;
+        font-size: 11.5px;
+        color: #64748B;
+        font-family: var(--mono);
       }
 
       .price-wrapper {
         .price {
-          font-size: 16px;
+          font-size: 18px;
           font-weight: 700;
-          color: #DC2626;
+          font-family: var(--mono);
+          color: #34D399;
           small {
             font-size: 12px;
             font-weight: 600;
-            margin-right: 1px;
+            margin-right: 2px;
           }
         }
         .price-free {
-          font-size: 13px;
+          font-size: 12.5px;
           font-weight: 600;
-          color: #059669;
-          background: #ECFDF5;
-          padding: 2px 8px;
-          border-radius: 4px;
+          color: #38BDF8;
+          background: rgba(56, 189, 248, 0.12);
+          border: 1px solid rgba(56, 189, 248, 0.25);
+          padding: 3px 9px;
+          border-radius: 6px;
         }
       }
     }
   }
 }
 </style>
-

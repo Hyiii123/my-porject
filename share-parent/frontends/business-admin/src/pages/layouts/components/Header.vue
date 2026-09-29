@@ -1,5 +1,5 @@
 <template>
-  <header class="bg-wt">
+  <header class="admin-top-header">
     <div class="admin-nav-scan"></div>
     <div class="fx headerInfo">
       <div class="fx-1 marg-lt-20">
@@ -86,98 +86,89 @@ const onerrorImg = () => {
 };
 </script>
 <style lang="scss" scoped>
-header {
-  position: fixed;
-  top: 0;
-  left: 226px;
-  z-index: 998;
-  width: calc(100% - 226px);
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  text-align: left;
-  padding: 0 28px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  box-sizing: border-box;
+.admin-top-header {
+  position: relative;
+  background: rgba(10, 14, 24, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+  color: #F8FAFC;
+  z-index: 100;
 
-  .wecom {
-    margin: 0 16px 0 0;
-  }
-  .headerInfo {
+  .admin-nav-scan {
+    position: absolute;
+    bottom: 0;
+    left: 0;
     width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.6), transparent);
+    opacity: 0.8;
+  }
 
-    .line {
-      padding: 0 8px;
-      color: #94a3b8;
-    }
+  .headerInfo {
+    height: 64px;
+    align-items: center;
+    padding: 0 24px;
+
     .textDefault1 {
-      color: #475569;
-      font-weight: 500;
+      font-size: 13.5px;
+      color: #94A3B8;
       cursor: pointer;
+      font-weight: 500;
       transition: color 0.2s;
+
       &:hover {
-        color: #2563eb;
+        color: #38BDF8;
+      }
+
+      &.ft-cl-des {
+        color: #FFFFFF;
+        font-weight: 600;
       }
     }
-    .ft-cl-des {
-      color: #0f172a;
+
+    .line {
+      margin: 0 10px;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    .headIcon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(56, 189, 248, 0.4);
+      margin-right: 10px;
+    }
+
+    a {
+      display: flex;
+      align-items: center;
+      color: #F8FAFC;
+      font-size: 13.5px;
       font-weight: 600;
-      cursor: default;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #38BDF8;
+      }
     }
-  }
-  .headIcon {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    margin-right: 10px;
-    object-fit: cover;
-    border: 1px solid #e2e8f0;
-    transition: opacity 0.2s;
-    &:hover {
-      opacity: 0.85;
-    }
-  }
-  .vline {
-    margin: 0 16px;
-    background: #e2e8f0;
-    width: 1px;
-    height: 18px;
-  }
-  .back {
-    position: relative;
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    transition: background-color 0.2s;
-    &:hover {
-      background-color: #f1f5f9;
-    }
-    img {
-      width: 16px;
+
+    .vline {
+      width: 1px;
       height: 16px;
+      background: rgba(255, 255, 255, 0.15);
+      margin: 0 16px;
     }
-  }
-}
-.fx-al-ct {
-  display: flex;
-  align-items: center;
-  a {
-    display: flex;
-    align-items: center;
-    color: #1e293b;
-    font-weight: 500;
-    text-decoration: none;
-    &:hover {
-      color: #2563eb;
+
+    .back {
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      &:hover {
+        opacity: 1;
+      }
     }
   }
 }
 </style>
-
