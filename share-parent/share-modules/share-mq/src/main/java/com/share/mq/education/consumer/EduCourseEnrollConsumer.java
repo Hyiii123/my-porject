@@ -36,8 +36,14 @@ public class EduCourseEnrollConsumer implements RocketMQListener<String> {
     @Override
     public void onMessage(String message) {
         log.info("【Share-MQ消息中枢-教育领域】收到支付成功开课履约消息: {}", message);
+        JSONObject data;
         try {
-            JSONObject data = JSON.parseObject(message);
+            data = JSON.parseObject(message);
+        } catch (Exception ex) {
+            log.warn("【Share-MQ消息中枢-教育领域】开课消息无法反序列化为 JSON, 丢弃避免毒化重试队列: {}", ex.getMessage());
+            return;
+        }
+        try {
             if (data == null) {
                 return;
             }

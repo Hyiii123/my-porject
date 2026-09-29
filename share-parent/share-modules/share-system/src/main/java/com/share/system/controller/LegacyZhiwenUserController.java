@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.Objects;
 import jakarta.servlet.http.HttpServletRequest;
@@ -321,16 +322,33 @@ public class LegacyZhiwenUserController extends BaseController {
     }
 
     private TableDataInfo table(List<SysUser> users) {
-        List<Map<String, Object>> rows = users == null ? List.of() : users.stream().map(this::toView).toList();
+        if (users == null || users.isEmpty()) {
+            TableDataInfo result = new TableDataInfo();
+            result.setCode(200);
+            result.setMsg("查询成功");
+            result.setRows(List.of());
+            result.setTotal(0);
+            return result;
+        }
+        List<SysRole> allRoles = roleService.selectRoleAll();
+        Map<Long, SysRole> roleById = allRoles == null ? Map.of() : allRoles.stream()
+                .filter(r -> r != null && r.getRoleId() != null)
+                .collect(Collectors.toMap(SysRole::getRoleId, java.util.function.Function.identity(), (a, b) -> a));
+
+        List<Map<String, Object>> rows = users.stream().map(u -> toView(u, roleById)).toList();
         TableDataInfo result = new TableDataInfo();
         result.setCode(200);
         result.setMsg("查询成功");
         result.setRows(rows);
-        result.setTotal(users == null ? 0 : new PageInfo<>(users).getTotal());
+        result.setTotal(new PageInfo<>(users).getTotal());
         return result;
     }
 
     private Map<String, Object> toView(SysUser user) {
+        return toView(user, null);
+    }
+
+    private Map<String, Object> toView(SysUser user, Map<Long, SysRole> preloadedRoles) {
         Map<String, Object> view = new LinkedHashMap<>();
         view.put("id", user.getUserId());
         view.put("userId", user.getUserId());
@@ -375,10 +393,17 @@ public class LegacyZhiwenUserController extends BaseController {
                 .allMatch(role -> role != null && role.getRoleId() != null);
         if (!completeRoleMapping && user.getUserId() != null) {
             List<Long> assignedRoleIds = roleService.selectRoleListByUserId(user.getUserId());
-            List<SysRole> allRoles = roleService.selectRoleAll();
-            roles = allRoles == null || assignedRoleIds == null ? List.of() : allRoles.stream()
-                    .filter(role -> role != null && assignedRoleIds.contains(role.getRoleId()))
-                    .toList();
+            if (preloadedRoles != null) {
+                roles = assignedRoleIds == null ? List.of() : assignedRoleIds.stream()
+                        .map(preloadedRoles::get)
+                        .filter(Objects::nonNull)
+                        .toList();
+            } else {
+                List<SysRole> allRoles = roleService.selectRoleAll();
+                roles = allRoles == null || assignedRoleIds == null ? List.of() : allRoles.stream()
+                        .filter(role -> role != null && assignedRoleIds.contains(role.getRoleId()))
+                        .toList();
+            }
         }
         view.put("roles", roles == null ? List.of() : roles.stream().map(SysRole::getRoleKey).toList());
         view.put("roleIds", roles == null ? List.of() : roles.stream().map(SysRole::getRoleId).toList());

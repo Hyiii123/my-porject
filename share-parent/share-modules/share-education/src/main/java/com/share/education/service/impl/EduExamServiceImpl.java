@@ -407,11 +407,12 @@ public class EduExamServiceImpl implements IEduExamService {
         record.setSubmittedAt(LocalDateTime.now());
         record.setUpdateTime(LocalDateTime.now());
         examRecordMapper.updateById(record);
-        Map<String, Object> result = examRecordView(record);
+        Map<String, Object> result = new LinkedHashMap<>(examRecordView(record));
         result.put("score", score);
         result.put("correctCount", correct);
         result.put("passScore", passScore);
         result.put("questions", examQuestions.stream().map(this::legacyQuestionView).toList());
+        result.putAll(examRecordDetails(record.getId()));
         return result;
     }
 

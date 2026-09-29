@@ -333,12 +333,28 @@ public class EduLearningServiceImpl implements IEduLearningService {
                 learningMapper.insert(value);
                 old = value;
             } else {
-                if (value.getProgressPercent() != null) old.setProgressPercent(value.getProgressPercent());
-                if (value.getProgressSeconds() != null) old.setProgressSeconds(value.getProgressSeconds());
-                if (value.getLearnDurationSeconds() != null) old.setLearnDurationSeconds(value.getLearnDurationSeconds());
+                if (value.getProgressPercent() != null) {
+                    BigDecimal newPercent = value.getProgressPercent().max(BigDecimal.ZERO).min(BigDecimal.valueOf(100));
+                    // 仅当新进度大于旧进度时更新，避免学员回看或重温视频时进度被覆盖为 0%
+                    if (old.getProgressPercent() == null || newPercent.compareTo(old.getProgressPercent()) > 0) {
+                        old.setProgressPercent(newPercent);
+                    }
+                }
+                if (value.getProgressSeconds() != null) {
+                    old.setProgressSeconds(Math.max(0, value.getProgressSeconds()));
+                }
+                if (value.getLearnDurationSeconds() != null) {
+                    int oldDuration = old.getLearnDurationSeconds() != null ? old.getLearnDurationSeconds() : 0;
+                    old.setLearnDurationSeconds(Math.max(oldDuration, value.getLearnDurationSeconds()));
+                }
                 if (value.getCompletedLessons() != null) old.setCompletedLessons(value.getCompletedLessons());
                 if (value.getTotalLessons() != null) old.setTotalLessons(value.getTotalLessons());
-                if (value.getStatus() != null) old.setStatus(value.getStatus());
+                if (value.getStatus() != null) {
+                    // 若旧状态已为 2 (已完成)，则不能被重看视频冲刷降级为 1 (学习中)
+                    if (old.getStatus() == null || old.getStatus() != 2 || value.getStatus() == 2) {
+                        old.setStatus(value.getStatus());
+                    }
+                }
                 old.setLastLearnTime(now);
                 old.setUpdateTime(now);
                 learningMapper.updateById(old);
@@ -393,12 +409,15 @@ public class EduLearningServiceImpl implements IEduLearningService {
             summary.setVersion(0);
             learningMapper.insert(summary);
         } else {
-            summary.setProgressPercent(overallPercent);
+            // 防倒退保护：课程总体学习进度保持单调递增，避免重温视频将已获得的进度覆盖冲刷为更低值
+            if (summary.getProgressPercent() == null || overallPercent.compareTo(summary.getProgressPercent()) > 0) {
+                summary.setProgressPercent(overallPercent);
+            }
             summary.setCompletedLessons((int) completedCount);
             summary.setTotalLessons(totalLessons);
             summary.setLastLearnTime(now);
             summary.setUpdateTime(now);
-            if (overallPercent.compareTo(BigDecimal.valueOf(100)) >= 0) {
+            if (summary.getProgressPercent().compareTo(BigDecimal.valueOf(100)) >= 0) {
                 summary.setStatus(2);
             }
             learningMapper.updateById(summary);

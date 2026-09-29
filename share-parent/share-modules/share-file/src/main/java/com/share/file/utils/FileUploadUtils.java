@@ -74,7 +74,8 @@ public class FileUploadUtils
             throws FileSizeLimitExceededException, IOException, FileNameLengthLimitExceededException,
             InvalidExtensionException
     {
-        int fileNamelength = Objects.requireNonNull(file.getOriginalFilename()).length();
+        String origName = file != null ? file.getOriginalFilename() : null;
+        int fileNamelength = origName != null ? origName.length() : 0;
         if (fileNamelength > FileUploadUtils.DEFAULT_FILE_NAME_LENGTH)
         {
             throw new FileNameLengthLimitExceededException(FileUploadUtils.DEFAULT_FILE_NAME_LENGTH);
@@ -94,8 +95,14 @@ public class FileUploadUtils
      */
     public static final String extractFilename(MultipartFile file)
     {
+        String orig = (file == null || file.getOriginalFilename() == null) ? "upload.png" : file.getOriginalFilename();
+        String rawBaseName = FilenameUtils.getBaseName(orig);
+        String cleanBaseName = rawBaseName == null ? "file" : rawBaseName.replaceAll("[^a-zA-Z0-9_\\-\\u4e00-\\u9fa5]", "_");
+        if (cleanBaseName.length() > 50) {
+            cleanBaseName = cleanBaseName.substring(0, 50);
+        }
         return StringUtils.format("{}/{}_{}.{}", DateUtils.datePath(),
-                FilenameUtils.getBaseName(file.getOriginalFilename()), Seq.getId(Seq.uploadSeqType), FileTypeUtils.getExtension(file));
+                cleanBaseName, Seq.getId(Seq.uploadSeqType), FileTypeUtils.getExtension(file));
     }
 
     private static final File getAbsoluteFile(String uploadDir, String fileName) throws IOException
