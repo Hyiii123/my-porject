@@ -247,9 +247,9 @@ const handleSeckill = async () => {
   seckilling.value = true
   try {
     const res = await seckillCourse(course.value.id)
-    if (res?.code === 200) {
-      ElMessage.success('⚡ 恭喜您，秒杀抢购成功！已为您自动开通课程权限')
-      isBuyed.value = true
+    if (res?.code === 200 && res?.data?.id) {
+      ElMessage.success('⚡ 秒杀抢购成功，正在前往收银台支付...')
+      router.push({ path: '/pay/payment', query: { orderId: res.data.id } })
     } else {
       ElMessage.error(res?.msg || '秒杀名额已抢光或抢购失败')
     }
