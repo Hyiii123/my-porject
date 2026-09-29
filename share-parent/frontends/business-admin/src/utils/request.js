@@ -39,6 +39,15 @@ instance.interceptors.request.use((config) => {
 // 响应拦截器
 instance.interceptors.response.use(
   async (response) => {
+    // 兼容历史代码读取 res.data.msg 或 res.msg，防止后端报错 res.data 为 null 时触发 TypeError
+    if (response.data && typeof response.data === 'object') {
+      if (response.data.data === null || response.data.data === undefined) {
+        response.data.data = { msg: response.data.msg || '' };
+      } else if (typeof response.data.data === 'object' && !('msg' in response.data.data)) {
+        response.data.data.msg = response.data.msg;
+      }
+    }
+
     // 1.获取业务状态码
     let code = response.data.code;
     // 2.业务状态码为200，直接返回

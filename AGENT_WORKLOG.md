@@ -187,6 +187,7 @@
 | **71** | **验证码发送接口缺少 60 秒冷却流控引发邮件/短信接口被恶意轰炸风险** | `TokenController.verifyCode` 接收到邮箱或手机号后直接生成验证码并调用 SMTP 邮件或短信发送通道，未设置两次发送间的最小冷却时间间隔，攻击者可恶意高频刷信，消耗 SMTP 发信配额并导致腾讯 QQ 邮箱发件人账号被风控封锁。 | 在 Redis 针对每个目标邮箱/手机号写入 60 秒冷却锁（`zhiwen:auth:*:limit:*`），在 60 秒内重复发起请求直接拦截并提示“验证码发送过于频繁，请等待 60 秒后再试”。 |
 | **72** | **问答与笔记删除缺少级联清理及访客点赞未校验登录异常** | 1. `EduInteractionServiceImpl.removeQuestion` 与 `removeNote` 在删除问题或笔记时未级联删除关联的回答 (`edu_reply`)、点赞 (`edu_question_like`/`edu_note_like`) 与收藏记录，导致大量孤儿脏数据残留在数据库中；<br>2. `like` 接口在处理笔记与问题点赞时使用 `currentUserId()` 未强制校验登录，未登录访客点赞时插入空 `user_id` 触发数据库非空约束崩溃。 | 1. 在 `removeQuestion` 与 `removeNote` 中引入关联表批量级联清除；<br>2. 在 `like` 统一前置强制登录断言 `requireCurrentUserId()`，未登录请求直接拦截返回 401。 |
 | **73** | **课程详情页秒杀成功后未跳转收银台导致订单未支付超时关闭缺陷** | `classDetails/index.vue` 的 `handleSeckill` 在秒杀接口返回待支付订单（`orderStatus=0`）后，直接提示“秒杀成功，已为您开通课程权限”并设置 `isBuyed.value = true`，未将学员重定向至收银台支付（`/pay/payment?orderId=...`），导致学员未实际完成付款、课程权限未开通，且 15 分钟后订单被超时自动取消。 | 修正 `handleSeckill` 逻辑：秒杀成功拿到订单 ID 后，提示“⚡ 秒杀抢购成功，正在前往收银台支付...”，并自动平滑重定向至 `/pay/payment` 收银台完成付款。 |
+| **74** | **前端组件读取 `res.data.msg` 在后端报错时触发 `Cannot read properties of null` 崩溃** | 历史 Vue 组件多处在请求失败分支中使用 `ElMessage.error(res.data.msg)`，而后端报错报文为 `{code: 500, msg: "...", data: null}`，此时访问 `res.data.msg` 触发 TypeError 导致前端控制台白屏或报错丢失。 | 在 `portal` 与 `business-admin` 的 `request.js` 统一拦截器中增加双向兼容防御：若 `response.data.data` 为 null 或对象，自动注入或挂载 `msg` 属性，使组件无论读取 `res.msg` 还是 `res.data.msg` 均能安全取到错误提示。 |
 
 ---
 
