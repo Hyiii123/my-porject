@@ -42,19 +42,17 @@ defineProps({
 
     .iaic-bar {
       width: 4px;
-      height: 24px;
-      background: linear-gradient(180deg, #38BDF8 0%, #818CF8 100%);
-      border-radius: 999px;
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+      height: 22px;
+      background: var(--grad);
+      border-radius: 2px;
     }
 
     .title-text {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 800;
-      color: #FFFFFF;
+      color: var(--ink);
       margin: 0;
-      letter-spacing: -0.025em;
-      font-family: var(--display);
+      letter-spacing: -0.01em;
     }
   }
 
@@ -64,21 +62,14 @@ defineProps({
     gap: 6px;
     font-size: 13.5px;
     font-weight: 600;
-    color: #38BDF8;
-    background: rgba(56, 189, 248, 0.08);
-    border: 1px solid rgba(56, 189, 248, 0.2);
+    color: var(--azure);
     cursor: pointer;
-    padding: 6px 14px;
-    border-radius: 999px;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: all 0.2s;
 
     &:hover {
-      background: rgba(56, 189, 248, 0.16);
-      border-color: #38BDF8;
-      color: #7DD3FC;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px -2px rgba(56, 189, 248, 0.3);
-
+      background: var(--sky-2);
       .arrow {
         transform: translateX(3px);
       }

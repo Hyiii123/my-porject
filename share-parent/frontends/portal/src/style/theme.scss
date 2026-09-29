@@ -1,165 +1,107 @@
-/**
- * 智问学伴高阶前沿设计系统 Tokens (Zhiwen Cosmic Obsidian & Prismatic Design Tokens)
- * 遵循 taste-skill 反模板化与高阶审美规范：深邃黑曜石底板、微光粒子扩散、双轨触感边框、高质感排版
- */
 :root {
-  // === 1. 核心品牌色阶与多光谱渐变 (Prismatic Brand Scale) ===
-  --brand-cyan: #38BDF8;
-  --brand-blue: #6366F1;
-  --brand-indigo: #4F46E5;
-  --brand-emerald: #10B981;
-  --brand-amber: #F59E0B;
-  --brand-rose: #F43F5E;
-  
-  --grad-prismatic: linear-gradient(135deg, #38BDF8 0%, #6366F1 50%, #EC4899 100%);
-  --grad-cyan-blue: linear-gradient(135deg, #38BDF8 0%, #3B82F6 100%);
-  --grad-emerald: linear-gradient(135deg, #34D399 0%, #059669 100%);
-  --grad-subtle-glow: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.14) 0%, rgba(99, 102, 241, 0.05) 50%, transparent 80%);
-  
-  // === 2. 深邃黑曜石背景系统 (Deep Obsidian Canvas & Layered Glass) ===
-  --bg-cosmos: #07090E;
-  --bg-midnight: #0B0F19;
-  --bg-surface: #101524;
-  --bg-elevated: #161D31;
-  --bg-glass-card: rgba(16, 23, 38, 0.72);
-  --bg-glass-card-hover: rgba(22, 31, 52, 0.85);
-  --bg-glass-nav: rgba(7, 9, 14, 0.82);
-  --bg-input: rgba(15, 23, 42, 0.6);
-  
-  // === 3. 微米级光效边框与内阴影 (Specular & Hairline Borders) ===
-  --border-hairline: rgba(255, 255, 255, 0.08);
-  --border-subtle-hover: rgba(56, 189, 248, 0.4);
-  --border-active-glow: rgba(99, 102, 241, 0.6);
-  --specular-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  --specular-card: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    // --- 逆向 1:1 IAIC 高校人工智能创新应用平台视觉规范 Design Tokens ---
+    --azure: #1E89F1;
+    --blue: #2B7CF8;
+    --blue-deep: #1366D6;
+    --cyan: #21C6E8;
+    --grad: linear-gradient(120deg, #21C6E8 0%, #2B86F0 100%);
+    --grad-soft: linear-gradient(120deg, rgba(33, 198, 232, .14), rgba(43, 134, 240, .14));
+    --navy: #13294F;
+    --navy-2: #16294C;
+    --ink: #0E1F3D;
+    --slate: #56688A;
+    --slate-2: #8595AE;
+    --sky: #F2F8FE;
+    --sky-2: #E9F2FD;
+    --sky-3: #DCEBFB;
+    --card: #FFFFFF;
+    --line: #E4EDF8;
+    --line-2: #D5E3F5;
+    --green: #1FB877;
+    --green-bg: #E7F7F0;
+    --shadow: 0 1px 2px rgba(19, 41, 79, .04), 0 18px 42px -24px rgba(27, 98, 214, .3);
+    --shadow-lg: 0 24px 60px -28px rgba(27, 98, 214, .45);
+    --display: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --cn: "PingFang SC", "Microsoft YaHei", "Source Han Sans SC", "Noto Sans SC", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
 
-  // === 4. 文字色彩梯级 (Text Hierarchy with Crisp Contrast) ===
-  --text-pure: #FFFFFF;
-  --text-primary: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-muted: #94A3B8;
-  --text-faint: #64748B;
-  --text-disabled: #475569;
+    // 映射系统原有规范 Token
+    --color-main: var(--azure);
+    --color-hover: var(--blue-deep);
+    --color-active: #0d4fa8;
+    --color-primary-light: var(--sky-2);
 
-  // === 5. 阴影系统 (Ambient Spatial Lighting) ===
-  --shadow-sm: 0 2px 8px -1px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 2px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 20px 48px -10px rgba(0, 0, 0, 0.8), 0 4px 12px -2px rgba(0, 0, 0, 0.5);
-  --shadow-glow-cyan: 0 0 32px -4px rgba(56, 189, 248, 0.28);
-  --shadow-glow-blue: 0 0 32px -4px rgba(99, 102, 241, 0.28);
-  --shadow-glow-emerald: 0 0 32px -4px rgba(16, 185, 129, 0.28);
+    --color-success: var(--green);
+    --color-success-light: var(--green-bg);
+    --color-warning: #D97706;
+    --color-warning-light: #FFFBEB;
+    --color-error: #DC2626;
+    --color-error1: #EF4444;
+    --color-error2: #B91C1C;
+    --color-error3: #FEF2F2;
 
-  // === 6. 字体家族 ===
-  --display: \'Plus Jakarta Sans\', \'Sora\', -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;
-  --cn: \'PingFang SC\', \'Microsoft YaHei\', \'Source Han Sans SC\', \'Noto Sans SC\', sans-serif;
-  --mono: \'JetBrains Mono\', ui-monospace, SFMono-Regular, Menlo, monospace;
+    // 背景底板 (Slate & Sky 层次)
+    --color-background1: var(--sky);
+    --color-background2: var(--sky-2);
+    --color-background3: var(--line);
+    --color-background4: var(--line-2);
+    --color-background5: var(--card);
+    --color-background6: var(--line);
 
-  // === 7. 系统原有变量无缝映射兼容 (Compatibility Aliases) ===
-  --azure: var(--brand-cyan);
-  --blue: var(--brand-blue);
-  --blue-deep: var(--brand-indigo);
-  --cyan: #06B6D4;
-  --grad: var(--grad-cyan-blue);
-  --grad-soft: var(--brand-gradient-subtle);
-  
-  --navy: var(--text-secondary);
-  --navy-2: var(--bg-midnight);
-  --ink: var(--text-primary);
-  --slate: var(--text-muted);
-  --slate-2: var(--text-faint);
-  --sky: var(--bg-cosmos);
-  --sky-2: var(--bg-midnight);
-  --sky-3: var(--bg-surface);
-  --card: var(--bg-glass-card);
-  --line: var(--border-hairline);
-  --line-2: rgba(255, 255, 255, 0.12);
-  --green: var(--brand-emerald);
-  --green-bg: rgba(16, 185, 129, 0.12);
-  --shadow: var(--shadow-md);
-  --shadow-lg: var(--shadow-lg);
+    // 文字层级
+    --color-font1: var(--ink);
+    --color-font2: var(--navy);
+    --color-font3: var(--slate);
+    --color-font4: var(--slate-2);
+    --color-font5: var(--line);
+    --color-font6: #FFFFFF;
+    --color-font7: var(--line-2);
+    --color-black: var(--ink);
+    --color-white: #FFFFFF;
 
-  --color-main: var(--brand-cyan);
-  --color-hover: #7DD3FC;
-  --color-active: #0284C7;
-  --color-primary-light: rgba(56, 189, 248, 0.12);
+    // 视频学习专区沉浸色
+    --color-ft1: var(--slate-2);
+    --color-ft2: var(--slate);
 
-  --color-success: var(--brand-emerald);
-  --color-success-light: rgba(16, 185, 129, 0.15);
-  --color-warning: var(--brand-amber);
-  --color-warning-light: rgba(245, 158, 11, 0.15);
-  --color-error: var(--brand-rose);
-  --color-error1: #FB7185;
-  --color-error2: #E11D48;
-  --color-error3: rgba(244, 63, 94, 0.15);
-
-  --color-background1: var(--bg-cosmos);
-  --color-background2: var(--bg-midnight);
-  --color-background3: var(--bg-surface);
-  --color-background4: var(--bg-elevated);
-  --color-background5: var(--bg-glass-card);
-  --color-background6: var(--bg-elevated);
-
-  --color-font1: var(--text-pure);
-  --color-font2: var(--text-primary);
-  --color-font3: var(--text-secondary);
-  --color-font4: var(--text-muted);
-  --color-font5: var(--border-hairline);
-  --color-font6: #FFFFFF;
-  --color-font7: rgba(255, 255, 255, 0.2);
-  --color-black: var(--text-pure);
-  --color-white: #FFFFFF;
-
-  --color-ft1: var(--text-muted);
-  --color-ft2: var(--text-secondary);
-
-  --radius-sm: 8px;
-  --radius-base: 12px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --border-subtle: 1px solid var(--border-hairline);
-  --shadow-subtle: var(--shadow-sm);
-  --shadow-hover: var(--shadow-md);
+    // 结构规范 Token
+    --radius-sm: 6px;
+    --radius-base: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --border-subtle: 1px solid var(--line);
+    --shadow-subtle: var(--shadow);
+    --shadow-hover: var(--shadow-lg);
 }
 
-// === 8. 高级动效 Keyframes ===
+// 全局关键帧动画
 @keyframes scan {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
 
-@keyframes laserSweep {
-  0% { transform: translateX(-150%) skewX(-20deg); }
-  50%, 100% { transform: translateX(250%) skewX(-20deg); }
-}
-
 @keyframes pulseGlow {
-  0%, 100% {
-    opacity: 0.35;
-    transform: translate(-50%, -50%) scale(1);
-    filter: blur(80px);
-  }
-  50% {
-    opacity: 0.65;
-    transform: translate(-50%, -50%) scale(1.12);
-    filter: blur(100px);
-  }
+  0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.55; transform: translate(-50%, -50%) scale(1.08); }
 }
 
-@keyframes radarBreathe {
-  0% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(1.6); opacity: 0; }
-  100% { transform: scale(1); opacity: 0.9; }
+@keyframes floatUp {
+  0% { transform: translateY(0) scale(0.8); opacity: 0; }
+  15% { opacity: 0.8; }
+  85% { opacity: 0.6; }
+  100% { transform: translateY(-500px) scale(1.2); opacity: 0; }
 }
 
-@keyframes floatParticles {
-  0% { transform: translateY(0px) rotate(0deg); opacity: 0; }
-  20% { opacity: 0.6; }
-  80% { opacity: 0.6; }
-  100% { transform: translateY(-400px) rotate(360deg); opacity: 0; }
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.7; }
 }
 
-@keyframes shimmerBorder {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes shine {
+  0% { left: -75%; }
+  100% { left: 125%; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
 }

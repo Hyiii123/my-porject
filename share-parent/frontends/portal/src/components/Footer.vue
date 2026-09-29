@@ -57,27 +57,15 @@
 .home-footer {
   position: relative;
   overflow: hidden;
-  background: #05070C;
-  color: #94A3B8;
-  padding: 64px 0 32px;
+  background: var(--navy-2);
+  color: #c6d6ee;
+  padding: 56px 0 28px;
   font-family: var(--cn);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 20%;
-    width: 60%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.4), transparent);
-    pointer-events: none;
-  }
 }
 
 .home-wrap {
-  max-width: 1320px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 28px;
 }
@@ -86,11 +74,11 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1.2fr 1.3fr 1.1fr;
+  grid-template-columns: 1.1fr 1.4fr 1.2fr;
   align-items: start;
-  gap: 48px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  padding-bottom: 40px;
+  gap: 36px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 32px;
 }
 
 .home-footer-brand {
@@ -98,22 +86,21 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
   .footer-logo-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
-    border: 1px solid rgba(56, 189, 248, 0.45);
-    color: #38BDF8;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--grad);
+    color: #fff;
     font-family: var(--display);
     font-weight: 900;
     font-size: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 16px -2px rgba(56, 189, 248, 0.3);
+    box-shadow: 0 4px 12px rgba(33, 198, 232, 0.35);
   }
   .footer-brand-text {
     display: flex;
@@ -121,102 +108,75 @@
     .name {
       font-family: var(--display);
       font-weight: 800;
-      font-size: 19px;
-      letter-spacing: -0.02em;
-      color: #FFFFFF;
-      line-height: 1.15;
+      font-size: 18px;
+      letter-spacing: 0.05em;
+      color: #fff;
+      line-height: 1.1;
     }
     .sub {
       font-family: var(--mono);
-      font-size: 9.5px;
-      color: #38BDF8;
-      letter-spacing: 0.12em;
+      font-size: 10px;
+      color: #c6d6ee99;
+      letter-spacing: 0.08em;
       margin-top: 3px;
-      font-weight: 600;
     }
   }
   .brand-desc {
     font-size: 13.5px;
+    color: #a3b8d6;
     line-height: 1.7;
-    color: #94A3B8;
     margin: 0;
   }
 }
 
 .home-fcol {
   h4 {
-    font-size: 15px;
-    font-weight: 600;
-    color: #FFFFFF;
-    margin-bottom: 18px;
-    letter-spacing: -0.01em;
-    position: relative;
-    padding-left: 10px;
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 3px;
-      bottom: 3px;
-      width: 3px;
-      border-radius: 2px;
-      background: linear-gradient(180deg, #38BDF8, #818CF8);
-    }
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    color: var(--cyan);
+    margin-bottom: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
   }
   p {
     font-size: 13px;
-    line-height: 1.8;
-    color: #94A3B8;
-    margin: 0 0 8px 0;
-    display: flex;
-    align-items: baseline;
-
+    color: #dce8f8;
+    margin-bottom: 8px;
+    line-height: 1.7;
     .lab {
-      color: #CBD5E1;
-      font-weight: 500;
-      flex-shrink: 0;
+      color: #8fa5c4;
+      margin-right: 6px;
     }
-    .mono {
-      font-family: var(--mono);
-      color: #38BDF8;
-      font-weight: 500;
-    }
+  }
+  .mono {
+    font-family: var(--mono);
+    color: #fff;
+    font-weight: 600;
   }
 }
 
 .home-footer-bottom {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 24px;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-top: 20px;
   font-size: 12.5px;
-  color: #64748B;
-  font-family: var(--mono);
+  color: #c6d6ee80;
 
-  .copyright {
-    letter-spacing: 0.02em;
-  }
-
-  .filing {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    .sep {
-      color: rgba(255, 255, 255, 0.15);
-    }
+  .sep {
+    margin: 0 8px;
+    opacity: 0.4;
   }
 }
 
 @media (max-width: 900px) {
   .home-footer-top {
     grid-template-columns: 1fr;
-    gap: 32px;
-  }
-  .home-footer-bottom {
-    flex-direction: column;
-    gap: 12px;
-    text-align: center;
+    gap: 28px;
   }
 }
 </style>

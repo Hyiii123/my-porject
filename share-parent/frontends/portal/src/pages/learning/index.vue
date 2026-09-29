@@ -984,7 +984,7 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .learning-container {
   background: #f5f7fa;
   min-height: 100vh;
@@ -1766,96 +1766,6 @@ onBeforeUnmount(() => {
     gap: 10px;
     align-items: flex-start !important;
   }
-}
-
-
-.learning-container {
-  background: #07090E !important;
-  color: #F8FAFC !important;
-  min-height: 100vh;
-}
-
-.learning-header {
-  background: rgba(14, 20, 34, 0.88) !important;
-  backdrop-filter: blur(20px) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: #F8FAFC !important;
-
-  .course-name {
-    color: #FFFFFF !important;
-    font-weight: 700 !important;
-  }
-  .progress-text {
-    color: #38BDF8 !important;
-    font-family: var(--mono) !important;
-    font-weight: 600 !important;
-  }
-}
-
-.course-info {
-  background: rgba(16, 23, 38, 0.72) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(20px) !important;
-  border-radius: 18px !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  color: #F8FAFC !important;
-
-  h2 { color: #FFFFFF !important; }
-  .course-meta { color: #94A3B8 !important; }
-  .course-desc { color: #CBD5E1 !important; }
-}
-
-.catalog-section {
-  background: rgba(16, 23, 38, 0.72) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(20px) !important;
-  border-radius: 18px !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  color: #F8FAFC !important;
-
-  .catalog-header h3 { color: #FFFFFF !important; }
-
-  .chapter-header {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    color: #FFFFFF !important;
-    border-radius: 8px !important;
-    transition: all 0.2s ease !important;
-
-    &:hover {
-      background: rgba(56, 189, 248, 0.1) !important;
-      color: #38BDF8 !important;
-    }
-  }
-
-  .section-item {
-    color: #CBD5E1 !important;
-    transition: all 0.15s ease !important;
-
-    &:hover {
-      background: rgba(56, 189, 248, 0.08) !important;
-      color: #38BDF8 !important;
-    }
-
-    &.active {
-      background: rgba(56, 189, 248, 0.15) !important;
-      color: #38BDF8 !important;
-      font-weight: 600 !important;
-    }
-  }
-}
-
-.sandbox-toolbar {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 12px !important;
-}
-
-.qa-item, .note-item, .quiz-header-card {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  border-radius: 12px !important;
-  color: #CBD5E1 !important;
 }
 
 </style>

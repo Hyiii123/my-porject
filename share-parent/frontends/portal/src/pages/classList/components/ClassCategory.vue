@@ -211,7 +211,7 @@ const handleTagClick = (tag) => {
   position: relative;
   width: 100%;
   height: 420px;
-  background: rgba(13, 19, 32, 0.95);
+  background: #ffffff;
   display: flex;
   flex-direction: column;
 }
@@ -221,18 +221,20 @@ const handleTagClick = (tag) => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: rgba(9, 13, 23, 0.9);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--sky);
+  border-bottom: 1px solid var(--line);
 
   .header-title {
     display: flex;
     align-items: center;
     gap: 8px;
-    .icon { font-size: 16px; }
+    .icon {
+      font-size: 16px;
+    }
     .txt {
       font-size: 13.5px;
       font-weight: 700;
-      color: #F8FAFC;
+      color: var(--navy);
       letter-spacing: 0.03em;
     }
   }
@@ -240,12 +242,10 @@ const handleTagClick = (tag) => {
   .tag {
     font-size: 11px;
     font-weight: 600;
-    color: #38BDF8;
-    background: rgba(56, 189, 248, 0.12);
-    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: var(--azure);
+    background: rgba(30, 137, 241, 0.1);
     padding: 2px 8px;
-    border-radius: 999px;
-    font-family: var(--mono);
+    border-radius: 10px;
   }
 }
 
@@ -262,20 +262,24 @@ const handleTagClick = (tag) => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(228, 237, 248, 0.6);
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 
   &:hover {
-    background: rgba(56, 189, 248, 0.08);
+    background: var(--sky-2);
     padding-left: 22px;
     .cat-arrow {
       transform: translateX(3px);
-      color: #38BDF8;
+      color: var(--azure);
     }
-    .cat-name { color: #38BDF8; }
+    .cat-name {
+      color: var(--azure);
+    }
   }
 
   .row-main {
@@ -289,18 +293,20 @@ const handleTagClick = (tag) => {
       align-items: center;
       gap: 9px;
 
-      .cat-icon { font-size: 15px; }
+      .cat-icon {
+        font-size: 15px;
+      }
       .cat-name {
         font-size: 14px;
         font-weight: 600;
-        color: #E2E8F0;
+        color: var(--ink);
         transition: color 0.2s;
       }
     }
 
     .cat-arrow {
       font-size: 18px;
-      color: #64748B;
+      color: #94a3b8;
       font-weight: 300;
       transition: all 0.2s;
     }
@@ -314,17 +320,15 @@ const handleTagClick = (tag) => {
 
     .sub-tag {
       font-size: 11.5px;
-      color: #94A3B8;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 1px 7px;
+      color: var(--slate);
+      background: rgba(86, 104, 138, 0.07);
+      padding: 1px 6px;
       border-radius: 4px;
       transition: all 0.15s;
 
       &:hover {
-        color: #38BDF8;
-        background: rgba(56, 189, 248, 0.15);
-        border-color: rgba(56, 189, 248, 0.3);
+        color: var(--azure);
+        background: rgba(30, 137, 241, 0.12);
       }
     }
   }
@@ -333,16 +337,15 @@ const handleTagClick = (tag) => {
 .category-flyout {
   position: absolute;
   top: 0;
-  left: 270px;
-  width: 560px;
+  left: 260px;
+  width: 540px;
   height: 420px;
-  background: rgba(14, 20, 34, 0.96);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: 0 18px 18px 0;
-  box-shadow: 16px 0 48px -8px rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(28px) saturate(180%);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 0 16px 16px 0;
+  box-shadow: 12px 0 36px -8px rgba(19, 41, 79, 0.15);
   z-index: 100;
-  padding: 26px 30px;
+  padding: 24px 28px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -352,18 +355,19 @@ const handleTagClick = (tag) => {
     align-items: center;
     justify-content: space-between;
     padding-bottom: 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--line);
 
     .flyout-title {
       display: flex;
       align-items: center;
       gap: 10px;
-      .cat-icon-lg { font-size: 22px; }
+      .cat-icon-lg {
+        font-size: 22px;
+      }
       .title-text {
-        font-size: 18px;
+        font-size: 17px;
         font-weight: 700;
-        color: #FFFFFF;
-        font-family: var(--display);
+        color: var(--navy);
       }
     }
 
@@ -371,28 +375,27 @@ const handleTagClick = (tag) => {
       display: flex;
       align-items: center;
       gap: 4px;
-      font-size: 12.5px;
+      font-size: 13px;
       font-weight: 600;
-      color: #38BDF8;
+      color: var(--azure);
       cursor: pointer;
-      padding: 5px 12px;
-      border-radius: 999px;
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: var(--sky);
       transition: all 0.2s;
 
       &:hover {
-        background: rgba(56, 189, 248, 0.25);
-        color: #FFFFFF;
+        background: var(--azure);
+        color: #fff;
       }
     }
   }
 
   .flyout-desc {
-    font-size: 13px;
-    color: #94A3B8;
+    font-size: 12.5px;
+    color: var(--slate);
     line-height: 1.6;
-    margin: 14px 0 18px;
+    margin: 14px 0 16px;
   }
 
   .flyout-groups {
@@ -404,11 +407,10 @@ const handleTagClick = (tag) => {
 
     .flyout-group {
       .group-label {
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: 700;
-        color: #38BDF8;
+        color: var(--navy);
         margin-bottom: 8px;
-        font-family: var(--display);
       }
 
       .group-tags {
@@ -418,19 +420,18 @@ const handleTagClick = (tag) => {
 
         .group-tag {
           font-size: 12px;
-          color: #E2E8F0;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          padding: 5px 12px;
+          color: var(--ink);
+          background: var(--sky);
+          border: 1px solid var(--line);
+          padding: 4px 10px;
           border-radius: 6px;
           cursor: pointer;
           transition: all 0.15s;
 
           &:hover {
-            color: #38BDF8;
-            background: rgba(56, 189, 248, 0.15);
-            border-color: rgba(56, 189, 248, 0.3);
-            transform: translateY(-1px);
+            color: #fff;
+            background: var(--azure);
+            border-color: var(--azure);
           }
         }
       }

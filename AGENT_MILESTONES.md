@@ -14,31 +14,6 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
-### 2026-09-29 16:15:00 - 前端全场景高阶审美重构与工业级视觉工程全景交付：Cosmic Obsidian & Prismatic 前沿设计系统、Asymmetric Bento 科技矩阵与暗曜黑晶工作台 (Full-Spectrum High-End Aesthetic Overhaul: Cosmic Obsidian & Prismatic Design System, Asymmetric Bento Matrix & Executive Telemetry Cockpit)
-
-* **演进主题**：深度基于 `taste-skill` 前沿反模板化设计准则，重构学员端门户（`frontends/portal`）与业务管理端（`frontends/business-admin`）全场景视觉与交互工程（上线全栈暗夜黑曜石色阶与多光谱散射系统、重构悬浮毛玻璃 Pill 导航与高质感字标、首页上线四维认知计算 Asymmetric Bento 核心科技矩阵、重构毛玻璃课程卡片与影院级微 IDE 学习工作台、交付业务端 Executive Obsidian 极简数据座舱与暗曜菜单树、云端双端独立生产打包热替换与无缝验证 100% 通过）(Rule 1 & Rule 2 Compliance)
-* **核心成果**：
-  1. **Cosmic Obsidian & Prismatic 高阶设计系统底座 (Design Tokens & Surface Engineering)**：
-     - 彻底摒弃传统 AI 泛滥的廉价蓝紫渐变与灰白模板，构建深邃黑曜石（Cosmic Obsidian `#07090E`）底层画布与多光谱散射光效系统；
-     - 落地双层纳米级触感边框（`border: 1px solid rgba(255,255,255,0.08)` + 顶部镜面微光高反 `box-shadow: inset 0 1px 0 rgba(255,255,255,0.14)`），并在 Element Plus 组件库（输入框、下拉框、表格、对话框）全域注入深色毛玻璃材质。
-  2. **学员端门户极简悬浮毛玻璃顶栏 (Floating Glassmorphic Navbar)**：
-     - 上线具有深度模糊（`backdrop-filter: blur(24px) saturate(180%)`）的悬浮式黑晶导航栏；
-     - 品牌微标重塑为金属微浮雕发光“智”字徽章与紧凑字距标题；导航链接升级为具备 Spring 弹性过渡的胶囊指示器，搜索框嵌入 `⌘K` 暗色胶囊交互。
-  3. **首页前沿认知计算 Asymmetric Bento 核心科技矩阵 (Bento Matrix Showcase)**：
-     - 突破千篇一律的三等分对称卡片布局，创新构建非对称科技 Bento 网格：
-       - **BKT 贝叶斯微知识点追踪引擎卡片**：集成隐马尔可夫模型参数指标与 4 大微知识点动态掌握度光条；
-       - **艾宾浩斯动态记忆留存中枢卡片**：大数字展示 58.2% 临界衰减阈值与迫切度预警胶囊；
-       - **云端微 IDE 在线代码沙箱卡片**：内嵌语法高亮代码终端与 `✓ 12/12 PASSED` 毫秒级执行指标；
-       - **RAGAS 工业级自动化质检卡片**：全景呈现忠实度 (0.94)、答案相关度 (0.90) 等评级雷达。
-  4. **杂志级高质感课程卡片与影院级微 IDE 学习工作台 (Magazine Cards & Learning Theater)**：
-     - 课程卡片重构为具备细线倒角高光、微缩暗色分类徽章与 Tabular 等宽价格排版的现代科技卡片，悬停伴随柔和平滑抬升（`translateY(-4px)`）；
-     - 课程详情与视频学习页统一进阶为暗黑沉浸式工作台，微 IDE 编辑器、控制台输出终端与自适应清晰度切换条融为一体。
-  5. **业务管理端 Executive Obsidian 极简数据驾驶舱 (Executive Cockpit)**：
-     - 彻底消除管理后台割裂的纯白侧边栏与头部，将工作台重构为对标 Linear / Raycast 的极简暗色遥测座舱；
-     - KPI 指标卡升级为 Tabular Monospace 等宽大数展示，带有高光边框与绿色脉冲微趋势，全站数据表格全面升级为通透轻量的高级暗色系。
-  6. **零停机平滑发布与端到端实测验证**：
-     - 本地完成纯静态产物 Vite 生产编译（严格保护云盘 IOPS），轻量同步热挂载至云端 Nginx 目录，Playwright 真实多端视口走查截图 100% 验证通过。
-
 ### 2026-09-24 04:00:00 - 智能体深水区核心算法与工程化全景交付：BKT 贝叶斯微知识点追踪、艾宾浩斯遗忘曲线衰减记忆中枢、RAGAS 自动化质量评估大盘与动态防录屏安全水印 (Deep Agentic Algorithms & Advanced EdTech Engineering: BKT Knowledge Tracing, Ebbinghaus Forgetting Decay Memory, RAGAS Automated Benchmark & Procedural Security Watermark)
 
 * **演进主题**：针对系统学术深度、认知心理学建模与商业化工程防录屏实施第二与第三阶段全景交付（上线 BKT 贝叶斯知识追踪引擎 `BayesianKnowledgeTracingEngine` 与微知识点学情中枢 `KnowledgeTracingService`、重构艾宾浩斯遗忘衰减记忆中枢 `AgentMemoryService`、构建 RAGAS 自动化评估流水线 `RagasEvaluationEngine`、课程页上线学员身份动态漂移防录屏安全水印 `learning/index.vue`、考场强化考官拟人流式朗读与移动端轻量自适应布局）、云端生产热部署与端到端闭环验证 100% 通过 (Rule 1 & Rule 8 Compliance)

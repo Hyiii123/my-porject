@@ -824,7 +824,7 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .interview-lobby-container {
   max-width: 1200px;
   margin: 24px auto;
@@ -1412,97 +1412,5 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 10px;
 }
-
-.interview-lobby-container {
-  max-width: 1280px;
-  margin: 32px auto;
-  padding: 0 24px;
-  color: #F8FAFC;
-  font-family: var(--cn);
-}
-
-.lobby-banner {
-  background: 
-    radial-gradient(80% 60% at 50% 0%, rgba(56, 189, 248, 0.16), transparent 70%),
-    radial-gradient(60% 50% at 85% 20%, rgba(99, 102, 241, 0.12), transparent 65%),
-    rgba(14, 20, 34, 0.85) !important;
-  color: #fff;
-  border-radius: 20px !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  padding: 44px 48px !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 20px 48px -10px rgba(0, 0, 0, 0.7) !important;
-
-  .banner-title {
-    font-family: var(--display) !important;
-    font-size: 32px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.025em !important;
-  }
-}
-
-.stat-card {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 14px !important;
-  backdrop-filter: blur(12px) !important;
-
-  .stat-num {
-    font-family: var(--mono) !important;
-    color: #38BDF8 !important;
-    font-size: 24px !important;
-    font-weight: 800 !important;
-  }
-}
-
-.config-card, .history-card {
-  background: rgba(16, 23, 38, 0.72) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 20px !important;
-  backdrop-filter: blur(20px) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 40px -8px rgba(0, 0, 0, 0.6) !important;
-  color: #F8FAFC !important;
-
-  :deep(.el-card__header) {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  }
-
-  .card-header .title {
-    color: #FFFFFF !important;
-    font-weight: 700 !important;
-    font-size: 17px !important;
-  }
-}
-
-.resume-link-status {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  border-radius: 12px !important;
-  color: #CBD5E1 !important;
-
-  &.linked {
-    background: rgba(16, 185, 129, 0.08) !important;
-    border-color: rgba(16, 185, 129, 0.25) !important;
-  }
-}
-
-:deep(.interviewer-card) {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 12px !important;
-  transition: all 0.25s ease !important;
-  color: #CBD5E1 !important;
-
-  &:hover {
-    background: rgba(56, 189, 248, 0.08) !important;
-    border-color: rgba(56, 189, 248, 0.35) !important;
-    transform: translateY(-2px);
-  }
-
-  &.active {
-    background: rgba(56, 189, 248, 0.12) !important;
-    border-color: #38BDF8 !important;
-    box-shadow: 0 0 16px -2px rgba(56, 189, 248, 0.35) !important;
-  }
-}
-
 </style>
+
