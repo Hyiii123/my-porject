@@ -162,6 +162,8 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         if (!Objects.equals(value.getUserId(), uid) && !SecurityUtils.isAdmin(uid)) {
             throw new ServiceException("只能删除自己的问题");
         }
+        replyMapper.delete(new LambdaQueryWrapper<EduReply>().eq(EduReply::getQuestionId, id));
+        questionLikeMapper.delete(new LambdaQueryWrapper<EduQuestionLike>().eq(EduQuestionLike::getQuestionId, id));
         questionMapper.deleteById(id);
     }
 
@@ -307,6 +309,8 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         if (!Objects.equals(value.getUserId(), uid) && !SecurityUtils.isAdmin(uid)) {
             throw new ServiceException("只能删除自己的笔记");
         }
+        noteLikeMapper.delete(new LambdaQueryWrapper<EduNoteLike>().eq(EduNoteLike::getNoteId, id));
+        noteCollectMapper.delete(new LambdaQueryWrapper<EduNoteCollect>().eq(EduNoteCollect::getNoteId, id));
         noteMapper.deleteById(id);
     }
 
@@ -359,9 +363,9 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
     @Override
     @Transactional
     public boolean like(String bizType, Long bizId, boolean liked) {
+        Long userId = requireCurrentUserId();
         if ("COURSE".equalsIgnoreCase(bizType)) {
             courseService.requireCourse(bizId);
-            Long userId = requireCurrentUserId();
             String userSetKey = "edu:course:likes:users:" + bizId;
             String rankingZSetKey = "edu:course:likes:zset";
 
@@ -386,12 +390,12 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         if ("NOTE".equalsIgnoreCase(bizType)) {
             EduNote note = requireNote(bizId);
             EduNoteLike old = noteLikeMapper.selectOne(new LambdaQueryWrapper<EduNoteLike>()
-                    .eq(EduNoteLike::getNoteId, bizId).eq(EduNoteLike::getUserId, currentUserId()));
+                    .eq(EduNoteLike::getNoteId, bizId).eq(EduNoteLike::getUserId, userId));
             if (liked && old == null) {
                 old = new EduNoteLike();
                 old.setId(newId());
                 old.setNoteId(bizId);
-                old.setUserId(currentUserId());
+                old.setUserId(userId);
                 old.setCreateTime(LocalDateTime.now());
                 noteLikeMapper.insert(old);
                 note.setLikeCount(defaultValue(note.getLikeCount(), 0) + 1);
@@ -404,7 +408,6 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         }
         EduReply reply = replyMapper.selectById(bizId);
         if (reply != null) {
-            Long userId = currentUserId();
             String likeKey = "edu:reply:likes:" + bizId;
             if (liked) {
                 if (Boolean.TRUE.equals(redisService.sIsMember(likeKey, String.valueOf(userId)))) {
@@ -425,12 +428,12 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         }
         EduQuestion question = requireQuestion(bizId);
         EduQuestionLike old = questionLikeMapper.selectOne(new LambdaQueryWrapper<EduQuestionLike>()
-                .eq(EduQuestionLike::getQuestionId, bizId).eq(EduQuestionLike::getUserId, currentUserId()));
+                .eq(EduQuestionLike::getQuestionId, bizId).eq(EduQuestionLike::getUserId, userId));
         if (liked && old == null) {
             old = new EduQuestionLike();
             old.setId(newId());
             old.setQuestionId(bizId);
-            old.setUserId(currentUserId());
+            old.setUserId(userId);
             old.setCreateTime(LocalDateTime.now());
             questionLikeMapper.insert(old);
             question.setLikeCount(defaultValue(question.getLikeCount(), 0) + 1);

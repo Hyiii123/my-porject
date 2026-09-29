@@ -185,6 +185,7 @@
 | **69** | **考试答卷首次提交响应缺少答题卡明细（前端白屏或需发起重复请求）** | `EduExamServiceImpl.submitExam` 在首次完成批改并更新数据库后，返回的 `result` 字典仅包含了 `score` 与 `correctCount`，遗漏了 `details`（答卷题目明细列表）与 `duration`、`commitTime`，导致前端在交卷后无法直接呈现成绩诊断卡。 | 在首次提交完成持久化后，统一合并调用 `examRecordDetails(record.getId())`，确保返回完整的数据契约。 |
 | **70** | **用户与教师分页列表每行循环调用 `selectRoleAll` 引发的 N+1 数据库查询性能损耗** | `LegacyZhiwenUserController.toView` 在组装每位用户的角色标识时，若未完成完全映射则在循环内调用 `roleService.selectRoleAll()`，当列表单页拉取 50 名用户时，触发 50 次完全相同的系统角色全表扫描查询。 | 在 `table(users)` 外部预加载全部角色并建立内存索引 `roleById`，内部循环直接通过 Map 读取，彻底消除 N+1 查询风暴。 |
 | **71** | **验证码发送接口缺少 60 秒冷却流控引发邮件/短信接口被恶意轰炸风险** | `TokenController.verifyCode` 接收到邮箱或手机号后直接生成验证码并调用 SMTP 邮件或短信发送通道，未设置两次发送间的最小冷却时间间隔，攻击者可恶意高频刷信，消耗 SMTP 发信配额并导致腾讯 QQ 邮箱发件人账号被风控封锁。 | 在 Redis 针对每个目标邮箱/手机号写入 60 秒冷却锁（`zhiwen:auth:*:limit:*`），在 60 秒内重复发起请求直接拦截并提示“验证码发送过于频繁，请等待 60 秒后再试”。 |
+| **72** | **问答与笔记删除缺少级联清理及访客点赞未校验登录异常** | 1. `EduInteractionServiceImpl.removeQuestion` 与 `removeNote` 在删除问题或笔记时未级联删除关联的回答 (`edu_reply`)、点赞 (`edu_question_like`/`edu_note_like`) 与收藏记录，导致大量孤儿脏数据残留在数据库中；<br>2. `like` 接口在处理笔记与问题点赞时使用 `currentUserId()` 未强制校验登录，未登录访客点赞时插入空 `user_id` 触发数据库非空约束崩溃。 | 1. 在 `removeQuestion` 与 `removeNote` 中引入关联表批量级联清除；<br>2. 在 `like` 统一前置强制登录断言 `requireCurrentUserId()`，未登录请求直接拦截返回 401。 |
 
 ---
 
