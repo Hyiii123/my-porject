@@ -39,6 +39,8 @@ import java.util.stream.Collectors;
 @Service
 public class InterviewServiceImpl implements IInterviewService {
 
+    private static volatile long lastCleanStagnantTime = 0L;
+
     private final InterviewSessionMapper sessionMapper;
     private final InterviewTurnMapper turnMapper;
     private final InterviewCodeMapper codeMapper;
@@ -397,12 +399,15 @@ public class InterviewServiceImpl implements IInterviewService {
     @Override
     public IPage<InterviewSession> listMySessions(long pageNum, long pageSize) {
         Long userId = currentUserId();
-        // 异步执行超时场次巡检，避免阻塞核心高频列表读取
-        java.util.concurrent.CompletableFuture.runAsync(() -> {
-            try {
-                cleanStagnantSessions(2);
-            } catch (Exception ignored) {}
-        });
+        // 异步执行超时场次巡检，降频至最多10分钟执行一次，避免高频请求阻塞与MySQL行锁抖动
+        if (System.currentTimeMillis() - lastCleanStagnantTime > 600000L) {
+            lastCleanStagnantTime = System.currentTimeMillis();
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                try {
+                    cleanStagnantSessions(2);
+                } catch (Exception ignored) {}
+            });
+        }
 
         Page<InterviewSession> page = new Page<>(pageNum < 1 ? 1 : pageNum, pageSize < 1 ? 10 : Math.min(pageSize, 50));
         LambdaQueryWrapper<InterviewSession> wrapper = new LambdaQueryWrapper<InterviewSession>()

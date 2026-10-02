@@ -31,6 +31,9 @@ import java.util.Map;
 @RequestMapping("/interview")
 public class InterviewController extends BaseController {
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.share.common.redis.service.RedisService redisService;
+
     private final IInterviewService interviewService;
     private final IUserResumeService resumeService;
 
@@ -114,8 +117,24 @@ public class InterviewController extends BaseController {
     public TableDataInfo myList(
             @RequestParam(defaultValue = "1") long pageNum,
             @RequestParam(defaultValue = "10") long pageSize) {
+        Long userId = com.share.common.security.utils.SecurityUtils.getUserId();
+        String cacheKey = "customer:interview:my:" + (userId != null ? userId : 0L) + ":" + pageNum + ":" + pageSize;
+        if (redisService != null) {
+            try {
+                Object raw = redisService.getCacheObject(cacheKey);
+                if (raw instanceof String str && !str.isBlank()) {
+                    return com.alibaba.fastjson2.JSON.parseObject(str, TableDataInfo.class);
+                }
+            } catch (Exception ignored) {}
+        }
         IPage<InterviewSession> page = interviewService.listMySessions(pageNum, pageSize);
-        return page(page);
+        TableDataInfo res = page(page);
+        if (redisService != null && res.getRows() != null && !res.getRows().isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, com.alibaba.fastjson2.JSON.toJSONString(res), 60L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
+        return res;
     }
 
     /**

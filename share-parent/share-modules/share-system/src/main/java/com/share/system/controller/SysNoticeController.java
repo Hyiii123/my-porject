@@ -47,7 +47,8 @@ public class SysNoticeController extends BaseController
         if (redisService != null && !com.share.common.core.utils.StringUtils.isNotEmpty(notice.getNoticeTitle())) {
             cacheKey = "sys:notice:list:" + notice.getNoticeType() + ":" + notice.getStatus();
             try {
-                TableDataInfo cached = redisService.getCacheObject(cacheKey);
+                Object raw = redisService.getCacheObject(cacheKey);
+                TableDataInfo cached = parseCachedTable(raw);
                 if (cached != null && cached.getRows() != null && !cached.getRows().isEmpty()) {
                     return cached;
                 }
@@ -62,6 +63,28 @@ public class SysNoticeController extends BaseController
             } catch (Exception ignored) {}
         }
         return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private TableDataInfo parseCachedTable(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof TableDataInfo t) return t;
+        if (raw instanceof String str && !str.isBlank()) {
+            try {
+                return com.alibaba.fastjson2.JSON.parseObject(str, TableDataInfo.class);
+            } catch (Exception ignored) {}
+        }
+        if (raw instanceof java.util.Map<?, ?> m) {
+            TableDataInfo t = new TableDataInfo();
+            t.setCode(m.containsKey("code") && m.get("code") instanceof Number n ? n.intValue() : 200);
+            t.setMsg(m.containsKey("msg") && m.get("msg") != null ? m.get("msg").toString() : "查询成功");
+            t.setTotal(m.containsKey("total") && m.get("total") instanceof Number n ? n.longValue() : 0L);
+            if (m.get("rows") instanceof java.util.List<?> r) {
+                t.setRows((java.util.List) r);
+            }
+            return t;
+        }
+        return null;
     }
 
     /**

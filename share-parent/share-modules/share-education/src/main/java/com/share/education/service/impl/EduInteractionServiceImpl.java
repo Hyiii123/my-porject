@@ -223,6 +223,19 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         long pageSize = number(params, "pageSize", 10);
         Long questionId = longValue(params.get("questionId"));
         Long answerId = longValue(params.get("answerId"));
+
+        String cacheKey = null;
+        if (redisService != null) {
+            cacheKey = "edu:interaction:reply:page:" + (questionId != null ? questionId : 0) + ":"
+                    + (answerId != null ? answerId : 0) + ":" + safePage(pageNo) + ":" + safeSize(pageSize);
+            try {
+                Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+                if (cached != null && !cached.isEmpty()) {
+                    return cached;
+                }
+            } catch (Exception ignored) {}
+        }
+
         Page<EduReply> page = new Page<>(safePage(pageNo), safeSize(pageSize));
         LambdaQueryWrapper<EduReply> wrapper = new LambdaQueryWrapper<EduReply>()
                 .eq(EduReply::getHidden, 0).eq(EduReply::getStatus, ENABLED)
@@ -234,7 +247,14 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         }
         wrapper.orderByAsc(EduReply::getCreateTime);
         replyMapper.selectPage(page, wrapper);
-        return pageView(page.getTotal(), page.getRecords().stream().map(this::replyView).toList());
+        List<Map<String, Object>> views = page.getRecords().stream().map(this::replyView).toList();
+        Map<String, Object> result = pageView(page.getTotal(), views);
+        if (cacheKey != null && redisService != null && !views.isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
+        return result;
     }
 
     @Override
@@ -283,6 +303,18 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         Page<EduNote> page = new Page<>(safePage(pageNo), safeSize(pageSize));
         Long userId = currentUserId();
         boolean admin = SecurityUtils.isAdmin(userId);
+        String cacheKey = null;
+        if (!onlyMine && redisService != null) {
+            cacheKey = "edu:interaction:note:page:" + (courseId != null ? courseId : 0) + ":"
+                    + (catalogId != null ? catalogId : 0) + ":" + safePage(pageNo) + ":" + safeSize(pageSize);
+            try {
+                Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+                if (cached != null && !cached.isEmpty()) {
+                    return cached;
+                }
+            } catch (Exception ignored) {}
+        }
+
         noteMapper.selectPage(page, new LambdaQueryWrapper<EduNote>()
                 .eq(courseId != null && courseId > 0, EduNote::getCourseId, courseId)
                 .eq(catalogId != null && catalogId > 0, EduNote::getCatalogId, catalogId)
@@ -290,7 +322,14 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
                 .and(!onlyMine && !admin, item -> item.eq(EduNote::getVisibility, 1).or().eq(EduNote::getUserId, userId))
                 .eq(EduNote::getHidden, 0).eq(EduNote::getStatus, ENABLED)
                 .orderByDesc(EduNote::getCreateTime));
-        return pageView(page.getTotal(), page.getRecords().stream().map(this::noteView).toList());
+        List<Map<String, Object>> views = page.getRecords().stream().map(this::noteView).toList();
+        Map<String, Object> result = pageView(page.getTotal(), views);
+        if (cacheKey != null && redisService != null && !views.isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
+        return result;
     }
 
     @Override

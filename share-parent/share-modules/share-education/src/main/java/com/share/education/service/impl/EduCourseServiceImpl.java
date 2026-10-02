@@ -69,6 +69,15 @@ public class EduCourseServiceImpl implements IEduCourseService {
 
     @Override
     public Map<String, Object> legacyCourse(Long id) {
+        String cacheKey = "edu:course:legacy:detail:" + id;
+        if (redisService != null) {
+            try {
+                Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+                if (cached != null && !cached.isEmpty()) {
+                    return cached;
+                }
+            } catch (Exception ignored) {}
+        }
         EduCourse course = requireCourse(id);
         Map<String, Object> result = courseView(course);
         String categoryName = String.valueOf(result.getOrDefault("categoryName", ""));
@@ -84,6 +93,11 @@ public class EduCourseServiceImpl implements IEduCourseService {
         result.put("step", 1);
         result.put("canUpdate", Boolean.TRUE);
         result.put("chapters", legacyCatalogs(id));
+        if (redisService != null && !result.isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, result, 120L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
         return result;
     }
 

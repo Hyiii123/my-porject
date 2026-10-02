@@ -77,7 +77,8 @@ public class LegacyZhiwenUserController extends BaseController {
         if (redisService != null && !StringUtils.isNotEmpty(query.getUserName()) && !StringUtils.isNotEmpty(query.getNickName()) && !StringUtils.isNotEmpty(query.getPhonenumber())) {
             cacheKey = "sys:user:legacy:page:" + type + ":" + query.getStatus() + ":" + pageNum + ":" + pageSize;
             try {
-                TableDataInfo cached = redisService.getCacheObject(cacheKey);
+                Object raw = redisService.getCacheObject(cacheKey);
+                TableDataInfo cached = parseCachedTable(raw);
                 if (cached != null && cached.getRows() != null && !cached.getRows().isEmpty()) {
                     return cached;
                 }
@@ -88,7 +89,7 @@ public class LegacyZhiwenUserController extends BaseController {
         TableDataInfo result = table(users);
         if (cacheKey != null && redisService != null && result.getRows() != null && !result.getRows().isEmpty()) {
             try {
-                redisService.setCacheObject(cacheKey, result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+                redisService.setCacheObject(cacheKey, com.alibaba.fastjson2.JSON.toJSONString(result), 120L, java.util.concurrent.TimeUnit.SECONDS);
             } catch (Exception ignored) {}
         }
         return result;
@@ -118,7 +119,8 @@ public class LegacyZhiwenUserController extends BaseController {
             cacheKey = "sys:user:role:page:" + (path.endsWith("/teachers/page") ? "teachers" : (path.endsWith("/students/page") ? "students" : "staffs"))
                     + ":" + query.getStatus() + ":" + pageNum + ":" + pageSize;
             try {
-                TableDataInfo cached = redisService.getCacheObject(cacheKey);
+                Object raw = redisService.getCacheObject(cacheKey);
+                TableDataInfo cached = parseCachedTable(raw);
                 if (cached != null && cached.getRows() != null && !cached.getRows().isEmpty()) {
                     return cached;
                 }
@@ -129,7 +131,7 @@ public class LegacyZhiwenUserController extends BaseController {
         TableDataInfo result = table(users);
         if (cacheKey != null && redisService != null && result.getRows() != null && !result.getRows().isEmpty()) {
             try {
-                redisService.setCacheObject(cacheKey, result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+                redisService.setCacheObject(cacheKey, com.alibaba.fastjson2.JSON.toJSONString(result), 120L, java.util.concurrent.TimeUnit.SECONDS);
             } catch (Exception ignored) {}
         }
         return result;
@@ -355,6 +357,28 @@ public class LegacyZhiwenUserController extends BaseController {
     @GetMapping("/roles")
     public AjaxResult roles() {
         return success(roleService.selectRoleAll());
+    }
+
+    @SuppressWarnings("unchecked")
+    private TableDataInfo parseCachedTable(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof TableDataInfo t) return t;
+        if (raw instanceof String str && !str.isBlank()) {
+            try {
+                return com.alibaba.fastjson2.JSON.parseObject(str, TableDataInfo.class);
+            } catch (Exception ignored) {}
+        }
+        if (raw instanceof Map<?, ?> m) {
+            TableDataInfo t = new TableDataInfo();
+            t.setCode(m.containsKey("code") && m.get("code") instanceof Number n ? n.intValue() : 200);
+            t.setMsg(m.containsKey("msg") && m.get("msg") != null ? m.get("msg").toString() : "查询成功");
+            t.setTotal(m.containsKey("total") && m.get("total") instanceof Number n ? n.longValue() : 0L);
+            if (m.get("rows") instanceof List<?> r) {
+                t.setRows((List<Map<String, Object>>) (List<?>) r);
+            }
+            return t;
+        }
+        return null;
     }
 
     private TableDataInfo table(List<SysUser> users) {
