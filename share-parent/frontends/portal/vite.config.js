@@ -86,5 +86,26 @@ export default defineConfig((mode) => {
         },
       }
     },
+    build: {
+      chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('element-plus') || id.includes('@element-plus')) {
+                return 'vendor-element';
+              }
+              if (id.includes('vue') || id.includes('pinia') || id.includes('@vue')) {
+                return 'vendor-vue';
+              }
+              if (id.includes('moment') || id.includes('nprogress') || id.includes('axios')) {
+                return 'vendor-libs';
+              }
+              return 'vendor-common';
+            }
+          },
+        },
+      },
+    },
   }
 })

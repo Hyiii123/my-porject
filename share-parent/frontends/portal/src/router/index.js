@@ -50,12 +50,11 @@ export const getActive = (maxLevel = 2) => {
 const router = createRouter({
   history: createWebHashHistory(),
   routes: allRoutes,
-  scrollBehavior() {
-    return {
-      el: '#app',
-      top: 0,
-      behavior: 'smooth',
-    };
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition;
+    }
+    return { top: 0 };
   },
 });
 
