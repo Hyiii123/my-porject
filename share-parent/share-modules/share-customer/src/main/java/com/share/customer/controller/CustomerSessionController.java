@@ -30,6 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/session")
 public class CustomerSessionController extends BaseController {
     private final ICustomerService customerService;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.share.customer.service.support.semantic.SemanticIntentRouter semanticRouter;
 
     public CustomerSessionController(ICustomerService customerService) {
         this.customerService = customerService;
@@ -103,5 +105,13 @@ public class CustomerSessionController extends BaseController {
         result.setRows(page.getRecords());
         result.setTotal(page.getTotal());
         return result;
+    }
+
+    @GetMapping("/ai/semantic/stats")
+    public AjaxResult getSemanticRouterStats() {
+        if (semanticRouter != null) {
+            return success(semanticRouter.getCacheStats());
+        }
+        return success(java.util.Map.of("status", "not_initialized"));
     }
 }

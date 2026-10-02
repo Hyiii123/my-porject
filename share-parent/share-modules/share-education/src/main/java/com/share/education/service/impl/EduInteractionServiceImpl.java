@@ -99,9 +99,11 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
                     + (solved != null ? solved : "all") + ":"
                     + safePage(pageNo) + ":" + safeSize(pageSize);
             try {
-                Map<String, Object> cached = redisService.getCacheObject(cacheKey);
-                if (cached != null && !cached.isEmpty()) {
-                    return cached;
+                Object raw = redisService.getCacheObject(cacheKey);
+                if (raw instanceof String str && !str.isBlank()) {
+                    return com.alibaba.fastjson2.JSON.parseObject(str, new com.alibaba.fastjson2.TypeReference<Map<String, Object>>(){}.getType());
+                } else if (raw instanceof Map<?, ?> m && !m.isEmpty()) {
+                    return (Map<String, Object>) m;
                 }
             } catch (Exception ignored) {}
         }
@@ -112,7 +114,7 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
 
         if (cacheKey != null && redisService != null && !views.isEmpty()) {
             try {
-                redisService.setCacheObject(cacheKey, pageData, 60L, java.util.concurrent.TimeUnit.SECONDS);
+                redisService.setCacheObject(cacheKey, com.alibaba.fastjson2.JSON.toJSONString(pageData), 120L, java.util.concurrent.TimeUnit.SECONDS);
             } catch (Exception ignored) {}
         }
 
@@ -229,9 +231,11 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
             cacheKey = "edu:interaction:reply:page:" + (questionId != null ? questionId : 0) + ":"
                     + (answerId != null ? answerId : 0) + ":" + safePage(pageNo) + ":" + safeSize(pageSize);
             try {
-                Map<String, Object> cached = redisService.getCacheObject(cacheKey);
-                if (cached != null && !cached.isEmpty()) {
-                    return cached;
+                Object raw = redisService.getCacheObject(cacheKey);
+                if (raw instanceof String str && !str.isBlank()) {
+                    return com.alibaba.fastjson2.JSON.parseObject(str, new com.alibaba.fastjson2.TypeReference<Map<String, Object>>(){}.getType());
+                } else if (raw instanceof Map<?, ?> m && !m.isEmpty()) {
+                    return (Map<String, Object>) m;
                 }
             } catch (Exception ignored) {}
         }
@@ -251,7 +255,7 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         Map<String, Object> result = pageView(page.getTotal(), views);
         if (cacheKey != null && redisService != null && !views.isEmpty()) {
             try {
-                redisService.setCacheObject(cacheKey, result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+                redisService.setCacheObject(cacheKey, com.alibaba.fastjson2.JSON.toJSONString(result), 120L, java.util.concurrent.TimeUnit.SECONDS);
             } catch (Exception ignored) {}
         }
         return result;
@@ -308,9 +312,11 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
             cacheKey = "edu:interaction:note:page:" + (courseId != null ? courseId : 0) + ":"
                     + (catalogId != null ? catalogId : 0) + ":" + safePage(pageNo) + ":" + safeSize(pageSize);
             try {
-                Map<String, Object> cached = redisService.getCacheObject(cacheKey);
-                if (cached != null && !cached.isEmpty()) {
-                    return cached;
+                Object raw = redisService.getCacheObject(cacheKey);
+                if (raw instanceof String str && !str.isBlank()) {
+                    return com.alibaba.fastjson2.JSON.parseObject(str, new com.alibaba.fastjson2.TypeReference<Map<String, Object>>(){}.getType());
+                } else if (raw instanceof Map<?, ?> m && !m.isEmpty()) {
+                    return (Map<String, Object>) m;
                 }
             } catch (Exception ignored) {}
         }
@@ -326,7 +332,7 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
         Map<String, Object> result = pageView(page.getTotal(), views);
         if (cacheKey != null && redisService != null && !views.isEmpty()) {
             try {
-                redisService.setCacheObject(cacheKey, result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+                redisService.setCacheObject(cacheKey, com.alibaba.fastjson2.JSON.toJSONString(result), 120L, java.util.concurrent.TimeUnit.SECONDS);
             } catch (Exception ignored) {}
         }
         return result;

@@ -54,6 +54,15 @@ public class SemanticIntentRouter {
     // 难度锚点向量缓存 (Difficulty -> Vector)
     private final Map<Integer, float[]> difficultyVectors = new ConcurrentHashMap<>();
 
+    // 本地多级内存极速缓存 (Local High-Performance Embedding & Intent Cache)
+    private final Map<String, float[]> localEmbeddingCache = new ConcurrentHashMap<>(2048);
+    private final Map<String, UserIntent> localIntentCache = new ConcurrentHashMap<>(2048);
+    private final Map<String, String> localRoleSlotCache = new ConcurrentHashMap<>(512);
+    private final Map<String, Integer> localDiffSlotCache = new ConcurrentHashMap<>(512);
+
+    private final java.util.concurrent.atomic.AtomicLong cacheHitCount = new java.util.concurrent.atomic.AtomicLong(0);
+    private final java.util.concurrent.atomic.AtomicLong cacheMissCount = new java.util.concurrent.atomic.AtomicLong(0);
+
     // 常用意图锚点语料
     private static final Map<UserIntent, List<String>> INTENT_ANCHORS = Map.ofEntries(
         Map.entry(UserIntent.PATH_PLANNING, List.of(
@@ -174,8 +183,14 @@ public class SemanticIntentRouter {
                 if (v != null) difficultyVectors.put(entry.getKey(), v);
             }
 
-            log.info("[SemanticIntentRouter] 意图锚点向量库加载完毕: {} 个意图, {} 个角色, {} 个难度等级",
-                intentCentroids.size(), roleVectors.size(), difficultyVectors.size());
+            // 预填充所有锚点语料至意图缓存，实现高频意图 0ms 首跳直出
+            for (Map.Entry<UserIntent, List<String>> entry : INTENT_ANCHORS.entrySet()) {
+                for (String text : entry.getValue()) {
+                    localIntentCache.put(text.trim(), entry.getKey());
+                }
+            }
+            log.info("[SemanticIntentRouter] 意图锚点向量库加载完毕: {} 个意图, {} 个角色, {} 个难度等级, 预热本地缓存 {} 条",
+                intentCentroids.size(), roleVectors.size(), difficultyVectors.size(), localIntentCache.size());
         } catch (Exception ex) {
             log.warn("[SemanticIntentRouter] 预热向量库失败，将在请求时按需动态推断: {}", ex.getMessage());
         }
@@ -186,10 +201,18 @@ public class SemanticIntentRouter {
      */
     public UserIntent routeIntent(String query) {
         if (!StringUtils.hasText(query)) return UserIntent.GENERAL_QA;
+        String trimmed = query.trim();
+        UserIntent cached = localIntentCache.get(trimmed);
+        if (cached != null) {
+            cacheHitCount.incrementAndGet();
+            return cached;
+        }
 
-        float[] queryVec = fetchEmbedding(query);
+        float[] queryVec = fetchEmbedding(trimmed);
         if (queryVec == null || intentCentroids.isEmpty()) {
-            return ruleBasedFallbackIntent(query);
+            UserIntent fallback = ruleBasedFallbackIntent(trimmed);
+            if (localIntentCache.size() < 10000) localIntentCache.put(trimmed, fallback);
+            return fallback;
         }
 
         UserIntent bestIntent = UserIntent.GENERAL_QA;
@@ -203,14 +226,13 @@ public class SemanticIntentRouter {
             }
         }
 
-        log.debug("[SemanticIntentRouter] 意图识别结果: query='{}', intent={}, similarity={}", query, bestIntent, maxSimilarity);
+        log.debug("[SemanticIntentRouter] 意图识别结果: query='{}', intent={}, similarity={}", trimmed, bestIntent, maxSimilarity);
 
-        // 设定置信度阈值 0.65，低于此置信度视为通用客服答疑
-        if (maxSimilarity >= 0.65) {
-            return bestIntent;
+        UserIntent finalIntent = (maxSimilarity >= 0.65) ? bestIntent : ruleBasedFallbackIntent(trimmed);
+        if (localIntentCache.size() < 10000) {
+            localIntentCache.put(trimmed, finalIntent);
         }
-
-        return ruleBasedFallbackIntent(query);
+        return finalIntent;
     }
 
     /**
@@ -299,10 +321,17 @@ public class SemanticIntentRouter {
      */
     public float[] fetchEmbedding(String text) {
         if (!StringUtils.hasText(text)) return null;
+        String trimmed = text.trim();
+        float[] cached = localEmbeddingCache.get(trimmed);
+        if (cached != null) {
+            cacheHitCount.incrementAndGet();
+            return cached;
+        }
+        cacheMissCount.incrementAndGet();
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            Map<String, String> body = Map.of("text", text);
+            Map<String, String> body = Map.of("text", trimmed);
             HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
 
             String response = restTemplate.postForObject(embeddingServiceUrl, request, String.class);
@@ -314,6 +343,9 @@ public class SemanticIntentRouter {
                 float[] vec = new float[vectorNode.size()];
                 for (int i = 0; i < vectorNode.size(); i++) {
                     vec[i] = (float) vectorNode.get(i).asDouble();
+                }
+                if (localEmbeddingCache.size() < 10000) {
+                    localEmbeddingCache.put(trimmed, vec);
                 }
                 return vec;
             }
@@ -414,5 +446,19 @@ public class SemanticIntentRouter {
             return 3;
         }
         return 2;
+    }
+
+    public Map<String, Object> getCacheStats() {
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("embeddingCacheSize", localEmbeddingCache.size());
+        stats.put("intentCacheSize", localIntentCache.size());
+        stats.put("roleSlotCacheSize", localRoleSlotCache.size());
+        stats.put("diffSlotCacheSize", localDiffSlotCache.size());
+        stats.put("intentCentroidsReady", !intentCentroids.isEmpty());
+        stats.put("cacheHits", cacheHitCount.get());
+        stats.put("cacheMisses", cacheMissCount.get());
+        long total = cacheHitCount.get() + cacheMissCount.get();
+        stats.put("hitRate", total == 0 ? "100.0%" : String.format("%.2f%%", (cacheHitCount.get() * 100.0) / total));
+        return stats;
     }
 }

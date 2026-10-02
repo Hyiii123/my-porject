@@ -282,6 +282,7 @@ services:
     volumes:
       - ./share-ui/dist:/usr/share/nginx/html:ro
       - ./frontends/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontends/ssl:/etc/nginx/ssl:ro
     networks:
       - zhiwen-net
 
@@ -299,11 +300,13 @@ services:
     restart: unless-stopped
     ports:
       - "${TJ_PORTAL_UI_PORT:-18081}:80"
+      - "18443:443"
     depends_on:
       - gateway
     volumes:
       - ./frontends/portal/dist:/usr/share/nginx/html:ro
       - ./frontends/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontends/ssl:/etc/nginx/ssl:ro
     networks:
       - zhiwen-net
 
@@ -326,6 +329,7 @@ services:
     volumes:
       - ./frontends/business-admin/dist:/usr/share/nginx/html:ro
       - ./frontends/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontends/ssl:/etc/nginx/ssl:ro
     networks:
       - zhiwen-net
 

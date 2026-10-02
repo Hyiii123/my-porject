@@ -434,9 +434,11 @@ public class EduCourseServiceImpl implements IEduCourseService {
                     + (priceType != null ? priceType : "all") + ":"
                     + (sortBy != null ? sortBy : "def");
             try {
-                Map<String, Object> cachedPage = redisService.getCacheObject(cacheKey);
-                if (cachedPage != null && !cachedPage.isEmpty()) {
-                    return cachedPage;
+                Object raw = redisService.getCacheObject(cacheKey);
+                if (raw instanceof String str && !str.isBlank()) {
+                    return com.alibaba.fastjson2.JSON.parseObject(str, new com.alibaba.fastjson2.TypeReference<Map<String, Object>>(){}.getType());
+                } else if (raw instanceof Map<?, ?> m && !m.isEmpty()) {
+                    return (Map<String, Object>) m;
                 }
             } catch (Exception ignored) {}
         }
@@ -447,7 +449,7 @@ public class EduCourseServiceImpl implements IEduCourseService {
 
         if (cacheKey != null && redisService != null && !views.isEmpty()) {
             try {
-                redisService.setCacheObject(cacheKey, resultPage, 60L, java.util.concurrent.TimeUnit.SECONDS);
+                redisService.setCacheObject(cacheKey, com.alibaba.fastjson2.JSON.toJSONString(resultPage), 120L, java.util.concurrent.TimeUnit.SECONDS);
             } catch (Exception ignored) {}
         }
 

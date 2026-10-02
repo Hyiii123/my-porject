@@ -315,17 +315,22 @@
 
             <!-- 视频内部 HUD 浮层：实时声浪跳动条 (VU-Meter) 与快捷开关 -->
             <div class="candidate-video-hud">
-              <!-- 动态音量跳动声波 -->
-              <div class="candidate-audio-wave">
-                <span class="wave-tag">🎙️ 音压：</span>
+              <!-- 动态音量跳动声波与全双工打断指示 -->
+              <div class="candidate-audio-wave" :class="{ 'barge-in-active': isBargeInActive }">
+                <span class="wave-tag" v-if="!isBargeInActive">🎙️ 音压：</span>
+                <span class="wave-tag barge-tag" v-else>⚡ 打断中：</span>
                 <div class="wave-bars">
                   <div
                     v-for="i in 8"
                     :key="i"
                     class="wave-bar"
+                    :class="{ 'bar-barge': isBargeInActive }"
                     :style="{ height: getDynamicBarHeight(i) + 'px' }"
                   ></div>
                 </div>
+                <span v-if="isRecording && candidateWpm > 0" class="wpm-tag">
+                  {{ candidateWpm }} 字/分
+                </span>
               </div>
 
               <!-- 设备硬件快速切换 -->
@@ -368,6 +373,9 @@
 
           <!-- 候选人口述语音实时转写工作台 (取消纯键盘打字，全面采用语音口述) -->
           <div v-if="answerMode === 'voice'" class="candidate-voice-console">
+            <div v-if="isBargeInActive" class="barge-in-banner">
+              ⚡ 已触发全双工语音打断 (Barge-In) · 考官已暂停发音，正在实时收录您的回答
+            </div>
             <div class="console-header">
               <div class="title-with-wave">
                 <span class="record-dot" :class="{ pulsing: isRecording }"></span>
@@ -786,6 +794,12 @@ let candidateAudioCtx = null
 let candidateAnalyser = null
 let animFrameId = null
 const audioEnergy = ref(0)
+const fftFrequencyBars = ref([4, 4, 4, 4, 4, 4, 4, 4])
+const isBargeInActive = ref(false)
+const candidateWpm = ref(0)
+let consecutiveSpeechFrames = 0
+let bargeInResetTimeout = null
+let speechStartTime = 0
 
 // AI 面试官数字人与发音 (TTS) 状态
 const isInterviewerSpeaking = ref(false)
@@ -888,9 +902,32 @@ const handleBack = () => {
 }
 
 // 动态获取 VU-Meter 能量条高度
+const handleBargeInInterrupt = () => {
+  if (!isInterviewerSpeaking.value) return
+  console.log('[Barge-In] 候选人主动发声打断考官')
+  window.speechSynthesis.cancel()
+  isInterviewerSpeaking.value = false
+  isBargeInActive.value = true
+  aiActivityState.value = 'interrupted'
+  ElMessage.warning('⚡ 已检测到您的发言，考官已让出麦克风')
+
+  if (bargeInResetTimeout) clearTimeout(bargeInResetTimeout)
+  bargeInResetTimeout = setTimeout(() => {
+    isBargeInActive.value = false
+    aiActivityState.value = isRecording.value ? 'listening' : 'idle'
+  }, 2500)
+
+  if (!isRecording.value) {
+    startSpeechRecording()
+  }
+}
+
 const getDynamicBarHeight = (index) => {
   if (!micActive.value || (!isRecording.value && audioEnergy.value < 5)) {
     return 4
+  }
+  if (fftFrequencyBars.value && fftFrequencyBars.value[index - 1] > 4) {
+    return fftFrequencyBars.value[index - 1]
   }
   const factor = (Math.sin(Date.now() / 150 + index) + 1) / 2
   const base = Math.max(4, (audioEnergy.value / 100) * 22 * factor)
@@ -965,6 +1002,23 @@ const initCandidateMedia = async () => {
         }
         const avg = sum / bufferLength
         audioEnergy.value = Math.min(100, Math.round((avg / 128) * 100))
+
+        // 提取 8 段真实 FFT 频域能量
+        const step = Math.max(1, Math.floor(bufferLength / 8))
+        for (let idx = 0; idx < 8; idx++) {
+          fftFrequencyBars.value[idx] = Math.max(4, Math.min(24, Math.round((dataArray[idx * step] / 255) * 24)))
+        }
+
+        // 全双工智能打断检测 (Barge-In Voice Activity Detection)
+        if (isInterviewerSpeaking.value && audioEnergy.value > 16) {
+          consecutiveSpeechFrames++
+          if (consecutiveSpeechFrames >= 3) {
+            handleBargeInInterrupt()
+          }
+        } else {
+          consecutiveSpeechFrames = 0
+        }
+
         animFrameId = requestAnimationFrame(trackVolume)
       }
       trackVolume()
@@ -1193,6 +1247,11 @@ const startSpeechRecording = () => {
         if (event.results[i].isFinal) {
           const finalStr = event.results[i][0].transcript
           currentAnswer.value = (currentAnswer.value ? currentAnswer.value + ' ' : '') + finalStr.trim()
+          if (!speechStartTime) speechStartTime = Date.now()
+          const elapsedMin = (Date.now() - speechStartTime) / 60000
+          if (elapsedMin > 0.03) {
+            candidateWpm.value = Math.round(currentAnswer.value.replace(/\s+/g, '').length / elapsedMin)
+          }
         } else {
           interim += event.results[i][0].transcript
         }
@@ -2032,6 +2091,37 @@ onBeforeUnmount(() => {
   background: #38bdf8;
   border-radius: 2px;
   transition: height 0.06s ease-out;
+}
+
+.candidate-audio-wave.barge-in-active {
+  border-color: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+.barge-tag {
+  color: #f59e0b !important;
+  font-weight: 600;
+}
+.wave-bar.bar-barge {
+  background: #f59e0b !important;
+}
+.wpm-tag {
+  font-size: 11px;
+  color: #10b981;
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
+}
+.barge-in-banner {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .candidate-device-toggles {
