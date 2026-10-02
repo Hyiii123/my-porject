@@ -172,6 +172,9 @@ public class EducationPortalController extends BaseController {
     private com.share.education.ai.tools.registry.AgentToolRegistry toolRegistry;
 
     @Autowired(required = false)
+    private com.share.common.redis.service.RedisService redisService;
+
+    @Autowired(required = false)
     private com.share.education.ai.rag.HybridGraphRagEngine hybridGraphRagEngine;
 
     @Autowired(required = false)
@@ -245,8 +248,21 @@ public class EducationPortalController extends BaseController {
     @PostMapping({"/courses/ai/remediation/diagnose", "/courses/remediation/diagnose"})
     public AjaxResult diagnoseRemediation(@RequestBody com.share.education.ai.tools.remediation.AdaptiveRemediationRequest request) {
         if (adaptiveRemediationTool != null) {
+            String concept = request != null && org.springframework.util.StringUtils.hasText(request.getWeakConcept()) ? request.getWeakConcept().trim() : "default";
+            String cacheKey = "edu:ai:remediation:plan:" + concept;
+            if (redisService != null) {
+                try {
+                    com.share.education.ai.tools.remediation.RemediationPlanDTO cached = redisService.getCacheObject(cacheKey);
+                    if (cached != null) return success(cached);
+                } catch (Exception ignored) {}
+            }
             long t0 = System.currentTimeMillis();
             var plan = adaptiveRemediationTool.apply(request);
+            if (redisService != null && plan != null) {
+                try {
+                    redisService.setCacheObject(cacheKey, plan, 300L, java.util.concurrent.TimeUnit.SECONDS);
+                } catch (Exception ignored) {}
+            }
             if (toolRegistry != null) {
                 toolRegistry.recordInvocation("adaptiveRemediationTool", true, System.currentTimeMillis() - t0);
             }

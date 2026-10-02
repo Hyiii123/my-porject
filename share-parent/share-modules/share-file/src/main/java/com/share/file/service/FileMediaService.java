@@ -25,6 +25,9 @@ public class FileMediaService {
     private static final String DEFAULT_TYPE = "other";
 
     private final FileMediaMapper mediaMapper;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.share.common.redis.service.RedisService redisService;
     public FileMediaService(FileMediaMapper mediaMapper) {
         this.mediaMapper = mediaMapper;
     }
@@ -58,10 +61,28 @@ public class FileMediaService {
 
     /** 返回旧智问页面使用的 {total,list} 结构。 */
     public Map<String, Object> pageView(Map<String, ?> params) {
+        String keyword = firstText(params, "keyword", "mediaName", "name");
+        String cacheKey = null;
+        if (!StringUtils.hasText(keyword) && redisService != null) {
+            long pNo = number(params, "pageNo", number(params, "pageNum", 1));
+            long pSz = number(params, "pageSize", 10);
+            cacheKey = "file:media:page:" + pNo + ":" + pSz;
+            try {
+                Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+                if (cached != null && !cached.isEmpty()) {
+                    return cached;
+                }
+            } catch (Exception ignored) {}
+        }
         IPage<FileMedia> page = page(params);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("total", page.getTotal());
         result.put("list", page.getRecords().stream().map(this::view).toList());
+        if (cacheKey != null && redisService != null) {
+            try {
+                redisService.setCacheObject(cacheKey, result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
         return result;
     }
 

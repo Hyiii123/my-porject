@@ -53,6 +53,9 @@ public class LegacyZhiwenUserController extends BaseController {
     @Autowired
     private RemoteTeacherProfileService teacherProfileService;
 
+    @Autowired(required = false)
+    private com.share.common.redis.service.RedisService redisService;
+
     @RequiresLogin
     @GetMapping("/users/me")
     public AjaxResult currentUser() {
@@ -70,9 +73,25 @@ public class LegacyZhiwenUserController extends BaseController {
                               @RequestParam(defaultValue = "1") int pageNum,
                               @RequestParam(defaultValue = "10") int pageSize) {
         applyLegacyType(query, type);
+        String cacheKey = null;
+        if (redisService != null && !StringUtils.isNotEmpty(query.getUserName()) && !StringUtils.isNotEmpty(query.getNickName()) && !StringUtils.isNotEmpty(query.getPhonenumber())) {
+            cacheKey = "sys:user:legacy:page:" + type + ":" + query.getStatus() + ":" + pageNum + ":" + pageSize;
+            try {
+                TableDataInfo cached = redisService.getCacheObject(cacheKey);
+                if (cached != null && cached.getRows() != null && !cached.getRows().isEmpty()) {
+                    return cached;
+                }
+            } catch (Exception ignored) {}
+        }
         com.github.pagehelper.PageHelper.startPage(pageNum, Math.min(pageSize, 100));
         List<SysUser> users = userService.selectUserList(query);
-        return table(users);
+        TableDataInfo result = table(users);
+        if (cacheKey != null && redisService != null && result.getRows() != null && !result.getRows().isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
+        return result;
     }
 
     @RequiresPermissions("system:user:list")
@@ -94,9 +113,26 @@ public class LegacyZhiwenUserController extends BaseController {
         } else if ("0".equals(query.getStatus())) {
             query.setStatus("1");
         }
+        String cacheKey = null;
+        if (redisService != null && !StringUtils.isNotEmpty(query.getUserName()) && !StringUtils.isNotEmpty(query.getNickName()) && !StringUtils.isNotEmpty(query.getPhonenumber())) {
+            cacheKey = "sys:user:role:page:" + (path.endsWith("/teachers/page") ? "teachers" : (path.endsWith("/students/page") ? "students" : "staffs"))
+                    + ":" + query.getStatus() + ":" + pageNum + ":" + pageSize;
+            try {
+                TableDataInfo cached = redisService.getCacheObject(cacheKey);
+                if (cached != null && cached.getRows() != null && !cached.getRows().isEmpty()) {
+                    return cached;
+                }
+            } catch (Exception ignored) {}
+        }
         com.github.pagehelper.PageHelper.startPage(pageNum, Math.min(pageSize, 100));
         List<SysUser> users = userService.selectUserList(query);
-        return table(users);
+        TableDataInfo result = table(users);
+        if (cacheKey != null && redisService != null && result.getRows() != null && !result.getRows().isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
+        return result;
     }
 
     @RequiresPermissions("system:user:query")
@@ -412,11 +448,25 @@ public class LegacyZhiwenUserController extends BaseController {
 
     private Map<String, Object> teacherProfile(String userType, Long userId) {
         if (!"02".equals(userType) || userId == null) return null;
+        String cacheKey = "edu:teacher:profile:basic:" + userId;
+        if (redisService != null) {
+            try {
+                Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+                if (cached != null && !cached.isEmpty()) {
+                    return cached;
+                }
+            } catch (Exception ignored) {}
+        }
         try {
             AjaxResult result = teacherProfileService.getByUserId(userId, SecurityConstants.INNER);
             Object data = result == null ? null : result.get(AjaxResult.DATA_TAG);
-            return result != null && result.isSuccess() && data instanceof Map<?, ?> map
-                    ? castMap(map) : null;
+            Map<String, Object> profile = (result != null && result.isSuccess() && data instanceof Map<?, ?> map) ? castMap(map) : null;
+            if (profile != null && redisService != null) {
+                try {
+                    redisService.setCacheObject(cacheKey, profile, 300L, java.util.concurrent.TimeUnit.SECONDS);
+                } catch (Exception ignored) {}
+            }
+            return profile;
         } catch (Exception ex) {
             logger.warn("读取教师扩展资料失败，userId={}", userId, ex);
             return null;

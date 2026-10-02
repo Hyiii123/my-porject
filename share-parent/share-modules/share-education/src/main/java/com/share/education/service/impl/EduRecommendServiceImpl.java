@@ -247,7 +247,7 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
                 return cached;
             }
         }
-        Map<String, Object> result = multiAgentOrchestrator.orchestrate(userId, targetRole, limit, difficulty, query);
+        Map<String, Object> result = multiAgentOrchestrator.orchestrate(targetUid, targetRole, limit, difficulty, query);
         if (redisService != null && result != null && !result.isEmpty()) {
             redisService.setCacheObject(cacheKey, result, 10L, java.util.concurrent.TimeUnit.MINUTES);
         }

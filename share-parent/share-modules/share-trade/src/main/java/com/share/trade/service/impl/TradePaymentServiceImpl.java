@@ -336,13 +336,29 @@ public class TradePaymentServiceImpl implements ITradePaymentService {
         long pageSize = number(params, "pageSize", 10);
         Integer status = legacyRefundStatus(params == null ? null : params.get("status"));
         String keyword = defaultText(params == null ? null : params.get("keyword"), null);
+        String cacheKey = null;
+        if (!StringUtils.hasText(keyword) && redisService != null) {
+            cacheKey = "trade:refund:legacy:page:" + status + ":" + pageNo + ":" + pageSize;
+            try {
+                Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+                if (cached != null && !cached.isEmpty()) {
+                    return cached;
+                }
+            } catch (Exception ignored) {}
+        }
         IPage<TrRefundApply> page = pageRefunds(status, pageNo, pageSize);
         List<Map<String, Object>> rows = page.getRecords().stream().map(this::legacyRefundView)
                 .filter(row -> !StringUtils.hasText(keyword)
                         || String.valueOf(row.getOrDefault("orderNo", "")).contains(keyword)
                         || String.valueOf(row.getOrDefault("userName", "")).contains(keyword))
                 .toList();
-        return pageView(rows.size() == page.getRecords().size() ? page.getTotal() : rows.size(), rows);
+        Map<String, Object> resultPage = pageView(rows.size() == page.getRecords().size() ? page.getTotal() : rows.size(), rows);
+        if (cacheKey != null && redisService != null && !rows.isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, resultPage, 60L, TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
+        return resultPage;
     }
 
     @Override

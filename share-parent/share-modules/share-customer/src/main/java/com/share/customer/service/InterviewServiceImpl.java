@@ -397,11 +397,12 @@ public class InterviewServiceImpl implements IInterviewService {
     @Override
     public IPage<InterviewSession> listMySessions(long pageNum, long pageSize) {
         Long userId = currentUserId();
-        try {
-            cleanStagnantSessions(2);
-        } catch (Exception e) {
-            log.warn("查询列表前置清理超时场次异常: {}", e.getMessage());
-        }
+        // 异步执行超时场次巡检，避免阻塞核心高频列表读取
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                cleanStagnantSessions(2);
+            } catch (Exception ignored) {}
+        });
 
         Page<InterviewSession> page = new Page<>(pageNum < 1 ? 1 : pageNum, pageSize < 1 ? 10 : Math.min(pageSize, 50));
         LambdaQueryWrapper<InterviewSession> wrapper = new LambdaQueryWrapper<InterviewSession>()

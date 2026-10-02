@@ -33,16 +33,35 @@ public class SysNoticeController extends BaseController
     @Autowired
     private ISysNoticeService noticeService;
 
+    @Autowired(required = false)
+    private com.share.common.redis.service.RedisService redisService;
+
     /**
      * 获取通知公告列表
      */
     @RequiresPermissions("system:notice:list")
-    @GetMapping("/list")
+    @GetMapping({"", "/", "/list"})
     public TableDataInfo list(SysNotice notice)
     {
+        String cacheKey = null;
+        if (redisService != null && !com.share.common.core.utils.StringUtils.isNotEmpty(notice.getNoticeTitle())) {
+            cacheKey = "sys:notice:list:" + notice.getNoticeType() + ":" + notice.getStatus();
+            try {
+                TableDataInfo cached = redisService.getCacheObject(cacheKey);
+                if (cached != null && cached.getRows() != null && !cached.getRows().isEmpty()) {
+                    return cached;
+                }
+            } catch (Exception ignored) {}
+        }
         startPage();
         List<SysNotice> list = noticeService.selectNoticeList(notice);
-        return getDataTable(list);
+        TableDataInfo result = getDataTable(list);
+        if (cacheKey != null && redisService != null && result.getRows() != null && !result.getRows().isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, result, 60L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
+        return result;
     }
 
     /**

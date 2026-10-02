@@ -165,8 +165,19 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         Integer status = intValue(params == null ? null : params.get("status"));
         Long userId = admin ? longValue(params == null ? null : params.get("userId")) : currentUserId();
 
-        // 高性能优化：当无关键词深层扫描时，直接走数据库原生 LIMIT 分页，杜绝全表拉取与 N+1 循环
+        // 高性能优化：当无关键词深层扫描时，直接走数据库原生 LIMIT 分页与二级缓存
         if (!StringUtils.hasText(keyword)) {
+            String cacheKey = "trade:order:paged:" + (admin ? "admin" : (userId != null ? userId : 0L)) + ":"
+                    + (status != null ? status : "all") + ":" + safePage(pageNo) + ":" + safeSize(pageSize);
+            if (redisService != null) {
+                try {
+                    Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+                    if (cached != null && !cached.isEmpty()) {
+                        return cached;
+                    }
+                } catch (Exception ignored) {}
+            }
+
             com.baomidou.mybatisplus.extension.plugins.pagination.Page<TrOrder> page =
                     new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(safePage(pageNo), safeSize(pageSize));
             LambdaQueryWrapper<TrOrder> q = new LambdaQueryWrapper<TrOrder>()
@@ -182,7 +193,13 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
                 checkAndExpireOrder(order);
             }
             List<Map<String, Object>> pagedRows = page.getRecords().stream().map(this::orderView).toList();
-            return pageView(page.getTotal(), pagedRows);
+            Map<String, Object> resultPage = pageView(page.getTotal(), pagedRows);
+            if (redisService != null && !pagedRows.isEmpty()) {
+                try {
+                    redisService.setCacheObject(cacheKey, resultPage, 30L, TimeUnit.SECONDS);
+                } catch (Exception ignored) {}
+            }
+            return resultPage;
         }
 
         List<TrOrder> rows = orderMapper.selectList(new LambdaQueryWrapper<TrOrder>()
