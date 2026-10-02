@@ -1532,18 +1532,33 @@ a {
     color: #475569 !important;
     font-weight: 600 !important;
     font-size: 13px !important;
-    padding: 13px 16px !important;
+    padding: 11px 0 !important;
     border-bottom: 1px solid #E2E8F0 !important;
   }
 
   td.el-table__cell {
-    padding: 13px 16px !important;
+    padding: 11px 0 !important;
     color: #1E293B;
     border-bottom: 1px solid #F1F5F9 !important;
     font-size: 13.5px;
   }
 
+  // 防止纯数字或ID逐字竖向断行
+  .cell {
+    word-break: normal !important;
+    line-height: 1.5 !important;
+  }
+
   .el-table__row:hover > td.el-table__cell {
     background-color: #F0F7FF !important;
   }
+}
+
+// 统一表格操作列文本按钮单行水平排列
+.el-table .el-table__cell:last-child .cell {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
 }

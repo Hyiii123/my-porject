@@ -43,7 +43,7 @@
 
     <el-card class="table-card" shadow="hover">
       <el-table v-loading="loading" :data="studentList" stripe>
-        <el-table-column prop="id" label="ID" width="86" />
+        <el-table-column prop="id" label="ID" min-width="190" show-overflow-tooltip class-name="tabular-nums" />
         <el-table-column label="学员信息" min-width="250">
           <template #default="{ row }">
             <div class="user-info">

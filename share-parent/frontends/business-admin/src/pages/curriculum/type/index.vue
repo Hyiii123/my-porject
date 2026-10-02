@@ -37,7 +37,7 @@
     <!-- 分类列表 -->
     <el-card class="table-card" shadow="hover">
       <el-table :data="categoryList" stripe style="width: 100%" v-loading="loading" row-key="id">
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="id" label="ID" min-width="190" show-overflow-tooltip class-name="tabular-nums" />
         <el-table-column prop="name" label="分类名称" min-width="200">
           <template #default="{ row }">
             <div class="category-name">

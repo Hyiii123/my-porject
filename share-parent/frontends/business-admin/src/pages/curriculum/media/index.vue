@@ -74,7 +74,7 @@
     <!-- 视频列表 -->
     <el-card class="table-card" shadow="hover">
       <el-table :data="mediaList" stripe style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column prop="id" label="ID" min-width="190" show-overflow-tooltip class-name="tabular-nums" />
         <el-table-column label="视频信息" min-width="260">
           <template #default="{ row }">
             <div class="media-info">

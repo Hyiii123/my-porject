@@ -19,13 +19,13 @@
   )
 );
 
-// 基础按钮规范 (统一 6px 圆角与专业交互)
+// 基础按钮规范 (统一 6px 圆角与专业交互，排除 is-link 文本按钮)
 .el-button {
   border-radius: 6px !important;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-  &--primary {
+  &--primary:not(.is-link) {
     background-color: #1E89F1 !important;
     border-color: #1E89F1 !important;
     color: #FFFFFF !important;
@@ -41,7 +41,7 @@
     }
   }
 
-  &--default {
+  &--default:not(.is-link) {
     background-color: #FFFFFF !important;
     border-color: #CBD5E1 !important;
     color: #334155 !important;
@@ -55,7 +55,7 @@
     }
   }
 
-  &--danger {
+  &--danger:not(.is-link) {
     background-color: #DC2626 !important;
     border-color: #DC2626 !important;
     color: #FFFFFF !important;
@@ -63,6 +63,55 @@
       background-color: #B91C1C !important;
       border-color: #B91C1C !important;
       color: #FFFFFF !important;
+    }
+  }
+
+  // 表格与界面中的链接文字按钮 (必须保持透明底色与单行流线)
+  &.is-link {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    padding: 3px 6px !important;
+    height: auto !important;
+    min-height: auto !important;
+    line-height: 1.4 !important;
+    font-weight: 500 !important;
+    border-radius: 4px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+
+    &.el-button--primary {
+      color: #1E89F1 !important;
+      &:hover, &:focus {
+        color: #1366D6 !important;
+        background-color: rgba(30, 137, 241, 0.08) !important;
+      }
+    }
+
+    &.el-button--success {
+      color: #16A34A !important;
+      &:hover, &:focus {
+        color: #15803D !important;
+        background-color: rgba(22, 163, 74, 0.08) !important;
+      }
+    }
+
+    &.el-button--warning {
+      color: #D97706 !important;
+      &:hover, &:focus {
+        color: #B45309 !important;
+        background-color: rgba(217, 119, 6, 0.08) !important;
+      }
+    }
+
+    &.el-button--danger {
+      color: #DC2626 !important;
+      &:hover, &:focus {
+        color: #B91C1C !important;
+        background-color: rgba(220, 38, 38, 0.08) !important;
+      }
     }
   }
 }

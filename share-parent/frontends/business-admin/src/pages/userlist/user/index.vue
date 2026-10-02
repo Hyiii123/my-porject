@@ -48,7 +48,7 @@
 
     <el-card class="table-card" shadow="hover">
       <el-table v-loading="loading" :data="userList" stripe>
-        <el-table-column prop="id" label="ID" width="86" />
+        <el-table-column prop="id" label="ID" min-width="190" show-overflow-tooltip class-name="tabular-nums" />
         <el-table-column label="用户信息" min-width="235">
           <template #default="{ row }">
             <div class="user-info">

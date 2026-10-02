@@ -74,7 +74,7 @@
     <!-- 题目列表 -->
     <el-card class="table-card" shadow="hover">
       <el-table :data="questionList" stripe style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="id" label="ID" min-width="190" show-overflow-tooltip class-name="tabular-nums" />
         <el-table-column prop="type" label="题型" width="100">
           <template #default="{ row }">
             <el-tag :type="getTypeTag(row.type)">{{ getTypeText(row.type) }}</el-tag>

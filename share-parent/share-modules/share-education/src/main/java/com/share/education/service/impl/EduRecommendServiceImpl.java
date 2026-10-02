@@ -119,9 +119,6 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
             currentUid = SecurityUtils.getUserId();
         } catch (Exception ignored) {}
 
-        List<PersonalizedRecommendVO> recommendList = multiAgentOrchestrator.recommendCourses(currentUid, safeLimit);
-        List<Map<String, Object>> result = new ArrayList<>();
-
         String cacheKey = "edu:recommend:personalized:" + (currentUid != null ? currentUid : 0L) + ":" + safeLimit;
         if (redisService != null) {
             List<Map<String, Object>> cached = redisService.getCacheObject(cacheKey);
@@ -129,6 +126,9 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
                 return cached;
             }
         }
+
+        List<PersonalizedRecommendVO> recommendList = multiAgentOrchestrator.recommendCourses(currentUid, safeLimit);
+        List<Map<String, Object>> result = new ArrayList<>();
 
         for (PersonalizedRecommendVO vo : recommendList) {
             EduCourse c = courseMapper.selectById(vo.getId());
@@ -164,6 +164,12 @@ public class EduRecommendServiceImpl implements IEduRecommendService {
             view.put("isCapstone", vo.getIsCapstone());
             view.put("capstoneProject", vo.getCapstoneProject() != null ? vo.getCapstoneProject() : vo.getIsCapstone());
             result.add(view);
+        }
+
+        if (redisService != null && !result.isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, result, 180L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
         }
 
         return result;

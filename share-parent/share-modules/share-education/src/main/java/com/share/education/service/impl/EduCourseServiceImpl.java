@@ -412,8 +412,32 @@ public class EduCourseServiceImpl implements IEduCourseService {
         } else {
             wrapper.orderByAsc(EduCourse::getSortNum).orderByDesc(EduCourse::getCreateTime);
         }
+        // 1. 无搜索关键字的高频分页优先读 Redis 二级缓存
+        String cacheKey = null;
+        if (!isAdmin && !StringUtils.hasText(keyword) && redisService != null) {
+            cacheKey = "edu:course:portal:page:" + safePage(pageNo) + ":" + safeSize(pageSize) + ":"
+                    + (categoryId != null ? categoryId : 0) + ":"
+                    + (priceType != null ? priceType : "all") + ":"
+                    + (sortBy != null ? sortBy : "def");
+            try {
+                Map<String, Object> cachedPage = redisService.getCacheObject(cacheKey);
+                if (cachedPage != null && !cachedPage.isEmpty()) {
+                    return cachedPage;
+                }
+            } catch (Exception ignored) {}
+        }
+
         courseMapper.selectPage(page, wrapper);
-        return pageView(page.getTotal(), page.getRecords().stream().map(this::courseView).toList());
+        List<Map<String, Object>> views = page.getRecords().stream().map(this::courseView).toList();
+        Map<String, Object> resultPage = pageView(page.getTotal(), views);
+
+        if (cacheKey != null && redisService != null && !views.isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, resultPage, 60L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
+
+        return resultPage;
     }
 
     @Override

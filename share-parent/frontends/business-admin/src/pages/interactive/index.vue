@@ -62,7 +62,7 @@
     <!-- 问答列表 -->
     <el-card class="table-card" shadow="hover">
       <el-table :data="qaList" stripe style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="id" label="ID" min-width="190" show-overflow-tooltip class-name="tabular-nums" />
         <el-table-column label="问题内容" min-width="300">
           <template #default="{ row }">
             <div class="question-content">

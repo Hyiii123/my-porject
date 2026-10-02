@@ -37,7 +37,7 @@
     <!-- 优惠券列表 -->
     <el-card class="table-card" shadow="hover">
       <el-table :data="couponList" stripe style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="id" label="ID" min-width="190" show-overflow-tooltip class-name="tabular-nums" />
         <el-table-column prop="name" label="优惠券名称" min-width="200" />
         <el-table-column prop="type" label="类型" width="100">
           <template #default="{ row }">

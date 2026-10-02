@@ -91,8 +91,32 @@ public class EduInteractionServiceImpl implements IEduInteractionService {
                 .ge("solved".equalsIgnoreCase(solved), EduQuestion::getReplyCount, 1)
                 .eq("unsolved".equalsIgnoreCase(solved), EduQuestion::getReplyCount, 0)
                 .orderByDesc(EduQuestion::getCreateTime);
+        // 1. 高频公共问答大厅优先查 Redis 二级缓存
+        String cacheKey = null;
+        if (!onlyMine && !StringUtils.hasText(keyword) && redisService != null) {
+            cacheKey = "edu:interaction:questions:page:" + (courseId != null ? courseId : 0) + ":"
+                    + (sectionId != null ? sectionId : 0) + ":"
+                    + (solved != null ? solved : "all") + ":"
+                    + safePage(pageNo) + ":" + safeSize(pageSize);
+            try {
+                Map<String, Object> cached = redisService.getCacheObject(cacheKey);
+                if (cached != null && !cached.isEmpty()) {
+                    return cached;
+                }
+            } catch (Exception ignored) {}
+        }
+
         questionMapper.selectPage(page, wrapper);
-        return pageView(page.getTotal(), page.getRecords().stream().map(this::questionView).toList());
+        List<Map<String, Object>> views = page.getRecords().stream().map(this::questionView).toList();
+        Map<String, Object> pageData = pageView(page.getTotal(), views);
+
+        if (cacheKey != null && redisService != null && !views.isEmpty()) {
+            try {
+                redisService.setCacheObject(cacheKey, pageData, 60L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        }
+
+        return pageData;
     }
 
     @Override

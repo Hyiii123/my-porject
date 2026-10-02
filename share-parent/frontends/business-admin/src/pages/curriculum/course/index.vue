@@ -52,7 +52,7 @@
       </template>
 
       <el-table :data="courseList" stripe style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="id" label="ID" min-width="190" show-overflow-tooltip class-name="tabular-nums" />
         <el-table-column label="课程信息" min-width="300">
           <template #default="{ row }">
             <div class="course-info">
