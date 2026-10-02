@@ -4,8 +4,10 @@
 html,
 body {
   color: var(--color-font1);
-  background-color: var(--color-bodybackground);
-  font-family: -apple-system, BlinkMacSystemFont;
+  background: radial-gradient(1200px 800px at 20% -10%, rgba(33, 198, 232, 0.04), transparent 70%),
+              radial-gradient(1000px 600px at 90% 10%, rgba(43, 134, 240, 0.03), transparent 60%),
+              #F8FAFC !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 14px;
   margin: 0;
   padding: 0;
@@ -1474,34 +1476,74 @@ a {
 }
 
 
-// IAIC 全局管理端视觉覆盖规范
+// IAIC 全局管理端视觉覆盖规范 (呼吸感与高工效质感)
 .bg-wt {
-  background-color: var(--card) !important;
-  border: 1px solid var(--line) !important;
-  box-shadow: var(--shadow) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(228, 237, 248, 0.85) !important;
+  box-shadow: var(--shadow-airy) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .radius {
-  border-radius: 16px !important;
+  border-radius: 14px !important;
 }
 
 .searchForm {
-  border-radius: 16px !important;
-  border: 1px solid var(--line) !important;
-  box-shadow: var(--shadow) !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(228, 237, 248, 0.85) !important;
+  box-shadow: var(--shadow-airy) !important;
+  padding: 20px 24px !important;
+  margin-bottom: 20px !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .tableBox, .tableWrapper {
-  border-radius: 16px !important;
-  border: 1px solid var(--line) !important;
-  box-shadow: var(--shadow) !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(228, 237, 248, 0.85) !important;
+  box-shadow: var(--shadow-airy) !important;
+  padding: 20px 24px !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .primary,
 .addBox .el-button--primary {
-  background: linear-gradient(90deg, #38b6ff, #2a8fff) !important;
+  background: linear-gradient(120deg, #21C6E8 0%, #2B86F0 100%) !important;
   border-color: transparent !important;
-  color: #fff !important;
-  box-shadow: 0 4px 12px rgba(42, 143, 255, 0.3) !important;
-  border-radius: 20px !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(43, 134, 240, 0.28) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(43, 134, 240, 0.38) !important;
+  }
+}
+
+// 全局表格呼吸感与留白节奏
+.el-table {
+  border-radius: 10px !important;
+  overflow: hidden;
+
+  th.el-table__cell {
+    background: #F8FAFC !important;
+    color: #475569 !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    padding: 13px 16px !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+  }
+
+  td.el-table__cell {
+    padding: 13px 16px !important;
+    color: #1E293B;
+    border-bottom: 1px solid #F1F5F9 !important;
+    font-size: 13.5px;
+  }
+
+  .el-table__row:hover > td.el-table__cell {
+    background-color: #F0F7FF !important;
+  }
 }

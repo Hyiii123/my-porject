@@ -1,7 +1,7 @@
 <!--课程管理搜索-->
 <template>
-  <div class="bg-wt radius marg-tp-20">
-    <div class="pad-30 searchForm">
+  <div class="bg-wt radius marg-tp-20 search-container-card">
+    <div class="search-form-inner">
       <el-form ref="ruleForm" :inline="true" :model="searchData">
         <el-row :gutter="30">
           <el-col :span="6">
@@ -238,6 +238,13 @@ const handleSelect = (val) => {
       color: #b5abab;
     }
   }
+}
+.search-container-card {
+  margin-top: 20px;
+  margin-bottom: 24px;
+}
+.search-form-inner {
+  padding: 22px 24px 6px;
 }
 .curriculumBtn {
   padding: 10px 0 20px;

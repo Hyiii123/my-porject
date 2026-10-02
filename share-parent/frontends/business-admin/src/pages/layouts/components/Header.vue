@@ -94,15 +94,19 @@ header {
   left: 226px;
   z-index: 998;
   width: calc(100% - 226px);
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02), 0 8px 24px -6px rgba(30, 137, 241, 0.04);
   text-align: left;
-  padding: 0 28px;
-  height: 60px;
+  padding: 0 32px;
+  height: 62px;
   display: flex;
   align-items: center;
   font-size: 14px;
   box-sizing: border-box;
+  transition: all 0.25s ease;
 
   .wecom {
     margin: 0 16px 0 0;

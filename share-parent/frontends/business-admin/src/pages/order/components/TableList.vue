@@ -12,72 +12,66 @@
       </el-table-column>
       <el-table-column label="学员手机号" prop="mobile" min-width="160">
       </el-table-column>
-      <el-table-column label="实付金额" min-width="140">
+      <el-table-column label="实付金额" min-width="130">
         <template #default="scope">
-          {{
-            scope.row.realPayAmount === "0"
-              ? "免费"
-              : "￥" + scope.row.realPayAmount
-          }}
+          <span class="fontTip ft-wt-600 tabular-nums">
+            {{ scope.row.realPayAmount === "0" || scope.row.realPayAmount === 0 ? "免费" : "¥" + scope.row.realPayAmount }}
+          </span>
         </template>
       </el-table-column>
-      <el-table-column label="订单金额" min-width="140">
+      <el-table-column label="订单金额" min-width="130">
         <template #default="scope">
-          {{
-            scope.row.price === "0"
-              ? "免费"
-              : "￥" + scope.row.price
-          }}
+          <span class="tabular-nums">
+            {{ scope.row.price === "0" || scope.row.price === 0 ? "免费" : "¥" + scope.row.price }}
+          </span>
         </template>
       </el-table-column>
       <el-table-column label="订单状态" min-width="120">
         <template #default="scope">
-          <span v-if="scope.row.status === 1"
-            ><span class="iconTip forbidIcon"></span>未支付</span
-          >
-          <span v-if="scope.row.status === 2"
-            ><span class="iconTip normalIcon"></span>已支付</span
-          >
-          <span v-if="scope.row.status === 3"
-            ><span class="iconTip accomplishIcon"></span>已关闭</span
-          >
-          <span v-if="scope.row.status === 4"
-            ><span class="iconTip accomplishIcon"></span>已完成</span
-          >
-          <span v-if="scope.row.status === 5"
-            ><span class="iconTip normalIcon"></span>已报名</span
-          >
-          <span v-if="scope.row.status === 6"
-            ><span class="iconTip normalIcon"></span>已退款</span
-          >
+          <span v-if="scope.row.status === 1" class="badge-pill warning">
+            <span class="pill-dot"></span>待支付
+          </span>
+          <span v-else-if="scope.row.status === 2" class="badge-pill warning">
+            <span class="pill-dot"></span>退款中
+          </span>
+          <span v-else-if="scope.row.status === 3" class="badge-pill neutral">
+            <span class="pill-dot"></span>已关闭
+          </span>
+          <span v-else-if="scope.row.status === 4" class="badge-pill success">
+            <span class="pill-dot"></span>已完成
+          </span>
+          <span v-else-if="scope.row.status === 5" class="badge-pill info">
+            <span class="pill-dot"></span>已报名
+          </span>
+          <span v-else-if="scope.row.status === 6" class="badge-pill info">
+            <span class="pill-dot"></span>已退款
+          </span>
+          <span v-else class="badge-pill neutral">
+            <span class="pill-dot"></span>--
+          </span>
         </template>
       </el-table-column>
-      <el-table-column label="退款状态" min-width="150">
+      <el-table-column label="退款状态" min-width="130">
         <template #default="scope">
-          <span
-            v-if="
-              scope.row.refundStatus === undefined || !scope.row.refundStatus
-            "
-            >--</span
-          >
-          <span v-if="scope.row.refundStatus === 1"
-            ><span class="iconTip forbidIcon"></span>待审批</span
-          >
-          <span v-if="scope.row.refundStatus === 2"
-            ><span class="iconTip accomplishIcon"></span>取消退款</span
-          >
-          <span v-if="scope.row.refundStatus === 3"
-            ><span class="iconTip normalIcon"></span>同意退款</span
-          >
-          <span v-if="scope.row.refundStatus === 4"
-            ><span class="iconTip accomplishIcon"></span>拒绝退款</span
-          >
-          <span v-if="scope.row.refundStatus === 5"
-            ><span class="iconTip normalIcon"></span>退款成功</span
-          >
-          <span v-if="scope.row.refundStatus === 6"
-            ><span class="iconTip forbidIcon"></span>退款失败</span
-          >
+          <span v-if="!scope.row.refundStatus" class="ft-cl-des">--</span>
+          <span v-else-if="scope.row.refundStatus === 1" class="badge-pill warning">
+            <span class="pill-dot"></span>待审批
+          </span>
+          <span v-else-if="scope.row.refundStatus === 2" class="badge-pill neutral">
+            <span class="pill-dot"></span>取消退款
+          </span>
+          <span v-else-if="scope.row.refundStatus === 3" class="badge-pill info">
+            <span class="pill-dot"></span>同意退款
+          </span>
+          <span v-else-if="scope.row.refundStatus === 4" class="badge-pill danger">
+            <span class="pill-dot"></span>拒绝退款
+          </span>
+          <span v-else-if="scope.row.refundStatus === 5" class="badge-pill success">
+            <span class="pill-dot"></span>退款成功
+          </span>
+          <span v-else-if="scope.row.refundStatus === 6" class="badge-pill danger">
+            <span class="pill-dot"></span>退款失败
+          </span>
         </template>
       </el-table-column>
       <el-table-column label="支付方式" prop="payChannel" min-width="120">

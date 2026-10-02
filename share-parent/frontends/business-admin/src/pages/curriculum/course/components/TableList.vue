@@ -33,12 +33,15 @@
         "
       >
         <template #default="scope">
-          <span class="fontTip ft-wt-600">{{
-            scope.row.price === "0" ? "免费" : "￥" + scope.row.price
+          <span class="fontTip ft-wt-600 tabular-nums">{{
+            scope.row.price === "0" || scope.row.price === 0 ? "免费" : "¥" + scope.row.price
           }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="sections" label="课时" min-width="150">
+      <el-table-column prop="sections" label="课时" min-width="120">
+        <template #default="scope">
+          <span class="tabular-nums">{{ scope.row.sections || 0 }} 节</span>
+        </template>
       </el-table-column>
       <el-table-column
         prop="categories"
@@ -50,18 +53,23 @@
       <el-table-column
         prop="sold"
         label="报名人数"
-        min-width="150"
+        min-width="130"
         v-if="props.status !== 1"
       >
+        <template #default="scope">
+          <span class="tabular-nums">{{ scope.row.sold || 0 }} 人</span>
+        </template>
       </el-table-column>
       <el-table-column
         prop="score"
         label="课程评分"
-        min-width="150"
+        min-width="130"
         sortable
         v-if="props.status !== 1"
       >
-        <template #default="scope"> {{ scope.row.score / 10 }}分 </template>
+        <template #default="scope">
+          <span class="tabular-nums ft-wt-600" style="color: #F59E0B;">{{ Number(scope.row.score / 10).toFixed(1) }} 分</span>
+        </template>
       </el-table-column>
       <el-table-column
         prop="updaterName"

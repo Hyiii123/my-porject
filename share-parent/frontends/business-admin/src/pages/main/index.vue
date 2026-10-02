@@ -1,14 +1,25 @@
 <template>
   <div class="dashboard-container">
-    <!-- IAIC 工作台科技大屏 Banner -->
+    <!-- IAIC 工作台科技大屏 Banner (呼吸感状态中心) -->
     <div class="admin-dashboard-hero">
-      <div class="home-eyebrow">
-        <span class="idx">01</span>
-        <span class="bar"></span>
-        <span>ENTERPRISE OPERATIONS & AI TELEMETRY</span>
+      <div class="hero-flex">
+        <div class="hero-text-wrap">
+          <div class="home-eyebrow">
+            <span class="idx">01</span>
+            <span class="bar"></span>
+            <span>ENTERPRISE OPERATIONS & AI TELEMETRY</span>
+          </div>
+          <h1 class="hero-title">智问学伴 · <span class="accent">业务协同管理工作台</span></h1>
+          <p class="hero-desc">全站课程资产、学员认知画像、多智能体导学推演、订单交易履约与客服大模型实时可观测大盘</p>
+        </div>
+        <div class="hero-right-badge">
+          <div class="live-status-pill">
+            <span class="pulse-dot"></span>
+            <span class="pill-text">全集群节点协同健康</span>
+          </div>
+          <div class="telemetry-sub">实时遥测守护中</div>
+        </div>
       </div>
-      <h1 class="hero-title">智问学伴 · <span class="accent">业务协同管理工作台</span></h1>
-      <p class="hero-desc">全站课程资产、学员认知画像、多智能体导学推演、订单交易履约与客服大模型实时可观测大盘</p>
     </div>
 
     <div class="stat-cards">
@@ -18,7 +29,7 @@
             <el-icon :size="24"><component :is="item.icon" /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">{{ item.value }}</div>
+            <div class="stat-value tabular-nums">{{ item.value }}</div>
             <div class="stat-label">{{ item.label }}</div>
           </div>
         </div>
@@ -269,57 +280,92 @@ onMounted(loadDashboard)
 </script>
 
 <style scoped>
-.dashboard-container { padding: 24px; background: #f8fafc; min-height: 100%; }
-.stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-.stat-card { border-radius: 8px; border: 1px solid #e2e8f0; background: #ffffff; transition: transform 0.2s, box-shadow 0.2s; }
-.stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
-.stat-card :deep(.el-card__body) { padding: 20px; }
-.stat-card-content { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
-.stat-icon { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.dashboard-container { padding: 28px 32px; min-height: 100%; }
+.stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px; }
+.stat-card {
+  border-radius: 14px;
+  border: 1px solid rgba(228, 237, 248, 0.85);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 10px -2px rgba(15, 23, 42, 0.03), 0 16px 36px -12px rgba(30, 137, 241, 0.06);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px -6px rgba(30, 137, 241, 0.12);
+  border-color: rgba(33, 198, 232, 0.4);
+}
+.stat-card :deep(.el-card__body) { padding: 22px 24px; }
+.stat-card-content { display: flex; align-items: center; gap: 18px; margin-bottom: 16px; }
+.stat-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04); }
 .stat-info { flex: 1; }
-.stat-value { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
-.stat-label { font-size: 13px; color: #64748b; }
-.stat-footer { display: flex; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid #f1f5f9; }
-.stat-change { font-size: 13px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
-.stat-change.up { color: #16a34a; }
-.stat-change.down { color: #dc2626; }
-.stat-period { font-size: 12px; color: #94a3b8; }
-.chart-section { margin-bottom: 20px; }
-.chart-card { border-radius: 8px; border: 1px solid #e2e8f0; background: #ffffff; }
+.stat-value { font-size: 26px; font-weight: 800; color: #0F172A; margin-bottom: 2px; letter-spacing: -0.5px; }
+.stat-label { font-size: 13px; color: #64748B; font-weight: 500; }
+.stat-footer { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid #F1F5F9; }
+.stat-change { font-size: 13px; display: flex; align-items: center; gap: 4px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat-change.up { color: #16A34A; }
+.stat-change.down { color: #DC2626; }
+.stat-period { font-size: 12px; color: #94A3B8; }
+.chart-section { margin-bottom: 24px; }
+.chart-card {
+  border-radius: 14px;
+  border: 1px solid rgba(228, 237, 248, 0.85);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 10px -2px rgba(15, 23, 42, 0.03), 0 16px 36px -12px rgba(30, 137, 241, 0.06);
+}
 .card-header { display: flex; justify-content: space-between; align-items: center; }
-.card-header span { font-size: 15px; font-weight: 600; color: #0f172a; }
-.chart-placeholder { height: 280px; display: flex; align-items: flex-end; justify-content: center; padding: 20px 0; }
-.chart-bars { display: flex; align-items: flex-end; gap: 28px; height: 100%; width: 100%; max-width: 900px; }
-.chart-bars.month-bars { gap: 5px; }
+.card-header span { font-size: 16px; font-weight: 700; color: #0F172A; }
+.chart-placeholder { height: 280px; display: flex; align-items: flex-end; justify-content: center; padding: 24px 0 16px; }
+.chart-bars { display: flex; align-items: flex-end; gap: 32px; height: 100%; width: 100%; max-width: 900px; }
+.chart-bars.month-bars { gap: 6px; }
 .chart-bar-item { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; min-width: 0; }
 .bar-wrapper { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
-.bar { width: 32px; background: #2563eb; border-radius: 4px 4px 0 0; position: relative; transition: height .4s ease, background-color .2s; min-height: 0; }
-.bar:hover { background: #1d4ed8; }
-.month-bars .bar { width: 14px; }
-.bar-value { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #64748b; font-weight: 600; white-space: nowrap; }
-.bar-label { margin-top: 8px; font-size: 12px; color: #64748b; white-space: nowrap; }
-.month-bars .bar-label { font-size: 10px; transform: rotate(-45deg); transform-origin: top center; margin-top: 12px; }
-.bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-.recent-orders, .hot-courses { border-radius: 8px; border: 1px solid #e2e8f0; background: #ffffff; }
-.price { color: #dc2626; font-weight: 600; }
-.course-list { display: flex; flex-direction: column; gap: 10px; }
-.course-item { display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 6px; transition: all .2s; }
-.course-item:hover { background: #f1f5f9; border-color: #e2e8f0; }
-.course-rank { width: 24px; height: 24px; border-radius: 6px; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
-.course-rank.rank-1 { background: #2563eb; color: #ffffff; }
-.course-rank.rank-2 { background: #0284c7; color: #ffffff; }
-.course-rank.rank-3 { background: #0d9488; color: #ffffff; }
+.bar {
+  width: 34px;
+  background: linear-gradient(180deg, #21C6E8 0%, #1E89F1 100%);
+  border-radius: 6px 6px 0 0;
+  position: relative;
+  transition: all .4s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 0;
+}
+.bar:hover {
+  background: linear-gradient(180deg, #38BDF8 0%, #2563EB 100%);
+  box-shadow: 0 0 14px rgba(33, 198, 232, 0.45);
+}
+.month-bars .bar { width: 14px; border-radius: 4px 4px 0 0; }
+.bar-value { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #64748B; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bar-label { margin-top: 10px; font-size: 12px; color: #64748B; white-space: nowrap; }
+.month-bars .bar-label { font-size: 10px; transform: rotate(-45deg); transform-origin: top center; margin-top: 14px; }
+.bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+.recent-orders, .hot-courses {
+  border-radius: 14px;
+  border: 1px solid rgba(228, 237, 248, 0.85);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 10px -2px rgba(15, 23, 42, 0.03), 0 16px 36px -12px rgba(30, 137, 241, 0.06);
+}
+.price { color: #DC2626; font-weight: 700; font-variant-numeric: tabular-nums; }
+.course-list { display: flex; flex-direction: column; gap: 12px; }
+.course-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: #F8FAFC; border: 1px solid #F1F5F9; border-radius: 8px; transition: all .2s; }
+.course-item:hover { background: #F0F7FF; border-color: #BFDBFE; transform: translateX(2px); }
+.course-rank { width: 26px; height: 26px; border-radius: 6px; background: #E2E8F0; color: #64748B; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.course-rank.rank-1 { background: linear-gradient(135deg, #F59E0B, #D97706); color: #FFFFFF; }
+.course-rank.rank-2 { background: linear-gradient(135deg, #0EA5E9, #0284C7); color: #FFFFFF; }
+.course-rank.rank-3 { background: linear-gradient(135deg, #10B981, #059669); color: #FFFFFF; }
 .course-info { flex: 1; min-width: 0; }
-.course-name { font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.course-meta { display: flex; gap: 12px; font-size: 12px; color: #94a3b8; }
-.course-price { font-size: 14px; font-weight: 700; color: #dc2626; white-space: nowrap; }
-.todo-section { border-radius: 8px; border: 1px solid #e2e8f0; background: #ffffff; }
-.todo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.todo-item { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: all .2s; }
-.todo-item:hover { background: #f8fafc; border-color: #93c5fd; transform: translateY(-1px); }
-.todo-count { font-size: 24px; font-weight: 700; color: #2563eb; }
-.todo-label { flex: 1; font-size: 13px; color: #475569; font-weight: 500; }
-.todo-arrow { color: #94a3b8; font-size: 14px; }
+.course-name { font-size: 13.5px; font-weight: 600; color: #1E293B; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.course-meta { display: flex; gap: 14px; font-size: 12px; color: #94A3B8; }
+.course-price { font-size: 14.5px; font-weight: 700; color: #DC2626; white-space: nowrap; }
+.todo-section {
+  border-radius: 14px;
+  border: 1px solid rgba(228, 237, 248, 0.85);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 10px -2px rgba(15, 23, 42, 0.03), 0 16px 36px -12px rgba(30, 137, 241, 0.06);
+}
+.todo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.todo-item { display: flex; align-items: center; gap: 14px; padding: 18px 22px; background: #FFFFFF; border: 1px solid rgba(226, 232, 240, 0.85); border-radius: 10px; cursor: pointer; transition: all .25s cubic-bezier(0.16, 1, 0.3, 1); }
+.todo-item:hover { background: #F8FAFC; border-color: #38BDF8; transform: translateY(-2px); box-shadow: 0 8px 20px -4px rgba(30, 137, 241, 0.1); }
+.todo-count { font-size: 26px; font-weight: 800; color: #2563EB; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+.todo-label { flex: 1; font-size: 13.5px; color: #334155; font-weight: 500; }
+.todo-arrow { color: #94A3B8; font-size: 14px; }
 @media (max-width: 1200px) {
   .stat-cards { grid-template-columns: repeat(2, 1fr); }
   .bottom-section { grid-template-columns: 1fr; }
@@ -336,11 +382,41 @@ onMounted(loadDashboard)
   background: radial-gradient(60% 80% at 50% 0%, rgba(33, 198, 232, 0.14), transparent 60%),
               radial-gradient(50% 70% at 5% 100%, rgba(43, 134, 240, 0.12), transparent 60%),
               linear-gradient(135deg, #eaf4ff, #d6eaff 55%, #c8e0ff);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 24px 30px;
+  border: 1px solid rgba(228, 237, 248, 0.85);
+  border-radius: 16px;
+  padding: 24px 32px;
   margin-bottom: 24px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 4px 20px -2px rgba(19, 41, 79, 0.04), 0 16px 36px -8px rgba(30, 137, 241, 0.07);
+
+  .hero-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .live-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 8px rgba(19, 41, 79, 0.04);
+    font-size: 13px;
+    font-weight: 500;
+    color: #0F172A;
+  }
+
+  .telemetry-sub {
+    font-size: 11.5px;
+    color: #64748B;
+    text-align: right;
+    margin-top: 5px;
+    letter-spacing: 0.2px;
+  }
 }
 
 .hero-title {
