@@ -139,9 +139,9 @@ services:
       MYSQL_SERVICE_USER: root
       MYSQL_SERVICE_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
       MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&allowPublicKeyRetrieval=true"
-      JVM_XMS: ${TJ_NACOS_JVM_XMS:-128m}
-      JVM_XMX: ${TJ_NACOS_JVM_XMX:-384m}
-      JVM_XMN: ${TJ_NACOS_JVM_XMN:-64m}
+      JVM_XMS: ${TJ_NACOS_JVM_XMS:-96m}
+      JVM_XMX: ${TJ_NACOS_JVM_XMX:-256m}
+      JVM_XMN: ${TJ_NACOS_JVM_XMN:-48m}
       TZ: Asia/Shanghai
     ports:
       - "${TJ_NACOS_PORT:-8848}:8848"
@@ -173,7 +173,7 @@ services:
     ports:
       - "9876:9876"
     environment:
-      JAVA_OPT_EXT: "-Xms128m -Xmx128m -Xmn64m"
+      JAVA_OPT_EXT: "-Xms64m -Xmx96m -Xmn32m"
       TZ: Asia/Shanghai
     volumes:
       - /opt/tianji/rocketmq/namesrv/logs:/home/rocketmq/logs
@@ -196,7 +196,7 @@ services:
       - "10909:10909"
       - "10911:10911"
     environment:
-      JAVA_OPT_EXT: "-Xms256m -Xmx384m -Xmn128m"
+      JAVA_OPT_EXT: "-Xms128m -Xmx256m -Xmn64m"
       TZ: Asia/Shanghai
     volumes:
       - /opt/tianji/rocketmq/conf/broker.conf:/home/rocketmq/rocketmq-5.1.4/conf/broker.conf:ro
@@ -226,7 +226,7 @@ services:
       NACOS_SERVER_ADDR: nacos:8848
       TJ_REDIS_HOST: redis
       TJ_REDIS_PORT: 6379
-      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10}"
     ports:
       - "${TJ_AUTH_PORT:-19200}:9200"
     depends_on:
@@ -250,7 +250,7 @@ services:
       NACOS_SERVER_ADDR: nacos:8848
       TJ_REDIS_HOST: redis
       TJ_REDIS_PORT: 6379
-      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10}"
     ports:
       # 与 share-ui 开发代理默认的 localhost:8080 对齐；如有端口冲突可通过 .env 修改。
       - "${TJ_GATEWAY_PORT:-8080}:18080"
@@ -262,8 +262,9 @@ services:
     networks:
       - zhiwen-net
 
-  # 三个前端均为独立应用：若依基础管理端、用户端和业务管理端。
+  # 三个前端均为独立应用：若依基础管理端默认停用，业务管理端承载全部管理能力。
   ruoyi-ui:
+    profiles: ["dev-tool"]
     build:
       context: .
       dockerfile: frontends/Dockerfile
@@ -350,7 +351,7 @@ services:
       TJ_MYSQL_PORT: 3306
       TJ_MYSQL_USERNAME: root
       TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
-      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10}"
     ports:
       - "${TJ_SYSTEM_PORT:-19201}:9201"
     depends_on:
@@ -384,7 +385,7 @@ services:
       TJ_PIXEL_API_ENDPOINT: "${TJ_PIXEL_API_ENDPOINT:-/v1/chat/completions}"
       TJ_PIXEL_API_MODEL: "${TJ_PIXEL_API_MODEL:-gpt-5.6-luna}"
       TJ_AI_SECRET: "${TJ_AI_SECRET:-sk-975c6e8ae2e605b9844fe544e2aec345a15518e72a056564d6927d733519c6b4}"
-      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10}"
     ports:
       - "${TJ_CUSTOMER_PORT:-19206}:9206"
     depends_on:
@@ -417,7 +418,7 @@ services:
       TJ_MYSQL_USERNAME: root
       TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
       TJ_FILE_DOMAIN: "${TJ_FILE_DOMAIN:-/file}"
-      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10}"
     ports:
       - "${TJ_FILE_PORT:-19300}:9300"
     volumes:
@@ -450,7 +451,7 @@ services:
       AI_BASE_URL: "${AI_BASE_URL:-https://ai-pixel.online}"
       AI_MODEL: "${AI_MODEL:-gpt-5.6-luna}"
       AI_API_KEY: "${AI_API_KEY:-sk-975c6e8ae2e605b9844fe544e2aec345a15518e72a056564d6927d733519c6b4}"
-      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10}"
     ports:
       - "${TJ_EDUCATION_PORT:-19210}:9210"
     depends_on:
@@ -480,7 +481,7 @@ services:
       TJ_MYSQL_PORT: 3306
       TJ_MYSQL_USERNAME: root
       TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
-      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10}"
     ports:
       - "${TJ_TRADE_PORT:-19211}:9211"
     depends_on:
@@ -537,7 +538,7 @@ services:
       TJ_MYSQL_PORT: 3306
       TJ_MYSQL_USERNAME: root
       TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
-      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10}"
     ports:
       - "${TJ_GEN_PORT:-19202}:9202"
     depends_on:
@@ -569,7 +570,7 @@ services:
       TJ_MYSQL_PORT: 3306
       TJ_MYSQL_USERNAME: root
       TJ_MYSQL_PASSWORD: "${TJ_MYSQL_ROOT_PASSWORD:-TjLocalRoot@2026}"
-      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10}"
     ports:
       - "${TJ_JOB_PORT:-19203}:9203"
     depends_on:
@@ -595,7 +596,7 @@ services:
     restart: "no"
     environment:
       NACOS_SERVER_ADDR: nacos:8848
-      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms128m -Xmx384m}"
+      JAVA_OPTS: "${TJ_JAVA_OPTS:--Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10}"
     ports:
       - "${TJ_MONITOR_PORT:-19100}:9100"
     depends_on:

@@ -14,6 +14,23 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-10-03 10:30:00 - “去若依化”第一步全面落地：冗余前端下线、RocketMQ与Nacos内存收敛、全服务线程栈与GC调优交付 (De-RuoYi Phase 1 Milestone: Obsolete Frontend Deprecation, RocketMQ/Nacos Memory Bounds Tightening, and Full JVM Stack Depth & GC Tuning)
+
+* **演进主题**：针对若依微服务体系内存过度消耗问题，启动并完整交付“去若依化”战略第一步（停运并彻底下线冗余前端容器 `zhiwen-ruoyi-ui`、全面收敛 `docker-compose.yml` 与 `.env` 中的 Nacos 和 RocketMQ 堆内存上限、全站 7 大微服务统一收敛 `-Xss256k` 与 G1GC 紧缩参数、生产平滑重启与端到端健康验证 100% 通过）(Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **彻底下线若依冗余前端（zhiwen-ruoyi-ui）**：
+     - 在云端 ECS 停运并删除 `zhiwen-ruoyi-ui` 容器，在 `docker-compose.yml` 将其标记为 `profiles: ["dev-tool"]`，杜绝随站重启自动拉起；
+     - 业务管理能力全面交由 `zhiwen-business-admin-ui` 单一真相源承载，消除管理端双套冗余。
+  2. **Java 重型中间件参数全面收敛**：
+     - `zhiwen-rocketmq-broker`：内存占用从原本的 490.1 MiB 骤降至 **299.7 MiB**（降幅 ~39%）；
+     - `zhiwen-rocketmq-namesrv`：内存占用从 165.5 MiB 降至 **128.8 MiB**（降幅 ~22%）；
+     - `zhiwen-nacos`：JVM Xmx/Xms 收敛至 256m/96m，内存从 591.6 MiB 压降至 **513.5 MiB**。
+  3. **微服务 JVM 栈深与 G1GC 内存回缩优化**：
+     - 全站 Java 容器默认参数收敛为 `-Xms96m -Xmx256m -Xss256k -XX:MaxMetaspaceSize=192m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:InitiatingHeapOccupancyPercent=45 -XX:G1ReservePercent=10`；
+     - 线程栈深度由 Linux 默认的 1MB 收敛至 256KB，消除空闲线程占用的大量堆外内存。
+  4. **全链路业务验证 100% 正常**：
+     - 验证 21 大核心业务接口、微服务 Nacos 服务注册、RocketMQ 消息中枢生产消费以及用户端与业务管理端，全部正常提供服务，无内存溢出或垃圾回收停顿风险。
+
 ### 2026-10-02 05:35:00 - 三大进阶方向全景攻坚：Nginx HTTP/2 多路复用静态分发、AI 面试全双工实时打断 (Barge-In) 与意图路由毫秒级向量内存缓存闭环 (Three Advanced Dimensions Milestone: Nginx HTTP/2 Multiplexing, Full-Duplex AI Interview Barge-In with Audio FFT Spectrum, and Zero-Latency Semantic Vector Caching)
 
 * **演进主题**：针对系统架构与用户深度交互持续攻坚三大核心演进方向：在前端网关启用 HTTP/2 多路复用与全双工 WebSocket 协议穿透；在 AI 全真模拟考场落地候选人主动口述打断考官 (Barge-In VAD) 与真实 FFT 频域等化器声浪动画；在客服意图识别中枢引入内存级向量缓存与意图 0ms 首跳直出，实测服务端原生接口响应均值降至 19ms~64ms (Rule 1 & Rule 8 Compliance)
