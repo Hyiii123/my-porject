@@ -1,65 +1,298 @@
 <template>
   <div class="home-page">
-    <!-- 1. 逆向 1:1 IAIC 宏伟科技 Hero Banner -->
-    <section class="home-banner">
-      <!-- 径向呼吸弥散发光体 -->
-      <div class="home-banner-glow"></div>
+    <!-- 1. 务实极简高阶双主轴 Hero 决策台 (Pristine Minimalist Studio Bento) -->
+    <section class="pragmatic-hero-section">
+      <div class="home-wrap">
+        <!-- 业务情境标头 -->
+        <div class="context-meta-strip">
+          <span class="meta-chip primary">计算机实战导学体系</span>
+          <span class="meta-sep">/</span>
+          <span>涵盖 10 大主流研发方向</span>
+          <span class="meta-sep">/</span>
+          <span>对标一线大厂工程能力模型 (STAR 标准)</span>
+        </div>
 
-      <!-- 10 个轻灵浮动的霓虹青光微粒 -->
-      <div class="home-banner-particles">
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
+        <div class="hero-bento-split">
+          <!-- 左主栏：务实技术导学决策台 -->
+          <div class="hero-main-card">
+            <div class="main-card-top">
+              <h1 class="hero-main-title">
+                面向技术求职与工程研发的<br>
+                <span class="title-brand-color">全真 AI 模拟面试与实战导学平台</span>
+              </h1>
+              <p class="hero-main-desc">
+                汇聚 320 门覆盖微服务架构、大模型工程、分布式系统等方向的工业级实战课程。结合全双工语音考场与动态知识追踪算法，帮助工程师系统化击破知识卡点，高效备战大厂技术面试。
+              </p>
+
+              <div class="action-buttons-group">
+                <button class="btn-cta-primary" @click="$router.push('/interview')">
+                  <span>🎙️ 进入 AI 考官模拟考场</span>
+                  <span class="btn-arrow">➔</span>
+                </button>
+                <button class="btn-cta-secondary" @click="$router.push('/classList/index')">
+                  <span>📚 浏览 10 大方向课程体系</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 真实业务数据排版 (Tabular Numerals) -->
+            <div class="metrics-strip">
+              <div class="metric-item">
+                <div class="metric-number">320 门</div>
+                <div class="metric-caption">覆盖 10 大专业方向课程</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-number" style="color: #2563eb;">0.001ms</div>
+                <div class="metric-caption">意图路由内存极速直出</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-number" style="color: #059669;">100%</div>
+                <div class="metric-caption">接口实测耗时 &lt; 200ms</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右主栏：全真 AI 考官模拟考场 HUD 视窗 -->
+          <div class="interview-hud-card">
+            <div class="hud-top-bar">
+              <div class="hud-examiner-label">
+                <span class="status-live-dot"></span>
+                <span>AI 主考官 · 技术架构师 (全真连线中)</span>
+              </div>
+              <!-- 真实音频等化器 -->
+              <div class="audio-fft-bars">
+                <span class="fft-bar-item" style="height: 6px;"></span>
+                <span class="fft-bar-item" style="height: 12px;"></span>
+                <span class="fft-bar-item" style="height: 18px;"></span>
+                <span class="fft-bar-item" style="height: 10px;"></span>
+                <span class="fft-bar-item" style="height: 16px;"></span>
+                <span class="fft-bar-item" style="height: 8px;"></span>
+                <span class="fft-bar-item" style="height: 14px;"></span>
+                <span class="fft-bar-item" style="height: 4px;"></span>
+              </div>
+            </div>
+
+            <!-- 考场交互视窗 -->
+            <div class="stage-viewport" @click="$router.push('/interview')">
+              <div class="examiner-avatar-box">🎙️</div>
+              <div class="barge-in-badge-pragmatic">
+                <span>⚡ 支持口述实时打断 (Barge-In) · 随时开口阐述思路</span>
+              </div>
+            </div>
+
+            <!-- 真实面试真题考点 -->
+            <div class="question-card-box">
+              <span class="question-meta-type">QUESTION #03 ｜ 高并发与容灾设计</span>
+              “电商秒杀大促场景中，若同时遇到 Redis 缓存击穿与后端连接池耗尽，如何结合布隆过滤器与 Sentinel 熔断器设计防雪崩链路？”
+            </div>
+
+            <!-- 候选人状态 Dock -->
+            <div class="candidate-dock-bar">
+              <span>👨‍💻 麦克风已就绪 (实时收音监听)</span>
+              <div class="wpm-reading">
+                <span>⚡ 语速: 142 字/分 ｜ 能量: 正常</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <!-- Banner 核心内容区 -->
-      <div class="home-banner-content">
-        <!-- 顶部呼吸徽章标签 -->
-        <div class="home-banner-tag">
-          <span class="dot"></span>
-          <span>L5 级自省多智能体协同导学中心 · 全新上线</span>
-        </div>
-
-        <!-- 平台大标题与渐变高亮 -->
-        <h1 class="home-banner-title">
-          智问学伴 · 新一代 <span class="accent">产学研 AI 协同导学平台</span>
-        </h1>
-
-        <!-- 双语副标题 -->
-        <div class="home-banner-subtitle">
-          大模型圆桌博弈推演 · 布鲁姆认知阶梯 · Kahn DAG 拓扑质检
-        </div>
-        <div class="home-banner-subtitle-en">
-          EMPOWERING AI-DRIVEN COMPUTATIONAL PEDAGOGY & FULL-STACK EDUCATION
-        </div>
-
-        <!-- 平台愿景阐述 -->
-        <p class="home-banner-desc">
-          依托前沿复合多智能体协同架构，深度融合大厂技术委员会实战图谱与维果茨基教学法模型，为您量身定制系统化、防劝退、强对齐的高薪技术成长闭环。
-        </p>
-
-        <!-- CTA 操作按钮组 -->
-        <div class="home-banner-btns">
-          <button class="home-btn home-btn-primary" @click="scrollToHUD">
-            <span>⚡ 探索 AI 导学路线</span>
-          </button>
-          <router-link :to="{ name: 'interviewIndex' }" class="home-btn home-btn-ghost">
-            <span>🎙️ 进入全真模拟考场</span>
-          </router-link>
-        </div>
-
-        <!-- 关键品质特性指标 -->
-        <div class="home-banner-features">
-          <span>100% DAG 拓扑无环合规</span>
-          <span>95%+ 真实大纲证据强接地</span>
-          <span>毫秒级流式自省推演心流</span>
-        </div>
-      </div>
-
-      <!-- 底部平滑过渡色板 -->
-      <div class="home-banner-fade"></div>
     </section>
 
-    <!-- 2. 悬浮式公告通知条 (Floating Notice Bar) -->
+    <!-- 2. 10 大专业方向课程体系与学情认知中枢 (Bento 3 卡等高饱满排版) -->
+    <section class="home-section tracks-bento-section">
+      <div class="home-wrap">
+        <div class="section-h2-row">
+          <div>
+            <h2 class="section-title-clean">10 大专业方向课程体系</h2>
+            <p class="section-sub-clean">按计算机研发核心领域与大厂招聘要求划分，拒绝中二修辞</p>
+          </div>
+          <el-button type="primary" link @click="$router.push('/classList/index')" class="all-courses-link">
+            全部 320 门课程 ➔
+          </el-button>
+        </div>
+
+        <div class="bento-pragmatic-grid">
+          <!-- 真实专业分类导航卡片 -->
+          <div class="pragmatic-card">
+            <div class="card-h3-title">
+              <span>🧭 核心研发技术领域分类</span>
+            </div>
+            <div class="card-p-desc">点击可快速筛选对应技术栈方向实战课</div>
+            <div class="tracks-real-grid">
+              <div class="track-row-item active" @click="handleTrackClick('Java')">
+                <div class="track-name-top">
+                  <span>后端与微服务架构</span>
+                  <span class="track-count-badge">62 门</span>
+                </div>
+                <div class="track-tech-stack">Java / Spring Cloud / Seata / Go</div>
+              </div>
+
+              <div class="track-row-item" @click="handleTrackClick('大模型')">
+                <div class="track-name-top">
+                  <span>AI 大模型与智能体工程</span>
+                  <span class="track-count-badge">38 门</span>
+                </div>
+                <div class="track-tech-stack">LLM / RAG / LangChain / Agent</div>
+              </div>
+
+              <div class="track-row-item" @click="handleTrackClick('前端')">
+                <div class="track-name-top">
+                  <span>现代前端与全栈开发</span>
+                  <span class="track-count-badge">45 门</span>
+                </div>
+                <div class="track-tech-stack">Vue3 / React / TypeScript / Node.js</div>
+              </div>
+
+              <div class="track-row-item" @click="handleTrackClick('数据库')">
+                <div class="track-name-top">
+                  <span>数据库内核与高可用缓存</span>
+                  <span class="track-count-badge">32 门</span>
+                </div>
+                <div class="track-tech-stack">MySQL / Redis / 分布式存储</div>
+              </div>
+
+              <div class="track-row-item" @click="handleTrackClick('云原生')">
+                <div class="track-name-top">
+                  <span>云原生与 DevOps 运维</span>
+                  <span class="track-count-badge">28 门</span>
+                </div>
+                <div class="track-tech-stack">Docker / K8s / CI/CD / Prometheus</div>
+              </div>
+
+              <div class="track-row-item" @click="handleTrackClick('Rust')">
+                <div class="track-name-top">
+                  <span>系统底层与高性能编程</span>
+                  <span class="track-count-badge">35 门</span>
+                </div>
+                <div class="track-tech-stack">Rust / C++ / Linux 网络 / 并发模型</div>
+              </div>
+
+              <div class="track-row-item" @click="handleTrackClick('安全')">
+                <div class="track-name-top">
+                  <span>网络安全与逆向工程</span>
+                  <span class="track-count-badge">24 门</span>
+                </div>
+                <div class="track-tech-stack">Web 安全 / 渗透测试 / 逆向分析</div>
+              </div>
+
+              <div class="track-row-item" @click="handleTrackClick('算法')">
+                <div class="track-name-top">
+                  <span>算法通关与数据结构</span>
+                  <span class="track-count-badge">56 门</span>
+                </div>
+                <div class="track-tech-stack">大厂高频面试题集 / 动态规划 / 图论</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 知识点掌握度 (BKT) 卡片 -->
+          <div class="pragmatic-card">
+            <div class="card-h3-title">
+              <span>📊 知识点掌握度画像 (BKT)</span>
+            </div>
+            <div class="card-p-desc">基于动态贝叶斯追踪算法，做题结果实时后验修正</div>
+
+            <!-- 总体态势摘要行 -->
+            <div class="mastery-summary-bar">
+              <span>综合评估: <strong style="color: #059669;">良好 (82分)</strong></span>
+              <span style="color: var(--text-muted);">已测考点: <strong>142 项</strong></span>
+              <span style="color: #dc2626;">薄弱项: <strong>12 项</strong></span>
+            </div>
+
+            <div class="mastery-list-box">
+              <div class="mastery-item-row">
+                <span>分布式事务 (Seata AT 模式)</span>
+                <div class="progress-bg-track"><div class="progress-fill-val" style="width: 78%; background: #059669;"></div></div>
+                <span style="color: #059669; font-weight: 600;">78% 熟练</span>
+              </div>
+              <div class="mastery-item-row">
+                <span>MySQL B+ 树与聚簇索引覆盖</span>
+                <div class="progress-bg-track"><div class="progress-fill-val" style="width: 82%; background: #2563eb;"></div></div>
+                <span style="color: #2563eb; font-weight: 600;">82% 掌握</span>
+              </div>
+              <div class="mastery-item-row">
+                <span>Redis 双写一致性与 Redisson 锁</span>
+                <div class="progress-bg-track"><div class="progress-fill-val" style="width: 88%; background: #059669;"></div></div>
+                <span style="color: #059669; font-weight: 600;">88% 精通</span>
+              </div>
+              <div class="mastery-item-row">
+                <span>Spring Cloud 熔断降级 (Sentinel)</span>
+                <div class="progress-bg-track"><div class="progress-fill-val" style="width: 72%; background: #2563eb;"></div></div>
+                <span style="color: #2563eb; font-weight: 600;">72% 熟练</span>
+              </div>
+              <div class="mastery-item-row">
+                <span>RAG 向量混合检索与重排算法</span>
+                <div class="progress-bg-track"><div class="progress-fill-val" style="width: 45%; background: #d97706;"></div></div>
+                <span style="color: #d97706; font-weight: 600;">45% 待巩固</span>
+              </div>
+              <div class="mastery-item-row">
+                <span>K8s Pod 资源调度与健康探针</span>
+                <div class="progress-bg-track"><div class="progress-fill-val" style="width: 32%; background: #dc2626;"></div></div>
+                <span style="color: #dc2626; font-weight: 600;">32% 薄弱</span>
+              </div>
+            </div>
+
+            <!-- 底部智能导学诊断建议 -->
+            <div class="mastery-bottom-diag">
+              <span>🎯 优先建议: <strong style="color: var(--azure);">云原生与分布式容灾</strong></span>
+              <span style="color: #059669; font-family: var(--mono);">预计提分 +12%</span>
+            </div>
+          </div>
+
+          <!-- 艾宾浩斯复习计划卡片 -->
+          <div class="pragmatic-card">
+            <div class="card-h3-title">
+              <span>📅 艾宾浩斯复习提醒</span>
+            </div>
+            <div class="card-p-desc">根据遗忘曲线动态推演，精准阻断记忆遗忘点</div>
+
+            <!-- 今日待复习清单 -->
+            <div class="review-plan-box">
+              <div class="review-line-item">
+                <div>
+                  <div class="review-title-bold">1. Seata undo_log 回滚机制</div>
+                  <div class="review-meta-sub">留存率: 9.4% · 迫切度: 29.0</div>
+                </div>
+                <span class="review-tag-urgent">需今日复习</span>
+              </div>
+
+              <div class="review-line-item">
+                <div>
+                  <div class="review-title-bold">2. MySQL MVCC ReadView 机制</div>
+                  <div class="review-meta-sub">留存率: 28.5% · 迫切度: 18.2</div>
+                </div>
+                <span class="review-tag-warning">临界预警</span>
+              </div>
+
+              <div class="review-line-item no-border">
+                <div>
+                  <div class="review-title-bold">3. TCP 三次握手与 TIME_WAIT</div>
+                  <div class="review-meta-sub">留存率: 54.0% · 下次计划: 明日</div>
+                </div>
+                <span class="review-tag-good">状态良好</span>
+              </div>
+            </div>
+
+            <!-- 周期进度步进器 -->
+            <div class="ebbinghaus-stepper-bar">
+              <span style="color: var(--slate-2);">周期:</span>
+              <span style="color: #059669;">1天 ✓</span>
+              <span style="color: #059669;">2天 ✓</span>
+              <span style="color: var(--azure); font-weight: 700;">4天 (当前)</span>
+              <span style="color: var(--slate-2);">7天</span>
+              <span style="color: var(--slate-2);">15天</span>
+            </div>
+
+            <div class="review-bottom-action">
+              <span>评检验收: RAGAS 0.811</span>
+              <span class="quick-quiz-btn" @click="$router.push('/classList/index')">开始错题速练 (5题) ➔</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 悬浮式公告通知条 (Floating Notice Bar) -->
     <div class="home-wrap home-notice">
       <div class="home-notice-bar">
         <div class="home-notice-chip">📢 平台公告</div>
@@ -303,6 +536,13 @@ import { getRecommendClassList, getMyLearning } from '@/api/class.js'
 
 const router = useRouter()
 
+const handleTrackClick = (keyword) => {
+  router.push({
+    path: '/classList/index',
+    query: { keyword }
+  })
+}
+
 const personalizedCourses = ref([])
 const recentLearning = ref(null)
 const learningPathModalVisible = ref(false)
@@ -383,6 +623,507 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
+/* --- 务实极简 Hero 决策台与考场视窗 --- */
+.pragmatic-hero-section {
+  position: relative;
+  padding: 40px 0 28px;
+  background: var(--sky);
+}
+
+.context-meta-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 12.5px;
+  color: var(--slate);
+  .meta-chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #fff;
+    border: 1px solid var(--line);
+    color: var(--slate);
+    &.primary {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+    }
+  }
+  .meta-sep {
+    color: var(--slate-2);
+  }
+}
+
+.hero-bento-split {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 24px;
+}
+
+.hero-main-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 38px 42px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hero-main-title {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.24;
+  letter-spacing: -0.8px;
+  color: var(--ink);
+  margin-bottom: 16px;
+  .title-brand-color {
+    color: var(--azure);
+  }
+}
+
+.hero-main-desc {
+  font-size: 14.5px;
+  color: var(--slate);
+  line-height: 1.68;
+  max-width: 580px;
+  margin-bottom: 28px;
+}
+
+.action-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+  button {
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .btn-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--azure);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 11px 22px;
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+    &:hover {
+      background: var(--blue-deep);
+      transform: translateY(-1px);
+    }
+  }
+  .btn-cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 11px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    &:hover {
+      background: var(--sky-2);
+      border-color: var(--line-2);
+    }
+  }
+}
+
+.metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  .metric-number {
+    font-family: var(--mono);
+    font-size: 25px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .metric-caption {
+    font-size: 12px;
+    color: var(--slate-2);
+  }
+}
+
+.interview-hud-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hud-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.hud-examiner-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  .status-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+}
+
+.audio-fft-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 18px;
+  .fft-bar-item {
+    width: 3px;
+    border-radius: 1px;
+    background: var(--ink);
+  }
+}
+
+.stage-viewport {
+  background: var(--sky-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  height: 148px;
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover {
+    border-color: var(--azure);
+  }
+  .examiner-avatar-box {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+  .barge-in-badge-pragmatic {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+  }
+}
+
+.question-card-box {
+  background: var(--sky-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--azure);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  color: var(--slate);
+  line-height: 1.55;
+  margin-bottom: 12px;
+  .question-meta-type {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--azure);
+    margin-bottom: 3px;
+    display: block;
+    text-transform: uppercase;
+  }
+}
+
+.candidate-dock-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 11.5px;
+  font-family: var(--mono);
+  color: var(--slate);
+  .wpm-reading {
+    color: var(--green);
+    font-weight: 600;
+  }
+}
+
+/* --- 2. 10 大专业方向与认知中枢 Bento --- */
+.tracks-bento-section {
+  padding-top: 24px;
+  padding-bottom: 40px;
+}
+
+.section-h2-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 18px;
+  .section-title-clean {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.4px;
+  }
+  .section-sub-clean {
+    font-size: 12.5px;
+    color: var(--slate-2);
+  }
+  .all-courses-link {
+    font-size: 13.5px;
+  }
+}
+
+.bento-pragmatic-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 20px;
+}
+
+.pragmatic-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  .card-h3-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+  .card-p-desc {
+    font-size: 11.5px;
+    color: var(--slate-2);
+    margin-bottom: 14px;
+  }
+}
+
+.tracks-real-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  .track-row-item {
+    background: var(--sky-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    &:hover {
+      border-color: var(--line-2);
+      background: var(--sky-3);
+    }
+    &.active {
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+    .track-name-top {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    .track-tech-stack {
+      font-size: 10.5px;
+      color: var(--slate-2);
+      font-family: var(--mono);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .track-count-badge {
+      font-size: 10px;
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--azure);
+      background: #dbeafe;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+  }
+}
+
+.mastery-summary-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--sky-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.mastery-list-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8.5px;
+  .mastery-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+    font-family: var(--mono);
+    color: var(--slate);
+    .progress-bg-track {
+      width: 85px;
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      .progress-fill-val {
+        height: 100%;
+        border-radius: 999px;
+      }
+    }
+  }
+}
+
+.mastery-bottom-diag {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--slate-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.review-plan-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+  background: var(--sky-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  .review-line-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 6px;
+    &.no-border {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .review-title-bold {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .review-meta-sub {
+      font-size: 10.5px;
+      color: var(--slate-2);
+      font-family: var(--mono);
+    }
+  }
+  .review-tag-urgent {
+    color: #dc2626;
+    font-weight: 600;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 10px;
+  }
+  .review-tag-warning {
+    color: #d97706;
+    font-weight: 600;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 10px;
+  }
+  .review-tag-good {
+    color: #059669;
+    font-weight: 600;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 10px;
+  }
+}
+
+.ebbinghaus-stepper-bar {
+  background: var(--sky-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-bottom-action {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--slate-2);
+  .quick-quiz-btn {
+    color: var(--azure);
+    font-weight: 600;
+    cursor: pointer;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
 .home-page {
   font-family: var(--cn);
   background: var(--sky);

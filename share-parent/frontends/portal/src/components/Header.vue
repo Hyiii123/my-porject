@@ -287,8 +287,11 @@ onUnmounted(() => {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--azure);
-  box-shadow: 0 6px 24px -14px rgba(27, 98, 214, 0.6);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   width: 100%;
 }
 
@@ -336,18 +339,18 @@ onUnmounted(() => {
 }
 
 .home-brand-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: #fff;
-  color: var(--azure);
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #fff;
   font-family: var(--display);
-  font-weight: 900;
-  font-size: 20px;
+  font-weight: 800;
+  font-size: 17px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
 }
 
 .home-brand-text {
@@ -356,18 +359,18 @@ onUnmounted(() => {
   .name {
     font-family: var(--display);
     font-weight: 800;
-    font-size: 18px;
-    letter-spacing: 0.05em;
-    color: #fff;
+    font-size: 17px;
+    letter-spacing: -0.3px;
+    color: #0f172a;
     line-height: 1.1;
     white-space: nowrap;
   }
   .sub {
     font-family: var(--mono);
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.75);
-    letter-spacing: 0.08em;
-    margin-top: 3px;
+    font-size: 9.5px;
+    color: #64748b;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
   }
 }
 
@@ -380,7 +383,7 @@ onUnmounted(() => {
   a {
     font-size: 14.5px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.92);
+    color: #475569;
     text-decoration: none;
     position: relative;
     padding: 6px 0;
@@ -393,49 +396,55 @@ onUnmounted(() => {
       bottom: -2px;
       height: 2px;
       width: 0;
-      background: #fff;
+      background: #2563eb;
       transition: width 0.25s ease;
       border-radius: 2px;
     }
 
-    &:hover, &.active {
-      color: #fff;
+    &:hover {
+      color: #0f172a;
       &:after {
         width: 100%;
+        background: #0f172a;
       }
     }
 
     &.active {
-      font-weight: 700;
+      color: #2563eb;
+      font-weight: 600;
+      &:after {
+        width: 100%;
+        background: #2563eb;
+      }
     }
   }
 }
 
 .home-nav-search {
-  width: 200px;
+  width: 210px;
   .nav-search-input {
     :deep(.el-input__wrapper) {
-      background: rgba(255, 255, 255, 0.2);
+      background: #f8fafc;
       border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.35);
+      border: 1px solid #e2e8f0;
       box-shadow: none;
-      color: #fff;
+      color: #0f172a;
       padding-left: 10px;
 
       &:hover, &.is-focus {
-        background: rgba(255, 255, 255, 0.3);
-        border-color: #fff;
+        background: #ffffff;
+        border-color: #cbd5e1;
       }
     }
     :deep(.el-input__inner) {
-      color: #fff;
+      color: #0f172a;
       font-size: 12.5px;
       &::placeholder {
-        color: rgba(255, 255, 255, 0.7);
+        color: #94a3b8;
       }
     }
     :deep(.el-icon) {
-      color: rgba(255, 255, 255, 0.85);
+      color: #64748b;
     }
   }
 }
@@ -451,16 +460,39 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.15);
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.28);
+    background: #f1f5f9;
+    color: #0f172a;
+    transform: translateY(-1px);
+  }
+}
+
+.home-login-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  transition: all 0.2s;
+
+  &:hover {
+    background: #1e293b;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
     transform: translateY(-1px);
   }
 }

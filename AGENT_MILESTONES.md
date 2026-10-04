@@ -14,6 +14,25 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-10-04 16:30:00 - 用户端前端 UI 纯白极简与务实工程美学全景重构交付：非对称 Split Hero、白瓷考场 HUD 与三卡等高 Bento 矩阵 (Portal UI Complete Redesign: Pristine Minimalist White & Pragmatic Engineering Aesthetics, Asymmetrical Split-Hero, Full-Duplex Interview HUD and Balanced Bento Architecture)
+
+* **演进主题**：根据“拒绝暗黑/拒绝对抗修辞、钟爱纯白极简、务实工程高工效”的明确审美导向，对学生端门户（`portal`）进行端到端全景视觉与代码重构（彻底告别传统高校浅蓝教务模板与“机甲蓝图”中二词汇、落地非对称白瓷 Hero 主控台、全双工 AI 考场视窗、8 大核心研发方向分类矩阵、BKT 掌握度与艾宾浩斯三卡等高饱满排版、本地构建与云端生产热部署全面交付）(Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **纯白极简工作室设计系统（Pristine Minimalist Studio Design System）**：
+     - 重构 `theme.scss` 全局 Token：底板采用纯净白瓷（`#ffffff`）与极淡冷灰（`#f8fafc`），主字阶采用冷墨黑（`#0f172a`），彻底消除原本脏旧的浅蓝底色涂抹；
+     - 导航栏 `Header.vue` 升级为 20px 高斯模糊半透明白底、0.5px 发丝级微边框（Hairline Border）、沉稳墨黑品牌标与紧致功能图标。
+  2. **非对称双主轴 Hero 决策台 (Split-Hero Architecture)**：
+     - 左侧主栏：技术求职与工程研发严肃主旨、大厂 STAR 能力对标、三组真实等宽技术指标（320 门课程、0.001ms 路由、100% 接口 < 200ms）；
+     - 右侧主栏：全真 AI 考官模拟考场视窗（数字人收音台、8 段音频等化器频谱、全双工打断 Barge-In 活跃胶囊、真实大厂架构真题卡片、候选人 142 字/分实时语速 Dock）。
+  3. **10 大核心研发方向与学情认知 Bento 矩阵（完美消除底部留白）**：
+     - 左卡：真实的计算机研发技术领域分类（后端微服务 62 门、大模型智能体 38 门、现代前端 45 门、数据库内核 32 门等，点击直接筛选实战课）；
+     - 中卡：BKT 知识点掌握度画像（综合评估 82 分、142 项已测考点、6 项大厂高频技术考点掌握度进度条与提分建议）；
+     - 右卡：艾宾浩斯复习提醒（3 级复习清单、周期步进器与错题速练转化入口）；
+     - 三张卡片高度严格 1:1 水平基线饱满对齐，信息密度紧致均衡。
+  4. **工程构建与生产热部署无瑕疵交付**：
+     - 本地执行 `npm run build`，产出经 Vite Code-Splitting 深度分包的超轻产物（主包仅 40.5KB）；
+     - 打包同步至阿里云 ECS 云端生产容器目录，Nginx 平滑无缝热重载，实测访问响应正常。
+
 ### 2026-10-04 15:10:00 - 项目全栈一键启停运维体系全景重构：服务合并智能映射、5 级阶梯编排完善与健康体检现代化升级 (Universal Project Ops & Startup Script Overhaul: Merged Service Intelligent Aliasing, 5-Tier Staggered Orchestration & Modern Health Diagnostics)
 
 * **演进主题**：针对系统架构演进后（用户服务合并进系统服务、智能体引擎合并进教育服务、ruoyi-ui 停用、MQ 消息中枢加入集群）出现的启停脚本失效与别名未对齐问题，全方位升级服务器端 `manage-project.sh` 以及本地端 `start-project.ps1` / `start-project.sh`，实现 100% 自动化平滑启停、精准单服务调度与端到端健康体检 (Rule 1 & Rule 8 Compliance)
