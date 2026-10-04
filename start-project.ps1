@@ -104,9 +104,9 @@ if ($Action -eq "start" -or $Action -eq "status" -or $Action -eq "health" -or $A
     Write-Host ""
     Write-Host "==============================================================================" -ForegroundColor DarkCyan
     Write-Host "   🎉 访问链接汇总 (可在终端按住 Ctrl 点击打开):" -ForegroundColor Green
-    Write-Host "   • 学生端门户 (Portal)            : http://$($pubIp):18081" -ForegroundColor Yellow
+    Write-Host "   • 学生端门户 (Portal HTTP)       : http://$($pubIp):18081" -ForegroundColor Yellow
+    Write-Host "   • 学生端门户 (Portal HTTPS/H2)   : https://$($pubIp):18443" -ForegroundColor Green
     Write-Host "   • 机构/运营管理端 (Business)     : http://$($pubIp):18082" -ForegroundColor Yellow
-    Write-Host "   • 若依基础管理端 (RuoYi)         : http://$($pubIp):18080" -ForegroundColor Yellow
     Write-Host "   • API 网关统一入口               : http://$($pubIp):8080" -ForegroundColor Cyan
     Write-Host "   • Nacos 配置与注册中心           : http://$($pubIp):8848/nacos  (nacos / nacos)" -ForegroundColor Cyan
     Write-Host "   • 推荐算法服务 (Recommend)       : http://$($pubIp):15000/api/recommend/predict" -ForegroundColor DarkGray

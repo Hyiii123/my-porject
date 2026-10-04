@@ -48,11 +48,54 @@ get_public_ip() {
     echo "$ip"
 }
 
-# 标准化服务名称 (移除 zhiwen- 前缀，映射到 docker-compose 服务名)
+# 标准化服务名称 (处理历史合并服务与服务别名映射)
 normalize_service() {
     local name="$1"
     name="${name#zhiwen-}"
-    echo "$name"
+    name="${name#share-}"
+    case "$name" in
+        user|users|student|students|teacher|teachers)
+            # 用户/学生/教师服务已全量合并至系统服务 (share-system)
+            echo "system"
+            ;;
+        device|devices)
+            echo "system"
+            ;;
+        agent|rag|bkt)
+            # AI 智能体核心已作为深度模块编译进教育业务服务 (share-education)
+            echo "education"
+            ;;
+        interview|qa)
+            echo "customer"
+            ;;
+        order|orders|pay|payment)
+            echo "trade"
+            ;;
+        media|medias|oss)
+            echo "file"
+            ;;
+        portal|portal-web)
+            echo "portal-ui"
+            ;;
+        admin|business-admin|business)
+            echo "business-admin-ui"
+            ;;
+        ruoyi|ruoyi-web|ruoyi-ui)
+            echo "ruoyi-ui"
+            ;;
+        broker)
+            echo "rocketmq-broker"
+            ;;
+        namesrv)
+            echo "rocketmq-namesrv"
+            ;;
+        rocketmq)
+            echo "rocketmq-broker"
+            ;;
+        *)
+            echo "$name"
+            ;;
+    esac
 }
 
 # 将 compose 服务名转换为容器名
@@ -133,9 +176,9 @@ start_project() {
     wait_container_healthy "zhiwen-redis" 25
     wait_container_healthy "zhiwen-qdrant" 20
 
-    # Tier 2: 注册配置中心与 AI 推理引擎 (Nacos, Embedding, Recommend)
-    log_info "[Tier 2/5] 正在启动配置注册中心与 AI 推理引擎 (Nacos, Embedding, Recommend)..."
-    docker compose -p zhiwen-share up -d nacos embedding recommend
+    # Tier 2: 注册中心、消息队列与 AI 推理引擎 (Nacos, RocketMQ, Embedding, Recommend)
+    log_info "[Tier 2/5] 正在启动注册中心、消息中枢与 AI 推理引擎 (Nacos, RocketMQ, Embedding, Recommend)..."
+    docker compose -p zhiwen-share up -d nacos rocketmq-namesrv rocketmq-broker embedding recommend
     wait_container_healthy "zhiwen-nacos" 60
     wait_container_healthy "zhiwen-embedding" 30
     wait_container_healthy "zhiwen-recommend" 20
@@ -147,26 +190,27 @@ start_project() {
     wait_nacos_service "share-auth" 50
     wait_nacos_service "share-system" 50
 
-    # Tier 4: API 网关与三大 Web 前端 (Gateway, Portal UI, Business UI, RuoYi UI)
-    log_info "[Tier 4/5] 正在启动统一 API 网关与前端界面 (Gateway, Portal UI, Business UI, RuoYi UI)..."
-    docker compose -p zhiwen-share up -d gateway portal-ui business-admin-ui ruoyi-ui
+    # Tier 4: API 网关与核心 Web 前端 (Gateway, Portal UI, Business Admin UI)
+    # ruoyi-ui 作为冗余前端已默认停用以节省内存
+    log_info "[Tier 4/5] 正在启动统一 API 网关与前端界面 (Gateway, Portal UI, Business Admin UI)..."
+    docker compose -p zhiwen-share up -d gateway portal-ui business-admin-ui
     wait_nacos_service "share-gateway" 45
 
-    # Tier 5: 业务微服务错峰分批启动 (避免 CPU Starvation 与类加载风暴)
-    log_info "[Tier 5/5] 正在分批启动业务微服务 (第 1 批: File, Customer)..."
-    docker compose -p zhiwen-share up -d file customer
+    # Tier 5: 业务微服务错峰分批启动 (规避 CPU 尖峰与类加载争抢)
+    log_info "[Tier 5/5] 正在分批启动业务微服务 (第 1 批: File, Customer, MQ)..."
+    docker compose -p zhiwen-share up -d file customer mq
     sleep 8
     log_info "[Tier 5/5] 正在分批启动业务微服务 (第 2 批: Trade, Education)..."
     docker compose -p zhiwen-share up -d trade education
 
-    # 动态智能轮询检测 Nacos 微服务注册状态
-    echo -e "\n${CYAN}[CHECK] 正在智能轮询 Nacos 核心微服务注册状态 (目标: 7 个核心微服务)...${NC}"
+    # 动态智能轮询检测 Nacos 微服务注册状态 (目标: 8 个核心微服务)
+    echo -e "\n${CYAN}[CHECK] 正在智能轮询 Nacos 核心微服务注册状态 (目标: 8 个核心微服务)...${NC}"
     local max_poll=360
     local poll_interval=4
     local elapsed=0
-    local target_count=7
+    local target_count=8
     local current_count=0
-    local target_services=("share-gateway" "share-system" "share-auth" "share-education" "share-trade" "share-customer" "share-file")
+    local target_services=("share-gateway" "share-system" "share-auth" "share-education" "share-trade" "share-customer" "share-file" "share-mq")
     local missing_svcs=()
 
     while [ $elapsed -lt $max_poll ]; do
@@ -255,7 +299,7 @@ health_check() {
         local url="$2"
         local expected="${3:-200}"
         local code
-        code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 "$url" 2>/dev/null)
+        code=$(curl -k -s -o /dev/null -w "%{http_code}" --connect-timeout 3 "$url" 2>/dev/null)
         if [ "$code" = "$expected" ]; then
             printf "  %-32s %-38s [ ${GREEN}PASS (%s)${NC} ]\n" "$name" "$url" "$code"
         elif [ "$code" != "000" ] && [ -n "$code" ]; then
@@ -267,9 +311,9 @@ health_check() {
 
     echo -e "${BOLD}【核心入口与前端 UI】${NC}"
     check_http "网关统一入口 (Gateway)" "http://127.0.0.1:8080/actuator/health" "200"
-    check_http "学生端门户 (Portal UI)" "http://127.0.0.1:18081/" "200"
+    check_http "学生端门户 (Portal HTTP)" "http://127.0.0.1:18081/" "200"
+    check_http "学生端门户 (Portal H2/SSL)" "https://127.0.0.1:18443/" "200"
     check_http "运营管理端 (Business UI)" "http://127.0.0.1:18082/" "200"
-    check_http "若依管理端 (RuoYi UI)" "http://127.0.0.1:18080/" "200"
 
     echo -e "\n${BOLD}【中枢配置与 AI 算法】${NC}"
     check_http "配置注册中心 (Nacos)" "http://127.0.0.1:8848/nacos/" "200"
@@ -277,13 +321,14 @@ health_check() {
     check_http "Qdrant 向量库 (Qdrant)" "http://127.0.0.1:16333/collections" "200"
     check_http "AI 推荐算法 (Recommend)" "http://127.0.0.1:15000/api/recommend/health" "200"
 
-    echo -e "\n${BOLD}【Java 核心微服务直连探针】${NC}"
+    echo -e "\n${BOLD}【Java 核心微服务直连探针 (已合并用户/权限/智能体)】${NC}"
     check_http "认证授权中心 (Auth)" "http://127.0.0.1:19200/actuator/health" "200"
-    check_http "系统管理中枢 (System)" "http://127.0.0.1:19201/actuator/health" "200"
-    check_http "核心教育平台 (Education)" "http://127.0.0.1:19210/actuator/health" "200"
+    check_http "系统与用户中枢 (System/User)" "http://127.0.0.1:19201/actuator/health" "200"
+    check_http "核心教育与智能体 (Edu/Agent)" "http://127.0.0.1:19210/actuator/health" "200"
     check_http "学员用户中心 (Customer)" "http://127.0.0.1:19206/actuator/health" "200"
     check_http "交易结算中心 (Trade)" "http://127.0.0.1:19211/actuator/health" "200"
     check_http "文件对象存储 (File)" "http://127.0.0.1:19300/actuator/health" "200"
+    check_http "消息调度中枢 (MQ Hub)" "http://127.0.0.1:19215/actuator/health" "200"
 
     echo -e "\n${BOLD}【网关业务路由连通性】${NC}"
     check_http "网关路由 -> 教育智能体" "http://127.0.0.1:8080/cs/courses/recommendations/evals/metrics" "200"
@@ -318,9 +363,9 @@ status_project() {
     echo ""
 
     echo -e "${BOLD}【各端公网访问入口】${NC}"
-    echo -e "  🎯 学生端门户 (Portal UI)         : ${GREEN}http://${pub_ip}:18081${NC}"
+    echo -e "  🎯 学生端门户 (Portal UI HTTP)    : ${GREEN}http://${pub_ip}:18081${NC}"
+    echo -e "  ⚡ 学生端门户 (Portal HTTPS/H2)   : ${GREEN}https://${pub_ip}:18443${NC}"
     echo -e "  🏢 机构/运营管理端 (Business UI)  : ${GREEN}http://${pub_ip}:18082${NC}"
-    echo -e "  ⚙️ 若依系统管理端 (RuoYi UI)      : ${GREEN}http://${pub_ip}:18080${NC}"
     echo -e "  🌐 API 统一网关 Gateway           : ${CYAN}http://${pub_ip}:8080${NC}"
     echo -e "  🧭 Nacos 控制台 (nacos/nacos)     : ${CYAN}http://${pub_ip}:8848/nacos${NC}"
     echo -e "  🤖 AI 推荐算法微服务 (DRAG-KP4SR) : ${YELLOW}http://${pub_ip}:15000/api/recommend/predict${NC}"

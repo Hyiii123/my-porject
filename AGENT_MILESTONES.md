@@ -14,6 +14,24 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-10-04 15:10:00 - 项目全栈一键启停运维体系全景重构：服务合并智能映射、5 级阶梯编排完善与健康体检现代化升级 (Universal Project Ops & Startup Script Overhaul: Merged Service Intelligent Aliasing, 5-Tier Staggered Orchestration & Modern Health Diagnostics)
+
+* **演进主题**：针对系统架构演进后（用户服务合并进系统服务、智能体引擎合并进教育服务、ruoyi-ui 停用、MQ 消息中枢加入集群）出现的启停脚本失效与别名未对齐问题，全方位升级服务器端 `manage-project.sh` 以及本地端 `start-project.ps1` / `start-project.sh`，实现 100% 自动化平滑启停、精准单服务调度与端到端健康体检 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **历史合并服务智能别名映射引擎**：
+     - 在 `manage-project.sh` 引入增强型 `normalize_service()` 模式匹配引擎；
+     - 自动映射 `user/student/teacher` ➔ `system`、`agent/rag/bkt` ➔ `education`、`interview/qa` ➔ `customer`、`order/pay` ➔ `trade`、`media/oss` ➔ `file`、`portal` ➔ `portal-ui`、`admin` ➔ `business-admin-ui`、`broker/namesrv` ➔ `rocketmq-*`；
+     - 实测 `./start-project.ps1 restart user` 与 `restart agent` 精准重启对应目标服务，彻底告别 `no such service` 报错。
+  2. **完善 5 级阶梯平滑启动编排 (保护 ECS 云盘 IOPS)**：
+     - Tier 1: MySQL (60s), Redis (25s), Qdrant (20s) 基础存储层；
+     - Tier 2: Nacos (60s), RocketMQ (Namesrv & Broker), Embedding (30s), Recommend (20s) 注册中心与 AI 引擎层；
+     - Tier 3: Auth (50s), System (50s) 核心鉴权层；
+     - Tier 4: Gateway (45s), Portal UI, Business Admin UI（移除已停用的冗余 ruoyi-ui）；
+     - Tier 5: File, Customer, MQ (错峰启动) ➔ Trade, Education (错峰启动)。
+  3. **Nacos 微服务注册自适应智能轮询与健康检查升级**：
+     - Nacos 注册目标数同步修正为 **8 个核心微服务**（`gateway`, `system`, `auth`, `education`, `trade`, `customer`, `file`, `mq`），提供清晰进度条与服务装配列表；
+     - 健康检查（`health_check`）升级为涵盖 Gateway、Portal HTTP、Portal HTTPS (H2)、Business Admin UI、MQ Hub、System/User、Edu/Agent 等 13 维全景探针，实测全部 100% PASS。
+
 ### 2026-10-03 10:30:00 - “去若依化”第一步全面落地：冗余前端下线、RocketMQ与Nacos内存收敛、全服务线程栈与GC调优交付 (De-RuoYi Phase 1 Milestone: Obsolete Frontend Deprecation, RocketMQ/Nacos Memory Bounds Tightening, and Full JVM Stack Depth & GC Tuning)
 
 * **演进主题**：针对若依微服务体系内存过度消耗问题，启动并完整交付“去若依化”战略第一步（停运并彻底下线冗余前端容器 `zhiwen-ruoyi-ui`、全面收敛 `docker-compose.yml` 与 `.env` 中的 Nacos 和 RocketMQ 堆内存上限、全站 7 大微服务统一收敛 `-Xss256k` 与 G1GC 紧缩参数、生产平滑重启与端到端健康验证 100% 通过）(Rule 1 & Rule 8 Compliance)
