@@ -222,19 +222,19 @@ const checkLoginStatus = async () => {
 const handleCommand = (command) => {
   switch (command) {
     case 'personal':
-      router.push('/personal/main');
+      router.push({ name: 'personalOverview' });
       break;
     case 'myClass':
       router.push('/my-class/index');
       break;
     case 'notes':
-      router.push('/personal/notes');
+      router.push({ name: 'notes' });
       break;
     case 'points':
-      router.push('/personal/myIntegral');
+      router.push({ name: 'myIntegral' });
       break;
     case 'orders':
-      router.push('/personal/myOrder');
+      router.push({ name: 'myOrder' });
       break;
     case 'logout':
       sessionStorage.clear();
@@ -342,15 +342,15 @@ onUnmounted(() => {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: #0f172a;
-  color: #fff;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
   font-family: var(--display);
   font-weight: 800;
   font-size: 17px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.35);
 }
 
 .home-brand-text {

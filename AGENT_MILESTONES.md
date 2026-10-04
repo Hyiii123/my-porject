@@ -14,6 +14,26 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-10-04 19:40:00 - 全站细节品质与纯白一致性闭环攻坚：BKT 绝对网格基线对齐、全域深色残片白瓷化、蓝色品牌 Logo 与历史订单封面全景修复 (Full-Spectrum Detail Polish: BKT Absolute Grid Baseline Alignment, Universal Dark Element Whitening, Brand Blue Logo & Historical Order Cover Modernization)
+
+* **演进主题**：针对用户深入使用过程中反馈的“BKT 进度条锯齿未对齐/文字错行折行、导学看板与面试大厅残留黑色大底板出戏、Logo 需改为科技蓝、我的订单中仍残留旧版单色 SVG 封面”四大细节痛点，开展全链路像素级精修（CSS Grid 严格 3 列基线对齐、导学看板与考场全量白瓷化、顶栏 Logo 注入电光蓝渐变微发光、数据库与后端双向纠偏订单封面至 1280x720 现代资源池、全量生产构建与端到端截屏校验 100% 通过）(Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **BKT 掌握度进度条 100% 绝对水平基线对齐**：
+     - 重构为严格的三列网格 `grid-template-columns: 1fr 84px 62px;`；
+     - 考点名称实施单行文本截断（`white-space: nowrap; text-overflow: ellipsis;`），杜绝折行；
+     - 所有进度条起始 X 轴坐标与终止 X 轴坐标严格垂直对齐；状态百分比（`78% 熟练`、`82% 掌握`）严格单行右对齐；
+     - 顶部三项综合评估指标升级为独立等分微网格（`bkt-summary-grid`），数字与标签彻底告别双行错位。
+  2. **全域残留黑色元素 100% 纯白极简升级**：
+     - `AgentReasoningHUD.vue` 招聘雷达横幅：由原本的深黑大底板（`#0E1F3D`）重塑为纯白白瓷背景（`#FFFFFF`）、发丝边框与深墨黑文本；
+     - `AgentReasoningHUD.vue` 思考流折叠卡片：头部与内容主体翻新为淡冷灰与纯白卡片，彻底消除夜间暗色违和感；
+     - `pages/interview/index.vue` 考场大厅 Banner：由夜空黑蓝渐变重塑为白瓷极简卡片，4 个数据小卡片升级为淡灰浅底与电光蓝等宽数字。
+  3. **品牌 Logo 注入科技蓝 (Brand Blue)**：
+     - 导航栏 `Header.vue` 的“智”字品牌徽标底色由冷墨黑升级为电光蓝微渐变（`linear-gradient(135deg, #2563eb, #1d4ed8)`），搭配轻盈投影，显著提升识别度。
+  4. **我的订单封面全景修复与历史链路穿透纠偏**：
+     - 数据库无损更新：修复 MySQL `tj_trade.tr_order_item` 与 `tr_cart` 中历史残留的 `/src/assets/images/courses/typescript.svg` 等旧路径，全量重映射至 `/courses/course_{id}.png`；
+     - 后端兜底：`TradeOrderServiceImpl.java` 在订单详情映射中加入 `courseId > 0` 动态兜底，确保无论历史还是新建订单均返回最新封面；
+     - 前端增强：`OrderCards.vue` 与 `myOrder.vue` 注入 `getCover` 智能降级算法并添加 `object-fit: cover`，实机截屏实测订单列表封面全部完美呈现为现代高质感封面。
+
 ### 2026-10-04 16:30:00 - 用户端前端 UI 纯白极简与务实工程美学全景重构交付：非对称 Split Hero、白瓷考场 HUD 与三卡等高 Bento 矩阵 (Portal UI Complete Redesign: Pristine Minimalist White & Pragmatic Engineering Aesthetics, Asymmetrical Split-Hero, Full-Duplex Interview HUD and Balanced Bento Architecture)
 
 * **演进主题**：根据“拒绝暗黑/拒绝对抗修辞、钟爱纯白极简、务实工程高工效”的明确审美导向，对学生端门户（`portal`）进行端到端全景视觉与代码重构（彻底告别传统高校浅蓝教务模板与“机甲蓝图”中二词汇、落地非对称白瓷 Hero 主控台、全双工 AI 考场视窗、8 大核心研发方向分类矩阵、BKT 掌握度与艾宾浩斯三卡等高饱满排版、本地构建与云端生产热部署全面交付）(Rule 1 & Rule 8 Compliance)

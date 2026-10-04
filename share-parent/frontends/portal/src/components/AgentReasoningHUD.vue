@@ -1205,19 +1205,19 @@ onMounted(() => {
   }
 }
 
-/* DeepSeek 风格：流式思考折叠卡片 */
+/* DeepSeek 风格：流式思考折叠卡片 (纯白极简风) */
 .thinking-stream-card {
-  background: #0E1F3D;
-  border: 1px solid #13294F;
+  background: #ffffff;
+  border: 1px solid var(--line);
   border-radius: 12px;
   margin-bottom: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow);
   transition: all 0.3s ease;
 
   &.active {
-    border-color: var(--cyan);
-    box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+    border-color: var(--azure);
+    box-shadow: 0 0 16px rgba(37, 99, 235, 0.15);
   }
 
   .thinking-header {
@@ -1225,13 +1225,14 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    background: #13294F;
+    background: var(--sky-2);
+    border-bottom: 1px solid var(--line);
     cursor: pointer;
     user-select: none;
     transition: background 0.2s;
 
     &:hover {
-      background: #193666;
+      background: var(--sky-3);
     }
 
     .thinking-title-box {
@@ -1239,7 +1240,7 @@ onMounted(() => {
       align-items: center;
       gap: 10px;
       font-size: 13px;
-      color: var(--sky-2);
+      color: var(--ink);
 
       .thinking-indicator {
         width: 8px;
@@ -1248,8 +1249,8 @@ onMounted(() => {
         background: var(--green);
 
         &.pulsating {
-          background: var(--cyan);
-          box-shadow: 0 0 8px var(--cyan);
+          background: var(--azure);
+          box-shadow: 0 0 8px var(--azure);
           animation: pulse 1.2s infinite;
         }
       }
@@ -1257,21 +1258,22 @@ onMounted(() => {
       .thinking-title-text {
         font-weight: 600;
         letter-spacing: 0.3px;
+        color: var(--ink);
       }
 
       .thinking-count {
         font-size: 11px;
-        color: #94A3B8;
+        color: var(--slate-2);
       }
 
       .thinking-latency {
         font-size: 11px;
         font-weight: 600;
-        color: #34D399;
-        background: rgba(16, 185, 129, 0.15);
+        color: #059669;
+        background: #ecfdf5;
         padding: 2px 8px;
         border-radius: 6px;
-        border: 1px solid rgba(16, 185, 129, 0.3);
+        border: 1px solid #a7f3d0;
       }
     }
 
@@ -1280,16 +1282,11 @@ onMounted(() => {
       align-items: center;
       gap: 6px;
       font-size: 12px;
-      color: #94A3B8;
+      color: var(--slate-2);
 
       .toggle-arrow {
-        display: inline-block;
+        font-size: 10px;
         transition: transform 0.25s ease;
-        font-size: 14px;
-
-        &.rotated {
-          transform: rotate(180deg);
-        }
       }
     }
   }
@@ -1298,8 +1295,9 @@ onMounted(() => {
     max-height: 240px;
     overflow-y: auto;
     padding: 14px 18px;
-    background: #091528;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background: #ffffff;
+    color: var(--slate);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 12px;
     line-height: 1.6;
 
@@ -1307,12 +1305,12 @@ onMounted(() => {
       width: 5px;
     }
     &::-webkit-scrollbar-thumb {
-      background: #1E3A6E;
+      background: var(--line-2);
       border-radius: 3px;
     }
 
     .thinking-empty {
-      color: #64748B;
+      color: var(--slate-2);
       font-style: italic;
       padding: 8px 0;
     }
@@ -1327,12 +1325,12 @@ onMounted(() => {
         flex-direction: column;
         gap: 3px;
         padding-left: 10px;
-        border-left: 2px solid #1E3A6E;
+        border-left: 2px solid var(--line);
         transition: all 0.2s;
 
         &:hover {
-          border-left-color: var(--cyan);
-          background: rgba(255, 255, 255, 0.02);
+          border-left-color: var(--azure);
+          background: var(--sky-2);
         }
 
         .log-meta {
@@ -1342,81 +1340,30 @@ onMounted(() => {
           font-size: 11px;
 
           .log-time {
-            color: #64748B;
+            color: var(--slate-2);
           }
 
           .log-agent-badge {
-            background: #13294F;
-            color: var(--cyan);
-            font-weight: 600;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
             padding: 1px 6px;
             border-radius: 4px;
-            border: 1px solid rgba(56, 189, 248, 0.2);
+            font-weight: 600;
           }
 
-          .log-stage-tag {
-            color: var(--green);
-            font-weight: 600;
-            font-size: 10px;
+          .log-intent-badge {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+            padding: 1px 6px;
+            border-radius: 4px;
           }
         }
 
         .log-content {
-          display: flex;
-          align-items: flex-start;
-          gap: 6px;
-          color: var(--line);
-
-          .log-bullet {
-            color: var(--cyan);
-            font-weight: 700;
-          }
-
-          .log-text {
-            word-break: break-all;
-            white-space: pre-wrap;
-          }
-        }
-
-        &.log-type-reflection_directive {
-          border-left-color: #F59E0B;
-          .log-meta .log-agent-badge {
-            color: #FBBF24;
-            border-color: rgba(245, 158, 11, 0.3);
-          }
-          .log-content .log-bullet {
-            color: #F59E0B;
-          }
-        }
-
-        &.log-type-stream_done {
-          border-left-color: var(--green);
-          .log-meta .log-agent-badge {
-            color: #34D399;
-          }
-        }
-      }
-
-      .stream-done-footer {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(16, 185, 129, 0.1);
-        border: 1px dashed rgba(16, 185, 129, 0.35);
-        border-radius: 6px;
-        padding: 6px 12px;
-        margin-top: 6px;
-        color: var(--line);
-        font-size: 11px;
-
-        .done-check {
-          color: #34D399;
-          font-weight: bold;
-        }
-
-        .done-summary {
-          flex: 1;
-          color: var(--sky-2);
+          color: var(--ink);
+          word-break: break-all;
         }
       }
     }
@@ -2073,19 +2020,19 @@ onMounted(() => {
 }
 
 
-/* 产业招聘雷达快照横幅 (IAIC 科技风) */
+/* 产业招聘雷达快照横幅 (纯白极简风) */
 .hud-market-radar-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  background: #0E1F3D;
-  border: 1px solid rgba(33, 198, 232, 0.25);
+  background: #ffffff;
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px 18px;
   margin: 14px 0 16px;
-  color: #fff;
-  box-shadow: inset 0 0 16px rgba(33, 198, 232, 0.08);
+  color: var(--ink);
+  box-shadow: var(--shadow);
 
   .radar-col {
     display: flex;
@@ -2094,7 +2041,7 @@ onMounted(() => {
 
     .metric-label {
       font-size: 11px;
-      color: rgba(220, 235, 255, 0.65);
+      color: var(--slate-2);
       font-weight: 500;
       letter-spacing: 0.04em;
     }
@@ -2102,7 +2049,7 @@ onMounted(() => {
 
   .radar-title-col {
     min-width: 140px;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid var(--line);
     padding-right: 16px;
 
     .radar-badge {
@@ -2110,7 +2057,7 @@ onMounted(() => {
       align-items: center;
       gap: 5px;
       font-size: 10.5px;
-      color: var(--cyan);
+      color: var(--azure);
       font-weight: 700;
 
       .live-dot {
@@ -2126,7 +2073,7 @@ onMounted(() => {
     .radar-role {
       font-size: 14px;
       font-weight: 700;
-      color: #fff;
+      color: var(--ink);
       margin-top: 2px;
     }
   }
@@ -2139,15 +2086,16 @@ onMounted(() => {
       align-items: baseline;
       gap: 3px;
 
-      &.text-cyan { color: var(--cyan); }
+      &.text-cyan { color: var(--azure); }
       &.text-green { color: var(--green); }
 
       .num { font-size: 17px; font-family: var(--mono); }
       .unit { font-size: 11px; }
       .trend-chip {
         font-size: 10px;
-        color: #fff;
-        background: rgba(33, 198, 232, 0.2);
+        color: var(--azure);
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
         padding: 1px 6px;
         border-radius: 4px;
         margin-left: 4px;
@@ -2166,9 +2114,9 @@ onMounted(() => {
       .chip {
         font-size: 11px;
         font-family: var(--mono);
-        color: #E2E8F0;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--slate);
+        background: var(--sky-2);
+        border: 1px solid var(--line);
         padding: 2px 7px;
         border-radius: 4px;
       }
@@ -2184,11 +2132,11 @@ onMounted(() => {
       font-size: 11.5px;
       font-weight: 600;
       color: #fff;
-      background: linear-gradient(90deg, #1E89F1, #21C6E8);
+      background: var(--azure);
       padding: 3px 9px;
       border-radius: 12px;
       margin-top: 2px;
-      box-shadow: 0 2px 8px rgba(30, 137, 241, 0.4);
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
     }
   }
 }
@@ -2201,5 +2149,3 @@ onMounted(() => {
 }
 
 </style>
-
-

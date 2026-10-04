@@ -192,43 +192,53 @@
             </div>
             <div class="card-p-desc">基于动态贝叶斯追踪算法，做题结果实时后验修正</div>
 
-            <!-- 总体态势摘要行 -->
-            <div class="mastery-summary-bar">
-              <span>综合评估: <strong style="color: #059669;">良好 (82分)</strong></span>
-              <span style="color: var(--text-muted);">已测考点: <strong>142 项</strong></span>
-              <span style="color: #dc2626;">薄弱项: <strong>12 项</strong></span>
+            <!-- 总体态势摘要行 (结构化三格网格，杜绝任何换行错位) -->
+            <div class="bkt-summary-grid">
+              <div class="bkt-sum-cell">
+                <span class="sum-lbl">综合评估</span>
+                <span class="sum-val good">82分 · 良好</span>
+              </div>
+              <div class="bkt-sum-cell">
+                <span class="sum-lbl">已测考点</span>
+                <span class="sum-val">142 项</span>
+              </div>
+              <div class="bkt-sum-cell">
+                <span class="sum-lbl">薄弱卡点</span>
+                <span class="sum-val warn">12 项</span>
+              </div>
             </div>
 
+            <!-- 严格 3 列网格排版：名称 1fr 截断 + 进度条固定 84px + 状态固定 62px 右对齐 -->
             <div class="mastery-list-box">
               <div class="mastery-item-row">
-                <span>分布式事务 (Seata AT 模式)</span>
+                <span class="mastery-name" title="分布式事务 (Seata AT 模式)">分布式事务 (Seata AT)</span>
                 <div class="progress-bg-track"><div class="progress-fill-val" style="width: 78%; background: #059669;"></div></div>
-                <span style="color: #059669; font-weight: 600;">78% 熟练</span>
+                <span class="mastery-status-text" style="color: #059669;">78% 熟练</span>
               </div>
               <div class="mastery-item-row">
-                <span>MySQL B+ 树与聚簇索引覆盖</span>
+                <span class="mastery-name" title="MySQL B+ 树与聚簇索引覆盖">MySQL B+ 树索引底层</span>
                 <div class="progress-bg-track"><div class="progress-fill-val" style="width: 82%; background: #2563eb;"></div></div>
-                <span style="color: #2563eb; font-weight: 600;">82% 掌握</span>
+                <span class="mastery-status-text" style="color: #2563eb;">82% 掌握</span>
               </div>
               <div class="mastery-item-row">
-                <span>Redis 双写一致性与 Redisson 锁</span>
+                <span class="mastery-name" title="Redis 双写一致性与 Redisson 锁">Redis 一致性与分布式锁</span>
                 <div class="progress-bg-track"><div class="progress-fill-val" style="width: 88%; background: #059669;"></div></div>
-                <span style="color: #059669; font-weight: 600;">88% 精通</span>
+                <span class="mastery-status-text" style="color: #059669;">88% 精通</span>
               </div>
               <div class="mastery-item-row">
-                <span>Spring Cloud 熔断降级 (Sentinel)</span>
+                <span class="mastery-name" title="Sentinel 流量熔断降级">Sentinel 流量熔断降级</span>
                 <div class="progress-bg-track"><div class="progress-fill-val" style="width: 72%; background: #2563eb;"></div></div>
-                <span style="color: #2563eb; font-weight: 600;">72% 熟练</span>
+                <span class="mastery-status-text" style="color: #2563eb;">72% 熟练</span>
               </div>
               <div class="mastery-item-row">
-                <span>RAG 向量混合检索与重排算法</span>
+                <span class="mastery-name" title="RAG 向量混合检索与重排算法">RAG 混合检索与重排</span>
                 <div class="progress-bg-track"><div class="progress-fill-val" style="width: 45%; background: #d97706;"></div></div>
-                <span style="color: #d97706; font-weight: 600;">45% 待巩固</span>
+                <span class="mastery-status-text" style="color: #d97706;">45% 待巩固</span>
               </div>
               <div class="mastery-item-row">
-                <span>K8s Pod 资源调度与健康探针</span>
+                <span class="mastery-name" title="K8s Pod 资源调度机制">K8s Pod 资源调度</span>
                 <div class="progress-bg-track"><div class="progress-fill-val" style="width: 32%; background: #dc2626;"></div></div>
-                <span style="color: #dc2626; font-weight: 600;">32% 薄弱</span>
+                <span class="mastery-status-text" style="color: #dc2626;">32% 薄弱</span>
               </div>
             </div>
 
@@ -987,40 +997,74 @@ onMounted(() => {
   }
 }
 
-.mastery-summary-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.bkt-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   background: var(--sky-2);
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 6px 10px;
-  margin-bottom: 12px;
-  font-size: 11px;
-  font-family: var(--mono);
+  border-radius: 8px;
+  padding: 7px 4px;
+  margin-bottom: 13px;
+  text-align: center;
+  .bkt-sum-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    &:not(:last-child) {
+      border-right: 1px solid var(--line);
+    }
+  }
+  .sum-lbl {
+    font-size: 10px;
+    color: var(--slate-2);
+  }
+  .sum-val {
+    font-size: 11.5px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--ink);
+    &.good { color: var(--green); }
+    &.warn { color: #dc2626; }
+  }
 }
 
 .mastery-list-box {
   display: flex;
   flex-direction: column;
-  gap: 8.5px;
+  gap: 9px;
   .mastery-item-row {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr 84px 62px;
     align-items: center;
+    gap: 10px;
     font-size: 11.5px;
-    font-family: var(--mono);
     color: var(--slate);
+    .mastery-name {
+      font-size: 11.5px;
+      color: var(--slate);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .progress-bg-track {
-      width: 85px;
+      width: 84px;
       height: 6px;
       background: #e2e8f0;
       border-radius: 999px;
       overflow: hidden;
+      flex-shrink: 0;
       .progress-fill-val {
         height: 100%;
         border-radius: 999px;
       }
+    }
+    .mastery-status-text {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-align: right;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
   }
 }

@@ -802,9 +802,12 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
             row.put("courseId", detail.getCourseId());
             row.put("name", detail.getCourseName());
             row.put("courseName", detail.getCourseName());
-            row.put("cover", detail.getCourseCoverUrl());
-            row.put("coverUrl", detail.getCourseCoverUrl());
-            row.put("courseCoverUrl", detail.getCourseCoverUrl());
+            String coverUrl = (detail.getCourseId() != null && detail.getCourseId() > 0)
+                    ? "/courses/course_" + detail.getCourseId() + ".png"
+                    : detail.getCourseCoverUrl();
+            row.put("cover", coverUrl);
+            row.put("coverUrl", coverUrl);
+            row.put("courseCoverUrl", coverUrl);
             row.put("price", cents(detail.getUnitPrice()));
             row.put("realPayAmount", cents(detail.getPayableAmount()));
             row.put("canRefund", !hasActiveOrApprovedRefund && item.getPaymentStatus() == 1 && item.getOrderStatus() == 1);

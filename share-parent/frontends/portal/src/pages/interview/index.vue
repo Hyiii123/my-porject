@@ -832,15 +832,16 @@ onBeforeUnmount(() => {
 }
 
 .lobby-banner {
-  background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #2b3a4a 100%);
-  color: #fff;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 36px 40px;
   margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 12px 32px rgba(13, 27, 42, 0.25);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 
 .banner-content {
@@ -856,19 +857,20 @@ onBeforeUnmount(() => {
 
 .tag-sub {
   font-size: 13px;
-  color: #a0aec0;
+  color: #64748b;
 }
 
 .banner-title {
   font-size: 28px;
   font-weight: 700;
+  color: #0f172a;
   margin: 0 0 12px 0;
-  letter-spacing: 0.5px;
+  letter-spacing: -0.4px;
 }
 
 .banner-desc {
   font-size: 14px;
-  color: #cbd5e0;
+  color: #475569;
   line-height: 1.6;
   margin: 0;
 }
@@ -880,24 +882,24 @@ onBeforeUnmount(() => {
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px 20px;
   text-align: center;
-  backdrop-filter: blur(8px);
 }
 
 .stat-num {
   font-size: 22px;
   font-weight: 700;
-  color: #63b3ed;
+  font-family: var(--mono, monospace);
+  color: #2563eb;
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #a0aec0;
+  color: #64748b;
 }
 
 .lobby-body {
