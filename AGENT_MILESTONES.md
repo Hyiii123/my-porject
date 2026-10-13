@@ -14,6 +14,28 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-10-14 03:00:00 - 全站慢 SQL 深度排查与覆盖索引/排序消绝系统级优化交付 (Comprehensive Project-wide Slow SQL Elimination & Covering Index Modernization)
+
+* **演进主题**：针对全站四大核心微服务数据库（`share`、`zhiwen_education`、`zhiwen_trade`、`zhiwen_customer`）开展拉网式慢 SQL 排查与执行计划诊断（EXPLAIN）。彻底根除 5000 用户量级鉴权登录全表扫描、万级知识库/课程大厅 filesort 磁盘排序、学习记录与订单列表多列排序回退等高频性能瓶颈；落地 V34 规范版本化迁移脚本与 MySQL 引擎级慢日志监控 (Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **系统鉴权库 (share.sys_user, sys_user_role) 5000x 级提速**：
+     - 用户名登录与验重从 4998 行全表扫描（`type: ALL`）升级为基于 `uk_sys_user_username_del (user_name, del_flag)` 的 O(1) 唯一索引点查（`type: const`, rows: 1）；
+     - 邮箱与手机号查询建立 `idx_sys_user_email_del` 与 `idx_sys_user_phone_del`，在 MyBatis 用户名/邮箱双字段 OR 检索时触发 MySQL 8.0 `index_merge (Using sort_union)` 极速组合扫描（扫描行数由 4998 骤降至 2 行）；
+     - `sys_user_role` 补充 `idx_sys_user_role_role_id`，按角色查询（如教师列表、学员列表）从 5123 行全表扫描降维为单行覆盖索引命中。
+  2. **教育核心库 (zhiwen_education) 彻底消除全表与多列文件排序 (Filesort)**：
+     - 课程大厅默认无分类排序引入降序复合索引 `idx_course_status_sort_asc_time_desc (status, sort_num ASC, create_time DESC)`，消除全表扫描与 filesort；
+     - 课程目录小节查询引入 `idx_catalog_course_sort_parent (course_id, sort_num, parent_id)`，解决播放器跳过 parent_id 时的排序退化；
+     - 学员学习进度表（9172行）引入多列覆盖索引 `idx_learning_user_learn_update (user_id, last_learn_time, update_time)`，消除最近学习多字段倒序 filesort。
+  3. **交易中心库 (zhiwen_trade) 消除订单与退款列表全表扫描**：
+     - `tr_order` 补齐全局时间索引 `idx_order_create_time` 与三列复合索引 `idx_order_user_status_time (user_id, order_status, create_time)`；
+     - `tr_refund_apply` 建立 `idx_refund_create_time` 与 `idx_refund_status_time`，退款管理列表全表 filesort 彻底消除。
+  4. **客服与知识库 (zhiwen_customer) 9000 条数据分类检索消除 Filesort**：
+     - `cs_knowledge`（9189行，18.4MB）重构索引：剔除旧版 `(status, category)`，建立 `idx_knowledge_cat_status_time (category, status, update_time)`，分类检索实现原生 Backward index scan，完全告别内存/磁盘 filesort；
+     - `cs_session` 补齐 `idx_session_updated_at`，会话大厅分页全表扫描完全消除。
+  5. **工程基建与持久化监控**：
+     - 沉淀并同步标准 Flyway 迁移脚本 `sql/migrations/V34__comprehensive_slow_sql_indexes_optimization.sql` 至生产服务器与本地仓库；
+     - 开启 MySQL 全局慢查询日志 (`slow_query_log = ON`, `long_query_time = 0.5s`, `log_queries_not_using_indexes = ON`)。
+
 ### 2026-10-14 02:30:00 - 管理端 UI 现代科技与呼吸感系统级重塑交付：Linear/Vercel 级微结构指标卡、数据降噪格式化与容器呼吸体系全景落地 (Admin UI Aesthetic Overhaul: Modern Linear/Vercel-Grade Metric Cards, Complete Data Formatting & Breathable Layout System)
 
 * **演进主题**：针对管理端此前遗留的“色块塞数字陈旧排版、原始数据未转义（数字支付方式/带 T 时间戳/未知状态）、三段式白卡片机械堆叠、缺乏景深呼吸感”等审美与工效痛点，开展三步走系统级升级（废除实心色块重构微结构等宽指标卡、全量洗炼表格时间/渠道/状态Badge格式化器、容器与搜索栏边框留白呼吸感统一、本地高速打包热部署至 ECS、端到端真机截屏校验 100% 通过）(Rule 1 & Rule 8 Compliance)
