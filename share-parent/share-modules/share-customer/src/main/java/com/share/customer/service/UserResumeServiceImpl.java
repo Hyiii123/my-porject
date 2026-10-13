@@ -136,7 +136,7 @@ public class UserResumeServiceImpl implements IUserResumeService {
     }
 
     @Override
-    @Transactional
+    // 关键优化：剥离 @Transactional 避免外部大模型网络调用(15~30s)独占锁定 HikariCP 数据库连接池
     public ResumeAnalysisVO analyzeResume(ResumeAnalysisRequest request) {
         Long userId = currentUserId();
         String userName = currentUserName();

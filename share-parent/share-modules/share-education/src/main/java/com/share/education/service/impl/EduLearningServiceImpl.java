@@ -11,6 +11,7 @@ import com.share.education.mapper.EduLearningPlanMapper;
 import com.share.education.mapper.EduLearningRecordMapper;
 import com.share.education.service.IEduCourseService;
 import com.share.education.service.IEduLearningService;
+import com.share.common.security.utils.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
 import com.alibaba.fastjson2.JSON;
 import com.share.education.mq.EduRocketMQConstants;
@@ -287,6 +288,9 @@ public class EduLearningServiceImpl implements IEduLearningService {
             value.setVersion(0);
             planMapper.insert(value);
         } else {
+            EduLearningPlan existing = planMapper.selectById(value.getId());
+            require(existing != null, "学习计划不存在");
+            require(Objects.equals(existing.getUserId(), currentUserId()) || SecurityUtils.isAdmin(currentUserId()), "无权操作该学习计划");
             value.setUpdateTime(LocalDateTime.now());
             planMapper.updateById(value);
         }

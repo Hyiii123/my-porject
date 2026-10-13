@@ -489,7 +489,8 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+let streamAbortController = null
 import { useRouter, useRoute } from 'vue-router'
 import { getActiveProbingQuestions, submitActiveProbingAnswers, getAgentEvaluationMetrics, fetchReasoningStream, getJobMarketTrends } from '@/api/class'
 import { ElMessage } from 'element-plus'
@@ -682,6 +683,11 @@ const scrollToCourses = () => {
 }
 
 const triggerRecalculate = async () => {
+  if (streamAbortController) {
+    try { streamAbortController.abort() } catch (e) {}
+    streamAbortController = null
+  }
+  streamAbortController = new AbortController()
   if (isRecalculating.value) return
   if (!isExpanded.value) {
     isExpanded.value = true
@@ -708,6 +714,7 @@ const triggerRecalculate = async () => {
     await fetchReasoningStream({
       targetRole: selectedRole.value,
       query: customQuery.value,
+      signal: streamAbortController ? streamAbortController.signal : undefined,
       onEvent: (event) => {
         const curTime = new Date()
         const curTimeStr = `${String(curTime.getHours()).padStart(2, '0')}:${String(curTime.getMinutes()).padStart(2, '0')}:${String(curTime.getSeconds()).padStart(2, '0')}`
@@ -861,6 +868,14 @@ onMounted(() => {
     }
   }
 })
+
+onBeforeUnmount(() => {
+  if (streamAbortController) {
+    try { streamAbortController.abort() } catch (e) {}
+    streamAbortController = null
+  }
+})
+
 </script>
 
 <style scoped lang="scss">

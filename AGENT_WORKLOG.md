@@ -247,3 +247,14 @@ flowchart TD
 
 
 
+
+
+### [2026-10-14] 深度缺陷审计与核心高危 Bug 修复闭环
+- **取消与删除订单水平越权漏洞 (IDOR) 修复**：`TradeOrderServiceImpl.java` 的 `cancelOrder` 和 `deleteOrder` 补齐 `require(Objects.equals(order.getUserId(), currentUserId()) || SecurityUtils.isAdmin(...))` 权限断言，严防任意登录学员跨账号越权关闭/删除他人订单。
+- **全额优惠券 0 元订单待支付死锁修复**：`TradeOrderServiceImpl.java` 的 `doPlaceOrder` 对 `payable == 0` 的全额优惠券订单自动置为已支付（`orderStatus = 1, paymentStatus = 1`）并即时自动履约开课，根除第三方支付拒收 0 元订单的死锁阻断。
+- **限时秒杀并发原子防重修复**：`TradeOrderServiceImpl.java` 的 `seckillCourse` 重构为前置原子执行 `redisService.sAdd`，彻底消除 Check-Then-Act 并发穿透与同一学员重复抢购。
+- **简历诊断外部大模型调用长事务解耦**：`UserResumeServiceImpl.java` 的 `analyzeResume` 剥离 `@Transactional` 注解，彻底避免 15~30 秒外部 AI 调用独占锁定 HikariCP 数据库连接池造成连接枯竭雪崩。
+- **学习计划更新接口越权覆盖防御**：`EduLearningServiceImpl.java` 的 `savePlan` 增加原记录所有权校验，阻断恶意学员覆写他人学习计划。
+- **网关 Actuator 监控端点公网暴露治理**：在 Nacos `share-gateway-dev.yml` 中收敛 Actuator 暴露范围，移除公网白名单放行，切断外部直接探测系统内核指标隐患。
+- **Agent 推演看板 SSE 流内存泄漏与串流治理**：`api/class.js` 支持 `signal` 取消信号，`AgentReasoningHUD.vue` 引入 `AbortController` 并在切换角色与 `onBeforeUnmount` 销毁时主动中断流，杜绝后台游离请求与双流交织。
+- **支付倒计时组件响应式 Timer 死循环治理**：`Countdown.vue` 将 `timer` 移出 `reactive` 对象并移除 `watchEffect` 自身依赖读写，杜绝 Vue 响应式调度抖动。

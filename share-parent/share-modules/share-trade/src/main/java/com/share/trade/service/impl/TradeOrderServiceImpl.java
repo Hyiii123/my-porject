@@ -11,6 +11,7 @@ import com.share.trade.domain.*;
 import com.share.trade.mapper.*;
 import com.share.trade.service.ITradeCouponService;
 import com.share.trade.service.ITradeOrderService;
+import com.share.common.security.utils.SecurityUtils;
 import com.share.trade.service.support.TradeUtils;
 import com.alibaba.fastjson2.JSON;
 import com.share.trade.mq.RocketMQTopicConstants;
@@ -419,6 +420,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         BigDecimal discountAmount = couponService.discount(total, coupon);
         BigDecimal payable = total.subtract(discountAmount).max(BigDecimal.ZERO);
 
+        boolean isZeroPayable = payable.compareTo(BigDecimal.ZERO) == 0;
         TrOrder order = new TrOrder();
         order.setId(newId());
         order.setOrderNo(DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS").format(now) + String.format("%04d", (int) (Math.random() * 10000)));
@@ -429,8 +431,15 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         order.setPaidAmount(BigDecimal.ZERO);
         order.setCouponId(coupon == null ? null : coupon.getId());
         order.setPaymentChannel("mock");
-        order.setOrderStatus(0);
-        order.setPaymentStatus(0);
+        if (isZeroPayable) {
+            order.setOrderStatus(1);
+            order.setPaymentStatus(1);
+            order.setPaidAmount(BigDecimal.ZERO);
+            order.setPaidTime(now);
+        } else {
+            order.setOrderStatus(0);
+            order.setPaymentStatus(0);
+        }
         order.setExpireTime(now.plusMinutes(15));
         order.setCreateTime(now);
         order.setUpdateTime(now);
@@ -449,6 +458,11 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
             cartMapper.delete(new LambdaQueryWrapper<TrCart>()
                     .eq(TrCart::getUserId, currentUserId())
                     .in(TrCart::getCourseId, purchasedCourseIds));
+        }
+
+        // 0 元全额抵扣订单，直接自动履约开课
+        if (isZeroPayable) {
+            enrollPurchasedCourses(order);
         }
 
         if (fromCart) {
@@ -578,12 +592,15 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         String userKey = "trade:seckill:course:users:" + courseId;
         String stockKey = "trade:seckill:course:stock:" + courseId;
 
-        if (Boolean.TRUE.equals(redisService.sIsMember(userKey, String.valueOf(userId)))) {
+        // 原子防重：先通过 sAdd 原子判断用户是否已抢购过（避免 check-then-act 竞态）
+        Long added = redisService.sAdd(userKey, String.valueOf(userId));
+        if (added == null || added == 0) {
             TrOrder existing = orderMapper.selectOne(new LambdaQueryWrapper<TrOrder>()
                     .eq(TrOrder::getUserId, userId)
                     .in(TrOrder::getOrderStatus, Arrays.asList(0, 1))
                     .orderByDesc(TrOrder::getCreateTime).last("limit 1"));
             if (existing != null) return orderView(existing);
+            throw new ServiceException("您已抢购过该秒杀课程，每人限抢 1 次");
         }
 
         if (redisService.getCacheObject(stockKey) == null) {
@@ -592,6 +609,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
         long remaining = redisService.decrement(stockKey);
         if (remaining < 0) {
             redisService.decrement(stockKey, -1);
+            redisService.sRemove(userKey, String.valueOf(userId));
             throw new ServiceException("秒杀名额已抢光，下次早点来哦！");
         }
 
@@ -602,11 +620,10 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
             direct.put("price", 990);
             direct.put("originalPrice", defaultPriceCents(courseId));
 
-            Map<String, Object> result = doPlaceOrder(Map.of("items", List.of(direct)), true);
-            redisService.sAdd(userKey, String.valueOf(userId));
-            return result;
+            return doPlaceOrder(Map.of("items", List.of(direct)), true);
         } catch (Exception e) {
             redisService.decrement(stockKey, -1);
+            redisService.sRemove(userKey, String.valueOf(userId));
             throw e;
         }
     }
@@ -615,6 +632,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     @Transactional
     public Map<String, Object> cancelOrder(Long id) {
         TrOrder order = findOrder(id);
+        require(Objects.equals(order.getUserId(), currentUserId()) || SecurityUtils.isAdmin(currentUserId()), "无权取消该订单");
         require(order.getOrderStatus() == 0, "当前订单状态不可取消");
         order.setOrderStatus(4);
         order.setUpdateTime(LocalDateTime.now());
@@ -627,6 +645,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     @Transactional
     public void deleteOrder(Long id) {
         TrOrder order = findOrder(id);
+        require(Objects.equals(order.getUserId(), currentUserId()) || SecurityUtils.isAdmin(currentUserId()), "无权删除该订单");
         require(order.getOrderStatus() == 4 || order.getOrderStatus() == 3, "只能删除已关闭或已退款的订单");
         order.setDelFlag(1);
         order.setUpdateTime(LocalDateTime.now());

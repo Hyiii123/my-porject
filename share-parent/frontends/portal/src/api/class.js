@@ -371,7 +371,7 @@ request({
 })
 
 // 下一代 L5 智能体流式思考与推演 SSE 端点
-export const fetchReasoningStream = async ({ targetRole, query, onEvent, onError, onDone }) => {
+export const fetchReasoningStream = async ({ targetRole, query, onEvent, onError, onDone, signal }) => {
 	const rawBase = (import.meta.env.VITE_API_BASE_URL || '').trim()
 	const baseUrl = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase
 	const token = sessionStorage.getItem('token')
@@ -388,7 +388,8 @@ export const fetchReasoningStream = async ({ targetRole, query, onEvent, onError
 
 		const response = await fetch(url, {
 			method: 'GET',
-			headers
+			headers,
+			signal
 		})
 
 		if (!response.ok) {
