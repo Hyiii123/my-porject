@@ -152,23 +152,24 @@ watchEffect(()=>{
   z-index: 999;
   width: 226px;
   height: 100vh;
-  background-color: var(--navy);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: #FFFFFF;
+  border-right: 1px solid #E2E8F0;
+  box-shadow: 1px 0 12px rgba(15, 23, 42, 0.02);
 
   &::-webkit-scrollbar {
     width: 4px;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: #E2E8F0;
     border-radius: 2px;
   }
 
   .logo {
     position: relative;
     z-index: 9;
-    padding: 20px 16px;
-    margin-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 18px 16px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #F1F5F9;
   }
 
   .logo-container {
@@ -178,17 +179,17 @@ watchEffect(()=>{
   }
 
   .logo-icon {
-    width: 36px;
-    height: 36px;
-    background: var(--grad);
-    border-radius: 10px;
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 18px;
-    font-weight: 800;
-    box-shadow: 0 4px 12px rgba(33, 198, 232, 0.4);
+    font-size: 17px;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
   }
 
   .logo-text {
@@ -197,55 +198,58 @@ watchEffect(()=>{
   }
 
   .logo-name {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
-    color: #F8FAFC;
+    color: #0F172A;
     line-height: 1.2;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
   }
 
   .logo-desc {
     font-size: 11px;
-    color: #94A3B8;
+    color: #64748B;
     margin-top: 2px;
   }
 
   .nav {
     position: relative;
     z-index: 9;
-    font-size: 14px;
+    font-size: 13.5px;
     padding-bottom: 24px;
 
     .iconfont {
-      font-size: 18px;
+      font-size: 16px;
       margin-right: 10px;
-      color: #94A3B8;
+      color: #64748B;
+      transition: color 0.2s;
     }
   }
 
   .first-menu {
-    margin: 3px 12px;
+    margin: 4px 10px;
     .el-menu-item {
-      height: 42px;
-      line-height: 42px;
-      padding-left: 16px !important;
-      border-radius: 6px;
-      color: #94A3B8;
+      height: 40px;
+      line-height: 40px;
+      padding-left: 14px !important;
+      border-radius: 8px;
+      color: #334155;
+      font-weight: 500;
       transition: all 0.2s ease;
 
       &:hover {
-        background-color: rgba(255, 255, 255, 0.06);
-        color: #F8FAFC;
+        background-color: #F8FAFC;
+        color: #0F172A;
+        .iconfont { color: #2563EB; }
       }
     }
     .is-active {
-      color: #FFFFFF !important;
-      background: linear-gradient(90deg, rgba(33, 198, 232, 0.22), rgba(43, 134, 240, 0.28)) !important;
-      font-weight: 700;
-      border-left: 3px solid var(--cyan);
+      color: #2563EB !important;
+      background: rgba(37, 99, 235, 0.08) !important;
+      font-weight: 600;
+      border-left: 3px solid #2563EB;
+      .iconfont { color: #2563EB !important; }
       &:hover {
-        color: #FFFFFF !important;
-        background: linear-gradient(90deg, rgba(33, 198, 232, 0.3), rgba(43, 134, 240, 0.36)) !important;
+        background: rgba(37, 99, 235, 0.12) !important;
       }
     }
   }
@@ -256,54 +260,58 @@ watchEffect(()=>{
   }
 
   :deep(.el-sub-menu__title) {
-    height: 42px;
-    line-height: 42px;
-    margin: 3px 12px;
-    padding-left: 16px !important;
-    border-radius: 6px;
-    color: #CBD5E1 !important;
+    height: 40px;
+    line-height: 40px;
+    margin: 3px 10px;
+    padding-left: 14px !important;
+    border-radius: 8px;
+    color: #334155 !important;
+    font-weight: 500;
     transition: all 0.2s ease;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.06);
-      color: #F8FAFC !important;
+      background-color: #F8FAFC;
+      color: #0F172A !important;
+      .iconfont { color: #2563EB; }
     }
   }
 
   :deep(.el-sub-menu__icon-arrow) {
     font-size: 12px;
-    color: #64748B !important;
+    color: #94A3B8 !important;
     right: 14px;
   }
 
   :deep(.is-active .el-sub-menu__icon-arrow) {
-    color: #94A3B8 !important;
+    color: #2563EB !important;
   }
 
   :deep(.is-active > .el-sub-menu__title) {
-    color: #F8FAFC !important;
+    color: #0F172A !important;
     font-weight: 600;
+    .iconfont { color: #2563EB !important; }
   }
 
   :deep(.el-menu-item) {
-    height: 38px;
-    line-height: 38px;
-    margin: 2px 12px;
-    padding-left: 44px !important;
-    border-radius: 6px;
-    color: #94A3B8 !important;
+    height: 36px;
+    line-height: 36px;
+    margin: 2px 10px;
+    padding-left: 42px !important;
+    border-radius: 8px;
+    color: #64748B !important;
     font-size: 13px;
+    font-weight: 500;
     transition: all 0.2s ease;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.06);
-      color: #F8FAFC !important;
+      background-color: #F8FAFC;
+      color: #0F172A !important;
     }
   }
 
   :deep(.el-menu-item.is-active) {
-    color: #60A5FA !important;
-    background-color: rgba(37, 99, 235, 0.16) !important;
+    color: #2563EB !important;
+    background-color: rgba(37, 99, 235, 0.08) !important;
     font-weight: 600;
     border-left: 3px solid #2563EB;
   }

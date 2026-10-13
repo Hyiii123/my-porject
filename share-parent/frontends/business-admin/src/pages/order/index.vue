@@ -41,6 +41,7 @@
             <el-option label="全部状态" value="" />
             <el-option label="待支付" :value="1" />
             <el-option label="已完成" :value="4" />
+            <el-option label="退款中" :value="2" />
             <el-option label="已退款" :value="6" />
             <el-option label="已关闭" :value="3" />
           </el-select>
