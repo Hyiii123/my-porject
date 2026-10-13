@@ -1874,17 +1874,18 @@ onMounted(() => {
   .home-step-num {
     width: 42px;
     height: 42px;
-    border-radius: 12px;
-    background: var(--grad);
-    color: #fff;
-    font-family: var(--display);
-    font-weight: 900;
-    font-size: 18px;
+    border-radius: 10px;
+    background: #eff6ff;
+    border: 1.5px solid #bfdbfe;
+    color: #2563eb;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 16px;
-    box-shadow: 0 4px 12px rgba(33, 198, 232, 0.35);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
   }
 
   h4 {

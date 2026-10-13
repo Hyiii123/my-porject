@@ -76,7 +76,7 @@
                   v-for="(tag, tIdx) in group.tags"
                   :key="tIdx"
                   class="group-tag"
-                  @click="handleTagClick(tag)"
+                  @click="handleTagClick(tag, currentItem)"
                 >
                   {{ tag }}
                 </span>
@@ -190,19 +190,36 @@ const mouseoutHandle = () => {
   isDetails.value = false;
 };
 
+const scrollToResults = () => {
+  setTimeout(() => {
+    const el = document.getElementById('filtered-section');
+    if (el) {
+      const top = el.getBoundingClientRect().top + window.pageYOffset - 80;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  }, 120);
+};
+
 const handleCategoryClick = (item) => {
   isDetails.value = false;
   router.push({ path: "/classList/index", query: { categoryId: item.id } });
+  scrollToResults();
 };
 
 const handleSubClick = (item, sub) => {
   isDetails.value = false;
   router.push({ path: "/classList/index", query: { categoryId: item.id, keyword: sub.name } });
+  scrollToResults();
 };
 
-const handleTagClick = (tag) => {
+const handleTagClick = (tag, parentItem) => {
   isDetails.value = false;
-  router.push({ path: "/classList/index", query: { keyword: tag } });
+  const q = { keyword: tag };
+  if (parentItem && parentItem.id) {
+    q.categoryId = parentItem.id;
+  }
+  router.push({ path: "/classList/index", query: q });
+  scrollToResults();
 };
 </script>
 

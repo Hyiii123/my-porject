@@ -7,36 +7,28 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #2563eb">
-            <span class="stat-number">{{ totalAmount }}</span>
-          </div>
-          <div class="stat-label">累计订单金额（元）</div>
+          <div class="stat-icon"><span class="stat-number tabular-nums">¥{{ totalAmount }}</span></div>
+          <div class="stat-label">累计订单金额</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #ea580c">
-            <span class="stat-number">{{ pendingAmount }}</span>
-          </div>
-          <div class="stat-label">待支付金额（元）</div>
+          <div class="stat-icon"><span class="stat-number tabular-nums">¥{{ pendingAmount }}</span></div>
+          <div class="stat-label">待支付金额</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #16a34a">
-            <span class="stat-number">{{ paidAmount }}</span>
-          </div>
-          <div class="stat-label">实收金额（元）</div>
+          <div class="stat-icon"><span class="stat-number tabular-nums">¥{{ paidAmount }}</span></div>
+          <div class="stat-label">实收金额</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #64748b">
-            <span class="stat-number">{{ refundAmount }}</span>
-          </div>
-          <div class="stat-label">已退款金额（元）</div>
+          <div class="stat-icon"><span class="stat-number tabular-nums">¥{{ refundAmount }}</span></div>
+          <div class="stat-label">已退款金额</div>
         </div>
       </el-card>
     </div>
@@ -45,12 +37,12 @@
     <el-card class="search-card" shadow="hover">
       <el-form :model="searchForm" inline>
         <el-form-item label="订单状态">
-          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 120px">
-            <el-option label="全部" value="" />
-            <el-option label="待支付" value="pending" />
-            <el-option label="已支付" value="paid" />
-            <el-option label="已退款" value="refunded" />
-            <el-option label="已关闭" value="closed" />
+          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 130px">
+            <el-option label="全部状态" value="" />
+            <el-option label="待支付" :value="1" />
+            <el-option label="已完成" :value="4" />
+            <el-option label="已退款" :value="6" />
+            <el-option label="已关闭" :value="3" />
           </el-select>
         </el-form-item>
         <el-form-item label="关键词">
@@ -66,44 +58,60 @@
     <!-- 订单列表 -->
     <el-card class="table-card" shadow="hover">
       <el-table :data="orderList" stripe style="width: 100%" v-loading="loading">
-        <el-table-column prop="orderNo" label="订单号" width="150" />
-        <el-table-column label="用户信息" width="120">
+        <el-table-column prop="orderNo" label="订单号" min-width="170" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="tabular-nums font-mono" style="font-size: 13px; color: #334155;">{{ row.orderNo }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="用户信息" width="95">
           <template #default="{ row }">
             <div class="user-info">
-              <span>{{ row.userName }}</span>
+              <span style="font-weight: 500; color: #1E293B;">{{ row.userName }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="课程信息" min-width="200">
+        <el-table-column label="课程信息" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             <div class="course-info">
               <img :src="row.courseCover || defaultCover" class="course-cover" @error="handleImgError($event, row)" />
-              <span>{{ row.courseName }}</span>
+              <span style="color: #1E293B; font-weight: 500;">{{ row.courseName }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="orderAmount" label="订单金额" width="100">
+        <el-table-column prop="orderAmount" label="订单金额" width="90" align="right">
           <template #default="{ row }">
-            <span class="price">¥{{ row.orderAmount }}</span>
+            <span class="tabular-nums" style="color: #64748B; font-size: 13px;">¥{{ Number(row.orderAmount || 0).toFixed(2) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="payAmount" label="实付金额" width="100">
+        <el-table-column prop="payAmount" label="实付金额" width="90" align="right">
           <template #default="{ row }">
-            <span class="price">¥{{ row.payAmount }}</span>
+            <span class="tabular-nums font-semibold" style="color: #0F172A; font-size: 13.5px; font-weight: 600;">¥{{ Number(row.payAmount || 0).toFixed(2) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="payType" label="支付方式" width="100">
+        <el-table-column prop="payType" label="支付方式" width="105" align="center">
           <template #default="{ row }">
-            <span>{{ row.payType || '-' }}</span>
+            <span v-if="row.payType === 1 || row.payType === '1' || row.payType === 'wechat'" class="pay-tag pay-wechat">
+              <span class="pay-dot green"></span>微信
+            </span>
+            <span v-else-if="row.payType === 2 || row.payType === '2' || row.payType === 'alipay'" class="pay-tag pay-alipay">
+              <span class="pay-dot blue"></span>支付宝
+            </span>
+            <span v-else class="pay-tag pay-other">
+              <span class="pay-dot gray"></span>{{ row.payType || '模拟支付' }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="status" label="状态" width="85" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
+            <el-tag :type="getStatusType(row.status, row)" effect="light" round size="small">{{ getStatusText(row.status, row) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="下单时间" width="180" />
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column prop="createTime" label="下单时间" width="160" align="center">
+          <template #default="{ row }">
+            <span class="tabular-nums" style="color: #64748B; font-size: 12.5px;">{{ formatDateTime(row.createTime) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleView(row)">详情</el-button>
             <el-button v-if="row.status === 'paid'" type="warning" link @click="handleRefund(row)">退款</el-button>
@@ -342,16 +350,30 @@ const handleConfirmRefund = async () => {
   } catch (error) { ElMessage.error(error?.message || '退款申请失败') }
 }
 
-// 状态类型
-const getStatusType = (status) => {
-  const map = { pending: 'warning', paid: 'success', refunded: 'danger', closed: 'info' }
-  return map[status] || 'info'
+const formatDateTime = (val) => {
+  if (!val) return "-"
+  return String(val).replace("T", " ").replace(/\.\d+$/, "").slice(0, 19)
 }
 
 // 状态文本
-const getStatusText = (status) => {
-  const map = { pending: '待支付', paid: '已支付', refunded: '已退款', closed: '已关闭' }
-  return map[status] || '未知'
+const getStatusText = (status, row) => {
+  if (row?.statusName && row.statusName !== "未知") return row.statusName
+  const map = {
+    1: "待支付", 2: "退款中", 3: "已关闭", 4: "已完成", 5: "已报名", 6: "已退款",
+    "1": "待支付", "2": "退款中", "3": "已关闭", "4": "已完成", "5": "已报名", "6": "已退款",
+    0: "待支付", "0": "待支付",
+    pending: "待支付", paid: "已完成", refunded: "已退款", closed: "已关闭", completed: "已完成"
+  }
+  return map[status] || (status ? String(status) : "已完成")
+}
+
+// 状态类型
+const getStatusType = (status, row) => {
+  const text = getStatusText(status, row)
+  if (["已支付", "已完成", "已报名"].includes(text)) return "success"
+  if (["待支付"].includes(text)) return "warning"
+  if (["已退款", "退款中"].includes(text)) return "danger"
+  return "info"
 }
 
 onMounted(() => {

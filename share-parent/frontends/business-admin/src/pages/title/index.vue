@@ -8,34 +8,34 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #2563eb">
-            <span class="stat-number">{{ total }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ total }}</span>
           </div>
           <div class="stat-label">题目总数</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #0284c7">
-            <span class="stat-number">{{ singleCount }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ singleCount }}</span>
           </div>
           <div class="stat-label">单选题</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #4f46e5">
-            <span class="stat-number">{{ multipleCount }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ multipleCount }}</span>
           </div>
           <div class="stat-label">多选题</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #0d9488">
-            <span class="stat-number">{{ judgeCount }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ judgeCount }}</span>
           </div>
           <div class="stat-label">判断题</div>
         </div>

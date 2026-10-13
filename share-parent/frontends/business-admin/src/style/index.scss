@@ -1562,3 +1562,233 @@ a {
   flex-wrap: nowrap !important;
   gap: 8px !important;
 }
+
+
+// ========================================================
+// 智问学伴管理端 · 现代大厂科技与呼吸感重塑 (Linear / Vercel 规范)
+// ========================================================
+
+// 1. 顶部统计指标卡 (去实心色块，转为轻量微结构大数字指标)
+.stat-cards {
+  display: grid !important;
+  gap: 16px !important;
+  margin-bottom: 18px !important;
+}
+
+.stat-card {
+  position: relative !important;
+  background: #FFFFFF !important;
+  border-radius: 12px !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03) !important;
+  overflow: hidden !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+  &:hover {
+    transform: translateY(-2px) !important;
+    border-color: #CBD5E1 !important;
+    box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  // 极细顶边微光呼吸线
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.5px;
+    background: linear-gradient(90deg, #2563EB, #60A5FA);
+    opacity: 0.9;
+  }
+
+  &:nth-child(1)::before { background: linear-gradient(90deg, #2563EB, #60A5FA) !important; }
+  &:nth-child(2)::before { background: linear-gradient(90deg, #059669, #34D399) !important; }
+  &:nth-child(3)::before { background: linear-gradient(90deg, #D97706, #FBBF24) !important; }
+  &:nth-child(4)::before { background: linear-gradient(90deg, #4F46E5, #818CF8) !important; }
+  &:nth-child(5)::before { background: linear-gradient(90deg, #0891B2, #22D3EE) !important; }
+
+  .el-card__body {
+    padding: 16px 20px !important;
+  }
+}
+
+// 指标卡内容布局：标题在上，数值在下
+.stat-content,
+.stat-card-content {
+  display: flex !important;
+  flex-direction: column-reverse !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 6px !important;
+}
+
+// 废除旧版笨重色块，释放大号等宽清晰数字
+.stat-icon {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: baseline !important;
+  color: #0F172A !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.02em !important;
+  font-variant-numeric: tabular-nums !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif !important;
+}
+
+.stat-number {
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  color: #0F172A !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.02em !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+// 指标卡顶部标签
+.stat-label,
+.stat-content strong {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #64748B !important;
+  letter-spacing: 0.2px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #94A3B8;
+  }
+}
+
+// 2. 搜索栏与容器统一呼吸感
+.search-card,
+.searchForm {
+  border-radius: 12px !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03) !important;
+  margin-bottom: 16px !important;
+  background: #FFFFFF !important;
+
+  .el-card__body {
+    padding: 16px 20px !important;
+  }
+
+  .el-form--inline .el-form-item {
+    margin-right: 18px !important;
+    margin-bottom: 0 !important;
+    vertical-align: middle;
+
+    .el-form-item__label {
+      font-size: 13px !important;
+      color: #475569 !important;
+      font-weight: 500 !important;
+    }
+  }
+}
+
+// 表格容器统一
+.table-card,
+.tableBox,
+.tableWrapper {
+  border-radius: 12px !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03) !important;
+  background: #FFFFFF !important;
+
+  .el-card__body {
+    padding: 0 !important;
+  }
+}
+
+// 3. 支付渠道胶囊与状态标签微组件
+.pay-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 10px;
+  border-radius: 9999px;
+
+  .pay-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+
+    &.green { background-color: #10B981; }
+    &.blue { background-color: #2563EB; }
+    &.gray { background-color: #94A3B8; }
+  }
+
+  &.pay-wechat {
+    background-color: #ECFDF5;
+    color: #047857;
+    border: 1px solid #A7F3D0;
+  }
+
+  &.pay-alipay {
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #BFDBFE;
+  }
+
+  &.pay-other {
+    background-color: #F8FAFC;
+    color: #475569;
+    border: 1px solid #E2E8F0;
+  }
+}
+
+.resolution-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h2 {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #0F172A !important;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    font-size: 13px !important;
+    color: #64748B !important;
+    margin-top: 4px;
+  }
+}
+
+.pagination {
+  display: flex !important;
+  justify-content: flex-end !important;
+  padding: 14px 20px !important;
+  border-top: 1px solid #F1F5F9 !important;
+}

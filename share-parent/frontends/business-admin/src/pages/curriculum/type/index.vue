@@ -8,26 +8,26 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #2563eb">
-            <span class="stat-number">{{ total }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ total }}</span>
           </div>
           <div class="stat-label">分类总数</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #16a34a">
-            <span class="stat-number">{{ activeCount }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ activeCount }}</span>
           </div>
           <div class="stat-label">启用分类</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #0284c7">
-            <span class="stat-number">{{ courseCount }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ courseCount }}</span>
           </div>
           <div class="stat-label">课程总数</div>
         </div>

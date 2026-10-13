@@ -412,9 +412,19 @@ public class EduCourseServiceImpl implements IEduCourseService {
                 .eq(categoryId != null && categoryId > 0, EduCourse::getCategoryId, categoryId)
                 .eq("free".equalsIgnoreCase(priceType), EduCourse::getIsFree, 1)
                 .gt("paid".equalsIgnoreCase(priceType), EduCourse::getPrice, BigDecimal.ZERO)
-                .and(StringUtils.hasText(keyword), item -> item.like(EduCourse::getCourseName, keyword)
-                        .or().like(EduCourse::getShortDescription, keyword)
-                        .or().like(EduCourse::getDescription, keyword));
+                .and(StringUtils.hasText(keyword), item -> {
+                    String cleanKw = keyword.trim();
+                    List<String> terms = extractSearchTerms(cleanKw);
+                    item.like(EduCourse::getCourseName, cleanKw)
+                            .or().like(EduCourse::getShortDescription, cleanKw)
+                            .or().like(EduCourse::getDescription, cleanKw);
+                    for (String t : terms) {
+                        if (StringUtils.hasText(t) && !t.equalsIgnoreCase(cleanKw)) {
+                            item.or().like(EduCourse::getCourseName, t)
+                                    .or().like(EduCourse::getShortDescription, t);
+                        }
+                    }
+                });
         if ("price".equalsIgnoreCase(sortBy) || "priceAsc".equalsIgnoreCase(sortBy)) {
             wrapper.orderByAsc(EduCourse::getPrice);
         } else if ("priceDesc".equalsIgnoreCase(sortBy)) {
@@ -993,4 +1003,59 @@ public class EduCourseServiceImpl implements IEduCourseService {
         result.put("options", options);
         return result;
     }
+
+    private List<String> extractSearchTerms(String kw) {
+        if (!StringUtils.hasText(kw)) return List.of();
+        Set<String> terms = new LinkedHashSet<>();
+        String raw = kw.trim();
+
+        // 1. 去除版本号后缀（如 3.x, 18, 5, 2.0 等）
+        String noVer = raw.replaceAll("(?i)(\\s*\\d+\\.\\w+|\\s*\\d+)", "").trim();
+        if (StringUtils.hasText(noVer) && noVer.length() >= 2 && !noVer.equalsIgnoreCase(raw)) {
+            terms.add(noVer);
+        }
+
+        // 2. 标点符号与连接词切分（/, 与, 及, +, ·, 空格）
+        String[] parts = raw.split("[/与及+·\\s]+");
+        for (String p : parts) {
+            String cleanP = p.trim();
+            if (cleanP.length() >= 2) {
+                terms.add(cleanP);
+            }
+        }
+
+        // 3. 常见技术词别名与拼写纠偏映射
+        String lower = raw.toLowerCase();
+        if (lower.contains("vue")) { terms.add("Vue3"); terms.add("Vue"); }
+        if (lower.contains("react")) { terms.add("React"); terms.add("React18"); }
+        if (lower.contains("微前端") || lower.contains("wujie") || lower.contains("无界")) { terms.add("微前端"); terms.add("qiankun"); }
+        if (lower.contains("vite") || lower.contains("工程化")) { terms.add("Vite"); terms.add("工程化"); }
+        if (lower.contains("echarts") || lower.contains("可视化")) { terms.add("ECharts"); terms.add("可视化"); }
+        if (lower.contains("ssr") || lower.contains("服务端渲染")) { terms.add("SSR"); terms.add("服务端渲染"); }
+        if (lower.contains("首屏") || lower.contains("性能")) { terms.add("性能"); terms.add("优化"); }
+        if (lower.contains("低代码")) { terms.add("低代码"); }
+        if (lower.contains("组件库")) { terms.add("组件"); terms.add("前端"); }
+        if (lower.contains("跨端") || lower.contains("taro") || lower.contains("uniapp")) { terms.add("跨端"); terms.add("UniApp"); terms.add("Taro"); }
+        if (lower.contains("spring")) { terms.add("Spring"); terms.add("SpringBoot"); terms.add("SpringCloud"); }
+        if (lower.contains("k8s") || lower.contains("kubernetes")) { terms.add("K8s"); terms.add("Kubernetes"); }
+        if (lower.contains("docker")) { terms.add("Docker"); }
+        if (lower.contains("redis")) { terms.add("Redis"); }
+        if (lower.contains("mysql")) { terms.add("MySQL"); }
+        if (lower.contains("rag")) { terms.add("RAG"); terms.add("大模型"); }
+        if (lower.contains("agent") || lower.contains("智能体")) { terms.add("Agent"); terms.add("智能体"); }
+        if (lower.contains("llm") || lower.contains("大模型")) { terms.add("大模型"); terms.add("LLM"); }
+        if (lower.contains("langchain")) { terms.add("LangChain"); }
+        if (lower.contains("seata")) { terms.add("Seata"); terms.add("分布式事务"); }
+        if (lower.contains("rocketmq")) { terms.add("RocketMQ"); }
+        if (lower.contains("sentinel")) { terms.add("Sentinel"); }
+        if (lower.contains("netty")) { terms.add("Netty"); }
+        if (lower.contains("go")) { terms.add("Go"); }
+        if (lower.contains("rust")) { terms.add("Rust"); }
+        if (lower.contains("flutter")) { terms.add("Flutter"); }
+        if (lower.contains("android")) { terms.add("Android"); }
+        if (lower.contains("安全") || lower.contains("xss") || lower.contains("csrf")) { terms.add("安全"); }
+
+        return new ArrayList<>(terms);
+    }
+
 }

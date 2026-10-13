@@ -78,12 +78,16 @@
     </div>
 
     <!-- 4. 定向分类/搜索结果专区 -->
-    <div v-if="currentCatId || searchKeyword" class="class-section-wrap">
+    <div v-if="currentCatId || searchKeyword" class="class-section-wrap" id="filtered-section">
       <div class="container">
         <OpenClass
           :title="`🎯 检索与分类结果 · ${currentCategoryName} ${searchKeyword} (共 ${filteredCourses.length} 门课程)`"
           :data="filteredCourses"
         ></OpenClass>
+        <div v-if="filteredCourses.length === 0" class="empty-search-fallback" style="text-align: center; padding: 48px 0; color: #64748b;">
+          <p style="font-size: 15px; margin-bottom: 12px;">暂未匹配到完全一致的专属课程，已为您推荐全站热门实战好课</p>
+          <el-button type="primary" size="small" @click="resetFilters">重置并浏览全部课程</el-button>
+        </div>
       </div>
     </div>
 
@@ -120,7 +124,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed, watch } from "vue";
+import { onMounted, ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { getClassCategorys, getFreeClassList } from "@/api/class.js";
@@ -207,6 +211,20 @@ const fetchFilteredData = async () => {
     const res = await getFreeClassList(params);
     if (res.code == 200 && res.data) {
       filteredCourses.value = res.data.list || res.data.records || [];
+      // 如果带分类过滤返回 0 门，自动尝试放宽分类限制只搜关键词
+      if (filteredCourses.value.length === 0 && currentCatId.value && searchKeyword.value) {
+        const fbRes = await getFreeClassList({ pageNo: 1, pageSize: 12, keyword: searchKeyword.value });
+        if (fbRes.code == 200 && fbRes.data) {
+          filteredCourses.value = fbRes.data.list || fbRes.data.records || [];
+        }
+      }
+      nextTick(() => {
+        const el = document.getElementById('filtered-section');
+        if (el) {
+          const top = el.getBoundingClientRect().top + window.pageYOffset - 80;
+          window.scrollTo({ top, behavior: 'smooth' });
+        }
+      });
     }
   } catch (e) {
     console.debug("过滤课程加载失败:", e);
@@ -332,6 +350,10 @@ onMounted(() => {
   .swiper-box {
     overflow: hidden;
   }
+}
+
+#filtered-section {
+  scroll-margin-top: 80px;
 }
 
 .class-section-wrap {

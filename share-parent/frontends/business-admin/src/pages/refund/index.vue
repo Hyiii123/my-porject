@@ -7,34 +7,34 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #2563eb">
-            <span class="stat-number">{{ total }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ total }}</span>
           </div>
           <div class="stat-label">退款申请总数</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #ea580c">
-            <span class="stat-number">{{ pendingCount }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ pendingCount }}</span>
           </div>
           <div class="stat-label">待审批</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #16a34a">
-            <span class="stat-number">{{ approvedCount }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ approvedCount }}</span>
           </div>
           <div class="stat-label">已通过</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #dc2626">
-            <span class="stat-number">{{ rejectedCount }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ rejectedCount }}</span>
           </div>
           <div class="stat-label">已拒绝</div>
         </div>

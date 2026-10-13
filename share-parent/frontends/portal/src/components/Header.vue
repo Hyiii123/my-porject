@@ -521,9 +521,10 @@ onUnmounted(() => {
   font-size: 14px;
   font-weight: 600;
   color: #fff;
-  background: var(--grad);
-  border: 2px solid rgba(255, 255, 255, 0.7);
+  background: linear-gradient(135deg, #2563eb 0%, #38bdf8 100%);
+  border: 2px solid #ffffff;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 
   .avatar-img {
     width: 100%;

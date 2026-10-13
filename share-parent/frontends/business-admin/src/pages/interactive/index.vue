@@ -7,26 +7,26 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #2563eb">
-            <span class="stat-number">{{ total }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ total }}</span>
           </div>
           <div class="stat-label">问题总数</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #16a34a">
-            <span class="stat-number">{{ solvedCount }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ solvedCount }}</span>
           </div>
           <div class="stat-label">已解决</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #ea580c">
-            <span class="stat-number">{{ unsolvedCount }}</span>
+          <div class="stat-icon">
+            <span class="stat-number tabular-nums">{{ unsolvedCount }}</span>
           </div>
           <div class="stat-label">待解决</div>
         </div>

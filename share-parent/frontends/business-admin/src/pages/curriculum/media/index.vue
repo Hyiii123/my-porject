@@ -8,27 +8,21 @@
 
     <!-- 统计卡片 -->
     <div class="stat-cards">
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #2563eb">
-            <span class="stat-number">{{ total }}</span>
-          </div>
+          <div class="stat-icon"><span class="stat-number tabular-nums">{{ total }}</span></div>
           <div class="stat-label">视频总数</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #0d9488">
-            <span class="stat-number">{{ totalSize }}</span>
-          </div>
+          <div class="stat-icon"><span class="stat-number tabular-nums">{{ totalSize }}</span></div>
           <div class="stat-label">总容量</div>
         </div>
       </el-card>
-      <el-card shadow="never" class="stat-card">
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #16a34a">
-            <span class="stat-number">{{ usedCount }}</span>
-          </div>
+          <div class="stat-icon"><span class="stat-number tabular-nums">{{ usedCount }}</span></div>
           <div class="stat-label">已使用</div>
         </div>
       </el-card>
@@ -113,13 +107,22 @@
             <el-tag :type="getTypeTag(row.type)">{{ getTypeText(row.type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="resolution" label="分辨率" width="110" />
-        <el-table-column prop="status" label="状态" width="90">
+        <el-table-column prop="resolution" label="分辨率" width="110" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusTag(row.status)">{{ getStatusText(row.status) }}</el-tag>
+            <span v-if="row.resolution" class="resolution-tag">{{ row.resolution }}</span>
+            <span v-else class="resolution-tag">1080P</span>
           </template>
         </el-table-column>
-        <el-table-column prop="uploadTime" label="上传时间" width="170" />
+        <el-table-column prop="status" label="状态" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag :type="getStatusTag(row.status)" effect="light" round size="small">{{ getStatusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="uploadTime" label="上传时间" width="170" align="center">
+          <template #default="{ row }">
+            <span class="tabular-nums" style="color: #64748B; font-size: 12.5px;">{{ formatDateTime(row.uploadTime) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handlePreview(row)">预览</el-button>
@@ -826,6 +829,11 @@ const getStatusTag = (status) => {
 }
 
 // 状态文本
+const formatDateTime = (val) => {
+  if (!val) return "-"
+  return String(val).replace("T", " ").replace(/\.\d+$/, "").slice(0, 19)
+}
+
 const getStatusText = (status) => {
   const map = { used: '已使用', unused: '未使用', processing: '处理中' }
   return map[status] || '未知'

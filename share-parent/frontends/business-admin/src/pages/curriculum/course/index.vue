@@ -4,9 +4,7 @@
     <div class="stat-cards">
       <el-card v-for="(item, index) in statCards" :key="index" shadow="hover" class="stat-card">
         <div class="stat-card-content">
-          <div class="stat-icon" :style="{ background: item.bgColor }">
-            <span class="stat-number">{{ item.value }}</span>
-          </div>
+          <div class="stat-icon"><span class="stat-number tabular-nums">{{ item.value }}</span></div>
           <div class="stat-label">{{ item.label }}</div>
         </div>
       </el-card>
@@ -64,20 +62,33 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="price" label="价格" width="100">
+        <el-table-column prop="price" label="价格" width="100" align="center">
           <template #default="{ row }">
-            <span class="price">¥{{ (row.price / 100).toFixed(0) }}</span>
+            <span v-if="!row.price || row.price === 0" style="color: #10B981; font-weight: 600; font-size: 13px;">免费</span>
+            <span v-else class="tabular-nums" style="color: #F43F5E; font-weight: 600; font-size: 13.5px;">¥{{ (row.price / 100).toFixed(0) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="learners" label="学习人数" width="100" />
-        <el-table-column prop="lessons" label="课时" width="80" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="learners" label="学习人数" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
+            <span class="tabular-nums" style="color: #334155; font-size: 13px;">{{ Number(row.learners || 0).toLocaleString() }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column prop="lessons" label="课时" width="80" align="center">
+          <template #default="{ row }">
+            <span class="tabular-nums" style="color: #334155; font-size: 13px;">{{ row.lessons || 0 }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.status)" effect="light" round size="small">{{ getStatusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="170" align="center">
+          <template #default="{ row }">
+            <span class="tabular-nums" style="color: #64748B; font-size: 12.5px;">{{ formatDateTime(row.createTime) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
             <el-button v-if="row.status === 0 || row.status === 2" type="success" link @click="handlePublish(row)">上架</el-button>
@@ -431,6 +442,11 @@ const getStatusType = (status) => {
 }
 
 // 状态文本
+const formatDateTime = (val) => {
+  if (!val) return "-"
+  return String(val).replace("T", " ").replace(/\.\d+$/, "").slice(0, 19)
+}
+
 const getStatusText = (status) => {
   const map = { 0: '待上架', 1: '已上架', 2: '已下架', 3: '已完结' }
   return map[status] || '未知'
