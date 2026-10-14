@@ -14,6 +14,23 @@
 
 ## 🚀 重大里程碑与工作演进记录 (Milestones & Evolution)
 
+### 2026-10-14 04:15:00 - 管理端 UI 旗舰级工艺全景交付：计数胶囊分段器、金融级货币排版、智能跟随十字光标与表格流光指示行 (Admin UI Flagship Craftsmanship: Segmented Counter Chips, Financial Typography, Interactive Telemetry Crosshair & Indicator Rows)
+
+* **演进主题**：针对“状态筛选仍为传统繁琐下拉框、金额数字粘连缺少微层级、大盘图表缺少光标引导与实时浮窗、表格悬停单调”四大高阶工艺细节，开展像素级打磨与工效飞跃（订单与课程全面升级为带实时数量统计的 Segmented Filter Chips 计数胶囊组、金融级千分位与货币符微层级、SVG 交互式跟随十字游标与浮空毛玻璃采样 Tooltip、表格行首流光左标线与操作列微底块悬停）(Rule 1 & Rule 8 Compliance)
+* **核心成果**：
+  1. **高频状态筛选进化为「计数胶囊分段器 (Segmented Filter Chips)」**：
+     - `order/index.vue`（订单管理）与 `curriculum/course/index.vue`（课程管理）全面废弃传统 `<el-select>`，升级为一体化胶囊分段器；
+     - 胶囊内嵌实时动态数量徽标（如 `[ 全部订单 10 ] [ 已完成 4 ] [ 待支付 0 ] [ 已退款 6 ]` 及 `[ 全部课程 320 ] [ 已上架 270 ] ...`），单次点击瞬时高亮过滤，工效与审美达到 Linear / Stripe 级别。
+  2. **金融级排版微层级 (Financial Typography)**：
+     - 全局金额引入严格千分位格式化（如 `29,650.00`），货币符号 `¥` 下沉为 `0.75em` 次级字号与轻柔微灰（`color: #64748B`），让核心金额数字凸显为第一视觉主体；
+     - 学员数、课时数等单位（`人`、`节`、`门`）升级为挂靠微标签，排版严密工整。
+  3. **SVG 智能跟随十字光标与浮空毛玻璃 Tooltip (Interactive Crosshair & Glassmorphism Tooltip)**：
+     - 大盘平滑折线图新增鼠标精准跟随坐标轴引导线（Crosshair Guide）；
+     - 当前采样节点外延实时扩散呼吸发光波纹（Ripple Ring），上方浮动展示暗色毛玻璃卡片（包含采样日期、PV 精准访问量与微服务遥测健康状态）。
+  4. **表格行悬停微质感 (Row Elevation & Left Indicator Line)**：
+     - 全局表格在鼠标悬停时，行首最左侧呈现 3px 品牌电光蓝内嵌高光标线（`box-shadow: inset 3px 0 0 #2563EB`），营造出跟手响应的流水线精密质感；
+     - 表格操作列文本链接悬停时泛起淡色透明微底块（浅蓝/浅红/浅琥珀），极大增强可点击触觉反馈。
+
 ### 2026-10-14 03:45:00 - 管理端 UI 全景高阶重塑交付：一体化纯白极简工作室调性、全局 Command Palette ⌘K 快捷检索、微光平滑大盘曲线与实时业务流 (Admin UI Complete Studio Redesign: Unified Pristine White Studio Theme, Global Command Palette ⌘K, Smooth SVG Area Spline & Live Activity Stream)
 
 * **演进主题**：全面告别传统模板“左黑右白阴阳割裂、顶栏生硬问候贴纸、图表空洞扁平0值、死板表格与简陋空状态”四大深层视觉短板，按照现代顶级 SaaS（Linear / Vercel / Stripe）审美范式重构管理端（纯白极简侧边栏与发丝边框、顶栏集成快捷指令 Command Palette 与微脉冲集群遥测、工作台仪表盘注入贝塞尔平滑微光曲线与实时业务事件流、空状态极简矢量化）(Rule 1 & Rule 8 Compliance)

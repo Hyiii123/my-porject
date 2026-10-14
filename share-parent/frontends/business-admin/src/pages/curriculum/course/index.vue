@@ -12,32 +12,28 @@
 
     <!-- 搜索区域 -->
     <el-card class="search-card" shadow="hover">
-      <el-form :model="searchForm" inline>
-        <el-form-item label="课程状态">
-          <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-            <el-tab-pane label="全部" name="all" />
-            <el-tab-pane label="待上架" name="0" />
-            <el-tab-pane label="已上架" name="1" />
-            <el-tab-pane label="已下架" name="2" />
-            <el-tab-pane label="已完结" name="3" />
-          </el-tabs>
-        </el-form-item>
-      </el-form>
-      <el-form :model="searchForm" inline style="margin-top: 10px">
-        <el-form-item label="课程分类">
-          <el-select v-model="searchForm.categoryId" placeholder="全部分类" clearable style="width: 150px">
-            <el-option label="全部" value="" />
+      <div class="search-flex-row">
+        <div class="segmented-filter-group">
+          <div
+            v-for="chip in courseFilterChips"
+            :key="chip.value"
+            :class="['filter-chip', activeTab === chip.value ? 'active' : '']"
+            @click="handleCourseChip(chip.value)"
+          >
+            <span>{{ chip.label }}</span>
+            <span class="chip-count">{{ chip.count }}</span>
+          </div>
+        </div>
+        <div class="search-right-form">
+          <el-select v-model="searchForm.categoryId" placeholder="全部分类" clearable style="width: 140px" @change="handleSearch">
+            <el-option label="全部类别" value="" />
             <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="关键词">
-          <el-input v-model="searchForm.keyword" placeholder="课程名称" clearable style="width: 200px" />
-        </el-form-item>
-        <el-form-item>
+          <el-input v-model="searchForm.keyword" placeholder="检索课程名称" clearable style="width: 190px" @keyup.enter="handleSearch" />
           <el-button type="primary" @click="handleSearch">搜索</el-button>
           <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+        </div>
+      </div>
     </el-card>
 
     <!-- 课程列表 -->
@@ -333,6 +329,20 @@ const loadCourseStats = async () => {
 }
 
 // Tab 切换
+
+const courseFilterChips = computed(() => [
+  { label: '全部课程', value: 'all', count: courseStats.total },
+  { label: '已上架', value: '1', count: courseStats.published },
+  { label: '待上架', value: '0', count: courseStats.pending },
+  { label: '已下架', value: '2', count: courseStats.offline },
+  { label: '已完结', value: '3', count: courseStats.finished }
+])
+
+const handleCourseChip = (val) => {
+  activeTab.value = val
+  handleTabChange(val)
+}
+
 const handleTabChange = () => {
   pagination.page = 1
   getCourseList()
@@ -571,4 +581,18 @@ onMounted(async () => {
   font-size: 13px;
   color: #909399;
 }
+
+.search-flex-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.search-right-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 </style>

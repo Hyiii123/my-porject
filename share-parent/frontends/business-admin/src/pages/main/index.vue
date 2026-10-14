@@ -76,7 +76,7 @@
             </div>
           </div>
 
-          <div class="svg-wrapper">
+          <div class="svg-wrapper" @mousemove="handleSvgMouseMove" @mouseleave="activePoint = null">
             <svg viewBox="0 0 1000 220" class="smooth-chart-svg" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
@@ -84,10 +84,6 @@
                   <stop offset="80%" stop-color="#38BDF8" stop-opacity="0.04" />
                   <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.0" />
                 </linearGradient>
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="3" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
               </defs>
 
               <!-- 参考网格线 -->
@@ -102,12 +98,19 @@
               <!-- 平滑曲线路径 -->
               <path :d="svgLinePath" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
 
-              <!-- 数据圆点 -->
+              <!-- 活跃悬停十字光标线 -->
+              <g v-if="activePoint">
+                <line :x1="activePoint.x" y1="20" :x2="activePoint.x" y2="215" stroke="#2563EB" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.8" />
+                <circle :cx="activePoint.x" :cy="activePoint.y" r="10" fill="#2563EB" opacity="0.2" class="ripple-ring" />
+                <circle :cx="activePoint.x" :cy="activePoint.y" r="6" fill="#2563EB" stroke="#FFFFFF" stroke-width="2" />
+              </g>
+
+              <!-- 普通数据圆点 -->
               <g v-for="(p, i) in svgPoints" :key="i">
                 <circle
                   :cx="p.x"
                   :cy="p.y"
-                  r="5"
+                  r="4.5"
                   fill="#FFFFFF"
                   stroke="#2563EB"
                   stroke-width="2.5"
@@ -115,6 +118,23 @@
                 />
               </g>
             </svg>
+
+            <!-- 浮空毛玻璃交互 Tooltip -->
+            <div
+              v-if="activePoint"
+              class="chart-telemetry-tooltip"
+              :style="{ left: activeTooltipLeft, top: activeTooltipTop }"
+            >
+              <div class="tooltip-header">
+                <span class="tooltip-dot"></span>
+                <span class="tooltip-date">{{ activePoint.label }} 遥测采样</span>
+              </div>
+              <div class="tooltip-body">
+                <span class="tooltip-num tabular-nums">{{ activePoint.value }}</span>
+                <span class="tooltip-unit">PV 访问</span>
+              </div>
+              <div class="tooltip-footer">微服务集群全双工推演正常</div>
+            </div>
           </div>
 
           <!-- X 轴刻度标签 -->
@@ -286,6 +306,38 @@ const toNumber = value => {
 const formatInteger = value => toNumber(value).toLocaleString('zh-CN')
 
 // SVG 曲线计算
+
+const activePoint = ref(null)
+
+const activeTooltipLeft = computed(() => {
+  if (!activePoint.value) return '0px'
+  const pct = activePoint.value.x / 1000
+  return `calc(${pct * 100}% - 70px)`
+})
+
+const activeTooltipTop = computed(() => {
+  if (!activePoint.value) return '0px'
+  const y = activePoint.value.y
+  return `${Math.max(10, y - 65)}px`
+})
+
+const handleSvgMouseMove = (e) => {
+  const rect = e.currentTarget.getBoundingClientRect()
+  const mouseX = ((e.clientX - rect.left) / rect.width) * 1000
+  const pts = svgPoints.value
+  if (!pts.length) return
+  let closest = pts[0]
+  let minDist = Math.abs(pts[0].x - mouseX)
+  for (let i = 1; i < pts.length; i++) {
+    const dist = Math.abs(pts[i].x - mouseX)
+    if (dist < minDist) {
+      minDist = dist
+      closest = pts[i]
+    }
+  }
+  activePoint.value = closest
+}
+
 const svgPoints = computed(() => {
   if (!chartData.value.length) return []
   const count = chartData.value.length
@@ -296,7 +348,7 @@ const svgPoints = computed(() => {
     const x = Math.round((idx / (count - 1 || 1)) * 960 + 20)
     const norm = (toNumber(item.raw) - min) / range
     const y = Math.round(200 - norm * 150)
-    return { x, y }
+    return { x, y, value: item.value, label: item.label }
   })
 })
 
@@ -376,7 +428,7 @@ const loadToday = async () => {
     const changes = today.changes || data.changes || {}
     statCards[0].value = formatInteger(today.todayVisits || 15820)
     statCards[1].value = formatInteger(today.todayOrders || 167)
-    statCards[2].value = Number(today.todayRevenue || 29650).toFixed(2)
+    statCards[2].value = Number(today.todayRevenue || 29650).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     statCards[3].value = formatInteger(today.newStudents || 96)
   } catch (e) {
     statCards[0].value = '15,820'
@@ -665,4 +717,76 @@ onMounted(async () => {
 .todo-count { font-size: 24px; font-weight: 700; color: #2563EB; }
 .todo-label { flex: 1; font-size: 13px; color: #334155; font-weight: 500; }
 .todo-arrow { color: #94A3B8; font-size: 14px; }
+
+.svg-wrapper {
+  position: relative;
+  width: 100%;
+  height: 210px;
+  cursor: crosshair;
+}
+
+.chart-telemetry-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #FFFFFF;
+  z-index: 10;
+  transition: left 0.08s ease-out, top 0.08s ease-out;
+
+  .tooltip-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #94A3B8;
+    margin-bottom: 3px;
+
+    .tooltip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #38BDF8;
+    }
+  }
+
+  .tooltip-body {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+
+    .tooltip-num {
+      font-size: 16px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+
+    .tooltip-unit {
+      font-size: 11px;
+      color: #94A3B8;
+    }
+  }
+
+  .tooltip-footer {
+    font-size: 10px;
+    color: #10B981;
+    margin-top: 2px;
+  }
+}
+
+.ripple-ring {
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% { r: 5; opacity: 0.8; }
+  50% { r: 12; opacity: 0.2; }
+  100% { r: 5; opacity: 0.8; }
+}
+
 </style>

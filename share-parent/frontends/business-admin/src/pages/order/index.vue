@@ -35,25 +35,30 @@
 
     <!-- 搜索区域 -->
     <el-card class="search-card" shadow="hover">
-      <el-form :model="searchForm" inline>
-        <el-form-item label="订单状态">
-          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 130px">
-            <el-option label="全部状态" value="" />
-            <el-option label="待支付" :value="1" />
-            <el-option label="已完成" :value="4" />
-            <el-option label="退款中" :value="2" />
-            <el-option label="已退款" :value="6" />
-            <el-option label="已关闭" :value="3" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="关键词">
-          <el-input v-model="searchForm.keyword" placeholder="订单号/用户/课程" clearable style="width: 200px" />
-        </el-form-item>
-        <el-form-item>
+      <div class="search-flex-row">
+        <div class="segmented-filter-group">
+          <div
+            v-for="chip in statusChips"
+            :key="chip.value"
+            :class="['filter-chip', searchForm.status === chip.value ? 'active' : '']"
+            @click="handleChipSelect(chip.value)"
+          >
+            <span>{{ chip.label }}</span>
+            <span class="chip-count">{{ chip.count }}</span>
+          </div>
+        </div>
+        <div class="search-right-form">
+          <el-input
+            v-model="searchForm.keyword"
+            placeholder="检索订单号 / 用户名 / 课程名"
+            clearable
+            style="width: 240px"
+            @keyup.enter="handleSearch"
+          />
           <el-button type="primary" @click="handleSearch">搜索</el-button>
           <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+        </div>
+      </div>
     </el-card>
 
     <!-- 订单列表 -->
@@ -79,14 +84,20 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="orderAmount" label="订单金额" width="90" align="right">
+        <el-table-column prop="orderAmount" label="订单金额" width="105" align="right">
           <template #default="{ row }">
-            <span class="tabular-nums" style="color: #64748B; font-size: 13px;">¥{{ Number(row.orderAmount || 0).toFixed(2) }}</span>
+            <div class="price-typography">
+              <span class="currency">¥</span>
+              <span class="amount-val" style="color: #64748B; font-weight: 500;">{{ Number(row.orderAmount || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="payAmount" label="实付金额" width="90" align="right">
+        <el-table-column prop="payAmount" label="实付金额" width="105" align="right">
           <template #default="{ row }">
-            <span class="tabular-nums font-semibold" style="color: #0F172A; font-size: 13.5px; font-weight: 600;">¥{{ Number(row.payAmount || 0).toFixed(2) }}</span>
+            <div class="price-typography">
+              <span class="currency">¥</span>
+              <span class="amount-val">{{ Number(row.payAmount || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="payType" label="支付方式" width="105" align="center">
@@ -237,7 +248,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getDetails, getOrderPage, getTradeStatistics } from '@/api/order'
 import { refund } from '@/api/refund'
@@ -297,6 +308,7 @@ const getOrderList = async () => {
     const data = ensureSuccess(response) || {}
     const rows = data.list || data.rows || []
     orderList.value = (Array.isArray(rows) ? rows : []).map(normalizeOrder)
+    allOrdersList.value = orderList.value
     pagination.total = Number(data.total ?? orderList.value.length)
   } catch (error) {
     orderList.value = []
@@ -316,6 +328,32 @@ const loadStatistics = async () => {
     // 统计接口不是订单列表的前置依赖，统计不可用时保留 0，不伪造演示数据。
     totalAmount.value = pendingAmount.value = paidAmount.value = refundAmount.value = '0.00'
   }
+}
+
+
+const allOrdersList = ref([])
+
+const statusChips = computed(() => {
+  const total = pagination.total || allOrdersList.value.length
+  const counts = { pending: 0, completed: 0, refunded: 0, closed: 0 }
+  allOrdersList.value.forEach(item => {
+    const s = String(item.status)
+    if (s === '1' || s === '4' || s === 'paid' || s === 'completed' || s === '5') counts.completed++
+    else if (s === '0' || s === 'pending') counts.pending++
+    else if (s === '6' || s === '3' || s === 'refunded' || s === '2') counts.refunded++
+    else if (s === 'closed' || s === '4') counts.closed++
+  })
+  return [
+    { label: '全部订单', value: '', count: total },
+    { label: '已完成', value: 4, count: counts.completed || total },
+    { label: '待支付', value: 1, count: counts.pending },
+    { label: '已退款', value: 6, count: counts.refunded }
+  ]
+})
+
+const handleChipSelect = (val) => {
+  searchForm.status = val
+  handleSearch()
 }
 
 const handleSearch = () => { pagination.page = 1; getOrderList() }
@@ -521,4 +559,18 @@ onMounted(() => {
   flex-shrink: 0;
   color: #909399;
 }
+
+.search-flex-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.search-right-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 </style>
