@@ -26,6 +26,9 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import com.share.education.service.support.TwoLevelCacheService;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.concurrent.TimeUnit;
 import static com.share.education.service.support.EduUtils.*;
 
 /**
@@ -44,6 +47,9 @@ public class EduCategoryServiceImpl implements IEduCategoryService {
     private final EduCourseMapper courseMapper;
     private final IEduCourseService courseService;
 
+    @Autowired(required = false)
+    private TwoLevelCacheService twoLevelCacheService;
+
     public EduCategoryServiceImpl(EduCategoryMapper categoryMapper,
                                   EduBannerMapper bannerMapper,
                                   EduInterestMapper interestMapper,
@@ -57,7 +63,16 @@ public class EduCategoryServiceImpl implements IEduCategoryService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public List<Map<String, Object>> listCategories(boolean includeDisabled) {
+        String cacheKey = "edu:category:tree:" + includeDisabled;
+        if (twoLevelCacheService != null) {
+            return twoLevelCacheService.get(cacheKey, List.class, () -> doListCategories(includeDisabled), 1L, TimeUnit.HOURS);
+        }
+        return doListCategories(includeDisabled);
+    }
+
+    private List<Map<String, Object>> doListCategories(boolean includeDisabled) {
         LambdaQueryWrapper<EduCategory> wrapper = new LambdaQueryWrapper<EduCategory>()
                 .eq(!includeDisabled, EduCategory::getStatus, ENABLED)
                 .orderByAsc(EduCategory::getSortNum).orderByAsc(EduCategory::getId);
@@ -131,9 +146,15 @@ public class EduCategoryServiceImpl implements IEduCategoryService {
             value.setDelFlag(0);
             value.setVersion(0);
             categoryMapper.insert(value);
+        if (twoLevelCacheService != null) {
+            twoLevelCacheService.evictPattern("edu:category:tree:*");
+        }
         } else {
             value.setUpdateTime(now);
             categoryMapper.updateById(value);
+        if (twoLevelCacheService != null) {
+            twoLevelCacheService.evictPattern("edu:category:tree:*");
+        }
         }
         return value;
     }
@@ -207,11 +228,17 @@ public class EduCategoryServiceImpl implements IEduCategoryService {
             value.setDelFlag(0);
             value.setVersion(0);
             categoryMapper.insert(value);
+        if (twoLevelCacheService != null) {
+            twoLevelCacheService.evictPattern("edu:category:tree:*");
+        }
             value.setUpdateTime(now);
             return categoryView(value);
         }
         value.setUpdateTime(now);
         categoryMapper.updateById(value);
+        if (twoLevelCacheService != null) {
+            twoLevelCacheService.evictPattern("edu:category:tree:*");
+        }
         return categoryView(value);
     }
 
@@ -224,6 +251,9 @@ public class EduCategoryServiceImpl implements IEduCategoryService {
         value.setStatus(defaultValue(intValue(body == null ? null : body.get("status"), value.getStatus()), value.getStatus()));
         value.setUpdateTime(LocalDateTime.now());
         categoryMapper.updateById(value);
+        if (twoLevelCacheService != null) {
+            twoLevelCacheService.evictPattern("edu:category:tree:*");
+        }
     }
 
     @Override

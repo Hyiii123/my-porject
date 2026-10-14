@@ -23,6 +23,12 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+                <!-- Caffeine Cache for L1 In-Memory Two-Level Caching -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- RuoYi Common Core-->
         <dependency>
             <groupId>com.share</groupId>

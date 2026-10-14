@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 import java.util.function.Function;
 import java.util.concurrent.TimeUnit;
 
+import com.share.education.service.support.TwoLevelCacheService;
+import org.springframework.beans.factory.annotation.Autowired;
 import static com.share.education.service.support.EduUtils.*;
 
 /**
@@ -46,6 +48,9 @@ public class EduCourseServiceImpl implements IEduCourseService {
     private final EduExamQuestionBankMapper questionBankMapper;
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
+
+    @Autowired(required = false)
+    private TwoLevelCacheService twoLevelCacheService;
 
     public EduCourseServiceImpl(EduCourseMapper courseMapper,
                                 EduCourseCatalogMapper catalogMapper,
@@ -147,6 +152,10 @@ public class EduCourseServiceImpl implements IEduCourseService {
         } else {
             value.setUpdateTime(now);
             courseMapper.updateById(value);
+        if (twoLevelCacheService != null && value.getId() != null) {
+            twoLevelCacheService.evict("edu:course:detail:" + value.getId());
+            twoLevelCacheService.evictPattern("edu:category:tree:*");
+        }
         }
         return legacyCourse(value.getId());
     }
@@ -483,7 +492,17 @@ public class EduCourseServiceImpl implements IEduCourseService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Map<String, Object> course(Long id) {
+        if (id == null) return Map.of();
+        String cacheKey = "edu:course:detail:" + id;
+        if (twoLevelCacheService != null) {
+            return twoLevelCacheService.get(cacheKey, Map.class, () -> {
+                EduCourse c = courseMapper.selectById(id);
+                if (c == null) throw new ServiceException("课程不存在");
+                return courseView(c);
+            }, 30L, TimeUnit.MINUTES);
+        }
         EduCourse course = courseMapper.selectById(id);
         if (course == null) {
             throw new ServiceException("课程不存在");
@@ -529,6 +548,10 @@ public class EduCourseServiceImpl implements IEduCourseService {
         } else {
             value.setUpdateTime(now);
             courseMapper.updateById(value);
+        if (twoLevelCacheService != null && value.getId() != null) {
+            twoLevelCacheService.evict("edu:course:detail:" + value.getId());
+            twoLevelCacheService.evictPattern("edu:category:tree:*");
+        }
         }
         return value;
     }

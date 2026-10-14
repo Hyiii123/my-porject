@@ -17,7 +17,12 @@
     </properties>
 
     <dependencyManagement>
-        <dependencies>
+            <dependencies>
+        <!-- Caffeine 高性能两级缓存 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
             <!-- 模块级升级 Spring Boot 至 3.2.4，对齐 Spring AI 1.0.0-M6 运行时规范 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
