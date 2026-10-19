@@ -6,8 +6,8 @@ spring:
       host: ${TJ_REDIS_HOST:127.0.0.1}
       port: ${TJ_REDIS_PORT:6379}
       database: ${TJ_REDIS_DATABASE:0}
-      timeout: 3s
-      connect-timeout: 3s
+      timeout: 10s
+      connect-timeout: 10s
   jackson:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss

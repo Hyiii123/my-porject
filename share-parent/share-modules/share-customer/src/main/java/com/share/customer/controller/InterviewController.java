@@ -18,6 +18,9 @@ import com.share.customer.domain.interview.vo.ResumeAnalysisVO;
 import com.share.customer.service.IInterviewService;
 import com.share.customer.service.IUserResumeService;
 import jakarta.validation.Valid;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,6 +36,12 @@ public class InterviewController extends BaseController {
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.share.common.redis.service.RedisService redisService;
+
+
+    private final Cache<String, TableDataInfo> interviewListLocalCache = Caffeine.newBuilder()
+            .maximumSize(5000)
+            .expireAfterWrite(5, java.util.concurrent.TimeUnit.SECONDS)
+            .build();
 
     private final IInterviewService interviewService;
     private final IUserResumeService resumeService;
@@ -119,16 +128,25 @@ public class InterviewController extends BaseController {
             @RequestParam(defaultValue = "10") long pageSize) {
         Long userId = com.share.common.security.utils.SecurityUtils.getUserId();
         String cacheKey = "customer:interview:my:" + (userId != null ? userId : 0L) + ":" + pageNum + ":" + pageSize;
+        TableDataInfo local = interviewListLocalCache.getIfPresent(cacheKey);
+        if (local != null) {
+            return local;
+        }
         if (redisService != null) {
             try {
                 Object raw = redisService.getCacheObject(cacheKey);
                 if (raw instanceof String str && !str.isBlank()) {
-                    return com.alibaba.fastjson2.JSON.parseObject(str, TableDataInfo.class);
+                    TableDataInfo cached = com.alibaba.fastjson2.JSON.parseObject(str, TableDataInfo.class);
+                    if (cached != null) {
+                        interviewListLocalCache.put(cacheKey, cached);
+                        return cached;
+                    }
                 }
             } catch (Exception ignored) {}
         }
         IPage<InterviewSession> page = interviewService.listMySessions(pageNum, pageSize);
         TableDataInfo res = page(page);
+        interviewListLocalCache.put(cacheKey, res);
         if (redisService != null && res.getRows() != null && !res.getRows().isEmpty()) {
             try {
                 redisService.setCacheObject(cacheKey, com.alibaba.fastjson2.JSON.toJSONString(res), 60L, java.util.concurrent.TimeUnit.SECONDS);

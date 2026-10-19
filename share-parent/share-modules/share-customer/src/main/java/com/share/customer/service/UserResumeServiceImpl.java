@@ -20,6 +20,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,6 +37,15 @@ import java.util.List;
 public class UserResumeServiceImpl implements IUserResumeService {
 
     private static final long CONFIG_ID = 1L;
+
+    /**
+     * L1 resume cache (5s TTL, 5000 capacity)
+     */
+    private final Cache<Long, Optional<ResumeAnalysisVO>> resumeLocalCache = Caffeine.newBuilder()
+            .maximumSize(5000)
+            .expireAfterWrite(5, TimeUnit.SECONDS)
+            .build();
+
 
     private final UserResumeMapper resumeMapper;
     private final CustomerAiConfigMapper aiConfigMapper;
@@ -61,22 +75,29 @@ public class UserResumeServiceImpl implements IUserResumeService {
     @Override
     public ResumeAnalysisVO getMyResume() {
         Long userId = currentUserId();
+        if (userId == null) {
+            return null;
+        }
+        Optional<ResumeAnalysisVO> cached = resumeLocalCache.getIfPresent(userId);
+        if (cached != null) {
+            return cached.orElse(null);
+        }
         UserResume resume = resumeMapper.selectOne(
                 new LambdaQueryWrapper<UserResume>()
                         .eq(UserResume::getUserId, userId)
                         .orderByDesc(UserResume::getUpdateTime)
                         .last("LIMIT 1")
         );
-        if (resume == null) {
-            return null;
-        }
-        return scoringEngine.toVO(resume);
+        ResumeAnalysisVO vo = resume == null ? null : scoringEngine.toVO(resume);
+        resumeLocalCache.put(userId, Optional.ofNullable(vo));
+        return vo;
     }
 
     @Override
     @Transactional
     public ResumeAnalysisVO saveResume(ResumeSaveRequest request) {
         Long userId = currentUserId();
+        if (userId != null) { resumeLocalCache.invalidate(userId); }
         String userName = currentUserName();
         LocalDateTime now = LocalDateTime.now();
 
@@ -139,6 +160,7 @@ public class UserResumeServiceImpl implements IUserResumeService {
     // 关键优化：剥离 @Transactional 避免外部大模型网络调用(15~30s)独占锁定 HikariCP 数据库连接池
     public ResumeAnalysisVO analyzeResume(ResumeAnalysisRequest request) {
         Long userId = currentUserId();
+        if (userId != null) { resumeLocalCache.invalidate(userId); }
         String userName = currentUserName();
         LocalDateTime now = LocalDateTime.now();
 
@@ -295,6 +317,9 @@ public class UserResumeServiceImpl implements IUserResumeService {
     @Transactional
     public void clearResume() {
         Long userId = currentUserId();
+        if (userId != null) {
+            resumeLocalCache.invalidate(userId);
+        }
         resumeMapper.delete(new LambdaQueryWrapper<UserResume>().eq(UserResume::getUserId, userId));
     }
 

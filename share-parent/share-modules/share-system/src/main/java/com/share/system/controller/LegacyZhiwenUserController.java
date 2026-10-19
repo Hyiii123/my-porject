@@ -33,6 +33,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.concurrent.TimeUnit;
+
 
 /**
  * 智问学伴旧用户接口适配层。
@@ -43,6 +47,12 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class LegacyZhiwenUserController extends BaseController {
+
+    private final Cache<Long, Map<String, Object>> userProfileLocalCache = Caffeine.newBuilder()
+            .maximumSize(5000)
+            .expireAfterWrite(5, TimeUnit.SECONDS)
+            .build();
+
 
     @Autowired
     private ISysUserService userService;
@@ -60,11 +70,20 @@ public class LegacyZhiwenUserController extends BaseController {
     @GetMapping("/users/me")
     public AjaxResult currentUser() {
         Long userId = SecurityUtils.getUserId();
-        SysUser user = userId == null ? null : userService.selectUserById(userId);
+        if (userId == null) {
+            return error("当前登录用户不存在");
+        }
+        Map<String, Object> cached = userProfileLocalCache.getIfPresent(userId);
+        if (cached != null) {
+            return success(cached);
+        }
+        SysUser user = userService.selectUserById(userId);
         if (user == null) {
             return error("当前登录用户不存在");
         }
-        return success(toView(user));
+        Map<String, Object> view = toView(user);
+        userProfileLocalCache.put(userId, view);
+        return success(view);
     }
 
     @RequiresPermissions("system:user:list")

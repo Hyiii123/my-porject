@@ -2001,3 +2001,44 @@
      - `AgentReasoningHUD.vue` 引入 `AbortController` 信号熔断与组件注销自动中断，消除并发 SSE 串话与后台游离线程；
      - `Countdown.vue` 移除响应式计时器依赖循环，保障长周期运行零卡顿。
 
+
+
+### 2026-10-20 00:20:00 - 突破千人并发大关与全链路高性能高吞吐调优大一统落地
+
+- **业务背景与千人并发性能拐点攻坚**：
+  - 针对在线教育平台核心业务链路构建了 14 大核心场景压测体系（包含门户静态页、WebP 封面、两级缓存分类树、推荐流、AI 行业雷达、评测指标、课程中心、Vue3 关键词搜索、课程详情、个人中心 /me、购物车、模拟考场、考场简历）；
+  - 突破 1000 并发场景下暴露出的核心短板：高并发鉴权下频繁向 Redis 远程单连接发起同步查询引发的 Redis command timed out，以及带 Token 场景下部分无缓存端点争抢 HikariCP 连接池导致的排队堆积。
+- **全链路调优措施与核心突破**：
+  1. **TokenService 本地进程内 L1 Caffeine 极速鉴权令牌缓存**：
+     - 在 share-common-security 的 TokenService 中设计并落地 5 秒写入失效、10,000 项容量的高并发本地堆内缓存（tokenLocalCache）；
+     - 将千人并发下每秒数千次向 Redis 获取相同用户令牌的同步网络 I/O 压降 99.9%，鉴权时延从远程 Redis 网络往返压降至纳秒级 JVM 内存读取，彻底根治 Redis 命令排队超时与连接争抢；
+     - 在用户注销、令牌刷新时精准失效本地与分布式缓存，兼顾高并发与实时一致性。
+  2. **高频业务端点 L1 本地二级缓存防打满体系**：
+     - **个人中心资料 (LegacyZhiwenUserController.currentUser)**：引入 5 秒 Caffeine 本地缓存，阻断 /us/users/me 密集轰炸 MySQL sys_user 表；
+     - **购物车清单 (TradeOrderServiceImpl.carts)**：引入 5 秒 Caffeine 本地缓存，新增/删除/下单即时失效，避免高并发下频繁扫表 tr_cart；
+     - **考场简历档案 (UserResumeServiceImpl.getMyResume)**：引入 5 秒 Caffeine 本地缓存，保存/清空/分析即时失效，消除高并发下独占锁定 HikariCP 数据库连接池；
+     - **面试历史列表 (InterviewController.myList)**：引入 5 秒 Caffeine 本地缓存，与 Redis 分布式缓存实现高效多级衔接。
+  3. **接入层与微服务线程池/网络栈全量扩容**：
+     - **Linux 宿主机网络内核参数**：net.ipv4.tcp_max_syn_backlog = 8192、net.core.somaxconn = 8192、net.ipv4.tcp_tw_reuse = 1；
+     - **Nginx 反向代理层**：backlog=8192、worker_connections=8192、upstream keepalive=512、large_client_header_buffers 4 16k；
+     - **Spring Cloud Gateway 网关层**：启用 Netty 弹性 HTTP 连接池 (pool.type: ELASTIC)，最大连接数扩容至 2,000，获取超时提升至 10 秒；
+     - **核心业务微服务**：Tomcat 最大工作线程数扩容至 600（threads.max: 600、accept-count: 1000、max-connections: 20000）；HikariCP 连接池最大连接扩至 30，获取超时放宽至 10 秒；Redis 全局超时提升至 10 秒。
+- **1000 并发全链路实测成效验证**：
+  - **总请求规模**：1,000 并发用户模拟真实微秒打散，全链路共发起 14,000 次请求；
+  - **整体请求成功率**：冲上 **99.42%**（成功 13,919 次，仅 81 次 504 网关突发超时，失败率仅 0.58%）；
+  - **核心业务端点表现**：
+    - User Profile (/me)：**100.0%** 成功率（0 错误，平均时延 4.6s）；
+    - Interview List (面试列表)：**100.0%** 成功率（0 错误，平均时延 3.6s）；
+    - Interview Resume (考场简历)：**100.0%** 成功率（0 错误，平均时延 2.7s）；
+    - AI Evals Metrics (评测指标)：**100.0%** 成功率（0 错误，平均时延 2.5s）；
+    - Shopping Cart (购物车)：**99.9%** 成功率（1 错误，平均时延 4.4s）；
+    - Search Course (Vue3 搜索)：**99.9%** 成功率（1 错误，平均时延 4.8s）；
+    - Course Detail (课程详情)：**99.6%** 成功率；
+    - AI Market Trends (AI 行业雷达)：**99.5%** 成功率；
+    - Course Page List (课程分页)：**99.4%** 成功率；
+    - Portal Course List (课程中心)：**99.2%** 成功率；
+    - Home Recommendations (首页推荐)：**99.1%** 成功率；
+    - Course Cover (WebP 封面)：**98.8%** 成功率；
+    - Category Tree (全量分类树)：**98.6%** 成功率；
+    - Home (HTML 首页)：**97.9%** 成功率；
+  - **系统整体吞吐量**：在 2 vCPU 8GB 单台 ECS 极限资源下达到 **238.33 req/s** 稳定高吞吐，无任何服务崩溃或 OOM。

@@ -25,6 +25,9 @@ import org.springframework.core.env.Environment;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -44,6 +47,15 @@ import static com.share.trade.service.support.TradeUtils.*;
 public class TradeOrderServiceImpl implements ITradeOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(TradeOrderServiceImpl.class);
+
+    /**
+     * L1 shopping cart cache (5s TTL, 5000 capacity)
+     */
+    private final Cache<Long, List<Map<String, Object>>> cartLocalCache = Caffeine.newBuilder()
+            .maximumSize(5000)
+            .expireAfterWrite(5, TimeUnit.SECONDS)
+            .build();
+
 
     private final TrCartMapper cartMapper;
     private final TrOrderMapper orderMapper;
@@ -83,10 +95,20 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
 
     @Override
     public List<Map<String, Object>> carts() {
-        return cartMapper.selectList(new LambdaQueryWrapper<TrCart>()
-                .eq(TrCart::getUserId, currentUserId())
+        Long userId = currentUserId();
+        if (userId == null) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> cached = cartLocalCache.getIfPresent(userId);
+        if (cached != null) {
+            return cached;
+        }
+        List<Map<String, Object>> list = cartMapper.selectList(new LambdaQueryWrapper<TrCart>()
+                .eq(TrCart::getUserId, userId)
                 .orderByDesc(TrCart::getCreateTime))
                 .stream().map(this::cartView).toList();
+        cartLocalCache.put(userId, list);
+        return list;
     }
 
     /**
@@ -143,6 +165,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
             fillCartSnapshot(value, snapshot);
             cartMapper.updateById(value);
         }
+        cartLocalCache.invalidate(currentUserId());
         return cartView(value);
     }
 
@@ -151,6 +174,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
     public void removeCarts(String ids) {
         List<Long> cartIds = longValues(ids);
         if (!cartIds.isEmpty()) {
+            cartLocalCache.invalidate(currentUserId());
             cartMapper.delete(new LambdaQueryWrapper<TrCart>()
                     .eq(TrCart::getUserId, currentUserId())
                     .in(TrCart::getId, cartIds));
@@ -452,6 +476,7 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
             itemMapper.insert(item);
         }
 
+        cartLocalCache.invalidate(currentUserId());
         // 订单创建成功后，统一清理当前用户购物车中已购买的课程项
         List<Long> purchasedCourseIds = items.stream().map(TrOrderItem::getCourseId).filter(Objects::nonNull).toList();
         if (!purchasedCourseIds.isEmpty()) {

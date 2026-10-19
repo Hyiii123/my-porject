@@ -45,6 +45,12 @@
             <artifactId>share-common-redis</artifactId>
         </dependency>
 
+        <!-- Caffeine Cache for L1 In-Memory Authentication Cache -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>

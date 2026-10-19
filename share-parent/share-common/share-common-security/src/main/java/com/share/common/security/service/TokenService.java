@@ -8,6 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import com.share.common.core.constant.CacheConstants;
 import com.share.common.core.constant.SecurityConstants;
 import com.share.common.core.utils.JwtUtils;
@@ -41,6 +44,15 @@ public class TokenService
     private final static String ACCESS_TOKEN = CacheConstants.LOGIN_TOKEN_KEY;
 
     private final static Long MILLIS_MINUTE_TEN = CacheConstants.REFRESH_TIME * MILLIS_MINUTE;
+
+    /**
+     * L1 authentication token cache (5 seconds TTL, 10000 capacity)
+     */
+    private final Cache<String, LoginUser> tokenLocalCache = Caffeine.newBuilder()
+            .maximumSize(10000)
+            .expireAfterWrite(5, TimeUnit.SECONDS)
+            .build();
+
 
     /**
      * 创建令牌
@@ -106,7 +118,17 @@ public class TokenService
                 String userkey = JwtUtils.getUserKey(token);
                 if (StringUtils.isNotEmpty(userkey))
                 {
-                    user = redisService.getCacheObject(getTokenKey(userkey));
+                    String cacheKey = getTokenKey(userkey);
+                    user = tokenLocalCache.getIfPresent(cacheKey);
+                    if (user != null)
+                    {
+                        return user;
+                    }
+                    user = redisService.getCacheObject(cacheKey);
+                    if (user != null)
+                    {
+                        tokenLocalCache.put(cacheKey, user);
+                    }
                     return user;
                 }
             }
@@ -137,7 +159,12 @@ public class TokenService
         if (StringUtils.isNotEmpty(token))
         {
             String userkey = JwtUtils.getUserKey(token);
-            redisService.deleteObject(getTokenKey(userkey));
+            if (StringUtils.isNotEmpty(userkey))
+            {
+                String userKey = getTokenKey(userkey);
+                tokenLocalCache.invalidate(userKey);
+                redisService.deleteObject(userKey);
+            }
         }
     }
 
@@ -168,6 +195,10 @@ public class TokenService
         // 根据uuid将loginUser缓存
         String userKey = getTokenKey(loginUser.getToken());
         redisService.setCacheObject(userKey, loginUser, expireTime, TimeUnit.MINUTES);
+        if (loginUser != null)
+        {
+            tokenLocalCache.put(userKey, loginUser);
+        }
     }
 
     private String getTokenKey(String token)

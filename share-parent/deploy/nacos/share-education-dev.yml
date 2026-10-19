@@ -1,10 +1,10 @@
 server:
   tomcat:
     threads:
-      max: 400
+      max: 600
       min-spare: 20
-    accept-count: 500
-    max-connections: 10000
+    accept-count: 1000
+    max-connections: 20000
 
 spring:
   datasource:
@@ -13,9 +13,9 @@ spring:
     username: ${TJ_MYSQL_USERNAME:root}
     password: ${TJ_MYSQL_PASSWORD:TjLocalRoot@2026}
     hikari:
-      minimum-idle: 5
-      maximum-pool-size: 25
-      connection-timeout: 6000
+      minimum-idle: 8
+      maximum-pool-size: 30
+      connection-timeout: 10000
       validation-timeout: 1500
 
 mybatis-plus:
