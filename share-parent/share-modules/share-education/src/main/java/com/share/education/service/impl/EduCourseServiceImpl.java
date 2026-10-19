@@ -155,6 +155,7 @@ public class EduCourseServiceImpl implements IEduCourseService {
         if (twoLevelCacheService != null && value.getId() != null) {
             twoLevelCacheService.evict("edu:course:detail:" + value.getId());
             twoLevelCacheService.evictPattern("edu:category:tree:*");
+            twoLevelCacheService.evictPattern("edu:course:portal:page:*");
         }
         }
         return legacyCourse(value.getId());
@@ -445,34 +446,24 @@ public class EduCourseServiceImpl implements IEduCourseService {
         } else {
             wrapper.orderByAsc(EduCourse::getSortNum).orderByDesc(EduCourse::getCreateTime);
         }
-        // 1. 无搜索关键字的高频分页优先读 Redis 二级缓存
-        String cacheKey = null;
-        if (!isAdmin && !StringUtils.hasText(keyword) && redisService != null) {
-            cacheKey = "edu:course:portal:page:" + safePage(pageNo) + ":" + safeSize(pageSize) + ":"
+        // 1. 高频课程分页与关键词多维检索全量接入双层多级缓存 (Caffeine L1 + Redis L2)
+        if (!isAdmin && twoLevelCacheService != null) {
+            String kwKey = StringUtils.hasText(keyword) ? keyword.trim().toLowerCase() : "all";
+            String cacheKey = "edu:course:portal:page:" + safePage(pageNo) + ":" + safeSize(pageSize) + ":"
                     + (categoryId != null ? categoryId : 0) + ":"
                     + (priceType != null ? priceType : "all") + ":"
-                    + (sortBy != null ? sortBy : "def");
-            try {
-                Object raw = redisService.getCacheObject(cacheKey);
-                if (raw instanceof String str && !str.isBlank()) {
-                    return com.alibaba.fastjson2.JSON.parseObject(str, new com.alibaba.fastjson2.TypeReference<Map<String, Object>>(){}.getType());
-                } else if (raw instanceof Map<?, ?> m && !m.isEmpty()) {
-                    return (Map<String, Object>) m;
-                }
-            } catch (Exception ignored) {}
+                    + (sortBy != null ? sortBy : "def") + ":"
+                    + kwKey;
+            return twoLevelCacheService.get(cacheKey, Map.class, () -> {
+                courseMapper.selectPage(page, wrapper);
+                List<Map<String, Object>> views = page.getRecords().stream().map(this::courseView).toList();
+                return pageView(page.getTotal(), views);
+            }, 60L, TimeUnit.SECONDS);
         }
 
         courseMapper.selectPage(page, wrapper);
         List<Map<String, Object>> views = page.getRecords().stream().map(this::courseView).toList();
-        Map<String, Object> resultPage = pageView(page.getTotal(), views);
-
-        if (cacheKey != null && redisService != null && !views.isEmpty()) {
-            try {
-                redisService.setCacheObject(cacheKey, com.alibaba.fastjson2.JSON.toJSONString(resultPage), 120L, java.util.concurrent.TimeUnit.SECONDS);
-            } catch (Exception ignored) {}
-        }
-
-        return resultPage;
+        return pageView(page.getTotal(), views);
     }
 
     @Override
@@ -551,6 +542,7 @@ public class EduCourseServiceImpl implements IEduCourseService {
         if (twoLevelCacheService != null && value.getId() != null) {
             twoLevelCacheService.evict("edu:course:detail:" + value.getId());
             twoLevelCacheService.evictPattern("edu:category:tree:*");
+            twoLevelCacheService.evictPattern("edu:course:portal:page:*");
         }
         }
         return value;
