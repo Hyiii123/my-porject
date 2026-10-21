@@ -25,6 +25,9 @@ import com.share.common.security.utils.SecurityUtils;
 import com.share.system.api.domain.SysDictData;
 import com.share.system.service.ISysDictDataService;
 import com.share.system.service.ISysDictTypeService;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 数据字典信息
@@ -35,6 +38,7 @@ import com.share.system.service.ISysDictTypeService;
 @RequestMapping("/dict/data")
 public class SysDictDataController extends BaseController
 {
+    private final Cache<String, List<SysDictData>> dictDataL1Cache = Caffeine.newBuilder().maximumSize(500).expireAfterWrite(10, TimeUnit.SECONDS).build();
     @Autowired
     private ISysDictDataService dictDataService;
 
@@ -76,11 +80,14 @@ public class SysDictDataController extends BaseController
     @GetMapping(value = "/type/{dictType}")
     public AjaxResult dictType(@PathVariable String dictType)
     {
+        List<SysDictData> cached = dictDataL1Cache.getIfPresent(dictType);
+        if (cached != null) return success(cached);
         List<SysDictData> data = dictTypeService.selectDictDataByType(dictType);
         if (StringUtils.isNull(data))
         {
             data = new ArrayList<SysDictData>();
         }
+        dictDataL1Cache.put(dictType, data);
         return success(data);
     }
 

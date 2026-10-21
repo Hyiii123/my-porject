@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 管理工作台兼容接口。
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/data")
 public class EducationDashboardController extends BaseController {
+    private final Cache<String, Map<String, Object>> dashboardCache = Caffeine.newBuilder().maximumSize(200).expireAfterWrite(5, TimeUnit.SECONDS).build();
     private final IEducationService educationService;
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -39,6 +43,9 @@ public class EducationDashboardController extends BaseController {
     /** 原首页图表接口，支持 types=1,2,3,4,5,6,7 和 days=1..31。 */
     @GetMapping("/board")
     public AjaxResult board(@RequestParam Map<String, Object> params) {
+        String bKey = "board:" + (params == null ? "" : params.toString());
+        Map<String, Object> bCached = dashboardCache.getIfPresent(bKey);
+        if (bCached != null) return success(bCached);
         Map<String, Object> statistics = educationService.statistics();
         int days = number(params == null ? null : params.get("days"), 7);
         List<EduDashboardDaily> records = educationService.dashboardDaily(days);
@@ -80,6 +87,7 @@ public class EducationDashboardController extends BaseController {
         result.put("xaxis", xaxis);
         result.put("yaxis", yaxis);
         result.put("statistics", statistics);
+        dashboardCache.put(bKey, result);
         return success(result);
     }
 
@@ -119,6 +127,7 @@ public class EducationDashboardController extends BaseController {
         Map<String, Object> result = new LinkedHashMap<>(today);
         result.put("today", today);
         result.put("statistics", statistics);
+        dashboardCache.put("today", result);
         return success(result);
     }
 
@@ -126,6 +135,8 @@ public class EducationDashboardController extends BaseController {
     @GetMapping("/top10")
     @SuppressWarnings("unchecked")
     public AjaxResult top10() {
+        Map<String, Object> tCached = dashboardCache.getIfPresent("top10");
+        if (tCached != null) return success(tCached);
         if (redisService != null) {
             Map<String, Object> cached = redisService.getCacheObject("edu:dashboard:top10:cache");
             if (cached != null && !cached.isEmpty()) {

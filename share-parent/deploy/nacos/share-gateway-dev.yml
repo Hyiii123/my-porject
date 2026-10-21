@@ -52,18 +52,6 @@ spring:
             - Path=/us/**
           filters:
             - StripPrefix=1
-        - id: share-gen
-          uri: lb://share-gen
-          predicates:
-            - Path=/code/**
-          filters:
-            - StripPrefix=1
-        - id: share-job
-          uri: lb://share-job
-          predicates:
-            - Path=/schedule/**
-          filters:
-            - StripPrefix=1
         - id: share-file
           uri: lb://share-file
           predicates:

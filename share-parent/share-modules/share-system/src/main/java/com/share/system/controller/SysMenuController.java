@@ -21,6 +21,9 @@ import com.share.common.security.annotation.RequiresPermissions;
 import com.share.common.security.utils.SecurityUtils;
 import com.share.system.domain.SysMenu;
 import com.share.system.service.ISysMenuService;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 菜单信息
@@ -31,6 +34,7 @@ import com.share.system.service.ISysMenuService;
 @RequestMapping("/menu")
 public class SysMenuController extends BaseController
 {
+    private final Cache<String, List<SysMenu>> menuL1Cache = Caffeine.newBuilder().maximumSize(500).expireAfterWrite(5, TimeUnit.SECONDS).build();
     @Autowired
     private ISysMenuService menuService;
 
@@ -47,6 +51,8 @@ public class SysMenuController extends BaseController
         Long userId = SecurityUtils.getUserId();
         boolean isSimpleQuery = (menu == null || (menu.getMenuName() == null && menu.getStatus() == null && menu.getVisible() == null));
         String cacheKey = "sys:menu:list:" + (userId != null ? userId : 0L);
+        List<SysMenu> l1Cached = menuL1Cache.getIfPresent(cacheKey);
+        if (l1Cached != null) return success(l1Cached);
         if (isSimpleQuery && redisService != null) {
             List<SysMenu> cached = redisService.getCacheObject(cacheKey);
             if (cached != null && !cached.isEmpty()) {
@@ -57,6 +63,7 @@ public class SysMenuController extends BaseController
         if (isSimpleQuery && redisService != null && menus != null && !menus.isEmpty()) {
             redisService.setCacheObject(cacheKey, menus, 10L, java.util.concurrent.TimeUnit.MINUTES);
         }
+        if (isSimpleQuery && menus != null) menuL1Cache.put(cacheKey, menus);
         return success(menus);
     }
 

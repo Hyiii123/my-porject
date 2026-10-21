@@ -2,6 +2,9 @@ package com.share.customer.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.concurrent.TimeUnit;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -58,6 +61,7 @@ import java.util.stream.Collectors;
 @Primary
 public class CustomerServiceImpl implements ICustomerService {
 
+    private final Cache<String, IPage<CustomerKnowledge>> knowledgePageCache = Caffeine.newBuilder().maximumSize(500).expireAfterWrite(5, TimeUnit.SECONDS).build();
     private static final long CONFIG_ID = 1L;
     private static final int SESSION_CLOSED = 3;
     private static final int MESSAGE_USER = 1;
@@ -410,13 +414,18 @@ public class CustomerServiceImpl implements ICustomerService {
     @Override
     public IPage<CustomerKnowledge> listKnowledge(String keyword, String category, Integer status,
             long pageNum, long pageSize) {
+        String cacheKey = String.format("%s:%s:%s:%d:%d", keyword, category, status, pageNum, pageSize);
+        IPage<CustomerKnowledge> cached = knowledgePageCache.getIfPresent(cacheKey);
+        if (cached != null) return cached;
         Page<CustomerKnowledge> page = new Page<>(safePage(pageNum), safeSize(pageSize));
         LambdaQueryWrapper<CustomerKnowledge> wrapper = new LambdaQueryWrapper<CustomerKnowledge>()
                 .like(StringUtils.hasText(keyword), CustomerKnowledge::getQuestion, keyword)
                 .eq(StringUtils.hasText(category), CustomerKnowledge::getCategory, category)
                 .eq(status != null, CustomerKnowledge::getStatus, status)
                 .orderByDesc(CustomerKnowledge::getUpdateTime);
-        return knowledgeMapper.selectPage(page, wrapper);
+        IPage<CustomerKnowledge> result = knowledgeMapper.selectPage(page, wrapper);
+        knowledgePageCache.put(cacheKey, result);
+        return result;
     }
 
     @Override

@@ -94,8 +94,8 @@ public class MultiAgentRecommendOrchestrator {
             .sessionId(UUID.randomUUID().toString())
             .userId(userId)
             .intendedRole(targetRole != null && !targetRole.isBlank() ? targetRole.trim() : "Java全栈架构师")
-            .probeAnswers(probeAnswers != null ? probeAnswers : Collections.emptyMap())
-            .customOverrides(customOverrides != null ? customOverrides : Collections.emptyMap())
+            .probeAnswers(probeAnswers != null ? new HashMap<>(probeAnswers) : new HashMap<>())
+            .customOverrides(customOverrides != null ? new HashMap<>(customOverrides) : new HashMap<>())
             .build();
 
         // 3. 执行复合多智能体图引擎协同计算
@@ -141,8 +141,8 @@ public class MultiAgentRecommendOrchestrator {
             .sessionId(UUID.randomUUID().toString())
             .userId(userId)
             .intendedRole(targetRole != null && !targetRole.isBlank() ? targetRole.trim() : "Java全栈架构师")
-            .probeAnswers(probeAnswers != null ? probeAnswers : Collections.emptyMap())
-            .customOverrides(customOverrides != null ? customOverrides : Collections.emptyMap())
+            .probeAnswers(probeAnswers != null ? new HashMap<>(probeAnswers) : new HashMap<>())
+            .customOverrides(customOverrides != null ? new HashMap<>(customOverrides) : new HashMap<>())
             .build();
 
         DebateBlackboardState finalState = compositeGraphEngine.runWorkflow(state, 6);

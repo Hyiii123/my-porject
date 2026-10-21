@@ -8,6 +8,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 import static java.util.Map.entry;
 
@@ -87,14 +88,27 @@ public class IntentDispatcherNode {
 
         // 3.5 难度意向实体动态提取
         if (state.getCustomOverrides() != null && !state.getCustomOverrides().containsKey("preferredDifficulty")) {
-            if (lower.contains("零基础") || lower.contains("小白") || lower.contains("初学") || lower.contains("入门")) {
-                state.getCustomOverrides().put("preferredDifficulty", 1);
-                state.getCustomOverrides().put("difficulty", 1);
-                log.info("[IntentDispatcherNode] 从输入意图识别初级难度偏好 (Level 1)");
-            } else if (lower.contains("高并发") || lower.contains("架构师") || lower.contains("专家") || lower.contains("底层源码")) {
-                state.getCustomOverrides().put("preferredDifficulty", 3);
-                state.getCustomOverrides().put("difficulty", 3);
-                log.info("[IntentDispatcherNode] 从输入意图识别高阶架构难度偏好 (Level 3)");
+            Map<String, Object> overrides = state.getCustomOverrides();
+            try {
+                if (lower.contains("零基础") || lower.contains("小白") || lower.contains("初学") || lower.contains("入门")) {
+                    overrides.put("preferredDifficulty", 1);
+                    overrides.put("difficulty", 1);
+                    log.info("[IntentDispatcherNode] 从输入意图识别初级难度偏好 (Level 1)");
+                } else if (lower.contains("高并发") || lower.contains("架构师") || lower.contains("专家") || lower.contains("底层源码")) {
+                    overrides.put("preferredDifficulty", 3);
+                    overrides.put("difficulty", 3);
+                    log.info("[IntentDispatcherNode] 从输入意图识别高阶架构难度偏好 (Level 3)");
+                }
+            } catch (UnsupportedOperationException e) {
+                Map<String, Object> mutable = new HashMap<>(overrides);
+                state.setCustomOverrides(mutable);
+                if (lower.contains("零基础") || lower.contains("小白") || lower.contains("初学") || lower.contains("入门")) {
+                    mutable.put("preferredDifficulty", 1);
+                    mutable.put("difficulty", 1);
+                } else if (lower.contains("高并发") || lower.contains("架构师") || lower.contains("专家") || lower.contains("底层源码")) {
+                    mutable.put("preferredDifficulty", 3);
+                    mutable.put("difficulty", 3);
+                }
             }
         }
 

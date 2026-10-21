@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 import java.util.function.Function;
 import java.util.concurrent.TimeUnit;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.share.education.service.support.TwoLevelCacheService;
 import org.springframework.beans.factory.annotation.Autowired;
 import static com.share.education.service.support.EduUtils.*;
@@ -38,6 +40,8 @@ import static com.share.education.service.support.EduUtils.*;
 public class EduCourseServiceImpl implements IEduCourseService {
 
     private static final int ENABLED = 1;
+
+    private final Cache<String, List<Map<String, Object>>> simpleCoursesCache = Caffeine.newBuilder().maximumSize(100).expireAfterWrite(5, TimeUnit.SECONDS).build();
 
     private final EduCourseMapper courseMapper;
     private final EduCourseCatalogMapper catalogMapper;
@@ -189,7 +193,12 @@ public class EduCourseServiceImpl implements IEduCourseService {
 
     @Override
     public List<Map<String, Object>> simpleCourses() {
-        return courseMapper.selectList(new LambdaQueryWrapper<EduCourse>()
+        List<Map<String, Object>> cached = simpleCoursesCache.getIfPresent("ALL");
+        if (cached != null) {
+            return cached;
+        }
+        List<Map<String, Object>> list = courseMapper.selectList(new LambdaQueryWrapper<EduCourse>()
+                .select(EduCourse::getId, EduCourse::getCourseName, EduCourse::getStatus)
                 .orderByAsc(EduCourse::getSortNum).orderByDesc(EduCourse::getCreateTime))
                 .stream().map(item -> {
                     Map<String, Object> row = new LinkedHashMap<>();
@@ -200,6 +209,8 @@ public class EduCourseServiceImpl implements IEduCourseService {
                     row.put("status", item.getStatus());
                     return row;
                 }).toList();
+        simpleCoursesCache.put("ALL", list);
+        return list;
     }
 
     @Override
