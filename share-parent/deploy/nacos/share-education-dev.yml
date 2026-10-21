@@ -3,7 +3,7 @@ server:
     threads:
       max: 600
       min-spare: 20
-    accept-count: 1000
+    accept-count: 2048
     max-connections: 20000
 
 spring:

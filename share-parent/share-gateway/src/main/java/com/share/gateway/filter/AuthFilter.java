@@ -18,6 +18,9 @@ import com.share.common.core.utils.ServletUtils;
 import com.share.common.core.utils.StringUtils;
 import com.share.common.redis.service.RedisService;
 import com.share.gateway.config.properties.IgnoreWhiteProperties;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.concurrent.TimeUnit;
 import io.jsonwebtoken.Claims;
 import reactor.core.publisher.Mono;
 
@@ -37,6 +40,14 @@ public class AuthFilter implements GlobalFilter, Ordered
 
     @Autowired
     private RedisService redisService;
+
+    /**
+     * 网关层 L1 鉴权令牌本地极速缓存（10秒 TTL，容量 10000），消除高并发下 Netty EventLoop 对 Redis hasKey 的同步阻塞
+     */
+    private final Cache<String, Boolean> tokenLoginCache = Caffeine.newBuilder()
+            .maximumSize(10000)
+            .expireAfterWrite(10, TimeUnit.SECONDS)
+            .build();
 
 
     @Override
@@ -68,8 +79,21 @@ public class AuthFilter implements GlobalFilter, Ordered
             return unauthorizedResponse(exchange, "令牌已过期或验证不正确！");
         }
         String userkey = JwtUtils.getUserKey(claims);
-        boolean islogin = redisService.hasKey(getTokenKey(userkey));
-        if (!islogin)
+        String tokenKey = getTokenKey(userkey);
+        if (url.contains("/logout"))
+        {
+            tokenLoginCache.invalidate(tokenKey);
+        }
+        Boolean islogin = tokenLoginCache.getIfPresent(tokenKey);
+        if (islogin == null)
+        {
+            islogin = redisService.hasKey(tokenKey);
+            if (Boolean.TRUE.equals(islogin))
+            {
+                tokenLoginCache.put(tokenKey, true);
+            }
+        }
+        if (!Boolean.TRUE.equals(islogin))
         {
             return unauthorizedResponse(exchange, "登录状态已过期");
         }
