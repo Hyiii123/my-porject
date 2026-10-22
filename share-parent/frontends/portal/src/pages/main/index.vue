@@ -295,7 +295,7 @@
 
             <div class="review-bottom-action">
               <span>评检验收: RAGAS 0.811</span>
-              <span class="quick-quiz-btn" @click="$router.push('/classList/index')">开始错题速练 (5题) ➔</span>
+              <span class="quick-quiz-btn" @click="$router.push('/personal/main/myExam')">开始错题速练 (5题) ➔</span>
             </div>
           </div>
         </div>
