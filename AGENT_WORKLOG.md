@@ -51,8 +51,9 @@
 | **本地代码根目录** | `D:\education system\my-porject\share-parent` | Java 17 + Vue3 前后端源码 |
 | **本地 Git 仓库根** | `D:\education system\my-porject` | 分支 `master`，远端 `git@github.com:Hyiii123/my-porject.git` |
 | **远程连接工具** | `D:\nodejs_global\workbench.exe` | 阿里云 Workbench CLI（已配置凭证，支持 `exec` 与 `upload`） |
-| **前端 - 学生端** | `http://47.121.28.132:18081` | 容器 `zhiwen-portal-ui`，对应源码 `frontends/portal` |
-| **前端 - 业务管理端** | `http://47.121.28.132:18082` | 容器 `zhiwen-business-admin-ui`，对应源码 `frontends/business-admin` |
+| **前端 - 学生端** | `http://47.121.28.132:18081` / `https://zhiwenedu.online` | 容器 `zhiwen-portal-ui`，支持 `https://study.zhiwenedu.online` 与根域名，走 Cloudflare Tunnel 免备案隧道 |
+| **Cloudflare 隧道** | 守护进程 `cloudflared.service` (Systemd) | 隧道 ID `c4ad03a7-b97f-480a-bfdb-4bd3dccb19f7`，轻量守护仅占 ~21MB 内存，全双工 QUIC 协议 |
+| **前端 - 业务管理端** | `http://47.121.28.132:18082` / `https://admin.zhiwenedu.online` | 容器 `zhiwen-business-admin-ui`，对应源码 `frontends/business-admin`，走 Cloudflare Tunnel 业务端路由 |
 | **前端 - 基础管理端** | `http://47.121.28.132:18080` | 容器 `zhiwen-ruoyi-ui`，对应源码 `share-ui` |
 | **API 网关 Gateway** | `http://47.121.28.132:8080` | 容器 `zhiwen-gateway`，统一接口入口 |
 | **推荐算法微服务** | `http://47.121.28.132:15000` | 容器 `zhiwen-recommend`，内部端口 `5000`，`DRAG-KP4SR` 语义桥接引擎 |
