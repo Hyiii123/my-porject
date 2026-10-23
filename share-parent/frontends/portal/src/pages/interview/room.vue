@@ -138,7 +138,7 @@
             </div>
           </div>
           <!-- 考官形象主体渲染舞台 (永雏塔菲 Live2D / 交互矢量) -->
-          <div class="avatar-canvas-box">
+          <div class="avatar-canvas-box" @click="handleAvatarBoxClick">
             <!-- 腾讯会议声纹波纹光晕 -->
             <div class="tc-voice-halo" :class="{ pulsing: isInterviewerSpeaking }">
               <div class="halo-layer layer-1"></div>
@@ -154,38 +154,56 @@
                 { 'is-speaking': isInterviewerSpeaking, 'is-interrupted': isBargeInActive }
               ]"
             >
+              <!-- 实时二次元直播台词弹幕气泡 (与口型张合完全同步) -->
+              <transition name="taffy-bubble-fade">
+                <div
+                  v-if="(isInterviewerSpeaking && (currentSpeechText || activeSubtitleText)) || isTaffyReplying"
+                  class="taffy-live-bubble"
+                >
+                  <div class="bubble-tag-row">
+                    <span class="bubble-tag">🎀 考官永雏塔菲</span>
+                    <span v-if="isTaffyReplying" class="bubble-state thinking">🤔 思考中...</span>
+                    <span v-else class="bubble-state speaking">🗣️ 实时发音</span>
+                  </div>
+                  <div class="bubble-text">
+                    {{ isTaffyReplying ? '塔菲正在组织措辞喵~' : (currentSpeechText || activeSubtitleText) }}
+                  </div>
+                  <div class="bubble-tail"></div>
+                </div>
+              </transition>
+
               <div class="taffy-model-wrapper">
                 <!-- 预加载所有状态立绘，v-show实现零闪烁、零延迟GPU硬件切换 -->
                 <img
-                  v-show="isBargeInActive"
+                  v-show="isBargeInActive || taffyMood === 'active'"
                   src="/avatar/taffy/taffy_active.png"
-                  alt="永雏塔菲-抢麦打断"
+                  alt="永雏塔菲-眨眼/打断"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
                 <img
-                  v-show="!isBargeInActive && submittingAnswer"
+                  v-show="!isBargeInActive && taffyMood !== 'active' && (submittingAnswer || taffyMood === 'cheer')"
                   src="/avatar/taffy/taffy_cheer.png"
                   alt="永雏塔菲-赞许鼓励"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
                 <img
-                  v-show="!isBargeInActive && !submittingAnswer && isInterviewerSpeaking && taffyMouthState === 2"
+                  v-show="!isBargeInActive && !submittingAnswer && taffyMood === 'idle' && isInterviewerSpeaking && taffyMouthState === 2"
                   src="/avatar/taffy/taffy_speak_full.png"
                   alt="永雏塔菲-大开口发音"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
                 <img
-                  v-show="!isBargeInActive && !submittingAnswer && isInterviewerSpeaking && taffyMouthState === 1"
+                  v-show="!isBargeInActive && !submittingAnswer && taffyMood === 'idle' && isInterviewerSpeaking && taffyMouthState === 1"
                   src="/avatar/taffy/taffy_speak_half.png"
                   alt="永雏塔菲-半张嘴发音"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
                 <img
-                  v-show="!isBargeInActive && !submittingAnswer && (!isInterviewerSpeaking || taffyMouthState === 0)"
+                  v-show="!isBargeInActive && !submittingAnswer && taffyMood === 'idle' && (!isInterviewerSpeaking || taffyMouthState === 0)"
                   src="/avatar/taffy/taffy_idle.png"
                   alt="永雏塔菲-静止"
                   class="taffy-sprite-img"
@@ -193,28 +211,49 @@
                 />
               </div>
 
-              <!-- 悬浮发音提示与均衡器指示条 -->
-              <div
-                v-if="isInterviewerSpeaking"
-                class="taffy-speech-banner is-active"
-                @click="toggleTtsCurrentQuestion"
-                title="点击暂停考官朗读"
-              >
-                <span class="banner-pulse-dot"></span>
-                <span class="banner-text">🗣️ 永雏塔菲正在发音中 (点击可暂停)</span>
-                <div class="speaking-eq-bars">
-                  <span></span><span></span><span></span><span></span>
+              <!-- 悬浮快捷控制胶囊条 -->
+              <div class="taffy-controls-bar">
+                <button
+                  class="taffy-pill-btn speak-btn"
+                  :class="{ active: isInterviewerSpeaking }"
+                  @click.stop="toggleTtsCurrentQuestion"
+                  :title="isInterviewerSpeaking ? '暂停发音' : '朗读当前题目'"
+                >
+                  <span class="btn-dot" v-if="isInterviewerSpeaking"></span>
+                  <span>{{ isInterviewerSpeaking ? '⏹️ 暂停朗读' : '🔊 朗读考题' }}</span>
+                  <div v-if="isInterviewerSpeaking" class="speaking-eq-bars">
+                    <span></span><span></span><span></span><span></span>
+                  </div>
+                </button>
+
+                <button
+                  class="taffy-pill-btn test-btn"
+                  @click.stop="triggerMouthAnimationTest"
+                  title="点击测试永雏塔菲说话口型动效与语音"
+                >
+                  <span>✨ 测口型动效</span>
+                </button>
+
+                <button
+                  class="taffy-pill-btn chat-btn"
+                  @click.stop="taffyChatVisible = true"
+                  title="打开与主考官永雏塔菲的实时技术对谈"
+                >
+                  <span>💬 对谈塔菲</span>
+                </button>
+              </div>
+
+              <!-- 浏览器 Autoplay 拦截解锁提示 -->
+              <transition name="fade">
+                <div
+                  v-if="audioAutoplayBlocked"
+                  class="taffy-unmute-overlay"
+                  @click.stop="unlockAudioAndPlay"
+                >
+                  <span class="unmute-icon">🔔</span>
+                  <span class="unmute-text">点击画面任意处，立即解锁塔菲萌音原声喵~</span>
                 </div>
-              </div>
-              <div
-                v-else-if="!isCompleted && currentTurn?.question"
-                class="taffy-speech-banner is-idle"
-                @click="toggleTtsCurrentQuestion"
-                title="点击朗读本题"
-              >
-                <span class="banner-icon">🔊</span>
-                <span class="banner-text">点击让永雏塔菲朗读本题</span>
-              </div>
+              </transition>
             </div>
 
             <!-- ========== 形象 2: 阿里 P7 / 极客架构师 (备用风格) ========== -->
@@ -495,6 +534,14 @@
           </div>
         </div>
       </div>
+      <!-- 腾讯会议经典悬浮实时字幕条 -->
+      <transition name="tc-fade">
+        <div v-if="showSubtitles && activeSubtitleText" class="tc-live-subtitles-bar">
+          <span class="sub-speaker">{{ activeSubtitleSpeaker }}</span>
+          <span class="sub-content">{{ activeSubtitleText }}</span>
+        </div>
+      </transition>
+
       <!-- ==================== 3. 腾讯会议中央考题看板与实时对谈流 ==================== -->
       <div class="tc-question-board" :class="{ 'barge-alert': isBargeInActive }">
         <div class="q-board-header">
@@ -613,6 +660,20 @@
             <span class="icon-symbol">📝</span>
           </div>
           <span class="dock-btn-label">{{ showSubtitles ? '隐藏字幕' : '实时字幕' }}</span>
+        </div>
+
+        <!-- 对谈塔菲 (二次元AI主考官自然对话) -->
+        <div
+          class="dock-btn-group taffy-dock-btn"
+          :class="{ active: taffyChatVisible }"
+          @click="taffyChatVisible = !taffyChatVisible"
+          title="与主考官永雏塔菲自然对谈互动"
+        >
+          <div class="dock-icon-circle taffy-circle">
+            <span class="icon-symbol">💬</span>
+            <span v-if="hasUnreadTaffyMsg" class="dock-badge-dot"></span>
+          </div>
+          <span class="dock-btn-label">对谈塔菲</span>
         </div>
 
         <!-- 往轮记录与大厂标杆复盘抽屉 -->
@@ -848,7 +909,123 @@
     </el-dialog>
 
   </div>
-</template>
+    <!-- ==================== 永雏塔菲 · AI主考官互动对谈抽屉 ==================== -->
+    <el-drawer
+      v-model="taffyChatVisible"
+      title="🎀 永雏塔菲 · 虚拟主考官自然对谈"
+      size="460px"
+      direction="rtl"
+      custom-class="taffy-chat-drawer"
+      :destroy-on-close="false"
+    >
+      <div class="taffy-chat-container">
+        <!-- 考官档案卡片 -->
+        <div class="taffy-profile-card">
+          <img src="/avatar/taffy/taffy_idle.png" class="profile-avatar" />
+          <div class="profile-info">
+            <div class="profile-name">
+              <span>永雏塔菲 (Taffy)</span>
+              <span class="role-tag">二次元主考官</span>
+            </div>
+            <div class="profile-desc">
+              萌系傲娇 · 资深大厂架构技术底蕴 · 全双工口型实时对谈
+            </div>
+            <div class="profile-meta">
+              <span class="status-indicator online">● Gemini 3.8 Flash 引擎在线</span>
+              <span class="meta-item">口癖: 喵~ / 笨蛋</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 快捷对答芯片 -->
+        <div class="quick-chips-wrapper">
+          <div class="chips-title">💡 快捷互动胶囊：</div>
+          <div class="chips-scroll">
+            <span class="chip-item" @click="sendQuickPrompt('考官好！能不能给我一点解题思路启发呀？')">
+              💡 思路启发
+            </span>
+            <span class="chip-item" @click="sendQuickPrompt('这道题在生产环境有哪些常见的高并发和边界坑点？')">
+              🛡️ 边界排查
+            </span>
+            <span class="chip-item" @click="sendQuickPrompt('塔菲，我刚才的回答怎么样？能夸夸我吗喵~')">
+              🎉 夸夸我
+            </span>
+            <span class="chip-item" @click="sendQuickPrompt('塔菲考官，你能向我做个自我介绍吗？')">
+              ✨ 自我介绍
+            </span>
+            <span class="chip-item" @click="sendQuickPrompt('请针对当前技术栈，向我发起一个更具挑战性的架构追问！')">
+              🔥 刁钻追问
+            </span>
+          </div>
+        </div>
+
+        <!-- 消息历史滚动区 -->
+        <div class="chat-messages-box" ref="chatScrollRef">
+          <div v-for="(msg, idx) in taffyChatMessages" :key="idx" class="chat-msg-row" :class="msg.role">
+            <div class="msg-avatar">
+              <img v-if="msg.role === 'taffy'" src="/avatar/taffy/taffy_idle.png" />
+              <span v-else>🧑‍💻</span>
+            </div>
+            <div class="msg-bubble-wrap">
+              <div class="msg-sender">{{ msg.role === 'taffy' ? '永雏塔菲' : '候选人 (我)' }}</div>
+              <div class="msg-text">{{ msg.content }}</div>
+              <div v-if="msg.role === 'taffy'" class="msg-actions">
+                <el-button size="small" text @click="speakQuestionText(msg.content)">
+                  🔊 朗读此条
+                </el-button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="isTaffyReplying" class="chat-msg-row taffy replying">
+            <div class="msg-avatar">
+              <img src="/avatar/taffy/taffy_idle.png" />
+            </div>
+            <div class="msg-bubble-wrap">
+              <div class="msg-sender">永雏塔菲</div>
+              <div class="msg-text typing-indicator">
+                <span></span><span></span><span></span> 塔菲正在组织措辞喵...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="chat-input-area">
+          <el-input
+            v-model="taffyInputText"
+            type="textarea"
+            :rows="2"
+            placeholder="与塔菲考官畅聊技术，按 Enter 发送..."
+            @keydown.enter.prevent="handleSendTaffyMessage"
+            :disabled="isTaffyReplying"
+          />
+          <div class="input-actions-bar">
+            <span class="input-hint">Enter 发送 / Shift+Enter 换行</span>
+            <div class="btn-group">
+              <el-button
+                size="small"
+                :type="isRecording ? 'danger' : 'default'"
+                @click="toggleSpeechRecording"
+                title="开启语音输入"
+              >
+                {{ isRecording ? '⏹️ 停止收音' : '🎙️ 语音输入' }}
+              </el-button>
+              <el-button
+                type="primary"
+                size="small"
+                :loading="isTaffyReplying"
+                @click="handleSendTaffyMessage"
+              >
+                发送 🚀
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-drawer>
+
+  </template>
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -926,9 +1103,46 @@ const selectedPersonaStyle = ref('taffy')
 const taffyMouthState = ref(0) // 0: idle, 1: half, 2: full
 let taffyMouthInterval = null
 
+// 永雏塔菲实时自然对谈与情绪系统
+const taffyChatVisible = ref(false)
+const taffyInputText = ref('')
+const isTaffyReplying = ref(false)
+const taffyMood = ref('idle') // 'idle' | 'cheer' | 'active'
+const currentSpeechText = ref('')
+const audioAutoplayBlocked = ref(false)
+const chatScrollRef = ref(null)
+const hasUnreadTaffyMsg = ref(false)
+
+const taffyChatMessages = ref([
+  {
+    role: 'taffy',
+    content: '你好呀！我是你的二次元主考官永雏塔菲喵~ 今天的技术面试可不要紧张哦，遇到思路卡壳随时找塔菲交流，我会用最硬核的技术带你攻克难关的！'
+  }
+])
+
+const activeSubtitleSpeaker = computed(() => {
+  if (isInterviewerSpeaking.value || isTaffyReplying.value) {
+    return '🎀 考官永雏塔菲:'
+  }
+  if (isRecording.value) {
+    return '🧑‍💻 候选人 (我):'
+  }
+  return ''
+})
+
+const activeSubtitleText = computed(() => {
+  if (isInterviewerSpeaking.value && currentSpeechText.value) {
+    return currentSpeechText.value
+  }
+  if (isRecording.value && (interimTranscript.value || currentAnswer.value)) {
+    return interimTranscript.value || currentAnswer.value.slice(-60)
+  }
+  return ''
+})
+
 const startTaffyLipSync = () => {
   stopTaffyLipSync()
-  const sequence = [1, 2, 2, 1, 0, 1, 2, 1, 2, 0]
+  const sequence = [1, 2, 1, 2, 0, 1, 2, 2, 1, 0, 2, 1, 0]
   let idx = 0
   taffyMouthInterval = setInterval(() => {
     if (!isInterviewerSpeaking.value) {
@@ -938,7 +1152,7 @@ const startTaffyLipSync = () => {
     }
     taffyMouthState.value = sequence[idx % sequence.length]
     idx++
-  }, 115)
+  }, 120)
 }
 
 const stopTaffyLipSync = () => {
@@ -948,6 +1162,138 @@ const stopTaffyLipSync = () => {
   }
   taffyMouthState.value = 0
 }
+
+const triggerMouthAnimationTest = () => {
+  const testText = '你好呀！我是你的主考官永雏塔菲，口型张合动画与实时语音测试正常喵~！'
+  currentSpeechText.value = testText
+  taffyMood.value = 'active'
+  setTimeout(() => { if (taffyMood.value === 'active') taffyMood.value = 'idle' }, 2200)
+  speakQuestionText(testText)
+  ElMessage.success('已触发永雏塔菲说话口型动效测试')
+}
+
+const unlockAudioAndPlay = () => {
+  audioAutoplayBlocked.value = false
+  const textToSpeak = currentSpeechText.value || currentTurn.value?.question || '你好呀！我是你的主考官永雏塔菲！'
+  speakBrowserSpeech(textToSpeak)
+}
+
+const handleAvatarBoxClick = () => {
+  if (audioAutoplayBlocked.value) {
+    unlockAudioAndPlay()
+  } else if (!isInterviewerSpeaking.value) {
+    const q = currentSpeechText.value || currentTurn.value?.question
+    if (q) speakQuestionText(q)
+  }
+}
+
+const sendQuickPrompt = (prompt) => {
+  talkToTaffy(prompt)
+}
+
+const handleSendTaffyMessage = () => {
+  if (!taffyInputText.value || !taffyInputText.value.trim() || isTaffyReplying.value) return
+  const text = taffyInputText.value
+  taffyInputText.value = ''
+  talkToTaffy(text)
+}
+
+const talkToTaffy = async (userPrompt) => {
+  if (!userPrompt || !userPrompt.trim() || isTaffyReplying.value) return
+  const cleanPrompt = userPrompt.trim()
+  taffyChatMessages.value.push({
+    role: 'candidate',
+    content: cleanPrompt
+  })
+  isTaffyReplying.value = true
+
+  await nextTick()
+  if (chatScrollRef.value) {
+    chatScrollRef.value.scrollTop = chatScrollRef.value.scrollHeight
+  }
+
+  const sysPrompt = `你现在是B站知名虚拟主播“永雏塔菲”，在本次在线教育技术面试中担任AI二次元主考官。
+当前面试上下文：
+- 当前考题：${currentTurn.value?.question || '暂无'}
+- 当前考核维度：${currentDimension.value}
+
+你的性格特点与互动准则：
+1. 萌系、机智、傲娇，口语化，略带一点点毒舌与俏皮，喜欢在句尾加口癖“喵~”、“喵！”、“诶嘿~”。
+2. 虽然是二次元主播，但你拥有大厂资深架构师级技术底蕴（Java、微服务、高并发、算法与分布式系统）。
+3. 说话风格简洁口语化，适合即时语音朗读（每次回答严格控制在1~3句话，30~80字以内，绝对不要输出Markdown多级标题、长列表或冗长代码块）。
+4. 可以在回答开头附带情绪标签以驱动立绘：[CHEER]（赞许鼓励/开心）、[SURPRISED]（惊讶/质疑）、[THINK]（严肃思考）。`
+
+  const messagesPayload = [
+    { role: 'system', content: sysPrompt },
+    ...taffyChatMessages.value.slice(-6).map(m => ({
+      role: m.role === 'taffy' ? 'assistant' : 'user',
+      content: m.content
+    }))
+  ]
+
+  try {
+    const endpoint = (geminiConfig.endpoint || 'http://127.0.0.1:8317/v1').replace(/\/+$/, '') + '/chat/completions'
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 35000)
+
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${geminiConfig.apiKey || '123456'}`
+      },
+      body: JSON.stringify({
+        model: geminiConfig.model || 'gemini-3.8-flash-high',
+        messages: messagesPayload,
+        max_tokens: 160,
+        temperature: 0.7
+      }),
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId)
+
+    if (!resp.ok) {
+      throw new Error(`Gemini HTTP 状态 ${resp.status}`)
+    }
+    const data = await resp.json()
+    let reply = data.choices?.[0]?.message?.content || '塔菲走神了喵，请再说一遍吧~'
+
+    // 解析情绪标签
+    if (reply.includes('[CHEER]')) {
+      taffyMood.value = 'cheer'
+      setTimeout(() => { if (taffyMood.value === 'cheer') taffyMood.value = 'idle' }, 4000)
+      reply = reply.replace(/\[CHEER\]/g, '').trim()
+    } else if (reply.includes('[SURPRISED]')) {
+      taffyMood.value = 'active'
+      setTimeout(() => { if (taffyMood.value === 'active') taffyMood.value = 'idle' }, 3000)
+      reply = reply.replace(/\[SURPRISED\]/g, '').trim()
+    }
+
+    taffyChatMessages.value.push({
+      role: 'taffy',
+      content: reply
+    })
+
+    currentSpeechText.value = reply
+    speakQuestionText(reply)
+  } catch (err) {
+    console.warn('Gemini 对话失败:', err)
+    const fallbackReply = '本考官听清楚啦！这道题关键在于时空复杂度的权衡，不妨先从哈希表缓存或者双指针想一想喵~'
+    taffyChatMessages.value.push({
+      role: 'taffy',
+      content: fallbackReply
+    })
+    currentSpeechText.value = fallbackReply
+    speakQuestionText(fallbackReply)
+  } finally {
+    isTaffyReplying.value = false
+    await nextTick()
+    if (chatScrollRef.value) {
+      chatScrollRef.value.scrollTop = chatScrollRef.value.scrollHeight
+    }
+  }
+}
+
 
 
 const handleTaffyImgError = (e) => {
@@ -1623,20 +1969,20 @@ const initXiaoxiaoVoice = () => {
 }
 
 const speakBrowserSpeech = (text) => {
-  if (!('speechSynthesis' in window)) return
   if (!text || !text.trim()) return
+  currentSpeechText.value = text.trim()
 
-  if (window.speechSynthesis.speaking) {
+  if (window.speechSynthesis && window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel()
   }
 
-  // 立即激活说话视觉状态与口型动效，消除浏览器语音硬件初始化延迟
+  // 立即激活说话视觉状态与口型张合动效，消除浏览器语音硬件初始化延迟
   isInterviewerSpeaking.value = true
   startTaffyLipSync()
 
   // 估算朗读安全兜底超时（防止浏览器TTS后台挂起或被静音拦截后永久停留说话状态）
   if (speechDurationTimer) clearTimeout(speechDurationTimer)
-  const estimatedDuration = Math.min(35000, Math.max(3500, text.length * 280))
+  const estimatedDuration = Math.min(45000, Math.max(3800, text.length * 280))
   speechDurationTimer = setTimeout(() => {
     if (isInterviewerSpeaking.value) {
       isInterviewerSpeaking.value = false
@@ -1644,45 +1990,53 @@ const speakBrowserSpeech = (text) => {
     }
   }, estimatedDuration)
 
-  const utterance = new SpeechSynthesisUtterance(text)
-  if (currentXiaoxiaoVoice) {
-    utterance.voice = currentXiaoxiaoVoice
-  }
-  utterance.lang = 'zh-CN'
-  utterance.rate = 1.05
-  utterance.pitch = selectedPersonaStyle.value === 'taffy' ? 1.25 : 1.0
+  if (!('speechSynthesis' in window)) return
 
-  utterance.onstart = () => {
-    isInterviewerSpeaking.value = true
-    startTaffyLipSync()
-    if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
-    ttsHeartbeatInterval = setInterval(() => {
-      if (window.speechSynthesis && window.speechSynthesis.speaking) {
-        window.speechSynthesis.pause()
-        window.speechSynthesis.resume()
-      } else {
-        clearInterval(ttsHeartbeatInterval)
-      }
-    }, 10000)
-  }
-
-  utterance.onend = () => {
-    isInterviewerSpeaking.value = false
-    stopTaffyLipSync()
-    if (speechDurationTimer) clearTimeout(speechDurationTimer)
-    if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
-  }
-
-  utterance.onerror = (e) => {
-    console.warn('TTS 发音中断/错误:', e)
-    isInterviewerSpeaking.value = false
-    stopTaffyLipSync()
-    if (speechDurationTimer) clearTimeout(speechDurationTimer)
-    if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
-  }
-
-  currentUtterance = utterance
   try {
+    const utterance = new SpeechSynthesisUtterance(text)
+    if (currentXiaoxiaoVoice) {
+      utterance.voice = currentXiaoxiaoVoice
+    }
+    utterance.lang = 'zh-CN'
+    utterance.rate = 1.05
+    utterance.pitch = selectedPersonaStyle.value === 'taffy' ? 1.28 : 1.0
+
+    utterance.onstart = () => {
+      isInterviewerSpeaking.value = true
+      audioAutoplayBlocked.value = false
+      startTaffyLipSync()
+      if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
+      ttsHeartbeatInterval = setInterval(() => {
+        if (window.speechSynthesis && window.speechSynthesis.speaking) {
+          window.speechSynthesis.pause()
+          window.speechSynthesis.resume()
+        } else {
+          clearInterval(ttsHeartbeatInterval)
+        }
+      }, 10000)
+    }
+
+    utterance.onend = () => {
+      isInterviewerSpeaking.value = false
+      stopTaffyLipSync()
+      if (speechDurationTimer) clearTimeout(speechDurationTimer)
+      if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
+    }
+
+    utterance.onerror = (e) => {
+      console.warn('TTS 发音状态反馈:', e.error)
+      if (e.error === 'not-allowed') {
+        // 浏览器 Autoplay 拦截：保留口型动画与气泡，并显示解锁提示
+        audioAutoplayBlocked.value = true
+      } else {
+        isInterviewerSpeaking.value = false
+        stopTaffyLipSync()
+        if (speechDurationTimer) clearTimeout(speechDurationTimer)
+        if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
+      }
+    }
+
+    currentUtterance = utterance
     window.speechSynthesis.speak(utterance)
   } catch (err) {
     console.warn('speechSynthesis 调用异常:', err)
@@ -1760,6 +2114,7 @@ const speakWithFishAudio = async (text) => {
 }
 
 const speakQuestionText = (text) => {
+  if (text) currentSpeechText.value = text.trim()
   if (ttsConfig.engine === 'fish_audio') {
     speakWithFishAudio(text)
   } else {
@@ -2494,7 +2849,7 @@ onBeforeUnmount(() => {
 }
 
 .taffy-sprite-img {
-  height: 88%;
+  height: 94%;
   max-height: 480px;
   min-height: 260px;
   width: auto;
@@ -3379,4 +3734,406 @@ onBeforeUnmount(() => {
 .score-high { color: #00c06d; font-weight: 700; }
 .score-mid { color: #38bdf8; font-weight: 700; }
 .score-low { color: #f59e0b; font-weight: 700; }
+
+/* ==================== 永雏塔菲 Live2D 二次元台词气泡 & 控制条 ==================== */
+.taffy-live-bubble {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 420px;
+  background: rgba(26, 22, 37, 0.92);
+  border: 1px solid rgba(244, 114, 182, 0.5);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 16px rgba(244, 114, 182, 0.25);
+  border-radius: 12px;
+  padding: 10px 14px;
+  z-index: 15;
+  backdrop-filter: blur(14px);
+  pointer-events: none;
+  animation: bubble-pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes bubble-pop-in {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.95); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.bubble-tag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.bubble-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f472b6;
+  text-shadow: 0 0 8px rgba(244, 114, 182, 0.5);
+}
+
+.bubble-state {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.bubble-state.speaking {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.bubble-state.thinking {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.bubble-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #fce7f3;
+  font-weight: 500;
+  max-height: 72px;
+  overflow-y: auto;
+}
+
+.bubble-tail {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: rgba(26, 22, 37, 0.92);
+  border-right: 1px solid rgba(244, 114, 182, 0.5);
+  border-bottom: 1px solid rgba(244, 114, 182, 0.5);
+}
+
+.taffy-controls-bar {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 12;
+}
+
+.taffy-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  background: rgba(23, 25, 35, 0.85);
+  color: #e2e8f0;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+.taffy-pill-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(244, 114, 182, 0.6);
+  color: #f472b6;
+  box-shadow: 0 6px 18px rgba(244, 114, 182, 0.25);
+}
+
+.taffy-pill-btn.speak-btn.active {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.6);
+  color: #34d399;
+}
+
+.taffy-pill-btn.test-btn {
+  background: rgba(244, 114, 182, 0.18);
+  border-color: rgba(244, 114, 182, 0.45);
+  color: #f472b6;
+}
+
+.taffy-pill-btn.chat-btn {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+}
+
+.taffy-unmute-overlay {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.9), rgba(239, 68, 68, 0.9));
+  color: #ffffff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.6);
+  animation: pulse-unmute 1.5s ease-in-out infinite;
+  z-index: 20;
+}
+
+@keyframes pulse-unmute {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.05); }
+}
+
+/* 腾讯会议悬浮实时字幕条 */
+.tc-live-subtitles-bar {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 760px;
+  width: 90%;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  border-radius: 10px;
+  padding: 8px 16px;
+  z-index: 30;
+  backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.tc-live-subtitles-bar .sub-speaker {
+  font-weight: 700;
+  color: #38bdf8;
+  white-space: nowrap;
+}
+
+.tc-live-subtitles-bar .sub-content {
+  color: #f1f5f9;
+  flex: 1;
+}
+
+/* 永雏塔菲对谈抽屉样式 */
+.taffy-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px;
+  background: #0f1117;
+  color: #e2e8f0;
+}
+
+.taffy-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.12), rgba(56, 189, 248, 0.08));
+  border: 1px solid rgba(244, 114, 182, 0.3);
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.profile-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid #f472b6;
+  object-fit: cover;
+  background: #1e1b2e;
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.profile-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fce7f3;
+}
+
+.profile-name .role-tag {
+  font-size: 10px;
+  background: rgba(244, 114, 182, 0.25);
+  color: #f472b6;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.profile-desc {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.profile-meta .status-indicator.online {
+  color: #34d399;
+}
+
+.profile-meta .meta-item {
+  color: #cbd5e1;
+}
+
+.quick-chips-wrapper {
+  margin-bottom: 12px;
+}
+
+.chips-title {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.chips-scroll {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip-item {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chip-item:hover {
+  background: rgba(244, 114, 182, 0.2);
+  border-color: rgba(244, 114, 182, 0.5);
+  color: #f472b6;
+}
+
+.chat-messages-box {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+}
+
+.chat-msg-row {
+  display: flex;
+  gap: 8px;
+  max-width: 90%;
+}
+
+.chat-msg-row.candidate {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.chat-msg-row.taffy {
+  align-self: flex-start;
+}
+
+.msg-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e293b;
+  font-size: 14px;
+}
+
+.msg-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.msg-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.msg-sender {
+  font-size: 10px;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.chat-msg-row.candidate .msg-sender {
+  text-align: right;
+}
+
+.msg-text {
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.chat-msg-row.candidate .msg-text {
+  background: #2563eb;
+  color: #ffffff;
+  border-bottom-right-radius: 2px;
+}
+
+.chat-msg-row.taffy .msg-text {
+  background: rgba(30, 41, 59, 0.9);
+  color: #fce7f3;
+  border: 1px solid rgba(244, 114, 182, 0.35);
+  border-bottom-left-radius: 2px;
+}
+
+.msg-actions {
+  margin-top: 2px;
+}
+
+.chat-input-area {
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.input-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.input-hint {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.input-actions-bar .btn-group {
+  display: flex;
+  gap: 8px;
+}
+
 </style>
