@@ -440,12 +440,19 @@ const jobGroups = [
 const form = reactive({
   targetJob: 'Java 高级开发工程师',
   companyTarget: '阿里巴巴',
-  interviewerStyle: 'p7_architect',
+  interviewerStyle: 'taffy',
   totalTurns: 20,
   enableResumeCustomization: true
 })
 
 const styleOptions = [
+  {
+    value: 'taffy',
+    icon: '🎀',
+    name: '永雏塔菲 (二次元AI主考官)',
+    desc: '温柔治愈、全双工插话打断与灵动Live2D口型同步，带来前所未有的生动技术面试体验。',
+    quote: '你好呀！我是今天的主考官永雏塔菲，不要紧张喵，把你的真实技术实力展现出来吧！'
+  },
   {
     value: 'p7_architect',
     icon: '⚡',

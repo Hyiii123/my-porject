@@ -159,6 +159,7 @@
                   :src="currentTaffySprite"
                   alt="永雏塔菲"
                   class="taffy-sprite-img"
+                  @error="handleTaffyImgError"
                 />
               </div>
             </div>
@@ -861,11 +862,25 @@ watch(isInterviewerSpeaking, (speaking) => {
   }
 })
 
+const handleTaffyImgError = (e) => {
+  console.warn('塔菲立绘加载兜底:', e)
+  if (e.target && !e.target.dataset.retried) {
+    e.target.dataset.retried = '1'
+    e.target.src = '/avatar/taffy/taffy_idle.png'
+  }
+}
+
 const currentTaffySprite = computed(() => {
+  if (isBargeInActive.value) {
+    return '/avatar/taffy/taffy_active.png'
+  }
   if (isInterviewerSpeaking.value) {
     if (taffyMouthState.value === 2) return '/avatar/taffy/taffy_speak_full.png'
     if (taffyMouthState.value === 1) return '/avatar/taffy/taffy_speak_half.png'
     return '/avatar/taffy/taffy_idle.png'
+  }
+  if (submittingAnswer.value) {
+    return '/avatar/taffy/taffy_cheer.png'
   }
   return '/avatar/taffy/taffy_idle.png'
 })
@@ -1455,7 +1470,7 @@ const toggleMic = () => {
   if (audioTracks.length > 0) {
     audioTracks[0].enabled = !audioTracks[0].enabled
     micActive.value = audioTracks[0].enabled
-    ElMessage.info(micActive.value ? '麦克风已开启' : '麦克风已静音')
+    showNotice(micActive.value ? '麦克风已开启' : '🔇 麦克风已静音', 'info')
   }
 }
 
@@ -1685,6 +1700,17 @@ const previewXiaoxiaoVoice = () => {
 }
 
 // ==================== 语音识别 ASR 引擎 ====================
+const hasNotifiedMicOn = ref(false)
+
+const showNotice = (msg, type = 'info') => {
+  ElMessage({
+    message: msg,
+    type,
+    grouping: true,
+    duration: 2200
+  })
+}
+
 const startSpeechRecording = () => {
   if (isInterviewerSpeaking.value) {
     window.speechSynthesis.cancel()
@@ -1693,8 +1719,13 @@ const startSpeechRecording = () => {
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
   if (!SpeechRecognition) {
-    ElMessage.warning('当前浏览器暂未启用 Web Speech API，建议使用 Chrome/Edge 浏览器参与全真口述面试')
+    showNotice('当前浏览器暂未启用 Web Speech API，建议使用 Chrome/Edge 浏览器参与全真口述面试', 'warning')
     return
+  }
+
+  if (!hasNotifiedMicOn.value) {
+    showNotice('🎙️ 麦克风已开启，请开口口述作答', 'success')
+    hasNotifiedMicOn.value = true
   }
 
   try {
@@ -1707,7 +1738,6 @@ const startSpeechRecording = () => {
     recognition.onstart = () => {
       isRecording.value = true
       interimTranscript.value = ''
-      ElMessage.success('🎙️ 麦克风已开启，请开口口述作答')
     }
 
     recognition.onresult = (event) => {
@@ -1756,6 +1786,7 @@ const startSpeechRecording = () => {
 
 const stopSpeechRecordingOnly = () => {
   isRecording.value = false
+  hasNotifiedMicOn.value = false
   if (speechRecognitionInstance) {
     try {
       speechRecognitionInstance.stop()
@@ -1766,7 +1797,7 @@ const stopSpeechRecordingOnly = () => {
     currentAnswer.value = (currentAnswer.value + ' ' + interimTranscript.value.trim()).trim()
     interimTranscript.value = ''
   }
-  ElMessage.info('已暂停麦克风收音')
+  showNotice('已暂停麦克风收音', 'info')
 }
 
 const handleClearSpeechAnswer = () => {
@@ -2292,12 +2323,27 @@ onBeforeUnmount(() => {
 /* ==================== 考官永雏塔菲 Live2D / 交互动画 ==================== */
 .avatar-canvas-box {
   flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   background: radial-gradient(circle at center, #262a34 0%, #16181d 100%);
   overflow: hidden;
+}
+
+.avatar-canvas-box::before {
+  content: '';
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.16) 0%, rgba(56, 189, 248, 0.06) 50%, transparent 75%);
+  pointer-events: none;
+  filter: blur(24px);
+  z-index: 1;
 }
 
 .tc-voice-halo {
@@ -2335,16 +2381,20 @@ onBeforeUnmount(() => {
 .taffy-live-container {
   width: 100%;
   height: 100%;
+  min-height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
+  z-index: 2;
 }
 
 .taffy-model-wrapper {
-  height: 90%;
-  max-height: 480px;
+  width: 100%;
+  height: 100%;
+  max-height: 520px;
+  min-height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2355,11 +2405,15 @@ onBeforeUnmount(() => {
 }
 
 .taffy-sprite-img {
-  height: 100%;
+  height: 88%;
+  max-height: 480px;
+  min-height: 260px;
   width: auto;
-  max-width: 100%;
+  max-width: 90%;
   object-fit: contain;
-  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.55));
+  user-select: none;
+  pointer-events: none;
 }
 
 /* 说话时：头部语调微点头动效 */
@@ -2403,16 +2457,18 @@ onBeforeUnmount(() => {
 .digital-human-avatar {
   width: 100%;
   height: 100%;
+  min-height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  z-index: 2;
 }
 
 .digital-human-avatar .avatar-svg {
-  height: 80%;
-  max-height: 400px;
-  width: auto;
+  width: 240px;
+  height: 280px;
+  max-height: 80%;
   object-fit: contain;
 }
 
