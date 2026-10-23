@@ -25,26 +25,31 @@ public class MediaController {
         this.mediaService = mediaService;
     }
 
+    @RequiresPermissions("file:media:query")
     @GetMapping
     public R<Map<String, Object>> page(@RequestParam Map<String, Object> params) {
         return R.ok(mediaService.pageView(params));
     }
 
+    @RequiresPermissions("file:media:query")
     @GetMapping("/statistics")
     public R<Map<String, Object>> statistics() {
         return R.ok(mediaService.statistics());
     }
 
+    @RequiresPermissions("file:media:query")
     @GetMapping("/{id}")
     public R<Map<String, Object>> get(@PathVariable Long id) {
         return R.ok(mediaService.preview(id));
     }
 
+    @RequiresPermissions("file:media:add")
     @PostMapping
     public R<Map<String, Object>> add(@RequestBody Map<String, Object> payload) {
         return R.ok(mediaService.save(payload));
     }
 
+    @RequiresPermissions("file:media:edit")
     @PutMapping("/{id}")
     public R<Map<String, Object>> update(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
         payload.put("id", id);

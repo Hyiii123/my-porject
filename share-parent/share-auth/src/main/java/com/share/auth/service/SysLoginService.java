@@ -119,15 +119,12 @@ public class SysLoginService
             throw new ServiceException("手机号/验证码必须填写");
         }
         String cachedCode = redisService.getCacheObject(PHONE_CODE_PREFIX + phone);
-        if (!LOCAL_DEMO_CODE.equals(code) && !code.equals(cachedCode))
+        if (StringUtils.isBlank(cachedCode) || !cachedCode.equals(code))
         {
             recordLogService.recordLogininfor(phone, Constants.LOGIN_FAIL, "验证码错误或已过期");
             throw new ServiceException("验证码错误或已过期");
         }
-        if (cachedCode != null)
-        {
-            redisService.deleteObject(PHONE_CODE_PREFIX + phone);
-        }
+        redisService.deleteObject(PHONE_CODE_PREFIX + phone);
 
         R<LoginUser> userResult = remoteUserService.getUserInfoByPhone(phone, SecurityConstants.INNER);
         if (StringUtils.isNull(userResult) || StringUtils.isNull(userResult.getData()))

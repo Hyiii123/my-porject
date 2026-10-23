@@ -264,7 +264,9 @@ public class TradeOrderServiceImpl implements ITradeOrderService {
 
     @Override
     public Map<String, Object> order(Long id) {
-        return orderView(findOrder(id));
+        TrOrder order = findOrder(id);
+        require(Objects.equals(order.getUserId(), currentUserId()) || SecurityUtils.isAdmin(currentUserId()), "无权查看该订单");
+        return orderView(order);
     }
 
     @Override

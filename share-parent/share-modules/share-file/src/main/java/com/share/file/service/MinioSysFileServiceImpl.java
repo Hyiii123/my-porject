@@ -36,6 +36,7 @@ public class MinioSysFileServiceImpl implements ISysFileService
     @Override
     public String uploadFile(MultipartFile file) throws Exception
     {
+        FileUploadUtils.assertAllowed(file, com.share.common.core.utils.file.MimeTypeUtils.DEFAULT_ALLOWED_EXTENSION);
         String fileName = FileUploadUtils.extractFilename(file);
         InputStream inputStream = file.getInputStream();
         PutObjectArgs args = PutObjectArgs.builder()
