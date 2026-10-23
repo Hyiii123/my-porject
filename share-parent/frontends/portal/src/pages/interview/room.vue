@@ -153,6 +153,9 @@
                 aiActivityState,
                 { 'is-speaking': isInterviewerSpeaking, 'is-interrupted': isBargeInActive }
               ]"
+              @click="handleAvatarBoxClick"
+              @mousemove="handleTaffyMouseMove"
+              @mouseleave="handleTaffyMouseLeave"
             >
               <!-- 实时二次元直播台词弹幕气泡 (与口型张合完全同步) -->
               <transition name="taffy-bubble-fade">
@@ -172,25 +175,28 @@
                 </div>
               </transition>
 
-              <div class="taffy-model-wrapper">
+              <div class="taffy-model-wrapper" :style="taffyWrapperStyle">
                 <!-- 预加载所有状态立绘到GPU显存缓存，零延迟瞬切零闪烁 -->
                 <div class="taffy-gpu-preloader" aria-hidden="true" style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">
-                  <img src="/avatar/taffy/taffy_idle.png" alt="cache" />
-                  <img src="/avatar/taffy/taffy_speaking.webp" alt="cache" />
-                  <img src="/avatar/taffy/taffy_speaking.gif" alt="cache" />
-                  <img src="/avatar/taffy/taffy_speak_half.png" alt="cache" />
-                  <img src="/avatar/taffy/taffy_speak_full.png" alt="cache" />
-                  <img src="/avatar/taffy/taffy_active.png" alt="cache" />
-                  <img src="/avatar/taffy/taffy_cheer.png" alt="cache" />
+                  <img src="/avatar/taffy/v2/taffy_idle.png" alt="cache" />
+                  <img src="/avatar/taffy/v2/taffy_speaking.gif" alt="cache" />
+                  <img src="/avatar/taffy/v2/taffy_speaking.webp" alt="cache" />
+                  <img src="/avatar/taffy/v2/taffy_speak_half.png" alt="cache" />
+                  <img src="/avatar/taffy/v2/taffy_speak_full.png" alt="cache" />
+                  <img src="/avatar/taffy/v2/taffy_active.png" alt="cache" />
+                  <img src="/avatar/taffy/v2/taffy_cheer.png" alt="cache" />
+                  <img src="/avatar/taffy/v2/taffy_speak_o.png" alt="cache" />
                 </div>
 
-                <!-- 永雏塔菲主体：单一响应式立绘绑定，彻底根除多重 v-show 冲突与图层闪烁 -->
+                <!-- 永雏塔菲主体响应式立绘：由 taffyMouthShape 直接驱动实时张合口型，100% 显式张嘴说话 -->
                 <img
                   :src="currentTaffySprite"
                   alt="永雏塔菲-二次元主考官"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
+
+
 
                 <!-- 说话时动态音符/能量粒子微动效 (强化二次元主播说话氛围感) -->
                 <div v-if="isInterviewerSpeaking" class="taffy-speech-notes">
@@ -910,7 +916,7 @@
       <div class="taffy-chat-container">
         <!-- 考官档案卡片 -->
         <div class="taffy-profile-card">
-          <img src="/avatar/taffy/taffy_idle.png" class="profile-avatar" />
+          <img src="/avatar/taffy/v2/taffy_idle.png" class="profile-avatar" />
           <div class="profile-info">
             <div class="profile-name">
               <span>永雏塔菲 (Taffy)</span>
@@ -961,7 +967,7 @@
         <div class="chat-messages-box" ref="chatScrollRef">
           <div v-for="(msg, idx) in taffyChatMessages" :key="idx" class="chat-msg-row" :class="msg.role">
             <div class="msg-avatar">
-              <img v-if="msg.role === 'taffy'" src="/avatar/taffy/taffy_idle.png" />
+              <img v-if="msg.role === 'taffy'" src="/avatar/taffy/v2/taffy_idle.png" />
               <span v-else>🧑‍💻</span>
             </div>
             <div class="msg-bubble-wrap">
@@ -977,7 +983,7 @@
 
           <div v-if="isTaffyReplying" class="chat-msg-row taffy replying">
             <div class="msg-avatar">
-              <img src="/avatar/taffy/taffy_idle.png" />
+              <img src="/avatar/taffy/v2/taffy_idle.png" />
             </div>
             <div class="msg-bubble-wrap">
               <div class="msg-sender">永雏塔菲</div>
@@ -1098,8 +1104,8 @@ const showNotice = (msg, type = 'info') => {
 
 // ==================== 腾讯会议 & 永雏塔菲 & Gemini 3.8 Flash 配置 ====================
 const selectedPersonaStyle = ref('taffy')
-const taffyMouthState = ref(0) // 0: idle, 1: half, 2: full
-let taffyMouthInterval = null
+const taffyMouthShape = ref('closed') // 'closed' | 'half' | 'open' | 'o'
+let taffyLipSyncInterval = null
 
 // 永雏塔菲实时自然对谈与情绪系统
 const taffyChatVisible = ref(false)
@@ -1154,54 +1160,55 @@ const activeSubtitleText = computed(() => {
   return ''
 })
 
-// 永雏塔菲单一主响应式立绘源：绝对口型优先，确保说话发音时张合动画100%连贯显现
+// 永雏塔菲单一主响应式立绘源：绝对口型优先，考官发音时采用原生循环动图呈现连续说话张合嘴巴！
 const currentTaffySprite = computed(() => {
   // 1. 全双工抢麦打断态
   if (isBargeInActive.value) {
-    return '/avatar/taffy/taffy_active.png'
+    return '/avatar/taffy/v2/taffy_active.png'
   }
-  // 2. 考官说话发音中：视觉口型动效绝对最高优先级，优先采用GPU动画WebP呈现连续说话张合嘴巴！
-  if (isInterviewerSpeaking.value) {
-    return '/avatar/taffy/taffy_speaking.webp'
-  }
-  // 3. 情绪状态（学员交卷鼓励 / Gemini 赞许欢呼）
+  // 2. 情绪状态（学员交卷鼓励 / Gemini 赞许欢呼）
   if (submittingAnswer.value || taffyMood.value === 'cheer') {
-    return '/avatar/taffy/taffy_cheer.png'
+    return '/avatar/taffy/v2/taffy_cheer.png'
+  }
+  // 3. 考官说话发音中：视觉口型动效绝对最高优先级，使用无限循环说话动图呈现真实张合口型！
+  if (isInterviewerSpeaking.value) {
+    return '/avatar/taffy/v2/taffy_speaking.gif'
   }
   // 4. 主动调皮/眨眼态
   if (taffyMood.value === 'active' || taffyBlinkState.value) {
-    return '/avatar/taffy/taffy_active.png'
+    return '/avatar/taffy/v2/taffy_active.png'
   }
   // 5. 待机静止默认态
-  return '/avatar/taffy/taffy_idle.png'
+  return '/avatar/taffy/v2/taffy_idle.png'
 })
 
 const stopTaffyLipSync = () => {
-  if (taffyMouthInterval) {
-    clearInterval(taffyMouthInterval)
-    taffyMouthInterval = null
+  if (taffyLipSyncInterval) {
+    clearInterval(taffyLipSyncInterval)
+    taffyLipSyncInterval = null
   }
-  taffyMouthState.value = 0
+  taffyMouthShape.value = 'closed'
 }
 
 const startTaffyLipSync = () => {
   stopTaffyLipSync()
-  // 拟真动漫声优说话口型序列：
-  // 1(微张) -> 2(大张) -> 2(大张) -> 1(半张) -> 0(微闭) -> 1(微张) -> 2(大张) -> 1(半张) -> 0(微闭)
-  const sequence = [1, 2, 2, 1, 0, 1, 2, 1, 2, 2, 1, 0, 1, 2, 0]
+  // 拟真动漫声优说话口型序列 (连续张合循环，100ms 一跳，流畅生动)：
+  const sequence = ['half', 'open', 'half', 'o', 'open', 'half', 'open', 'o', 'half', 'closed']
   let idx = 0
-  taffyMouthInterval = setInterval(() => {
+  taffyMouthShape.value = sequence[0]
+  taffyLipSyncInterval = setInterval(() => {
     if (!isInterviewerSpeaking.value) {
       stopTaffyLipSync()
       return
     }
-    taffyMouthState.value = sequence[idx % sequence.length]
     idx++
-  }, 120)
+    taffyMouthShape.value = sequence[idx % sequence.length]
+  }, 100)
 }
 
 const triggerMouthAnimationTest = () => {
-  const testText = '你好呀！我是你的主考官永雏塔菲，口型张合动画与实时语音测试正常喵~！'
+  stopAllTts()
+  const testText = '你好呀！我是你的主考官永雏塔菲，说话口型张合动画与实时语音测试一切正常喵~！'
   currentSpeechText.value = testText
   isInterviewerSpeaking.value = true
   startTaffyLipSync()
@@ -1210,10 +1217,10 @@ const triggerMouthAnimationTest = () => {
   speechDurationTimer = setTimeout(() => {
     isInterviewerSpeaking.value = false
     stopTaffyLipSync()
-  }, 5000)
+  }, 5500)
 
   speakQuestionText(testText)
-  ElMessage.success('✨ 正在播放永雏塔菲说话口型张合动画与语音测试')
+  ElMessage.success('✨ 正在播放永雏塔菲说话口型动效与原声语音测试')
 }
 
 const unlockAudioAndPlay = () => {
@@ -1222,12 +1229,49 @@ const unlockAudioAndPlay = () => {
   speakBrowserSpeech(textToSpeak)
 }
 
+const mousePos = reactive({ x: 0, y: 0 })
+
+const handleTaffyMouseMove = (e) => {
+  const rect = e.currentTarget.getBoundingClientRect()
+  if (!rect.width || !rect.height) return
+  const x = (e.clientX - rect.left) / rect.width - 0.5
+  const y = (e.clientY - rect.top) / rect.height - 0.5
+  mousePos.x = x * 2
+  mousePos.y = y * 2
+}
+
+const handleTaffyMouseLeave = () => {
+  mousePos.x = 0
+  mousePos.y = 0
+}
+
+const taffyWrapperStyle = computed(() => {
+  if (isInterviewerSpeaking.value || isBargeInActive.value) {
+    return {}
+  }
+  const degX = (mousePos.x * 2.5).toFixed(1)
+  const degY = (-mousePos.y * 1.8).toFixed(1)
+  const transX = (mousePos.x * 4).toFixed(1)
+  const transY = (mousePos.y * 3).toFixed(1)
+  return {
+    transform: `perspective(600px) rotateY(${degX}deg) rotateX(${degY}deg) translate(${transX}px, ${transY}px)`
+  }
+})
+
 const handleAvatarBoxClick = () => {
   if (audioAutoplayBlocked.value) {
     unlockAudioAndPlay()
   } else if (!isInterviewerSpeaking.value) {
-    const q = currentSpeechText.value || currentTurn.value?.question
-    if (q) speakQuestionText(q)
+    const easterEggs = [
+      '干嘛戳塔菲呀喵~ 快快专注面试，塔菲在认真考核你呢！',
+      '哼哼，本考官可不是随便让人戳的哦~ 遇到难题尽管在右侧对谈找我喵！',
+      '诶嘿~ 别紧张嘛，喝口水深呼吸，塔菲相信你的技术实力喵！'
+    ]
+    const randomEgg = easterEggs[Math.floor(Math.random() * easterEggs.length)]
+    taffyMood.value = 'active'
+    setTimeout(() => { if (taffyMood.value === 'active') taffyMood.value = 'idle' }, 2800)
+    currentSpeechText.value = randomEgg
+    speakQuestionText(randomEgg)
   }
 }
 
@@ -1434,12 +1478,12 @@ const handleTaffyImgError = (e) => {
   if (e.target) {
     if (!e.target.dataset.retried) {
       e.target.dataset.retried = '1'
-      e.target.src = '/avatar/taffy/taffy_speaking.gif'
+      e.target.src = '/avatar/taffy/v2/taffy_speaking.webp'
     } else if (e.target.dataset.retried === '1') {
       e.target.dataset.retried = '2'
-      e.target.src = '/avatar/taffy/taffy_speak_full.png'
+      e.target.src = '/avatar/taffy/v2/taffy_speak_full.png'
     } else {
-      e.target.src = '/avatar/taffy/taffy_idle.png'
+      e.target.src = '/avatar/taffy/v2/taffy_idle.png'
     }
   }
 }
@@ -1708,6 +1752,9 @@ const fetchSocraticHint = async (cmd) => {
     const payload = res.data || res
     currentHintText.value = payload.hint || payload.content || '考官建议：先分析题目边界用例，推演核心数据结构（如哈希表/双指针）。'
     ElMessage.success(`已获取考官 Level ${lvl} 启发提示`)
+    taffyMood.value = 'active'
+    setTimeout(() => { if (taffyMood.value === 'active') taffyMood.value = 'idle' }, 3500)
+    speakQuestionText('苏格拉底启发来咯：' + currentHintText.value)
   } catch (err) {
     console.warn('获取启发提示异常，降级显示内置启发:', err)
     if (lvl === 1) {
@@ -1736,6 +1783,16 @@ const testRunSandbox = async () => {
     })
     liveSandboxResult.value = res.data || res
     ElMessage.success('沙箱测试用例执行完毕')
+    const st = res.data?.status || res.status
+    if (st === 'SUCCESS' || st === 'AC') {
+      taffyMood.value = 'cheer'
+      setTimeout(() => { if (taffyMood.value === 'cheer') taffyMood.value = 'idle' }, 3500)
+      speakQuestionText('好耶！代码沙箱测试用例全部AC，逻辑很清晰喵~！')
+    } else {
+      taffyMood.value = 'active'
+      setTimeout(() => { if (taffyMood.value === 'active') taffyMood.value = 'idle' }, 3000)
+      speakQuestionText('沙箱测试未完全通过，注意检查一下边界条件与返回值哦喵~')
+    }
   } catch (err) {
     console.warn('沙箱运行报错:', err)
     liveSandboxResult.value = {
@@ -2534,11 +2591,23 @@ onMounted(async () => {
   }, 1000)
 
   nextTick(() => {
-    if (currentTurn.value?.question && !isCompleted.value) {
-      setTimeout(() => {
-        speakQuestionText(currentTurn.value.question)
-      }, 800)
-    }
+    // 首次进入考场：自动播放考官开场欢迎口型动效 (无论浏览器是否静音，口型视觉动效必动 4 秒！)
+    const welcomeMsg = currentTurn.value?.question || '你好呀！欢迎参加本次技术全真模拟面试，我是今天的主考官永雏塔菲喵~ 请先用2~3分钟做一个简要自我介绍！'
+    currentSpeechText.value = welcomeMsg
+    isInterviewerSpeaking.value = true
+    startTaffyLipSync()
+
+    try {
+      speakQuestionText(welcomeMsg)
+    } catch (e) {}
+
+    if (speechDurationTimer) clearTimeout(speechDurationTimer)
+    speechDurationTimer = setTimeout(() => {
+      if (!window.speechSynthesis || !window.speechSynthesis.speaking) {
+        isInterviewerSpeaking.value = false
+        stopTaffyLipSync()
+      }
+    }, 4500)
   })
 })
 
@@ -3008,6 +3077,9 @@ onBeforeUnmount(() => {
   animation: taffy-breath 3.6s ease-in-out infinite;
   transition: transform 0.25s ease;
 }
+
+
+
 
 .taffy-sprite-img {
   height: 110%;

@@ -43,7 +43,7 @@
       <div class="taffy-report-banner">
         <div class="taffy-avatar-wrap">
           <img
-            :src="(sessionData?.score ?? 0) >= 80 ? '/avatar/taffy/taffy_cheer.png' : '/avatar/taffy/taffy_active.png'"
+            :src="(sessionData?.score ?? 0) >= 80 ? '/avatar/taffy/v2/taffy_cheer.png' : '/avatar/taffy/v2/taffy_active.png'"
             class="taffy-img"
             alt="永雏塔菲"
           />

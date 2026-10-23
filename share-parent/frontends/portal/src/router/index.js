@@ -58,4 +58,17 @@ const router = createRouter({
   },
 });
 
+router.onError((error) => {
+  console.warn('前端路由动态模块加载异常，执行自愈刷新:', error);
+  if (
+    error.message &&
+    (error.message.includes('dynamically imported module') ||
+      error.message.includes('Failed to fetch') ||
+      error.message.includes('Loading chunk') ||
+      error.message.includes('Unexpected token'))
+  ) {
+    window.location.reload();
+  }
+});
+
 export default router;
