@@ -145,158 +145,22 @@
               <div class="halo-layer layer-2"></div>
             </div>
 
-            <!-- ========== 形象 1: 永雏塔菲 (二次元萌系拟人化主考官) ========== -->
+            <!-- ========== 形象 1: 永雏塔菲 (二次元AI主考官 / 真实Live2D动效立绘) ========== -->
             <div
               v-if="selectedPersonaStyle === 'taffy'"
-              class="taffy-avatar-container"
+              class="taffy-live-container"
               :class="[
                 aiActivityState,
                 { 'is-speaking': isInterviewerSpeaking, 'is-interrupted': isBargeInActive }
               ]"
             >
-              <svg viewBox="0 0 260 300" class="taffy-svg">
-                <defs>
-                  <!-- 塔菲双马尾粉白渐变 -->
-                  <linearGradient id="taffyHairPink" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#ffeef4"/>
-                    <stop offset="50%" stop-color="#ffb7d5"/>
-                    <stop offset="100%" stop-color="#f472b6"/>
-                  </linearGradient>
-                  <!-- 丝带红色 -->
-                  <linearGradient id="taffyRibbon" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#fb7185"/>
-                    <stop offset="100%" stop-color="#e11d48"/>
-                  </linearGradient>
-                  <!-- 肤色 -->
-                  <linearGradient id="taffySkin" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="#fff7f5"/>
-                    <stop offset="100%" stop-color="#ffedd5"/>
-                  </linearGradient>
-                  <!-- 眼睛瞳孔紫色/洋红渐变 -->
-                  <linearGradient id="taffyEye" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="#831843"/>
-                    <stop offset="40%" stop-color="#be185d"/>
-                    <stop offset="100%" stop-color="#f43f5e"/>
-                  </linearGradient>
-                  <!-- 电竞耳麦黑粉光感 -->
-                  <linearGradient id="taffyHeadset" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#ec4899"/>
-                    <stop offset="100%" stop-color="#8b5cf6"/>
-                  </linearGradient>
-                  <filter id="taffyGlow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="2" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-                  </filter>
-                </defs>
-
-                <!-- 后发与双马尾 (带随动摆动动效) -->
-                <g class="taffy-twintails">
-                  <!-- 左双马尾 -->
-                  <path
-                    d="M 70 120 C 30 140, 10 200, 35 270 C 45 285, 55 240, 65 200 C 72 170, 75 140, 70 120 Z"
-                    fill="url(#taffyHairPink)"
-                    class="tail-left"
-                  />
-                  <!-- 右双马尾 -->
-                  <path
-                    d="M 190 120 C 230 140, 250 200, 225 270 C 215 285, 205 240, 195 200 C 188 170, 185 140, 190 120 Z"
-                    fill="url(#taffyHairPink)"
-                    class="tail-right"
-                  />
-                </g>
-
-                <!-- 身体与水手领正装服饰 -->
-                <g class="taffy-body">
-                  <!-- 肩部水手服裙装 -->
-                  <path d="M 65 295 L 85 220 L 110 225 L 130 245 L 150 225 L 175 220 L 195 295 Z" fill="#1e293b"/>
-                  <!-- 水手服白色翻领 -->
-                  <polygon points="90,222 130,265 170,222 155,222 130,248 105,222" fill="#ffffff"/>
-                  <!-- 红色蝴蝶结领结 -->
-                  <path d="M 120 240 L 110 252 L 130 248 L 150 252 L 140 240 L 130 244 Z" fill="url(#taffyRibbon)"/>
-                  <circle cx="130" cy="244" r="4" fill="#fbbf24"/>
-                </g>
-
-                <!-- 头部组 (呼吸、眨眼、口型驱动) -->
-                <g class="taffy-head-group">
-                  <rect x="118" y="180" width="24" height="42" rx="4" fill="url(#taffySkin)"/>
-                  <path d="M 82 120 C 82 70, 178 70, 178 120 C 178 170, 160 195, 130 195 C 100 195, 82 170, 82 120 Z" fill="url(#taffySkin)"/>
-
-                  <!-- 腮红 -->
-                  <ellipse cx="98" cy="148" rx="10" ry="5" fill="#fb7185" opacity="0.45"/>
-                  <ellipse cx="162" cy="148" rx="10" ry="5" fill="#fb7185" opacity="0.45"/>
-
-                  <!-- 前刘海 -->
-                  <path d="M 80 110 C 80 60, 180 60, 180 110 C 170 115, 160 118, 150 112 C 140 125, 130 126, 120 112 C 110 122, 100 120, 90 112 C 85 116, 80 114, 80 110 Z" fill="url(#taffyHairPink)"/>
-
-                  <!-- 猫耳发卡与蝴蝶结 -->
-                  <path d="M 82 85 L 68 62 L 95 72 Z" fill="url(#taffyRibbon)"/>
-                  <path d="M 178 85 L 192 62 L 165 72 Z" fill="url(#taffyRibbon)"/>
-                  <circle cx="72" cy="122" r="6" fill="url(#taffyRibbon)"/>
-                  <circle cx="188" cy="122" r="6" fill="url(#taffyRibbon)"/>
-
-                  <!-- 电竞耳麦 -->
-                  <path d="M 80 115 C 75 70, 185 70, 180 115" stroke="url(#taffyHeadset)" stroke-width="4" fill="none"/>
-                  <rect x="74" y="112" width="10" height="22" rx="4" fill="#ec4899" filter="url(#taffyGlow)"/>
-                  <rect x="176" y="112" width="10" height="22" rx="4" fill="#ec4899" filter="url(#taffyGlow)"/>
-                  <path d="M 79 128 Q 90 156 108 156" stroke="#ec4899" stroke-width="2.5" fill="none"/>
-                  <circle cx="108" cy="156" r="3.5" fill="#38bdf8" filter="url(#taffyGlow)"/>
-
-                  <!-- 眉毛 -->
-                  <path d="M 94 116 Q 106 112 114 115" stroke="#db2777" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-                  <path d="M 146 115 Q 154 112 166 116" stroke="#db2777" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-
-                  <!-- 眼睛与长睫毛 (带自动眨眼动画) -->
-                  <g class="taffy-eyes" :class="{ 'eyes-surprised': isBargeInActive }">
-                    <g class="eye-left">
-                      <ellipse cx="106" cy="132" rx="11" ry="14" fill="url(#taffyEye)"/>
-                      <ellipse cx="106" cy="136" rx="7" ry="9" fill="#4c0519"/>
-                      <circle cx="103" cy="128" r="4" fill="#ffffff"/>
-                      <circle cx="109" cy="139" r="2" fill="#ffffff"/>
-                      <path d="M 92 124 Q 106 116 118 123" stroke="#831843" stroke-width="3" fill="none" stroke-linecap="round"/>
-                    </g>
-                    <g class="eye-right">
-                      <ellipse cx="154" cy="132" rx="11" ry="14" fill="url(#taffyEye)"/>
-                      <ellipse cx="154" cy="136" rx="7" ry="9" fill="#4c0519"/>
-                      <circle cx="151" cy="128" r="4" fill="#ffffff"/>
-                      <circle cx="157" cy="139" r="2" fill="#ffffff"/>
-                      <path d="M 142 123 Q 154 116 168 124" stroke="#831843" stroke-width="3" fill="none" stroke-linecap="round"/>
-                    </g>
-                  </g>
-
-                  <!-- 鼻子 -->
-                  <circle cx="130" cy="146" r="1.5" fill="#f472b6"/>
-
-                  <!-- 嘴巴 -->
-                  <g class="taffy-mouth-group">
-                    <ellipse
-                      v-if="isBargeInActive"
-                      cx="130"
-                      cy="162"
-                      rx="6"
-                      ry="7"
-                      fill="#be185d"
-                      stroke="#f43f5e"
-                      stroke-width="1.5"
-                    />
-                    <path
-                      v-else-if="isInterviewerSpeaking"
-                      class="taffy-open-mouth"
-                      d="M 120 160 Q 130 174 140 160 Q 130 166 120 160 Z"
-                      fill="#be185d"
-                      stroke="#f43f5e"
-                      stroke-width="1.5"
-                    />
-                    <path
-                      v-else
-                      d="M 122 160 Q 126 163 130 160 Q 134 163 138 160"
-                      stroke="#e11d48"
-                      stroke-width="2.2"
-                      fill="none"
-                      stroke-linecap="round"
-                    />
-                  </g>
-                </g>
-              </svg>
+              <div class="taffy-model-wrapper">
+                <img
+                  :src="currentTaffySprite"
+                  alt="永雏塔菲"
+                  class="taffy-sprite-img"
+                />
+              </div>
             </div>
 
             <!-- ========== 形象 2: 阿里 P7 / 极客架构师 (备用风格) ========== -->
@@ -577,29 +441,49 @@
           </div>
         </div>
       </div>
-      <!-- ==================== 3. 腾讯会议悬浮实时字幕条 (Live Subtitles) ==================== -->
-      <transition name="tc-fade-slide">
-        <div v-if="showSubtitles" class="tc-floating-subtitles" :class="{ 'barge-alert': isBargeInActive }">
-          <div class="subtitles-inner">
-            <!-- 考官正在提问 -->
-            <div v-if="isInterviewerSpeaking" class="sub-row interviewer-speaking">
-              <span class="sub-speaker-tag interviewer">{{ currentPersonaMeta.name }} (考官)</span>
-              <span class="sub-content">“{{ currentTurn?.question }}”</span>
-            </div>
-            <!-- 候选人正在回答或触发打断 -->
-            <div v-else-if="isBargeInActive || isRecording" class="sub-row candidate-speaking">
-              <span class="sub-speaker-tag candidate">候选人 (我)</span>
-              <span v-if="isBargeInActive" class="barge-flag">⚡ 插话打断</span>
-              <span class="sub-content">{{ currentAnswer || interimTranscript || '正在收音阐述作答中...' }}</span>
-            </div>
-            <!-- 静默等待 -->
-            <div v-else class="sub-row idle">
-              <span class="sub-speaker-tag tip">提示</span>
-              <span class="sub-content">点击下方「🎙️ 开始口述作答」或直接开口说话，支持随时打断考官提问。</span>
-            </div>
+      <!-- ==================== 3. 腾讯会议中央考题看板与实时对谈流 ==================== -->
+      <div class="tc-question-board" :class="{ 'barge-alert': isBargeInActive }">
+        <div class="q-board-header">
+          <div class="q-meta-left">
+            <span class="q-stage-tag">第 {{ currentTurnNum }} 轮 · {{ getDepthText(currentDepth) }}</span>
+            <span class="q-dim-tag">【考核核心】: {{ currentDimension }}</span>
+          </div>
+          <div class="q-meta-right">
+            <span class="q-tts-tag">🎙️ {{ currentPersonaMeta.name }}</span>
+            <el-button
+              size="small"
+              circle
+              class="q-mini-btn"
+              :title="isInterviewerSpeaking ? '暂停朗读' : '重新朗读题目'"
+              @click="toggleTtsCurrentQuestion"
+            >
+              {{ isInterviewerSpeaking ? '⏹️' : '🔊' }}
+            </el-button>
+            <el-button
+              v-if="isInterviewerSpeaking"
+              size="small"
+              type="warning"
+              class="q-barge-btn"
+              @click="triggerManualBargeIn"
+            >
+              ⚡ 插话打断
+            </el-button>
           </div>
         </div>
-      </transition>
+
+        <!-- 考题正文（大字高对比度亮白） -->
+        <div class="q-content-box">
+          <span class="q-speaker-label">考官提问：</span>
+          <span class="q-text">“{{ currentTurn?.question || '考题生成就绪中，请稍候...' }}”</span>
+        </div>
+
+        <!-- 候选人作答实时流 (作答中展示转写) -->
+        <div v-if="isRecording || currentAnswer" class="q-answer-stream">
+          <span class="a-speaker-label">候选人作答：</span>
+          <span class="a-text">{{ currentAnswer || interimTranscript || '正在收音阐述作答中...' }}</span>
+          <span v-if="isRecording" class="typing-cursor">▌</span>
+        </div>
+      </div>
 
     </main>
 
@@ -942,7 +826,50 @@ const sessionData = ref({
 const currentAnswer = ref('')
 
 // ==================== 腾讯会议 & 永雏塔菲 & Gemini 3.8 Flash 配置 ====================
-const selectedPersonaStyle = ref('taffy') // 'taffy' | 'p7_architect' | 'bytedance_tech' | 'gentle_hr'
+const selectedPersonaStyle = ref('taffy')
+const taffyMouthState = ref(0) // 0: idle, 1: half, 2: full
+let taffyMouthInterval = null
+
+const startTaffyLipSync = () => {
+  stopTaffyLipSync()
+  const sequence = [1, 2, 1, 0, 2, 1, 0, 1]
+  let idx = 0
+  taffyMouthInterval = setInterval(() => {
+    if (!isInterviewerSpeaking.value) {
+      taffyMouthState.value = 0
+      stopTaffyLipSync()
+      return
+    }
+    taffyMouthState.value = sequence[idx % sequence.length]
+    idx++
+  }, 130)
+}
+
+const stopTaffyLipSync = () => {
+  if (taffyMouthInterval) {
+    clearInterval(taffyMouthInterval)
+    taffyMouthInterval = null
+  }
+  taffyMouthState.value = 0
+}
+
+watch(isInterviewerSpeaking, (speaking) => {
+  if (speaking) {
+    startTaffyLipSync()
+  } else {
+    stopTaffyLipSync()
+  }
+})
+
+const currentTaffySprite = computed(() => {
+  if (isInterviewerSpeaking.value) {
+    if (taffyMouthState.value === 2) return '/avatar/taffy/taffy_speak_full.png'
+    if (taffyMouthState.value === 1) return '/avatar/taffy/taffy_speak_half.png'
+    return '/avatar/taffy/taffy_idle.png'
+  }
+  return '/avatar/taffy/taffy_idle.png'
+})
+ // 'taffy' | 'p7_architect' | 'bytedance_tech' | 'gentle_hr'
 const viewLayout = ref('gallery') // 'gallery' | 'speaker'
 const isFullScreen = ref(false)
 const showSubtitles = ref(true)
@@ -1899,9 +1826,8 @@ const loadSession = async () => {
       timerSeconds.value = sessionData.value.durationSeconds
     }
 
-    if (sessionData.value.interviewerStyle) {
-      selectedPersonaStyle.value = sessionData.value.interviewerStyle
-    }
+    // 优先保持永雏塔菲（二次元AI主考官）为当前连线形象
+    selectedPersonaStyle.value = 'taffy'
 
     if (sessionData.value.status === 2 || sessionData.value.status === 3) {
       if (timerInterval) clearInterval(timerInterval)
@@ -1982,6 +1908,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  stopTaffyLipSync()
   if (timerInterval) clearInterval(timerInterval)
   if (virtualAudioInterval) clearInterval(virtualAudioInterval)
   if (animFrameId) cancelAnimationFrame(animFrameId)
@@ -2011,16 +1938,21 @@ onBeforeUnmount(() => {
 <style scoped>
 /* ==================== 腾讯会议全局暗夜极简沉浸画布 ==================== */
 .tc-meeting-root {
-  display: flex;
-  flex-direction: column;
-  width: 100vw;
-  height: 100vh;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2500 !important;
   background-color: #111215;
   color: #e5e7eb;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   overflow: hidden;
   user-select: none;
-  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .tc-meeting-root.fullscreen-mode {
@@ -2233,16 +2165,19 @@ onBeforeUnmount(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 12px 16px 80px 16px;
+  padding: 10px 14px 76px 14px;
   position: relative;
   overflow: hidden;
+  min-height: 0;
+  gap: 10px;
 }
 
 .tc-video-grid {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
+  min-height: 0;
   height: 100%;
 }
 
@@ -2397,68 +2332,88 @@ onBeforeUnmount(() => {
   100% { transform: scale(1.4); opacity: 0; }
 }
 
-.taffy-avatar-container {
-  width: 320px;
-  height: 360px;
+.taffy-live-container {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  animation: taffy-breath 4s ease-in-out infinite;
+  overflow: hidden;
 }
 
-.taffy-svg {
-  width: 100%;
+.taffy-model-wrapper {
+  height: 90%;
+  max-height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transform-origin: center bottom;
+  animation: taffy-breath 3.6s ease-in-out infinite;
+  transition: transform 0.25s ease;
+}
+
+.taffy-sprite-img {
   height: 100%;
-  overflow: visible;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45));
 }
 
-/* 塔菲双马尾柔顺飘动动画 */
-.tail-left {
-  transform-origin: 70px 120px;
-  animation: taffy-tail-swing-l 3.5s ease-in-out infinite alternate;
+/* 说话时：头部语调微点头动效 */
+.taffy-live-container.is-speaking .taffy-model-wrapper {
+  animation: taffy-speaking-cadence 0.35s ease-in-out infinite alternate !important;
 }
 
-.tail-right {
-  transform-origin: 190px 120px;
-  animation: taffy-tail-swing-r 3.5s ease-in-out infinite alternate;
+/* 倾听时：侧头倾听微动 */
+.taffy-live-container.listening .taffy-model-wrapper {
+  animation: taffy-attentive-nod 2.8s ease-in-out infinite !important;
 }
 
-@keyframes taffy-tail-swing-l {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(-5deg); }
-}
-
-@keyframes taffy-tail-swing-r {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(5deg); }
+/* 打断时：惊愕后撤 */
+.taffy-live-container.is-interrupted .taffy-model-wrapper {
+  animation: taffy-recoil 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 
 @keyframes taffy-breath {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.008); }
 }
 
-/* 塔菲自然眨眼动画 */
-.taffy-eyes {
-  transform-origin: 130px 132px;
-  animation: taffy-blink-anim 4.5s infinite;
+@keyframes taffy-speaking-cadence {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-4px) rotate(-1deg); }
 }
 
-@keyframes taffy-blink-anim {
-  0%, 94%, 98%, 100% { transform: scaleY(1); }
-  96% { transform: scaleY(0.1); }
+@keyframes taffy-attentive-nod {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  35% { transform: rotate(2deg) translateY(-2px); }
+  70% { transform: rotate(-1.5deg) translateY(-1px); }
 }
 
-/* 塔菲发音口型上下动态缩放 */
-.taffy-open-mouth {
-  animation: taffy-mouth-speak 0.28s ease-in-out infinite alternate;
-  transform-origin: 130px 165px;
+@keyframes taffy-recoil {
+  0% { transform: scale(1) translateY(0); }
+  30% { transform: scale(0.96) translateY(-8px) rotate(-2deg); }
+  100% { transform: scale(1) translateY(0) rotate(0deg); }
 }
 
-@keyframes taffy-mouth-speak {
-  0% { transform: scaleY(0.7); }
-  100% { transform: scaleY(1.35); }
+/* 备用风格考官 (阿里P7等)，保证永远不黑屏 */
+.digital-human-avatar {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.digital-human-avatar .avatar-svg {
+  height: 80%;
+  max-height: 400px;
+  width: auto;
+  object-fit: contain;
 }
 
 /* ==================== 腾讯会议经典左下角名片胶囊 ==================== */
@@ -2785,86 +2740,134 @@ onBeforeUnmount(() => {
   line-height: 1.5;
 }
 
-/* ==================== 3. 腾讯会议悬浮实时字幕 (Live Subtitles) ==================== */
-.tc-floating-subtitles {
-  position: absolute;
-  bottom: 84px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 64px);
-  max-width: 960px;
-  background: rgba(24, 26, 31, 0.88);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+/* ==================== 3. 腾讯会议中央考题看板与实时对谈流 ==================== */
+.tc-question-board {
+  flex-shrink: 0;
+  max-height: 160px;
+  background: rgba(24, 26, 32, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 10px 18px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-  z-index: 30;
-  transition: all 0.25s ease;
+  padding: 10px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  z-index: 15;
+  transition: border-color 0.25s, box-shadow 0.25s;
 }
 
-.tc-floating-subtitles.barge-alert {
+.tc-question-board.barge-alert {
   border-color: #fbbf24;
   box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
 }
 
-.subtitles-inner {
-  font-size: 14px;
-  line-height: 1.6;
+.q-board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 6px;
 }
 
-.sub-row {
+.q-meta-left {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
 }
 
-.sub-speaker-tag {
+.q-stage-tag {
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.q-dim-tag {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.q-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.q-tts-tag {
+  color: #f472b6;
+  background: rgba(244, 114, 182, 0.15);
+  border: 1px solid rgba(244, 114, 182, 0.25);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.q-mini-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #f1f5f9 !important;
+}
+
+.q-barge-btn {
+  font-weight: 700;
+  border-radius: 6px;
+}
+
+.q-content-box {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1.5;
+}
+
+.q-speaker-label {
+  color: #f472b6;
   font-weight: 700;
   font-size: 13px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.sub-speaker-tag.interviewer {
-  background: rgba(244, 114, 182, 0.2);
-  color: #f472b6;
+.q-text {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
 }
 
-.sub-speaker-tag.candidate {
-  background: rgba(56, 189, 248, 0.2);
+.q-answer-stream {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  background: rgba(56, 189, 248, 0.08);
+  border-left: 3px solid #38bdf8;
+  padding: 4px 8px;
+  border-radius: 0 4px 4px 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.a-speaker-label {
   color: #38bdf8;
-}
-
-.sub-speaker-tag.tip {
-  background: rgba(148, 163, 184, 0.15);
-  color: #94a3b8;
-}
-
-.barge-flag {
-  font-size: 11px;
-  background: #f59e0b;
-  color: #000;
   font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 3px;
-  margin-right: 4px;
+  flex-shrink: 0;
 }
 
-.sub-content {
-  color: #f8fafc;
+.a-text {
+  color: #e0f2fe;
 }
 
-.tc-fade-slide-enter-active,
-.tc-fade-slide-leave-active {
-  transition: all 0.3s ease;
+.typing-cursor {
+  color: #38bdf8;
+  animation: blink-cursor 0.8s infinite;
 }
 
-.tc-fade-slide-enter-from,
-.tc-fade-slide-leave-to {
-  opacity: 0;
-  transform: translate(-50%, 15px);
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 /* ==================== 4. 腾讯会议经典底部控制栏 (Bottom Dock) ==================== */

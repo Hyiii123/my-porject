@@ -30,18 +30,18 @@ export default [
         meta: { title: 'AI 模拟面试大厅' },
       },
       {
-        path: 'room/:id',
-        name: 'interviewRoom',
-        component: () => import('@/pages/interview/room.vue'),
-        meta: { title: '全真模拟面试间' },
-      },
-      {
         path: 'report/:id',
         name: 'interviewReport',
         component: () => import('@/pages/interview/report.vue'),
         meta: { title: '多维能力诊断报告' },
       },
     ],
+  },
+  {
+    path: '/interview/room/:id',
+    name: 'interviewRoom',
+    component: () => import('@/pages/interview/room.vue'),
+    meta: { title: '全真模拟面试间 · 腾讯会议' },
   },
   {
     path: '/my-class',
