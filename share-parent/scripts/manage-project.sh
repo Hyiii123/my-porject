@@ -242,6 +242,12 @@ start_project() {
         echo -e "  ${YELLOW}💡 提示: 2 vCPU 环境下 Spring AI/重型模块加载较慢。若后续未就绪，可执行: ./start-project.ps1 restart <服务名>${NC}"
     fi
 
+    # 确保 Cloudflare 域名隧道守护进程运行
+    if ! systemctl is-active --quiet cloudflared; then
+        log_info "正在确保 Cloudflare 域名隧道守护进程运行..."
+        systemctl start cloudflared 2>/dev/null || true
+    fi
+
     # 汇报最终运行状态与健康检查
     health_check
     status_project
@@ -314,6 +320,12 @@ health_check() {
     check_http "学生端门户 (Portal HTTP)" "http://127.0.0.1:18081/" "200"
     check_http "学生端门户 (Portal H2/SSL)" "https://127.0.0.1:18443/" "200"
     check_http "运营管理端 (Business UI)" "http://127.0.0.1:18082/" "200"
+    if systemctl is-active --quiet cloudflared; then
+        printf "  %-32s %-38s [ ${GREEN}ACTIVE (RUNNING)${NC} ]\n" "域名隧道 (Cloudflare Tunnel)" "systemd:cloudflared"
+    else
+        printf "  %-32s %-38s [ ${RED}DOWN -> AUTO RESTARTING${NC} ]\n" "域名隧道 (Cloudflare Tunnel)" "systemd:cloudflared"
+        systemctl start cloudflared 2>/dev/null || true
+    fi
 
     echo -e "\n${BOLD}【中枢配置与 AI 算法】${NC}"
     check_http "配置注册中心 (Nacos)" "http://127.0.0.1:8848/nacos/" "200"
@@ -362,11 +374,17 @@ status_project() {
     fi
     echo ""
 
-    echo -e "${BOLD}【各端公网访问入口】${NC}"
-    echo -e "  🎯 学生端门户 (Portal UI HTTP)    : ${GREEN}http://${pub_ip}:18081${NC}"
-    echo -e "  ⚡ 学生端门户 (Portal HTTPS/H2)   : ${GREEN}https://${pub_ip}:18443${NC}"
-    echo -e "  🏢 机构/运营管理端 (Business UI)  : ${GREEN}http://${pub_ip}:18082${NC}"
-    echo -e "  🌐 API 统一网关 Gateway           : ${CYAN}http://${pub_ip}:8080${NC}"
+    echo -e "${BOLD}【全球专属域名访问入口 (免备案/自带 HTTPS / 免疫 IP 变动)】${NC}"
+    echo -e "  🌟 学生端主站 (免端口直达)        : ${GREEN}${BOLD}https://zhiwenedu.online${NC}"
+    echo -e "  🎓 学生端门户 (二级专属)          : ${GREEN}https://study.zhiwenedu.online${NC}"
+    echo -e "  🏢 业务管理端 (免端口直达)        : ${GREEN}${BOLD}https://admin.zhiwenedu.online${NC}"
+    echo -e "  🛡️ Cloudflare 隧道守护状态       : ${CYAN}$(systemctl is-active cloudflared 2>/dev/null || echo "inactive")${NC}"
+    echo ""
+    echo -e "${BOLD}【动态服务器公网 IP 备用直连 (当前检测 IP: ${CYAN}${pub_ip}${NC})】${NC}"
+    echo -e "  🎯 学生端备用直连 (HTTP 18081)    : ${GREEN}http://${pub_ip}:18081${NC}"
+    echo -e "  ⚡ 学生端备用直连 (HTTPS 18443)   : ${GREEN}https://${pub_ip}:18443${NC}"
+    echo -e "  🏢 业务端备用直连 (HTTP 18082)    : ${GREEN}http://${pub_ip}:18082${NC}"
+    echo -e "  🌐 网关统一接口 (HTTP 8080)       : ${CYAN}http://${pub_ip}:8080${NC}"
     echo -e "  🧭 Nacos 控制台 (nacos/nacos)     : ${CYAN}http://${pub_ip}:8848/nacos${NC}"
     echo -e "  🤖 AI 推荐算法微服务 (DRAG-KP4SR) : ${YELLOW}http://${pub_ip}:15000/api/recommend/predict${NC}"
     echo -e "  🧠 AI 向量检索服务 (FastAPI)      : ${YELLOW}http://${pub_ip}:18000/health${NC}"
