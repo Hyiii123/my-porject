@@ -292,3 +292,15 @@ flowchart TD
   - 从 Nacos 生产配置及 share-gateway-dev.yml 的 ignore.whites 中彻底删除 /ss/** 全局白名单放行规则，阻断未授权端点穿透。
 - **外部客户端 SSRF 攻击防御**：
   - CustomerAiClient.java 与 ThirdPartyAiClient.java 引入全量私有 IP、回环地址及云服务元数据（100.100.200.200、169.254.169.254）深度解析阻断器。
+### [2026-10-23] 永雏塔菲虚拟考官说话动画彻底闭环与动效底层根治
+- **立绘资源口型缺失根本原因排查与修复**：
+  - 深度对比发现原 public 目录下 `taffy_speak_half.png` 与 `taffy_speak_full.png` 像素差异检测为 None（误存为闭口 idle 静态图），导致切换口型时画面纹丝不动；
+  - 提取并校正塔菲 Vtuber 原生张合口型（含暗红色口腔内部、粉色小舌头与自然唇线），重新合成出高对比度的半开口（36x17）与大开口（50x29）立绘；
+  - 烘焙产出原生 11 帧 60FPS GPU 硬件加速动画 WebP（`taffy_speaking.webp`，220KB）与透明 GIF（`taffy_speaking.gif`，2.2MB），配合原生立绘序列构建四级容错防线。
+- **TTS 语音驱动事件竞争与秒掐死缺陷根治**：
+  - 排查发现原 `utterance.onerror` 在 Chrome/Edge 触发非阻断事件（如 `interrupted`、`audio-busy`）时误设 `isInterviewerSpeaking = false`，导致点击发音后 5ms 即被掐死；
+  - 建立 `speechDurationTimer` 独立视觉保活兜底机制：无论音频驱动是否报错或静音，视觉张合口型与台词字幕 100% 播放满时长；
+  - 为 Fish Audio 补充 `startTaffyLipSync()` 与 `stopTaffyLipSync()`，并在 `onBeforeUnmount` 中安全清理 `idleBlinkTimer`，杜绝定时器泄漏。
+- **定向云端发布与验收**：
+  - 本地离线重新打包构建 `portal_dist_lite.tar.gz`（8MB），上传至阿里云 ECS 服务器并解压覆盖；
+  - 执行 `docker exec zhiwen-portal-ui nginx -s reload`，实测 `https://study.zhiwenedu.online/avatar/taffy/taffy_speaking.webp` 返回 HTTP 200，考场内说话口型动效丝滑连贯播放。

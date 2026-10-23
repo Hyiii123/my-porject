@@ -39,6 +39,29 @@
         </div>
       </div>
 
+      <!-- 永雏塔菲主考官终局寄语与声线复盘 -->
+      <div class="taffy-report-banner">
+        <div class="taffy-avatar-wrap">
+          <img
+            :src="(sessionData?.score ?? 0) >= 80 ? '/avatar/taffy/taffy_cheer.png' : '/avatar/taffy/taffy_active.png'"
+            class="taffy-img"
+            alt="永雏塔菲"
+          />
+          <span class="role-badge">🎀 首席AI主考官</span>
+        </div>
+        <div class="taffy-message-wrap">
+          <div class="taffy-header">
+            <span class="name">永雏塔菲 (Taffy) 的终局诊断寄语</span>
+            <button class="voice-btn" :class="{ playing: isPlayingTaffyVoice }" @click="toggleTaffyReportVoice">
+              <span>{{ isPlayingTaffyVoice ? '⏹️ 暂停寄语' : '🔊 听塔菲寄语' }}</span>
+            </button>
+          </div>
+          <div class="taffy-quote">
+            “{{ taffyQuoteText }}”
+          </div>
+        </div>
+      </div>
+
       <!-- 中间主体：六维雷达图 + 委员会评语 -->
       <div class="report-grid">
         <!-- 左侧：六维能力雷达图 -->
@@ -233,6 +256,55 @@ const loading = ref(true)
 const sessionData = ref({})
 const reportData = ref(null)
 const activeTurns = ref([1])
+const isPlayingTaffyVoice = ref(false)
+
+const taffyQuoteText = computed(() => {
+  const score = sessionData.value?.score ?? 0
+  if (score >= 85) {
+    return `哼，虽然你刚才表现得还马马虎虎，但既然能抗住本考官的连环深度追问、拿到 ${score} 分的高分，就勉强算你出师啦！以后进了大厂可别给塔菲丢脸喵~！`
+  }
+  if (score >= 60) {
+    return `及格啦！拿到 ${score} 分还算过得去，但架构深度和并发边界还有不少盲点哦！塔菲已经把失分剖析整理在下方了，赶紧去闭关补强喵！`
+  }
+  return `笨蛋！才拿了 ${score} 分，底层原理还是不够扎实呀！不过别灰心，复盘是变强的开始，认真看完下面的错题分析，下次一定要通关喵！`
+})
+
+const toggleTaffyReportVoice = () => {
+  if (!('speechSynthesis' in window)) {
+    ElMessage.info(taffyQuoteText.value)
+    return
+  }
+
+  if (isPlayingTaffyVoice.value) {
+    window.speechSynthesis.cancel()
+    isPlayingTaffyVoice.value = false
+    return
+  }
+
+  window.speechSynthesis.cancel()
+  const utterance = new SpeechSynthesisUtterance(taffyQuoteText.value)
+  utterance.lang = 'zh-CN'
+  utterance.rate = 1.08
+  utterance.pitch = 1.3
+
+  const voices = window.speechSynthesis.getVoices()
+  const sweetVoice = voices.find(v => v.lang.includes('zh') && (v.name.includes('Xiaoxiao') || v.name.includes('Yunxi') || v.name.includes('Natural')))
+  if (sweetVoice) utterance.voice = sweetVoice
+
+  utterance.onstart = () => {
+    isPlayingTaffyVoice.value = true
+  }
+
+  utterance.onend = () => {
+    isPlayingTaffyVoice.value = false
+  }
+
+  utterance.onerror = () => {
+    isPlayingTaffyVoice.value = false
+  }
+
+  window.speechSynthesis.speak(utterance)
+}
 
 const getStageTagType = (stage) => {
   if (stage === 1) return 'info'
@@ -820,4 +892,95 @@ onMounted(() => {
   line-height: 1.65;
   color: #065f46;
 }
+
+/* 永雏塔菲主考官终局寄语卡片 */
+.taffy-report-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(135deg, rgba(26, 22, 37, 0.95), rgba(30, 27, 46, 0.9));
+  border: 1px solid rgba(244, 114, 182, 0.4);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25), 0 0 16px rgba(244, 114, 182, 0.15);
+  border-radius: 16px;
+  padding: 18px 24px;
+  margin-bottom: 24px;
+}
+
+.taffy-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.taffy-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid #f472b6;
+  object-fit: cover;
+  background: #1a1625;
+  box-shadow: 0 4px 12px rgba(244, 114, 182, 0.35);
+}
+
+.taffy-avatar-wrap .role-badge {
+  font-size: 10px;
+  background: rgba(244, 114, 182, 0.25);
+  color: #f472b6;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.taffy-message-wrap {
+  flex: 1;
+}
+
+.taffy-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.taffy-header .name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fce7f3;
+}
+
+.voice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(244, 114, 182, 0.18);
+  border: 1px solid rgba(244, 114, 182, 0.5);
+  color: #f472b6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.voice-btn:hover {
+  background: rgba(244, 114, 182, 0.3);
+  transform: translateY(-1px);
+}
+
+.voice-btn.playing {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.6);
+  color: #34d399;
+}
+
+.taffy-quote {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e2e8f0;
+  font-style: italic;
+}
+
 </style>

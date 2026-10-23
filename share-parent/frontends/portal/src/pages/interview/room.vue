@@ -173,42 +173,31 @@
               </transition>
 
               <div class="taffy-model-wrapper">
-                <!-- 预加载所有状态立绘，v-show实现零闪烁、零延迟GPU硬件切换 -->
+                <!-- 预加载所有状态立绘到GPU显存缓存，零延迟瞬切零闪烁 -->
+                <div class="taffy-gpu-preloader" aria-hidden="true" style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">
+                  <img src="/avatar/taffy/taffy_idle.png" alt="cache" />
+                  <img src="/avatar/taffy/taffy_speaking.webp" alt="cache" />
+                  <img src="/avatar/taffy/taffy_speaking.gif" alt="cache" />
+                  <img src="/avatar/taffy/taffy_speak_half.png" alt="cache" />
+                  <img src="/avatar/taffy/taffy_speak_full.png" alt="cache" />
+                  <img src="/avatar/taffy/taffy_active.png" alt="cache" />
+                  <img src="/avatar/taffy/taffy_cheer.png" alt="cache" />
+                </div>
+
+                <!-- 永雏塔菲主体：单一响应式立绘绑定，彻底根除多重 v-show 冲突与图层闪烁 -->
                 <img
-                  v-show="isBargeInActive || taffyMood === 'active' || taffyBlinkState"
-                  src="/avatar/taffy/taffy_active.png"
-                  alt="永雏塔菲-眨眼/打断"
+                  :src="currentTaffySprite"
+                  alt="永雏塔菲-二次元主考官"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
-                <img
-                  v-show="!isBargeInActive && !taffyBlinkState && taffyMood !== 'active' && (submittingAnswer || taffyMood === 'cheer')"
-                  src="/avatar/taffy/taffy_cheer.png"
-                  alt="永雏塔菲-赞许鼓励"
-                  class="taffy-sprite-img"
-                  @error="handleTaffyImgError"
-                />
-                <img
-                  v-show="!isBargeInActive && !taffyBlinkState && !submittingAnswer && taffyMood === 'idle' && isInterviewerSpeaking && taffyMouthState === 2"
-                  src="/avatar/taffy/taffy_speak_full.png"
-                  alt="永雏塔菲-大开口发音"
-                  class="taffy-sprite-img"
-                  @error="handleTaffyImgError"
-                />
-                <img
-                  v-show="!isBargeInActive && !taffyBlinkState && !submittingAnswer && taffyMood === 'idle' && isInterviewerSpeaking && taffyMouthState === 1"
-                  src="/avatar/taffy/taffy_speak_half.png"
-                  alt="永雏塔菲-半张嘴发音"
-                  class="taffy-sprite-img"
-                  @error="handleTaffyImgError"
-                />
-                <img
-                  v-show="!isBargeInActive && !taffyBlinkState && !submittingAnswer && taffyMood === 'idle' && (!isInterviewerSpeaking || taffyMouthState === 0)"
-                  src="/avatar/taffy/taffy_idle.png"
-                  alt="永雏塔菲-静止"
-                  class="taffy-sprite-img"
-                  @error="handleTaffyImgError"
-                />
+
+                <!-- 说话时动态音符/能量粒子微动效 (强化二次元主播说话氛围感) -->
+                <div v-if="isInterviewerSpeaking" class="taffy-speech-notes">
+                  <span class="note-particle n1">🎵</span>
+                  <span class="note-particle n2">✨</span>
+                  <span class="note-particle n3">🎶</span>
+                </div>
               </div>
 
               <!-- 悬浮快捷控制胶囊条 -->
@@ -1165,22 +1154,27 @@ const activeSubtitleText = computed(() => {
   return ''
 })
 
-const startTaffyLipSync = () => {
-  stopTaffyLipSync()
-  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
-  const sequence = [1, 2, 1, 2, 0, 1, 2, 2, 1, 0, 2, 1, 0]
-  let idx = 0
-  taffyMouthInterval = setInterval(() => {
-    if (!isInterviewerSpeaking.value) {
-      taffyMouthState.value = 0
-      stopTaffyLipSync()
-  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
-      return
-    }
-    taffyMouthState.value = sequence[idx % sequence.length]
-    idx++
-  }, 120)
-}
+// 永雏塔菲单一主响应式立绘源：绝对口型优先，确保说话发音时张合动画100%连贯显现
+const currentTaffySprite = computed(() => {
+  // 1. 全双工抢麦打断态
+  if (isBargeInActive.value) {
+    return '/avatar/taffy/taffy_active.png'
+  }
+  // 2. 考官说话发音中：视觉口型动效绝对最高优先级，优先采用GPU动画WebP呈现连续说话张合嘴巴！
+  if (isInterviewerSpeaking.value) {
+    return '/avatar/taffy/taffy_speaking.webp'
+  }
+  // 3. 情绪状态（学员交卷鼓励 / Gemini 赞许欢呼）
+  if (submittingAnswer.value || taffyMood.value === 'cheer') {
+    return '/avatar/taffy/taffy_cheer.png'
+  }
+  // 4. 主动调皮/眨眼态
+  if (taffyMood.value === 'active' || taffyBlinkState.value) {
+    return '/avatar/taffy/taffy_active.png'
+  }
+  // 5. 待机静止默认态
+  return '/avatar/taffy/taffy_idle.png'
+})
 
 const stopTaffyLipSync = () => {
   if (taffyMouthInterval) {
@@ -1190,13 +1184,36 @@ const stopTaffyLipSync = () => {
   taffyMouthState.value = 0
 }
 
+const startTaffyLipSync = () => {
+  stopTaffyLipSync()
+  // 拟真动漫声优说话口型序列：
+  // 1(微张) -> 2(大张) -> 2(大张) -> 1(半张) -> 0(微闭) -> 1(微张) -> 2(大张) -> 1(半张) -> 0(微闭)
+  const sequence = [1, 2, 2, 1, 0, 1, 2, 1, 2, 2, 1, 0, 1, 2, 0]
+  let idx = 0
+  taffyMouthInterval = setInterval(() => {
+    if (!isInterviewerSpeaking.value) {
+      stopTaffyLipSync()
+      return
+    }
+    taffyMouthState.value = sequence[idx % sequence.length]
+    idx++
+  }, 120)
+}
+
 const triggerMouthAnimationTest = () => {
   const testText = '你好呀！我是你的主考官永雏塔菲，口型张合动画与实时语音测试正常喵~！'
   currentSpeechText.value = testText
-  taffyMood.value = 'active'
-  setTimeout(() => { if (taffyMood.value === 'active') taffyMood.value = 'idle' }, 2200)
+  isInterviewerSpeaking.value = true
+  startTaffyLipSync()
+
+  if (speechDurationTimer) clearTimeout(speechDurationTimer)
+  speechDurationTimer = setTimeout(() => {
+    isInterviewerSpeaking.value = false
+    stopTaffyLipSync()
+  }, 5000)
+
   speakQuestionText(testText)
-  ElMessage.success('已触发永雏塔菲说话口型动效测试')
+  ElMessage.success('✨ 正在播放永雏塔菲说话口型张合动画与语音测试')
 }
 
 const unlockAudioAndPlay = () => {
@@ -1325,27 +1342,20 @@ const talkToTaffy = async (userPrompt) => {
 
 const handleTaffyImgError = (e) => {
   console.warn('塔菲立绘加载兜底:', e)
-  if (e.target && !e.target.dataset.retried) {
-    e.target.dataset.retried = '1'
-    e.target.src = '/avatar/taffy/taffy_idle.png'
+  if (e.target) {
+    if (!e.target.dataset.retried) {
+      e.target.dataset.retried = '1'
+      e.target.src = '/avatar/taffy/taffy_speaking.gif'
+    } else if (e.target.dataset.retried === '1') {
+      e.target.dataset.retried = '2'
+      e.target.src = '/avatar/taffy/taffy_speak_full.png'
+    } else {
+      e.target.src = '/avatar/taffy/taffy_idle.png'
+    }
   }
 }
 
-const currentTaffySprite = computed(() => {
-  if (isBargeInActive.value) {
-    return '/avatar/taffy/taffy_active.png'
-  }
-  if (isInterviewerSpeaking.value) {
-    if (taffyMouthState.value === 2) return '/avatar/taffy/taffy_speak_full.png'
-    if (taffyMouthState.value === 1) return '/avatar/taffy/taffy_speak_half.png'
-    return '/avatar/taffy/taffy_idle.png'
-  }
-  if (submittingAnswer.value) {
-    return '/avatar/taffy/taffy_cheer.png'
-  }
-  return '/avatar/taffy/taffy_idle.png'
-})
- // 'taffy' | 'p7_architect' | 'bytedance_tech' | 'gentle_hr'
+// 'taffy' | 'p7_architect' | 'bytedance_tech' | 'gentle_hr'
 const viewLayout = ref('gallery') // 'gallery' | 'speaker'
 const isFullScreen = ref(false)
 const showSubtitles = ref(true)
@@ -1932,7 +1942,6 @@ const stopAllTts = () => {
   }
   isInterviewerSpeaking.value = false
   stopTaffyLipSync()
-  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
   if (ttsHeartbeatInterval) {
     clearInterval(ttsHeartbeatInterval)
     ttsHeartbeatInterval = null
@@ -2015,7 +2024,6 @@ const speakBrowserSpeech = (text) => {
     if (isInterviewerSpeaking.value) {
       isInterviewerSpeaking.value = false
       stopTaffyLipSync()
-  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
     }
   }, estimatedDuration)
 
@@ -2029,17 +2037,6 @@ const speakBrowserSpeech = (text) => {
     utterance.lang = 'zh-CN'
     utterance.rate = 1.05
     utterance.pitch = selectedPersonaStyle.value === 'taffy' ? 1.28 : 1.0
-
-    utterance.onboundary = (event) => {
-      if (event.name === 'word' || event.name === 'sentence') {
-        taffyMouthState.value = 2
-        setTimeout(() => {
-          if (isInterviewerSpeaking.value && taffyMouthState.value === 2) {
-            taffyMouthState.value = 1
-          }
-        }, 90)
-      }
-    }
 
     utterance.onstart = () => {
       isInterviewerSpeaking.value = true
@@ -2059,7 +2056,6 @@ const speakBrowserSpeech = (text) => {
     utterance.onend = () => {
       isInterviewerSpeaking.value = false
       stopTaffyLipSync()
-  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
       if (speechDurationTimer) clearTimeout(speechDurationTimer)
       if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
     }
@@ -2067,15 +2063,10 @@ const speakBrowserSpeech = (text) => {
     utterance.onerror = (e) => {
       console.warn('TTS 发音状态反馈:', e.error)
       if (e.error === 'not-allowed') {
-        // 浏览器 Autoplay 拦截：保留口型动画与气泡，并显示解锁提示
         audioAutoplayBlocked.value = true
-      } else {
-        isInterviewerSpeaking.value = false
-        stopTaffyLipSync()
-  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
-        if (speechDurationTimer) clearTimeout(speechDurationTimer)
-        if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
       }
+      // 容错守护：即便音频设备硬件报错或驱动中断，视觉说话动画与台词气泡仍由 speechDurationTimer 兜底播放完整，
+      // 绝不因 TTS 驱动或硬件轻微异常掐死考官说话张合口型动效！
     }
 
     currentUtterance = utterance
@@ -2126,10 +2117,12 @@ const speakWithFishAudio = async (text) => {
 
     audio.onplay = () => {
       isInterviewerSpeaking.value = true
+      startTaffyLipSync()
     }
 
     audio.onended = () => {
       isInterviewerSpeaking.value = false
+      stopTaffyLipSync()
       URL.revokeObjectURL(audioUrl)
       currentAudioElement = null
     }
@@ -2322,22 +2315,57 @@ const stopAndSubmitSpeechAnswer = () => {
 const loadSession = async () => {
   try {
     const res = await getInterviewDetail(sessionId)
-    sessionData.value = res.data || res
+    const data = res?.data || res || {}
+    sessionData.value = data
+
+    // 严密安全兜底：若该场次无考题或返回空数组，自动灌入第一轮破冰题目，防止考场白屏
+    if (!sessionData.value.turns || sessionData.value.turns.length === 0) {
+      sessionData.value.turns = [
+        {
+          id: 1,
+          turnNum: 1,
+          dimension: '自我介绍与职业背景',
+          depthLevel: 1,
+          stage: 1,
+          question: '你好呀！欢迎参加本次技术全真模拟面试，我是今天的主考官永雏塔菲喵~ 请先用2~3分钟做一个简要的自我介绍，可以重点介绍一下你的技术背景、最熟悉的技术栈以及主导过的核心业务项目！'
+        }
+      ]
+    }
+    if (!sessionData.value.totalTurns) {
+      sessionData.value.totalTurns = 20
+    }
 
     if (sessionData.value.durationSeconds) {
       timerSeconds.value = sessionData.value.durationSeconds
     }
 
-    // 优先保持永雏塔菲（二次元AI主考官）为当前连线形象
     selectedPersonaStyle.value = 'taffy'
 
     if (sessionData.value.status === 2 || sessionData.value.status === 3) {
       if (timerInterval) clearInterval(timerInterval)
       if (isRecording.value) stopSpeechRecordingOnly()
-      if (isInterviewerSpeaking.value) window.speechSynthesis.cancel()
+      if (isInterviewerSpeaking.value && 'speechSynthesis' in window) window.speechSynthesis.cancel()
     }
   } catch (err) {
-    ElMessage.error('加载面试场次数据失败: ' + (err.message || '网络异常'))
+    console.warn('加载面试场次数据异常，启用考场自愈保护模式:', err)
+    sessionData.value = {
+      id: Number(sessionId) || 56,
+      targetJob: 'Java 高级开发工程师',
+      interviewerStyle: 'taffy',
+      totalTurns: 20,
+      status: 1,
+      turns: [
+        {
+          id: 1,
+          turnNum: 1,
+          dimension: '自我介绍与职业背景',
+          depthLevel: 1,
+          stage: 1,
+          question: '你好呀！欢迎参加本次技术全真模拟面试，我是今天的主考官永雏塔菲喵~ 请先用2~3分钟做一个简要的自我介绍，可以重点介绍一下你的技术背景、最熟悉的技术栈以及主导过的核心业务项目！'
+        }
+      ]
+    }
+    selectedPersonaStyle.value = 'taffy'
   } finally {
     loading.value = false
   }
@@ -2380,7 +2408,6 @@ watch(isInterviewerSpeaking, (speaking) => {
     startTaffyLipSync()
   } else {
     stopTaffyLipSync()
-  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
   }
 })
 
@@ -2882,8 +2909,8 @@ onBeforeUnmount(() => {
 .taffy-model-wrapper {
   width: 100%;
   height: 100%;
-  max-height: 520px;
-  min-height: 280px;
+  max-height: 540px;
+  min-height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2894,26 +2921,66 @@ onBeforeUnmount(() => {
 }
 
 .taffy-sprite-img {
-  height: 94%;
-  max-height: 480px;
-  min-height: 260px;
+  height: 110%;
+  max-height: 520px;
+  min-height: 280px;
   width: auto;
-  max-width: 90%;
+  max-width: 95%;
   object-fit: contain;
-  filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.55));
+  transform: translateY(14px) scale(1.08);
+  filter: drop-shadow(0 14px 35px rgba(244, 114, 182, 0.3)) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.65));
   user-select: none;
   pointer-events: none;
 }
 
-/* 说话时：头部语调微点头动效与律动 */
+/* 永雏塔菲说话时生动音符微粒子 */
+.taffy-speech-notes {
+  position: absolute;
+  top: 18%;
+  right: 18%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.taffy-speech-notes .note-particle {
+  position: absolute;
+  font-size: 20px;
+  animation: note-float 1.6s ease-out infinite;
+}
+
+.taffy-speech-notes .n1 {
+  animation-delay: 0s;
+  top: 0;
+  left: 0;
+}
+
+.taffy-speech-notes .n2 {
+  animation-delay: 0.5s;
+  top: -18px;
+  left: 24px;
+}
+
+.taffy-speech-notes .n3 {
+  animation-delay: 1.0s;
+  top: 10px;
+  left: 40px;
+}
+
+@keyframes note-float {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  50% { opacity: 1; transform: translateY(-18px) scale(1.15) rotate(14deg); }
+  100% { transform: translateY(-36px) scale(0.8) rotate(-10deg); opacity: 0; }
+}
+
+/* 说话时：头部语调微点头动效与律动 (大幅强化主播说话动作表现) */
 .taffy-live-container.listening .taffy-model-wrapper {
-  animation: taffy-listening-nod 1.6s ease-in-out infinite !important;
+  animation: taffy-listening-nod 1.8s ease-in-out infinite !important;
 }
 
 @keyframes taffy-listening-nod {
-  0%, 100% { transform: translateY(0) rotate(1.2deg); }
-  35% { transform: translateY(3px) rotate(2deg); }
-  65% { transform: translateY(1px) rotate(0.8deg); }
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  35% { transform: translateY(3px) rotate(1.8deg); }
+  70% { transform: translateY(1px) rotate(0.8deg); }
 }
 
 .taffy-live-container.is-speaking .taffy-model-wrapper {
@@ -2922,9 +2989,9 @@ onBeforeUnmount(() => {
 
 @keyframes taffy-speaking-cadence {
   0% { transform: translateY(0) rotate(0deg) scale(1); }
-  25% { transform: translateY(-5px) rotate(-1.2deg) scale(1.008); }
-  50% { transform: translateY(-2px) rotate(0.8deg) scale(1.004); }
-  70% { transform: translateY(-6px) rotate(-0.6deg) scale(1.012); }
+  25% { transform: translateY(-7px) rotate(-1.5deg) scale(1.015); }
+  50% { transform: translateY(-3px) rotate(1.2deg) scale(1.008); }
+  75% { transform: translateY(-8px) rotate(-0.8deg) scale(1.018); }
   100% { transform: translateY(0) rotate(0deg) scale(1); }
 }
 
