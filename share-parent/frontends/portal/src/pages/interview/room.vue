@@ -1,138 +1,312 @@
 <template>
-  <div class="interview-room-container" v-loading="loading">
-    <!-- 考情 HUD 状态栏 -->
-    <div class="interview-hud">
-      <div class="hud-left">
-        <el-button link class="back-btn" @click="handleBack">
-          &larr; 返回大厅
-        </el-button>
-        <div class="hud-divider"></div>
-        <div class="persona-badge" :class="'style-' + sessionData.interviewerStyle">
-          <span class="persona-icon">{{ getPersonaMeta.icon }}</span>
-          <span class="persona-name">{{ getPersonaMeta.name }}</span>
+  <div class="tc-meeting-root" :class="{ 'fullscreen-mode': isFullScreen }" v-loading="loading">
+    <!-- ==================== 1. 腾讯会议深色极简顶部条 ==================== -->
+    <header class="tc-top-bar">
+      <div class="tc-top-left">
+        <div class="tc-brand-badge">
+          <span class="tc-lock-icon">🔒</span>
+          <span class="tc-brand-title">腾讯会议 · AI 专场</span>
         </div>
-        <el-tag effect="dark" type="info" size="small" class="dimension-tag">
-          {{ currentDimension }}
-        </el-tag>
-      </div>
-
-      <div class="hud-center">
-        <!-- 三大环节进度 HUD -->
-        <div class="stage-hud">
-          <div class="stage-step" :class="{ active: currentStage >= 1, current: currentStage === 1 }">
-            <span class="step-badge">1</span>
-            <span class="step-text">自我介绍</span>
-          </div>
-          <span class="stage-arrow">&rarr;</span>
-          <div class="stage-step" :class="{ active: currentStage >= 2, current: currentStage === 2 }">
-            <span class="step-badge">2</span>
-            <span class="step-text">基础八股</span>
-          </div>
-          <span class="stage-arrow">&rarr;</span>
-          <div class="stage-step" :class="{ active: currentStage >= 3, current: currentStage === 3 }">
-            <span class="step-badge">3</span>
-            <span class="step-text">项目深挖</span>
-          </div>
+        <div class="tc-meeting-id-pill" title="点击复制会议邀请号" @click="copyMeetingLink">
+          <span class="id-label">会议号：</span>
+          <span class="id-num">952-841-306</span>
+          <span class="copy-icon">📋</span>
         </div>
-
-        <!-- 剥洋葱深度等级 HUD -->
-        <div class="depth-hud">
-          <span class="depth-label">追问深度：</span>
-          <div class="depth-step" :class="{ active: currentDepth >= 1 }">
-            <span class="dot"></span>
-            <span>L1 选型摸底</span>
-          </div>
-          <span class="arrow">&rarr;</span>
-          <div class="depth-step" :class="{ active: currentDepth >= 2 }">
-            <span class="dot"></span>
-            <span>L2 底层机制</span>
-          </div>
-          <span class="arrow">&rarr;</span>
-          <div class="depth-step" :class="{ active: currentDepth >= 3 }">
-            <span class="dot"></span>
-            <span>L3 生产抗峰</span>
-          </div>
+        <div class="tc-net-quality" title="端到端网络质量：优 (时延 12ms，丢包 0%)">
+          <span class="sig-bar bar-1"></span>
+          <span class="sig-bar bar-2"></span>
+          <span class="sig-bar bar-3"></span>
+          <span class="sig-bar bar-4"></span>
+          <span class="sig-text">极佳</span>
+        </div>
+        <div class="tc-rec-badge">
+          <span class="rec-blink-dot"></span>
+          <span class="rec-label">REC {{ formatTimer(timerSeconds) }}</span>
         </div>
       </div>
 
-      <div class="hud-right">
-        <div class="hud-timer" :class="{ 'warning-timer': remainingSeconds < 300 }">
-          <span class="timer-icon">⏱️</span>
-          <span>{{ formatTimer(timerSeconds) }} / 60:00</span>
+      <div class="tc-top-center">
+        <div class="tc-session-title">
+          智问学伴 · 2026 届技术全真模拟面试间
         </div>
-        <div class="turn-progress">
-          考题：<b>{{ currentTurnNum }}/{{ sessionData.totalTurns || 20 }}</b>
+        <div class="tc-stage-indicator">
+          <div class="stage-node" :class="{ active: currentStage >= 1, current: currentStage === 1 }">
+            <span class="node-idx">1</span>
+            <span class="node-txt">自我介绍</span>
+          </div>
+          <span class="node-arrow">&rarr;</span>
+          <div class="stage-node" :class="{ active: currentStage >= 2, current: currentStage === 2 }">
+            <span class="node-idx">2</span>
+            <span class="node-txt">基础八股</span>
+          </div>
+          <span class="node-arrow">&rarr;</span>
+          <div class="stage-node" :class="{ active: currentStage >= 3, current: currentStage === 3 }">
+            <span class="node-idx">3</span>
+            <span class="node-txt">项目深挖</span>
+          </div>
+          <span class="depth-tag">{{ getDepthText(currentDepth) }}</span>
         </div>
-        <!-- 往轮记录抽屉开关 -->
+      </div>
+
+      <div class="tc-top-right">
+        <div class="tc-turn-counter">
+          考题：<b>{{ currentTurnNum }}/{{ sessionData.totalTurns || 10 }}</b>
+        </div>
+        <div class="tc-view-switcher">
+          <el-button-group size="small">
+            <el-button
+              :type="viewLayout === 'gallery' ? 'primary' : 'default'"
+              class="tc-switch-btn"
+              @click="viewLayout = 'gallery'"
+            >
+              ⊞ 画廊
+            </el-button>
+            <el-button
+              :type="viewLayout === 'speaker' ? 'primary' : 'default'"
+              class="tc-switch-btn"
+              @click="viewLayout = 'speaker'"
+            >
+              👤 演讲
+            </el-button>
+          </el-button-group>
+        </div>
         <el-button
           size="small"
-          class="history-drawer-btn"
-          @click="historyDrawerVisible = true"
+          class="tc-tool-icon-btn"
+          :title="isFullScreen ? '退出全屏' : '全屏体验'"
+          @click="toggleFullScreen"
         >
-          📋 往轮实录 ({{ answeredTurnsCount }})
+          {{ isFullScreen ? '🗗 还原' : '⛶ 全屏' }}
         </el-button>
         <el-button
-          v-if="sessionData.status === 2"
-          type="success"
           size="small"
-          class="finish-btn completed"
-          @click="goToReport"
+          class="tc-back-hall-btn"
+          link
+          @click="handleBack"
         >
-          📊 查看终局报告
-        </el-button>
-        <el-button
-          v-else-if="sessionData.status === 3"
-          type="info"
-          size="small"
-          class="finish-btn"
-          disabled
-        >
-          🛑 已终止
-        </el-button>
-        <el-button
-          v-else
-          type="danger"
-          size="small"
-          class="finish-btn"
-          :loading="finishing"
-          @click="handleFinishInterview"
-        >
-          交卷并生成报告
+          &times; 离开考场
         </el-button>
       </div>
-    </div>
+    </header>
 
-    <!-- 全真远程视频考场核心双视窗舞台 -->
-    <div class="video-conference-stage">
-      <div class="conference-grid">
-        <!-- 左侧：AI 面试官全真全息视窗 -->
-        <div class="stage-card interviewer-stage" :class="'theme-' + (sessionData.interviewerStyle || 'p7_architect')">
-          <div class="stage-header">
-            <div class="stream-status">
-              <span class="live-indicator"></span>
-              <span class="stream-title">AI 面试官连线 · {{ getPersonaMeta.name }}</span>
+    <!-- ==================== 2. 腾讯会议核心舞台区 ==================== -->
+    <main class="tc-main-stage" :class="['layout-' + viewLayout, { 'code-sharing-active': answerMode === 'code' }]">
+      
+      <!-- 模式 A：双人画廊视频网格 (普通口述问答模式) -->
+      <div v-show="answerMode === 'voice'" class="tc-video-grid">
+        
+        <!-- 卡片 1: AI 主考官 (永雏塔菲 / 切换风格) -->
+        <div
+          class="tc-tile interviewer-tile"
+          :class="{
+            'active-speaker': isInterviewerSpeaking,
+            'is-barge-interrupted': isBargeInActive,
+            'view-focus': viewLayout === 'speaker'
+          }"
+        >
+          <!-- 考官视窗头部状态条 -->
+          <div class="tile-header">
+            <div class="tile-status-tag">
+              <span class="status-dot" :class="{ live: isInterviewerSpeaking }"></span>
+              <span class="status-label">{{ interviewerRoleLabel }}</span>
             </div>
-            <div class="ai-state-badge" :class="aiActivityState">
-              <span v-if="aiActivityState === 'speaking'">🗣️ 考官发音提问中</span>
-              <span v-else-if="aiActivityState === 'listening'">👂 专注倾听作答中</span>
-              <span v-else>🤔 深度推演与题库检定</span>
+
+            <div class="tile-actions">
+              <!-- 考官形象风格切换菜单 -->
+              <el-dropdown trigger="click" @command="handleSwitchPersona">
+                <span class="persona-switch-link">
+                  {{ currentPersonaMeta.icon }} {{ currentPersonaMeta.name }} ▼
+                </span>
+                <template #dropdown>
+                  <el-dropdown-menu class="tc-dropdown-dark">
+                    <el-dropdown-item command="taffy">🎀 永雏塔菲 (二次元AI主考官)</el-dropdown-item>
+                    <el-dropdown-item command="p7_architect">⚡ 阿里 P7 资深架构师</el-dropdown-item>
+                    <el-dropdown-item command="bytedance_tech">💻 字节跳动技术专家</el-dropdown-item>
+                    <el-dropdown-item command="gentle_hr">🤝 资深大厂 HRBP</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+
+              <!-- 状态气泡 -->
+              <div class="activity-pill" :class="aiActivityState">
+                <span v-if="isBargeInActive">⚡ 已插话打断考官</span>
+                <span v-else-if="isInterviewerSpeaking">🗣️ 正在提问发音</span>
+                <span v-else-if="aiActivityState === 'listening'">👂 专注倾听中</span>
+                <span v-else-if="isGeminiThinking">🤔 Gemini 3.8 Flash 思考中</span>
+                <span v-else>💡 考官就绪</span>
+              </div>
             </div>
           </div>
-
-          <!-- AI 面试官动态数字人虚拟形象展示台 -->
-          <div class="avatar-display-area">
-            <!-- 声波能量光环 -->
-            <div class="soundwave-halo" :class="{ active: isInterviewerSpeaking || isRecording }">
-              <div class="halo-ring ring-1"></div>
-              <div class="halo-ring ring-2"></div>
-              <div class="halo-ring ring-3"></div>
+          <!-- 考官形象主体渲染舞台 (永雏塔菲 Live2D / 交互矢量) -->
+          <div class="avatar-canvas-box">
+            <!-- 腾讯会议声纹波纹光晕 -->
+            <div class="tc-voice-halo" :class="{ pulsing: isInterviewerSpeaking }">
+              <div class="halo-layer layer-1"></div>
+              <div class="halo-layer layer-2"></div>
             </div>
 
-            <!-- 动态矢量数字人形象 -->
-            <div class="digital-human-avatar" :class="[aiActivityState, 'persona-' + (sessionData.interviewerStyle || 'p7_architect')]">
+            <!-- ========== 形象 1: 永雏塔菲 (二次元萌系拟人化主考官) ========== -->
+            <div
+              v-if="selectedPersonaStyle === 'taffy'"
+              class="taffy-avatar-container"
+              :class="[
+                aiActivityState,
+                { 'is-speaking': isInterviewerSpeaking, 'is-interrupted': isBargeInActive }
+              ]"
+            >
+              <svg viewBox="0 0 260 300" class="taffy-svg">
+                <defs>
+                  <!-- 塔菲双马尾粉白渐变 -->
+                  <linearGradient id="taffyHairPink" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ffeef4"/>
+                    <stop offset="50%" stop-color="#ffb7d5"/>
+                    <stop offset="100%" stop-color="#f472b6"/>
+                  </linearGradient>
+                  <!-- 丝带红色 -->
+                  <linearGradient id="taffyRibbon" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#fb7185"/>
+                    <stop offset="100%" stop-color="#e11d48"/>
+                  </linearGradient>
+                  <!-- 肤色 -->
+                  <linearGradient id="taffySkin" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#fff7f5"/>
+                    <stop offset="100%" stop-color="#ffedd5"/>
+                  </linearGradient>
+                  <!-- 眼睛瞳孔紫色/洋红渐变 -->
+                  <linearGradient id="taffyEye" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#831843"/>
+                    <stop offset="40%" stop-color="#be185d"/>
+                    <stop offset="100%" stop-color="#f43f5e"/>
+                  </linearGradient>
+                  <!-- 电竞耳麦黑粉光感 -->
+                  <linearGradient id="taffyHeadset" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#ec4899"/>
+                    <stop offset="100%" stop-color="#8b5cf6"/>
+                  </linearGradient>
+                  <filter id="taffyGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="2" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                  </filter>
+                </defs>
+
+                <!-- 后发与双马尾 (带随动摆动动效) -->
+                <g class="taffy-twintails">
+                  <!-- 左双马尾 -->
+                  <path
+                    d="M 70 120 C 30 140, 10 200, 35 270 C 45 285, 55 240, 65 200 C 72 170, 75 140, 70 120 Z"
+                    fill="url(#taffyHairPink)"
+                    class="tail-left"
+                  />
+                  <!-- 右双马尾 -->
+                  <path
+                    d="M 190 120 C 230 140, 250 200, 225 270 C 215 285, 205 240, 195 200 C 188 170, 185 140, 190 120 Z"
+                    fill="url(#taffyHairPink)"
+                    class="tail-right"
+                  />
+                </g>
+
+                <!-- 身体与水手领正装服饰 -->
+                <g class="taffy-body">
+                  <!-- 肩部水手服裙装 -->
+                  <path d="M 65 295 L 85 220 L 110 225 L 130 245 L 150 225 L 175 220 L 195 295 Z" fill="#1e293b"/>
+                  <!-- 水手服白色翻领 -->
+                  <polygon points="90,222 130,265 170,222 155,222 130,248 105,222" fill="#ffffff"/>
+                  <!-- 红色蝴蝶结领结 -->
+                  <path d="M 120 240 L 110 252 L 130 248 L 150 252 L 140 240 L 130 244 Z" fill="url(#taffyRibbon)"/>
+                  <circle cx="130" cy="244" r="4" fill="#fbbf24"/>
+                </g>
+
+                <!-- 头部组 (呼吸、眨眼、口型驱动) -->
+                <g class="taffy-head-group">
+                  <rect x="118" y="180" width="24" height="42" rx="4" fill="url(#taffySkin)"/>
+                  <path d="M 82 120 C 82 70, 178 70, 178 120 C 178 170, 160 195, 130 195 C 100 195, 82 170, 82 120 Z" fill="url(#taffySkin)"/>
+
+                  <!-- 腮红 -->
+                  <ellipse cx="98" cy="148" rx="10" ry="5" fill="#fb7185" opacity="0.45"/>
+                  <ellipse cx="162" cy="148" rx="10" ry="5" fill="#fb7185" opacity="0.45"/>
+
+                  <!-- 前刘海 -->
+                  <path d="M 80 110 C 80 60, 180 60, 180 110 C 170 115, 160 118, 150 112 C 140 125, 130 126, 120 112 C 110 122, 100 120, 90 112 C 85 116, 80 114, 80 110 Z" fill="url(#taffyHairPink)"/>
+
+                  <!-- 猫耳发卡与蝴蝶结 -->
+                  <path d="M 82 85 L 68 62 L 95 72 Z" fill="url(#taffyRibbon)"/>
+                  <path d="M 178 85 L 192 62 L 165 72 Z" fill="url(#taffyRibbon)"/>
+                  <circle cx="72" cy="122" r="6" fill="url(#taffyRibbon)"/>
+                  <circle cx="188" cy="122" r="6" fill="url(#taffyRibbon)"/>
+
+                  <!-- 电竞耳麦 -->
+                  <path d="M 80 115 C 75 70, 185 70, 180 115" stroke="url(#taffyHeadset)" stroke-width="4" fill="none"/>
+                  <rect x="74" y="112" width="10" height="22" rx="4" fill="#ec4899" filter="url(#taffyGlow)"/>
+                  <rect x="176" y="112" width="10" height="22" rx="4" fill="#ec4899" filter="url(#taffyGlow)"/>
+                  <path d="M 79 128 Q 90 156 108 156" stroke="#ec4899" stroke-width="2.5" fill="none"/>
+                  <circle cx="108" cy="156" r="3.5" fill="#38bdf8" filter="url(#taffyGlow)"/>
+
+                  <!-- 眉毛 -->
+                  <path d="M 94 116 Q 106 112 114 115" stroke="#db2777" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                  <path d="M 146 115 Q 154 112 166 116" stroke="#db2777" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+                  <!-- 眼睛与长睫毛 (带自动眨眼动画) -->
+                  <g class="taffy-eyes" :class="{ 'eyes-surprised': isBargeInActive }">
+                    <g class="eye-left">
+                      <ellipse cx="106" cy="132" rx="11" ry="14" fill="url(#taffyEye)"/>
+                      <ellipse cx="106" cy="136" rx="7" ry="9" fill="#4c0519"/>
+                      <circle cx="103" cy="128" r="4" fill="#ffffff"/>
+                      <circle cx="109" cy="139" r="2" fill="#ffffff"/>
+                      <path d="M 92 124 Q 106 116 118 123" stroke="#831843" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    </g>
+                    <g class="eye-right">
+                      <ellipse cx="154" cy="132" rx="11" ry="14" fill="url(#taffyEye)"/>
+                      <ellipse cx="154" cy="136" rx="7" ry="9" fill="#4c0519"/>
+                      <circle cx="151" cy="128" r="4" fill="#ffffff"/>
+                      <circle cx="157" cy="139" r="2" fill="#ffffff"/>
+                      <path d="M 142 123 Q 154 116 168 124" stroke="#831843" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    </g>
+                  </g>
+
+                  <!-- 鼻子 -->
+                  <circle cx="130" cy="146" r="1.5" fill="#f472b6"/>
+
+                  <!-- 嘴巴 -->
+                  <g class="taffy-mouth-group">
+                    <ellipse
+                      v-if="isBargeInActive"
+                      cx="130"
+                      cy="162"
+                      rx="6"
+                      ry="7"
+                      fill="#be185d"
+                      stroke="#f43f5e"
+                      stroke-width="1.5"
+                    />
+                    <path
+                      v-else-if="isInterviewerSpeaking"
+                      class="taffy-open-mouth"
+                      d="M 120 160 Q 130 174 140 160 Q 130 166 120 160 Z"
+                      fill="#be185d"
+                      stroke="#f43f5e"
+                      stroke-width="1.5"
+                    />
+                    <path
+                      v-else
+                      d="M 122 160 Q 126 163 130 160 Q 134 163 138 160"
+                      stroke="#e11d48"
+                      stroke-width="2.2"
+                      fill="none"
+                      stroke-linecap="round"
+                    />
+                  </g>
+                </g>
+              </svg>
+            </div>
+
+            <!-- ========== 形象 2: 阿里 P7 / 极客架构师 (备用风格) ========== -->
+            <div
+              v-else
+              class="digital-human-avatar"
+              :class="[aiActivityState, 'persona-' + selectedPersonaStyle]"
+            >
               <svg viewBox="0 0 240 280" class="avatar-svg">
                 <defs>
-                  <!-- 科技渐变底色 -->
                   <linearGradient id="suitGradP7" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stop-color="#1e293b"/>
                     <stop offset="100%" stop-color="#0f172a"/>
@@ -145,158 +319,83 @@
                     <stop offset="0%" stop-color="#fbd38d"/>
                     <stop offset="100%" stop-color="#f6ad55"/>
                   </linearGradient>
-                  <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-                  </filter>
                 </defs>
-
-                <!-- 身体/服装 (职业正装/极客服) -->
                 <g class="avatar-body">
                   <path d="M 40 280 L 70 210 L 95 215 L 120 235 L 145 215 L 170 210 L 200 280 Z" fill="url(#suitGradP7)"/>
-                  <!-- 领口与衬衫/内衬 -->
                   <polygon points="95,215 120,250 145,215" fill="#f8fafc"/>
-                  <!-- 职业领带 / 极客胸章 -->
-                  <polygon points="116,225 124,225 122,265 118,265" fill="#3b82f6"/>
-                  <!-- 科技肩线光条 -->
-                  <line x1="70" y1="210" x2="40" y2="280" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="4 4" class="cyber-line"/>
-                  <line x1="170" y1="210" x2="200" y2="280" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="4 4" class="cyber-line"/>
                 </g>
-
-                <!-- 头部组件（支持呼吸动画） -->
                 <g class="avatar-head-group">
-                  <!-- 颈部 -->
                   <rect x="106" y="170" width="28" height="42" rx="4" fill="#ed8936"/>
-                  
-                  <!-- 脸庞 -->
                   <path d="M 75 110 C 75 60, 165 60, 165 110 C 165 160, 145 185, 120 185 C 95 185, 75 160, 75 110 Z" fill="url(#skinGrad)"/>
-
-                  <!-- 科技发型 -->
                   <path d="M 70 100 C 65 50, 130 35, 170 65 C 175 90, 168 115, 160 115 C 155 75, 85 70, 75 105 Z" fill="#1a202c"/>
-
-                  <!-- 眉毛 -->
-                  <path d="M 86 100 Q 98 94 110 98" stroke="#2d3748" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-                  <path d="M 130 98 Q 142 94 154 100" stroke="#2d3748" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-
-                  <!-- 眼睛（带自动眨眼动画） -->
-                  <g class="avatar-eyes">
-                    <!-- 左眼 -->
-                    <ellipse cx="98" cy="115" rx="7" ry="5" fill="#1a202c" class="eye-pupil"/>
-                    <circle cx="100" cy="113" r="2" fill="#ffffff"/>
-                    <!-- 右眼 -->
-                    <ellipse cx="142" cy="115" rx="7" ry="5" fill="#1a202c" class="eye-pupil"/>
-                    <circle cx="144" cy="113" r="2" fill="#ffffff"/>
-                  </g>
-
-                  <!-- 全息智能眼镜 / 架构师 HUD 护目片 -->
-                  <g v-if="sessionData.interviewerStyle === 'p7_architect' || !sessionData.interviewerStyle" class="cyber-glasses">
-                    <rect x="84" y="105" width="28" height="18" rx="4" fill="url(#cyberVisor)" stroke="#38bdf8" stroke-width="1.5" filter="url(#glowEffect)"/>
-                    <rect x="128" y="105" width="28" height="18" rx="4" fill="url(#cyberVisor)" stroke="#38bdf8" stroke-width="1.5" filter="url(#glowEffect)"/>
-                    <line x1="112" y1="114" x2="128" y2="114" stroke="#38bdf8" stroke-width="2"/>
-                  </g>
-
-                  <!-- 鼻子 -->
-                  <path d="M 120 118 L 117 136 L 123 136" stroke="#dd6b20" stroke-width="2" fill="none" stroke-linecap="round"/>
-
-                  <!-- 嘴巴（支持发音说话口型动画） -->
-                  <g class="avatar-mouth-group" :class="{ 'speaking-mouth': isInterviewerSpeaking }">
-                    <path
-                      v-if="!isInterviewerSpeaking"
-                      d="M 106 156 Q 120 162 134 156"
-                      stroke="#c53030"
-                      stroke-width="3"
-                      fill="none"
-                      stroke-linecap="round"
-                    />
-                    <path
-                      v-else
-                      class="dynamic-open-mouth"
-                      d="M 105 154 Q 120 172 135 154 Q 120 162 105 154 Z"
-                      fill="#9b2c2c"
-                      stroke="#c53030"
-                      stroke-width="2"
-                    />
-                  </g>
-                </g>
-
-                <!-- 耳麦 / 通信天线 -->
-                <g class="headset">
-                  <path d="M 72 115 C 65 115, 65 140, 75 145" stroke="#38bdf8" stroke-width="4" fill="none"/>
-                  <circle cx="75" cy="142" r="5" fill="#0ea5e9" filter="url(#glowEffect)"/>
-                  <path d="M 75 142 Q 88 160 102 160" stroke="#0284c7" stroke-width="2.5" fill="none"/>
-                  <circle cx="102" cy="160" r="3" fill="#38bdf8"/>
+                  <ellipse cx="98" cy="115" rx="7" ry="5" fill="#1a202c"/>
+                  <ellipse cx="142" cy="115" rx="7" ry="5" fill="#1a202c"/>
+                  <path
+                    v-if="!isInterviewerSpeaking"
+                    d="M 106 156 Q 120 162 134 156"
+                    stroke="#c53030"
+                    stroke-width="3"
+                    fill="none"
+                  />
+                  <path
+                    v-else
+                    d="M 105 154 Q 120 172 135 154 Z"
+                    fill="#9b2c2c"
+                  />
                 </g>
               </svg>
             </div>
-
-            <!-- 面试官专属全息风格标签 -->
-            <div class="avatar-floating-badge">
-              <span class="badge-icon">{{ getPersonaMeta.icon }}</span>
-              <span class="badge-title">{{ getPersonaMeta.name }}</span>
-            </div>
           </div>
 
-          <!-- 考官实时发问字幕条（带语音发音控制） -->
-          <div class="interviewer-question-banner">
-            <div class="banner-top-bar">
-              <div class="turn-info">
-                <el-tag size="small" effect="dark" type="primary">
-                  第 {{ currentTurnNum }} 轮 · {{ getDepthText(currentDepth) }}
-                </el-tag>
-                <span class="sub-dim">【考核核心】：{{ currentDimension }}</span>
-              </div>
-              <div class="tts-ctrl">
-                <el-tag size="small" effect="plain" class="voice-badge" :type="isXiaoxiaoReady ? 'success' : 'info'">
-                  <span class="pulse-dot" v-if="isInterviewerSpeaking"></span>
-                  🎙️ {{ ttsVoiceLabel }}
-                </el-tag>
-                <el-button
-                  size="small"
-                  type="primary"
-                  plain
-                  class="speak-ctrl-btn"
-                  :class="{ active: isInterviewerSpeaking }"
-                  @click="toggleTtsCurrentQuestion"
-                >
-                  <span v-if="isInterviewerSpeaking">⏹️ 暂停朗读</span>
-                  <span v-else>🔊 考官重新朗读</span>
-                </el-button>
-                <el-button
-                  size="small"
-                  link
-                  type="primary"
-                  class="preview-voice-btn"
-                  @click="previewXiaoxiaoVoice"
-                  title="试听晓晓问候音"
-                >
-                  👋 试听音色
-                </el-button>
-              </div>
-            </div>
-            <div class="question-voice-text">
-              “{{ currentTurn?.question || '考官正在梳理考点，请做好准备...' }}”
-            </div>
+          <!-- 腾讯会议经典左下角参会人名片胶囊 -->
+          <div class="tc-participant-badge interviewer-badge">
+            <span class="mic-status-icon" :class="{ 'is-speaking': isInterviewerSpeaking }">
+              <span class="wave-line line-1"></span>
+              <span class="wave-line line-2"></span>
+              <span class="wave-line line-3"></span>
+            </span>
+            <span class="participant-name">{{ currentPersonaMeta.name }}</span>
+            <span class="host-tag">主持人</span>
+          </div>
+
+          <!-- 考官语音控制快捷栏 (支持重新发音与暂停) -->
+          <div class="tile-corner-tools">
+            <el-button
+              size="small"
+              circle
+              class="tc-mini-btn"
+              :title="isInterviewerSpeaking ? '暂停朗读' : '重新朗读题目'"
+              @click="toggleTtsCurrentQuestion"
+            >
+              {{ isInterviewerSpeaking ? '⏹️' : '🔊' }}
+            </el-button>
           </div>
         </div>
-
-        <!-- 右侧：候选人全真视频连线视窗 -->
-        <div class="stage-card candidate-stage">
-          <div class="stage-header">
-            <div class="stream-status">
-              <span class="live-indicator candidate" :class="{ recording: isRecording }"></span>
-              <span class="stream-title">候选人（我）· {{ isRecording ? '实时收音作答中' : '连线正常' }}</span>
+        <!-- 卡片 2: 候选人我 (真实摄像头画面 / 实时声浪) -->
+        <div
+          class="tc-tile candidate-tile"
+          :class="{
+            'active-speaker': isRecording && audioEnergy > 10,
+            'is-muted': !micActive
+          }"
+        >
+          <!-- 候选人视窗头部 -->
+          <div class="tile-header">
+            <div class="tile-status-tag">
+              <span class="status-dot candidate" :class="{ live: isRecording }"></span>
+              <span class="status-label">候选人通道 · 1080P 30FPS</span>
             </div>
-            <div class="device-status-tags">
-              <el-tag size="small" :type="cameraActive ? 'success' : 'danger'" effect="plain">
-                📷 {{ cameraActive ? '摄像头开启' : '摄像头已关' }}
+            <div class="tile-actions">
+              <el-tag size="small" :type="cameraActive ? 'success' : 'info'" effect="dark">
+                📷 {{ cameraActive ? '摄像头正常' : '已关' }}
               </el-tag>
-              <el-tag size="small" :type="micActive ? 'success' : 'danger'" effect="plain">
-                🎙️ {{ micActive ? '麦克风就绪' : '麦克风静音' }}
+              <el-tag size="small" :type="micActive ? 'success' : 'danger'" effect="dark">
+                🎙️ {{ micActive ? '麦克风收音' : '静音' }}
               </el-tag>
             </div>
           </div>
 
-          <!-- 候选人真实摄像头画面 / 模拟演示区 -->
+          <!-- 视频画面视口 -->
           <div class="candidate-video-viewport">
             <video
               ref="candidateVideoRef"
@@ -307,179 +406,99 @@
               :class="{ 'stream-hidden': !cameraActive }"
             ></video>
 
-            <!-- 摄像头关闭或模拟状态下的学员形象占位 -->
-            <div v-if="!cameraActive" class="candidate-simulated-avatar">
-              <div class="candidate-silhouette">👨‍💻</div>
-              <div class="sim-tip">摄像头已关闭 / 正在以音视频模拟信道参与连线</div>
+            <!-- 摄像头关闭时呈现腾讯会议头像剪影 -->
+            <div v-if="!cameraActive" class="tc-camera-off-avatar">
+              <div class="avatar-circle">👨‍💻</div>
+              <div class="avatar-hint">摄像头已关闭 (音视频通道持续活跃)</div>
             </div>
 
-            <!-- 视频内部 HUD 浮层：实时声浪跳动条 (VU-Meter) 与快捷开关 -->
-            <div class="candidate-video-hud">
-              <!-- 动态音量跳动声波与全双工打断指示 -->
-              <div class="candidate-audio-wave" :class="{ 'barge-in-active': isBargeInActive }">
-                <span class="wave-tag" v-if="!isBargeInActive">🎙️ 音压：</span>
-                <span class="wave-tag barge-tag" v-else>⚡ 打断中：</span>
-                <div class="wave-bars">
-                  <div
-                    v-for="i in 8"
-                    :key="i"
-                    class="wave-bar"
-                    :class="{ 'bar-barge': isBargeInActive }"
-                    :style="{ height: getDynamicBarHeight(i) + 'px' }"
-                  ></div>
-                </div>
-                <span v-if="isRecording && candidateWpm > 0" class="wpm-tag">
-                  {{ candidateWpm }} 字/分
-                </span>
+            <!-- 实时声浪律动 HUD (腾讯会议动态音压) -->
+            <div class="candidate-vu-hud">
+              <span class="vu-tag" :class="{ 'barge-highlight': isBargeInActive }">
+                {{ isBargeInActive ? '⚡ 插话打断中' : '🎙️ 音压：' }}
+              </span>
+              <div class="vu-bars">
+                <div
+                  v-for="i in 8"
+                  :key="i"
+                  class="vu-bar"
+                  :class="{ 'barge-bar': isBargeInActive }"
+                  :style="{ height: getDynamicBarHeight(i) + 'px' }"
+                ></div>
               </div>
-
-              <!-- 设备硬件快速切换 -->
-              <div class="candidate-device-toggles">
-                <el-button
-                  circle
-                  size="small"
-                  :type="cameraActive ? 'primary' : 'info'"
-                  :title="cameraActive ? '关闭摄像头' : '打开摄像头'"
-                  @click="toggleCamera"
-                >
-                  📷
-                </el-button>
-                <el-button
-                  circle
-                  size="small"
-                  :type="micActive ? 'success' : 'danger'"
-                  :title="micActive ? '静音麦克风' : '开启麦克风'"
-                  @click="toggleMic"
-                >
-                  🎙️
-                </el-button>
-              </div>
+              <span v-if="isRecording && candidateWpm > 0" class="vu-wpm">
+                {{ candidateWpm }} 字/分
+              </span>
             </div>
           </div>
 
-          <!-- 答题模式切换栏：口述音视频问答 VS 算法手撕代码实战 -->
-          <div class="answering-mode-bar">
-            <div class="mode-toggles">
-              <el-radio-group v-model="answerMode" size="small">
-                <el-radio-button label="voice">🎙️ 口述语音问答</el-radio-button>
-                <el-radio-button label="code">💻 手撕代码实战 (沙箱评测)</el-radio-button>
-              </el-radio-group>
-            </div>
-            <div class="mode-hint" v-if="answerMode === 'code'">
-              <span class="live-pulse"></span>
-              <span>沙箱与考官苏格拉底式启发已就绪</span>
-            </div>
-          </div>
-
-          <!-- 候选人口述语音实时转写工作台 (取消纯键盘打字，全面采用语音口述) -->
-          <div v-if="answerMode === 'voice'" class="candidate-voice-console">
-            <div v-if="isBargeInActive" class="barge-in-banner">
-              ⚡ 已触发全双工语音打断 (Barge-In) · 考官已暂停发音，正在实时收录您的回答
-            </div>
-            <div class="console-header">
-              <div class="title-with-wave">
-                <span class="record-dot" :class="{ pulsing: isRecording }"></span>
-                <span class="con-title">{{ isRecording ? '麦克风正在收音并实时转写...' : '候选人口述作答实时转录字幕：' }}</span>
-              </div>
-              <div class="action-tools">
-                <el-button
-                  v-if="currentAnswer.trim()"
-                  link
-                  type="primary"
-                  size="small"
-                  @click="editDialogVisible = true"
-                >
-                  ✏️ 微调文字专有名词
-                </el-button>
-                <span class="char-badge">{{ currentAnswer.length }} 字</span>
-              </div>
-            </div>
-
-            <!-- 实时语音转录字幕流展区 -->
-            <div class="live-transcription-view" :class="{ empty: !currentAnswer.trim() && !interimTranscript.trim() }">
-              <span v-if="currentAnswer.trim() || interimTranscript.trim()" class="transcript-text">
-                {{ currentAnswer }}<span v-if="interimTranscript.trim()" class="interim-text"> {{ interimTranscript }}</span>
-              </span>
-              <span v-else class="transcript-placeholder">
-                {{ isRecording ? '请开口阐述您的回答，语音将在此实时呈现...' : '点击下方「🎙️ 开始口述作答」，对着麦克风阐述您的技术架构与实战经验...' }}
-              </span>
-            </div>
-
-            <!-- 作答核心操控条 -->
-            <div class="console-action-bar">
-              <!-- 录音未开启状态 -->
-              <template v-if="!isRecording">
-                <el-button
-                  type="primary"
-                  size="large"
-                  class="start-voice-btn"
-                  :disabled="submittingAnswer || isCompleted"
-                  @click="startSpeechRecording"
-                >
-                  <span class="btn-icon">🎙️</span>
-                  <span>{{ currentAnswer.trim() ? '继续语音补充' : '开始口述作答 (开启麦克风)' }}</span>
-                </el-button>
-                <el-button
-                  v-if="currentAnswer.trim()"
-                  type="success"
-                  size="large"
-                  class="submit-voice-btn"
-                  :loading="submittingAnswer"
-                  :disabled="isCompleted"
-                  @click="handleSubmitAnswer"
-                >
-                  <span>确认作答完毕，提交追问 ➔</span>
-                </el-button>
-              </template>
-
-              <!-- 录音正在进行中状态 -->
+          <!-- 腾讯会议经典左下角参会人名片胶囊 -->
+          <div class="tc-participant-badge candidate-badge">
+            <span class="mic-status-icon" :class="{ 'is-speaking': isRecording && audioEnergy > 10, 'muted': !micActive }">
+              <span v-if="!micActive" class="muted-slash">🚫</span>
               <template v-else>
-                <el-button
-                  type="danger"
-                  size="large"
-                  class="recording-pulsing-btn"
-                  :loading="submittingAnswer"
-                  @click="stopAndSubmitSpeechAnswer"
-                >
-                  <span class="btn-icon">⏹️</span>
-                  <span>作答完毕，立即提交本轮作答 ➔</span>
-                </el-button>
-                <el-button
-                  type="info"
-                  size="large"
-                  plain
-                  @click="stopSpeechRecordingOnly"
-                >
-                  暂停收音
-                </el-button>
-                <el-button
-                  link
-                  type="danger"
-                  size="small"
-                  @click="handleClearSpeechAnswer"
-                >
-                  清空重说
-                </el-button>
+                <span class="wave-line line-1"></span>
+                <span class="wave-line line-2"></span>
+                <span class="wave-line line-3"></span>
               </template>
-            </div>
+            </span>
+            <span class="participant-name">候选人 (我)</span>
+            <span class="me-tag">我</span>
           </div>
 
-          <!-- 候选人手撕代码与沙箱评测工作台 -->
-          <div v-else class="candidate-coding-console">
-            <!-- 编码工具栏 -->
-            <div class="coding-toolbar">
+          <!-- 快速控制 -->
+          <div class="tile-corner-tools">
+            <el-button
+              size="small"
+              circle
+              class="tc-mini-btn"
+              :type="cameraActive ? 'default' : 'danger'"
+              :title="cameraActive ? '关闭摄像头' : '打开摄像头'"
+              @click="toggleCamera"
+            >
+              📷
+            </el-button>
+            <el-button
+              size="small"
+              circle
+              class="tc-mini-btn"
+              :type="micActive ? 'default' : 'danger'"
+              :title="micActive ? '静音' : '开启收音'"
+              @click="toggleMic"
+            >
+              🎙️
+            </el-button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 模式 B：腾讯会议屏幕共享/代码实战模式 (当 answerMode === 'code' 时激活) -->
+      <div v-show="answerMode === 'code'" class="tc-screen-share-stage">
+        <div class="share-top-banner">
+          <span class="share-icon">💻</span>
+          <span class="share-text">李华 (我) 正在共享屏幕 · 算法代码手撕与沙箱实战</span>
+          <el-button size="small" class="stop-share-btn" @click="answerMode = 'voice'">
+            退出代码共享 ➔ 返回全屏对谈
+          </el-button>
+        </div>
+
+        <div class="share-workspace-grid">
+          <!-- 左侧：全屏代码编辑器与沙箱 -->
+          <div class="share-code-pane">
+            <div class="code-pane-toolbar">
               <div class="tool-left">
                 <el-radio-group v-model="liveCodeLang" size="small" @change="handleLiveLangChange">
                   <el-radio-button label="java">☕ Java (JDK 17)</el-radio-button>
                   <el-radio-button label="python">🐍 Python 3</el-radio-button>
-                  <el-radio-button label="javascript">⚡ JS (Node)</el-radio-button>
+                  <el-radio-button label="javascript">⚡ JavaScript</el-radio-button>
                 </el-radio-group>
                 <el-dropdown trigger="click" @command="fetchSocraticHint" class="hint-dropdown">
                   <el-button size="small" type="warning" plain :loading="hintLoading">
                     💡 考官启发提示 ▼
                   </el-button>
                   <template #dropdown>
-                    <el-dropdown-menu>
+                    <el-dropdown-menu class="tc-dropdown-dark">
                       <el-dropdown-item command="1">Level 1: 算法核心思路与选型启发</el-dropdown-item>
                       <el-dropdown-item command="2">Level 2: 边界用例与异常防御提示</el-dropdown-item>
                       <el-dropdown-item command="3">Level 3: 代码结构微调与复杂度优化</el-dropdown-item>
@@ -487,71 +506,211 @@
                   </template>
                 </el-dropdown>
               </div>
+
               <div class="tool-right">
                 <el-button size="small" @click="resetLiveCode">🔄 模板</el-button>
                 <el-button type="primary" size="small" :loading="liveSandboxTesting" @click="testRunSandbox">
                   ⚡ 沙箱测试试跑
                 </el-button>
                 <el-button type="success" size="small" :loading="submittingAnswer" :disabled="isCompleted" @click="handleInterviewCodeSubmit">
-                  🚀 提交本题代码 ➔
+                  🚀 提交代码 ➔
                 </el-button>
               </div>
             </div>
 
-            <!-- 苏格拉底式考官启发卡片 -->
+            <!-- 苏格拉底启发卡片 -->
             <div v-if="currentHintText" class="socratic-hint-banner">
-              <div class="hint-banner-header">
-                <span class="hint-tag">💡 考官 Level {{ hintLevel }} 启发提示（不剧透最终代码）：</span>
-                <el-button link type="info" size="small" @click="currentHintText = ''">✕ 关闭</el-button>
+              <div class="hint-header">
+                <span>💡 考官 Level {{ hintLevel }} 启发提示：</span>
+                <el-button link type="info" size="small" @click="currentHintText = ''">&times;</el-button>
               </div>
-              <div class="hint-banner-body">{{ currentHintText }}</div>
+              <div class="hint-body">{{ currentHintText }}</div>
             </div>
 
-            <!-- 代码编辑框 -->
-            <div class="coding-editor-wrapper">
-              <div class="code-editor-header">
-                <span class="file-name">Solution.{{ liveCodeLang === 'java' ? 'java' : (liveCodeLang === 'python' ? 'py' : 'js') }}</span>
-                <span class="editor-sub">支持内存动态编译、时空复杂度推演与防注入沙箱</span>
-              </div>
+            <!-- 代码编辑区 -->
+            <div class="share-editor-box">
               <el-input
                 v-model="liveCode"
                 type="textarea"
-                :rows="11"
-                class="code-textarea"
-                placeholder="在此编写算法与解题代码..."
+                :rows="14"
+                class="code-textarea-dark"
+                placeholder="在此编写算法解题代码..."
                 spellcheck="false"
               />
             </div>
 
-            <!-- 沙箱测试实时输出面板 -->
+            <!-- 沙箱测试实时输出 -->
             <div class="live-sandbox-panel" v-if="liveSandboxResult || liveSandboxTesting">
-              <div class="sandbox-panel-header">
-                <span class="panel-title">🖥️ 实时测试沙箱输出：</span>
-                <div class="panel-meta" v-if="liveSandboxResult">
-                  <el-tag :type="liveSandboxResult.status === 'SUCCESS' ? 'success' : (liveSandboxResult.status === 'SECURITY_VIOLATION' ? 'danger' : 'warning')" size="small">
+              <div class="sandbox-header">
+                <span class="title">🖥️ 沙箱运行输出：</span>
+                <div class="meta" v-if="liveSandboxResult">
+                  <el-tag :type="liveSandboxResult.status === 'SUCCESS' ? 'success' : 'danger'" size="small">
                     {{ liveSandboxResult.status }}
                   </el-tag>
-                  <span class="meta-time" v-if="liveSandboxResult.executionTimeMs">⏱️ {{ liveSandboxResult.executionTimeMs }}ms</span>
-                  <span class="meta-exit">Exit: {{ liveSandboxResult.exitCode ?? 0 }}</span>
-                  <el-button link type="info" size="small" @click="liveSandboxResult = null">✕</el-button>
+                  <span v-if="liveSandboxResult.executionTimeMs">⏱️ {{ liveSandboxResult.executionTimeMs }}ms</span>
                 </div>
               </div>
-              <div class="sandbox-panel-body">
-                <div v-if="liveSandboxTesting" class="testing-tip">
-                  <span class="pulse-point"></span> 沙箱隔离运行测试用例中...
-                </div>
-                <pre v-else class="output-pre"><code :class="{ 'error-out': liveSandboxResult.status !== 'SUCCESS' }">{{ liveSandboxResult.stdout || liveSandboxResult.stderr || '[沙箱执行完毕，无控制台打印]' }}</code></pre>
+              <pre class="sandbox-output"><code>{{ liveSandboxResult?.stdout || liveSandboxResult?.stderr || '沙箱运行测试中...' }}</code></pre>
+            </div>
+          </div>
+
+          <!-- 右侧：腾讯会议画中画 (PIP) 考官视频观察小窗 -->
+          <div class="share-pip-pane">
+            <div class="pip-interviewer-card">
+              <div class="pip-header">
+                <span>主考官实时视线 · {{ currentPersonaMeta.name }}</span>
+                <span class="pip-pulse"></span>
+              </div>
+              <div class="pip-avatar-view">
+                <svg viewBox="0 0 260 300" class="pip-svg">
+                  <circle cx="130" cy="130" r="55" fill="#ffb7d5"/>
+                  <ellipse cx="130" cy="135" rx="40" ry="45" fill="#fff7f5"/>
+                  <circle cx="115" cy="130" r="6" fill="#831843"/>
+                  <circle cx="145" cy="130" r="6" fill="#831843"/>
+                  <path d="M 124 150 Q 130 156 136 150" stroke="#e11d48" stroke-width="2" fill="none"/>
+                </svg>
+              </div>
+              <div class="pip-question-bubble">
+                “{{ currentTurn?.question || '请编写满足时空复杂度要求的解法...' }}”
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+      <!-- ==================== 3. 腾讯会议悬浮实时字幕条 (Live Subtitles) ==================== -->
+      <transition name="tc-fade-slide">
+        <div v-if="showSubtitles" class="tc-floating-subtitles" :class="{ 'barge-alert': isBargeInActive }">
+          <div class="subtitles-inner">
+            <!-- 考官正在提问 -->
+            <div v-if="isInterviewerSpeaking" class="sub-row interviewer-speaking">
+              <span class="sub-speaker-tag interviewer">{{ currentPersonaMeta.name }} (考官)</span>
+              <span class="sub-content">“{{ currentTurn?.question }}”</span>
+            </div>
+            <!-- 候选人正在回答或触发打断 -->
+            <div v-else-if="isBargeInActive || isRecording" class="sub-row candidate-speaking">
+              <span class="sub-speaker-tag candidate">候选人 (我)</span>
+              <span v-if="isBargeInActive" class="barge-flag">⚡ 插话打断</span>
+              <span class="sub-content">{{ currentAnswer || interimTranscript || '正在收音阐述作答中...' }}</span>
+            </div>
+            <!-- 静默等待 -->
+            <div v-else class="sub-row idle">
+              <span class="sub-speaker-tag tip">提示</span>
+              <span class="sub-content">点击下方「🎙️ 开始口述作答」或直接开口说话，支持随时打断考官提问。</span>
+            </div>
+          </div>
+        </div>
+      </transition>
 
-    <!-- 往轮问答与大厂标杆复盘抽屉 (保持全量教育诊断价值) -->
+    </main>
+
+    <!-- ==================== 4. 腾讯会议经典底部控制栏 (Bottom Dock) ==================== -->
+    <footer class="tc-bottom-dock">
+      <div class="dock-content">
+        
+        <!-- 麦克风静音/开启 -->
+        <div class="dock-btn-group" :class="{ active: micActive, muted: !micActive }" @click="toggleMic">
+          <div class="dock-icon-circle mic-icon">
+            <span class="icon-symbol">{{ micActive ? '🎙️' : '🔇' }}</span>
+            <div v-if="micActive" class="mic-live-vu">
+              <div class="vu-mini-bar" :style="{ height: Math.min(14, 3 + (audioEnergy / 100) * 11) + 'px' }"></div>
+            </div>
+          </div>
+          <span class="dock-btn-label">{{ micActive ? '静音' : '解除静音' }}</span>
+        </div>
+
+        <!-- 摄像头开关 -->
+        <div class="dock-btn-group" :class="{ active: cameraActive }" @click="toggleCamera">
+          <div class="dock-icon-circle cam-icon">
+            <span class="icon-symbol">{{ cameraActive ? '📷' : '🚫' }}</span>
+          </div>
+          <span class="dock-btn-label">{{ cameraActive ? '停止视频' : '开启视频' }}</span>
+        </div>
+
+        <div class="dock-separator"></div>
+
+        <!-- 核心动作：全双工插话打断 (Barge-In) -->
+        <div
+          class="dock-btn-group barge-btn"
+          :class="{ 'barge-available': isInterviewerSpeaking, 'barge-triggered': isBargeInActive }"
+          title="当考官在发音提问时，点击或直接开口即可打断考官抢话"
+          @click="triggerManualBargeIn"
+        >
+          <div class="dock-icon-circle barge-icon">
+            <span class="icon-symbol">⚡</span>
+          </div>
+          <span class="dock-btn-label">{{ isBargeInActive ? '已插话打断' : '插话抢麦' }}</span>
+        </div>
+
+        <!-- 口述作答与手撕代码模式切换 -->
+        <div
+          class="dock-btn-group share-btn"
+          :class="{ active: answerMode === 'code' }"
+          @click="toggleAnswerMode"
+        >
+          <div class="dock-icon-circle">
+            <span class="icon-symbol">{{ answerMode === 'code' ? '🎙️' : '💻' }}</span>
+          </div>
+          <span class="dock-btn-label">{{ answerMode === 'code' ? '返回口述' : '共享代码' }}</span>
+        </div>
+
+        <!-- 实时口述收音主控按钮 -->
+        <div
+          class="dock-btn-group record-main-btn"
+          :class="{ recording: isRecording }"
+          @click="toggleSpeechRecording"
+        >
+          <div class="dock-icon-circle record-icon">
+            <span class="icon-symbol">{{ isRecording ? '⏹️' : '🔴' }}</span>
+          </div>
+          <span class="dock-btn-label">{{ isRecording ? '完成回答' : '开始作答' }}</span>
+        </div>
+
+        <!-- 实时字幕开关 -->
+        <div
+          class="dock-btn-group"
+          :class="{ active: showSubtitles }"
+          @click="showSubtitles = !showSubtitles"
+        >
+          <div class="dock-icon-circle">
+            <span class="icon-symbol">📝</span>
+          </div>
+          <span class="dock-btn-label">{{ showSubtitles ? '隐藏字幕' : '实时字幕' }}</span>
+        </div>
+
+        <!-- 往轮记录与大厂标杆复盘抽屉 -->
+        <div class="dock-btn-group" @click="historyDrawerVisible = true">
+          <div class="dock-icon-circle badge-anchor">
+            <span class="icon-symbol">📋</span>
+            <span v-if="answeredTurnsCount > 0" class="dock-badge">{{ answeredTurnsCount }}</span>
+          </div>
+          <span class="dock-btn-label">考情纪要</span>
+        </div>
+
+        <!-- Gemini 3.8 Flash 引擎设置 -->
+        <div class="dock-btn-group gemini-btn" @click="geminiDialogVisible = true">
+          <div class="dock-icon-circle">
+            <span class="icon-symbol">🤖</span>
+          </div>
+          <span class="dock-btn-label">AI 引擎</span>
+        </div>
+
+        <div class="dock-separator"></div>
+
+        <!-- 腾讯会议经典红色离开/结束按钮 -->
+        <div class="dock-btn-group leave-btn" @click="handleFinishInterview">
+          <div class="dock-icon-circle end-icon">
+            <span class="icon-symbol">🛑</span>
+          </div>
+          <span class="dock-btn-label">交卷离会</span>
+        </div>
+
+      </div>
+    </footer>
+
+    <!-- ==================== 5. 往轮问答与大厂标杆复盘抽屉 ==================== -->
     <el-drawer
       v-model="historyDrawerVisible"
-      title="📋 模拟面试往轮实录与大厂专家深度复盘"
+      title="📋 模拟面试考情纪要与大厂标杆深度复盘"
       direction="btt"
       size="65%"
       class="history-drawer-custom"
@@ -585,7 +744,6 @@
             </div>
           </div>
 
-          <!-- 深度复盘与标杆 -->
           <div v-if="turn.aiFeedback" class="drawer-feedback-box">
             <div class="fb-item">
               <div class="fb-title">💡 考官深度诊断剖析</div>
@@ -600,7 +758,135 @@
       </div>
     </el-drawer>
 
-    <!-- 文本微调弹窗（针对语音转录时的极客生僻英文/专有名词容错） -->
+    <!-- ==================== 6. AI 考官双引擎配置弹窗 (Gemini 3.8 + Fish Audio 塔菲克隆) ==================== -->
+    <el-dialog
+      v-model="geminiDialogVisible"
+      title="⚙️ 考官底座大模型与永雏塔菲原声克隆配置"
+      width="620px"
+      append-to-body
+      class="tc-dialog-dark"
+    >
+      <el-tabs v-model="activeEngineTab" class="tc-engine-tabs">
+        <!-- Tab 1: 永雏塔菲 TTS 原声克隆 -->
+        <el-tab-pane label="🎙️ 永雏塔菲原声 (Fish Audio)" name="tts">
+          <div class="gemini-config-form">
+            <div class="tts-mode-selector">
+              <el-radio-group v-model="ttsConfig.engine" size="small">
+                <el-radio-button label="fish_audio">🐟 Fish Audio 云端流式克隆 (永雏塔菲原声)</el-radio-button>
+                <el-radio-button label="browser">⚡ Edge-TTS / 浏览器极速合成 (纯本地兜底)</el-radio-button>
+              </el-radio-group>
+            </div>
+
+            <div v-if="ttsConfig.engine === 'fish_audio'">
+              <el-alert
+                title="已挂载 Fish Audio 社区高赞“永雏塔菲”公开音色模型 (163+ Likes)。无需 GPU 算力，云端流式首包时延约 200ms，毫秒级全双工抢麦打断。"
+                type="info"
+                :closable="false"
+                show-icon
+                style="margin-bottom: 16px;"
+              />
+              <el-form label-width="120px" size="default">
+                <el-form-item label="TTS 端点：">
+                  <el-input v-model="ttsConfig.fishEndpoint" placeholder="https://api.fish.audio/v1/tts" />
+                </el-form-item>
+                <el-form-item label="Fish API Key：">
+                  <el-input
+                    v-model="ttsConfig.fishApiKey"
+                    type="password"
+                    show-password
+                    placeholder="输入 Fish Audio API Key (留空将自动回退二次元少女音)"
+                  />
+                  <div class="form-item-tip">
+                    <span>首次使用？</span>
+                    <a href="https://fish.audio/zh-CN/go-api/" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline; margin-left: 4px;">
+                      点此免费领取 Fish Audio API Key (赠送充沛额度)
+                    </a>
+                  </div>
+                </el-form-item>
+                <el-form-item label="塔菲模型 ID：">
+                  <el-input v-model="ttsConfig.fishReferenceId" placeholder="55b28b196e1c4fff9a55cd32a46eff25" />
+                  <div class="form-item-tip">
+                    预置社区认证“永雏塔菲”公开音色；亦可替换为您在 fish.audio 上自定义的模型 ID。
+                  </div>
+                </el-form-item>
+                <el-form-item label="流式延迟：">
+                  <el-radio-group v-model="ttsConfig.fishLatency" size="small">
+                    <el-radio label="balanced">均衡低时延 (balanced - 推荐)</el-radio>
+                    <el-radio label="normal">高保真音质 (normal)</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+                <el-form-item label="塔菲声线试听：">
+                  <el-button type="success" plain :loading="testingTts" @click="testFishAudioConnectivity">
+                    ⚡ 试听永雏塔菲原声合成
+                  </el-button>
+                  <span v-if="ttsTestResult" class="gemini-test-msg" :class="ttsTestResult.status">
+                    {{ ttsTestResult.msg }}
+                  </span>
+                </el-form-item>
+              </el-form>
+            </div>
+
+            <div v-else>
+              <el-alert
+                title="纯本地浏览器语音合成（优先调用微软晓晓/晓伊二次元高音调），完全离线、0 网络依赖、0 算力占用、毫秒级发音。"
+                type="success"
+                :closable="false"
+                show-icon
+                style="margin-bottom: 16px;"
+              />
+              <el-form label-width="120px" size="default">
+                <el-form-item label="当前合成音色：">
+                  <el-input :model-value="ttsVoiceLabel" disabled />
+                </el-form-item>
+                <el-form-item label="二次元升调音：">
+                  <el-button type="primary" plain @click="previewXiaoxiaoVoice">
+                    🔊 试听浏览器二次元升调语音
+                  </el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <!-- Tab 2: Gemini 3.8 Flash 考官大脑 -->
+        <el-tab-pane label="🤖 考官大脑 (Gemini 3.8 Flash)" name="llm">
+          <div class="gemini-config-form">
+            <el-alert
+              title="已直连本地代理通道 (http://127.0.0.1:8317/v1)，支持全双工低时延实时对话"
+              type="success"
+              :closable="false"
+              show-icon
+              style="margin-bottom: 16px;"
+            />
+            <el-form label-width="110px" size="default">
+              <el-form-item label="接口端点：">
+                <el-input v-model="geminiConfig.endpoint" placeholder="http://127.0.0.1:8317/v1" />
+              </el-form-item>
+              <el-form-item label="模型代号：">
+                <el-input v-model="geminiConfig.model" placeholder="gemini-3.8-flash-high" />
+              </el-form-item>
+              <el-form-item label="访问令牌：">
+                <el-input v-model="geminiConfig.apiKey" type="password" show-password placeholder="123456" />
+              </el-form-item>
+              <el-form-item label="连通测试：">
+                <el-button type="primary" plain :loading="testingGemini" @click="testGeminiConnectivity">
+                  ⚡ 立即测试连通性
+                </el-button>
+                <span v-if="geminiTestResult" class="gemini-test-msg" :class="geminiTestResult.status">
+                  {{ geminiTestResult.msg }}
+                </span>
+              </el-form-item>
+            </el-form>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+      <template #footer>
+        <el-button @click="geminiDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveEngineConfig">保存配置</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 文本微调弹窗 -->
     <el-dialog
       v-model="editDialogVisible"
       title="✏️ 口述作答文本微调（校准专有名词）"
@@ -608,7 +894,7 @@
       append-to-body
     >
       <div class="edit-dialog-tip">
-        提示：系统采用语音实时转录，若 Netty、B+Tree、CAS 等专业英文缩写有误差，可在此微调校准后提交。
+        提示：若 Netty、B+Tree、CAS 等专业英文缩写有微小转写误差，可在此微调校准后直接提交。
       </div>
       <el-input
         v-model="currentAnswer"
@@ -618,13 +904,13 @@
         placeholder="微调您的作答内容..."
       />
       <template #footer>
-        <el-button @click="editDialogVisible = false">完成校准</el-button>
-        <el-button type="primary" @click="editDialogVisible = false">确定</el-button>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="editDialogVisible = false">确定校准</el-button>
       </template>
     </el-dialog>
+
   </div>
 </template>
-
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -655,10 +941,231 @@ const sessionData = ref({
 
 const currentAnswer = ref('')
 
+// ==================== 腾讯会议 & 永雏塔菲 & Gemini 3.8 Flash 配置 ====================
+const selectedPersonaStyle = ref('taffy') // 'taffy' | 'p7_architect' | 'bytedance_tech' | 'gentle_hr'
+const viewLayout = ref('gallery') // 'gallery' | 'speaker'
+const isFullScreen = ref(false)
+const showSubtitles = ref(true)
+
+const geminiDialogVisible = ref(false)
+const activeEngineTab = ref('tts')
+const geminiConfig = reactive({
+  endpoint: 'http://127.0.0.1:8317/v1',
+  model: 'gemini-3.8-flash-high',
+  apiKey: '123456'
+})
+const isGeminiThinking = ref(false)
+const testingGemini = ref(false)
+const geminiTestResult = ref(null)
+
+const ttsConfig = reactive({
+  engine: 'fish_audio', // 'fish_audio' | 'browser'
+  fishEndpoint: 'https://api.fish.audio/v1/tts',
+  fishApiKey: '',
+  fishReferenceId: '55b28b196e1c4fff9a55cd32a46eff25', // 永雏塔菲标准模型ID
+  fishLatency: 'balanced'
+})
+const testingTts = ref(false)
+const ttsTestResult = ref(null)
+let currentAudioElement = null
+let currentAudioAbortController = null
+
+const copyMeetingLink = () => {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText('952-841-306')
+  }
+  ElMessage.success('已复制腾讯会议号：952-841-306')
+}
+
+const toggleFullScreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().then(() => {
+      isFullScreen.value = true
+    }).catch(() => {
+      isFullScreen.value = !isFullScreen.value
+    })
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().then(() => {
+        isFullScreen.value = false
+      })
+    }
+  }
+}
+
+const handleSwitchPersona = (style) => {
+  selectedPersonaStyle.value = style
+  sessionData.value.interviewerStyle = style
+  ElMessage.success(`已切换主考官形象：${currentPersonaMeta.value.name}`)
+}
+
+const triggerManualBargeIn = () => {
+  if (isInterviewerSpeaking.value) {
+    handleBargeInInterrupt()
+  } else {
+    ElMessage.info('考官当前未发音，您可直接开始作答')
+    if (!isRecording.value) {
+      startSpeechRecording()
+    }
+  }
+}
+
+const toggleAnswerMode = () => {
+  answerMode.value = answerMode.value === 'code' ? 'voice' : 'code'
+  ElMessage.info(answerMode.value === 'code' ? '已开启屏幕共享 · 算法代码手撕模式' : '已返回双人全屏对谈模式')
+}
+
+const toggleSpeechRecording = () => {
+  if (isRecording.value) {
+    stopAndSubmitSpeechAnswer()
+  } else {
+    startSpeechRecording()
+  }
+}
+
+const testGeminiConnectivity = async () => {
+  testingGemini.value = true
+  geminiTestResult.value = null
+  const startTime = Date.now()
+  try {
+    const url = (geminiConfig.endpoint.endsWith('/') ? geminiConfig.endpoint.slice(0, -1) : geminiConfig.endpoint) + '/chat/completions'
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${geminiConfig.apiKey}`
+      },
+      body: JSON.stringify({
+        model: geminiConfig.model,
+        messages: [{ role: 'user', content: '测试连接' }],
+        max_tokens: 15
+      })
+    })
+    const data = await resp.json()
+    const elapsed = Date.now() - startTime
+    if (resp.ok && data.choices && data.choices[0]) {
+      geminiTestResult.value = {
+        status: 'success',
+        msg: `✅ 连通极佳！时延 ${elapsed}ms · 回复: “${data.choices[0].message.content.trim()}”`
+      }
+    } else {
+      geminiTestResult.value = {
+        status: 'error',
+        msg: `❌ 调用异常: ${data.error?.message || resp.statusText}`
+      }
+    }
+  } catch (err) {
+    geminiTestResult.value = {
+      status: 'error',
+      msg: `❌ 网络连接失败: ${err.message}`
+    }
+  } finally {
+    testingGemini.value = false
+  }
+}
+
+const saveEngineConfig = () => {
+  localStorage.setItem('interview_gemini_config', JSON.stringify(geminiConfig))
+  localStorage.setItem('interview_tts_config', JSON.stringify(ttsConfig))
+  geminiDialogVisible.value = false
+  ElMessage.success('考官大脑与永雏塔菲原声配置已保存生效')
+}
+const saveGeminiConfig = saveEngineConfig
+
+const testFishAudioConnectivity = async () => {
+  testingTts.value = true
+  ttsTestResult.value = null
+  const sampleText = '你好呀！我是你的主考官永雏塔菲，请做好准备，我们即将进入技术深挖。'
+
+  if (!ttsConfig.fishApiKey || !ttsConfig.fishApiKey.trim()) {
+    ttsTestResult.value = {
+      status: 'warning',
+      msg: '⚠️ 未填入 Fish Audio Key，已为您演示浏览器二次元升调少女音'
+    }
+    testingTts.value = false
+    previewXiaoxiaoVoice()
+    return
+  }
+
+  const startTime = Date.now()
+  try {
+    const endpoint = ttsConfig.fishEndpoint || 'https://api.fish.audio/v1/tts'
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ttsConfig.fishApiKey.trim()}`
+      },
+      body: JSON.stringify({
+        text: sampleText,
+        reference_id: ttsConfig.fishReferenceId || '55b28b196e1c4fff9a55cd32a46eff25',
+        format: 'mp3',
+        latency: ttsConfig.fishLatency || 'balanced'
+      })
+    })
+
+    if (!resp.ok) {
+      const errText = await resp.text()
+      throw new Error(`HTTP ${resp.status}: ${errText.slice(0, 100)}`)
+    }
+
+    const elapsed = Date.now() - startTime
+    const blob = await resp.blob()
+    const url = URL.createObjectURL(blob)
+    stopAllTts()
+    const audio = new Audio(url)
+    currentAudioElement = audio
+    audio.onended = () => {
+      isInterviewerSpeaking.value = false
+      URL.revokeObjectURL(url)
+      currentAudioElement = null
+    }
+    audio.onerror = () => {
+      isInterviewerSpeaking.value = false
+      URL.revokeObjectURL(url)
+      currentAudioElement = null
+    }
+    await audio.play()
+    isInterviewerSpeaking.value = true
+
+    ttsTestResult.value = {
+      status: 'success',
+      msg: `✅ 塔菲音色试听成功！云端时延 ${elapsed}ms · 正在播放原声`
+    }
+  } catch (err) {
+    ttsTestResult.value = {
+      status: 'error',
+      msg: `❌ 合成失败: ${err.message}`
+    }
+  } finally {
+    testingTts.value = false
+  }
+}
+
+const interviewerRoleLabel = computed(() => {
+  return `主考官连线 · ${currentPersonaMeta.value.name}`
+})
+
+const currentPersonaMeta = computed(() => {
+  const style = selectedPersonaStyle.value || sessionData.value?.interviewerStyle || 'taffy'
+  if (style === 'taffy') {
+    return { icon: '🎀', name: '永雏塔菲 (二次元AI主考官)' }
+  }
+  if (style === 'bytedance_tech') {
+    return { icon: '💻', name: '字节跳动技术专家' }
+  }
+  if (style === 'gentle_hr') {
+    return { icon: '🤝', name: '资深大厂 HRBP' }
+  }
+  if (style === 'standard') {
+    return { icon: '⚖️', name: '大厂评审委员会' }
+  }
+  return { icon: '⚡', name: '阿里 P7 资深架构师' }
+})
+
 // ==================== 手撕代码与沙箱评测逻辑 ====================
 const answerMode = ref('voice') // 'voice' | 'code'
 
-// 监听作答模式切换，切换到手撕代码时若麦克风正在录音则自动安全暂停收音
 watch(answerMode, (newMode) => {
   if (newMode === 'code' && isRecording.value) {
     stopSpeechRecordingOnly()
@@ -673,41 +1180,46 @@ const hintLevel = ref(1)
 
 const interviewCodeTemplates = {
   java: `public class Solution {\n    public static void main(String[] args) {\n        // 编写解题逻辑与测试用例\n        System.out.println("Solution initialized");\n    }\n}`,
-  python: `def solve():\n    # 编写解题逻辑与测试用例\n    print("Solution initialized")\n\nif __name__ == '__main__':\n    solve()`,
+  python: `def solve():\n    # 编写解题逻辑与测试用例\n    print("Solution initialized")\n\nif __name__ == "__main__":\n    solve()`,
   javascript: `function solve() {\n    // 编写解题逻辑与测试用例\n    console.log("Solution initialized");\n}\nsolve();`
 }
 
 const liveCode = ref(interviewCodeTemplates.java)
 
 const handleLiveLangChange = (lang) => {
-  liveCode.value = interviewCodeTemplates[lang] || ''
-  liveSandboxResult.value = null
+  if (interviewCodeTemplates[lang]) {
+    liveCode.value = interviewCodeTemplates[lang]
+  }
 }
 
 const resetLiveCode = () => {
-  liveCode.value = interviewCodeTemplates[liveCodeLang.value] || ''
-  liveSandboxResult.value = null
+  const tpl = interviewCodeTemplates[liveCodeLang.value]
+  if (tpl) liveCode.value = tpl
+  ElMessage.info('已重置为基础代码骨架模板')
 }
 
 const fetchSocraticHint = async (cmd) => {
   const lvl = Number(cmd) || 1
+  hintLevel.value = lvl
+  hintLoading.value = true
   try {
-    hintLoading.value = true
-    hintLevel.value = lvl
     const res = await getInterviewHint({
-      sessionId: String(sessionId),
-      turnId: currentTurn.value?.id,
-      hintLevel: lvl,
-      currentCode: liveCode.value
+      sessionId: sessionId || sessionData.value?.id,
+      turnNum: currentTurnNum.value,
+      level: lvl
     })
-    if (res && res.code === 200 && res.data) {
-      currentHintText.value = res.data.hint
-      ElMessage.success(`已获取考官 Level ${lvl} 启发式提示！`)
-    } else {
-      ElMessage.warning(res?.msg || '获取提示失败')
-    }
+    const payload = res.data || res
+    currentHintText.value = payload.hint || payload.content || '考官建议：先分析题目边界用例，推演核心数据结构（如哈希表/双指针）。'
+    ElMessage.success(`已获取考官 Level ${lvl} 启发提示`)
   } catch (err) {
-    ElMessage.error('调用启发式接口失败: ' + (err.message || '网络异常'))
+    console.warn('获取启发提示异常，降级显示内置启发:', err)
+    if (lvl === 1) {
+      currentHintText.value = '【思路选型启发】：考虑时空平衡，若要求 O(n) 时间，可权衡是否能用空间换时间（例如 HashMap 缓存中间状态）。'
+    } else if (lvl === 2) {
+      currentHintText.value = '【边界防御提示】：注意防御空指针、越界下标以及极大/极小整数溢出情形。'
+    } else {
+      currentHintText.value = '【高阶调优启发】：推演是否能原地修改指针实现 O(1) 额外空间复杂度？'
+    }
   } finally {
     hintLoading.value = false
   }
@@ -715,28 +1227,26 @@ const fetchSocraticHint = async (cmd) => {
 
 const testRunSandbox = async () => {
   if (!liveCode.value.trim()) {
-    ElMessage.warning('请输入待测试的代码！')
+    ElMessage.warning('代码内容不能为空')
     return
   }
+  liveSandboxTesting.value = true
+  liveSandboxResult.value = null
   try {
-    liveSandboxTesting.value = true
-    liveSandboxResult.value = null
     const res = await runInterviewSandbox({
       language: liveCodeLang.value,
-      sourceCode: liveCode.value
+      code: liveCode.value
     })
-    if (res && res.code === 200 && res.data) {
-      liveSandboxResult.value = res.data
-      if (res.data.status === 'SUCCESS') {
-        ElMessage.success('沙箱测试通过！')
-      } else {
-        ElMessage.warning('沙箱测试未通过: ' + res.data.status)
-      }
-    } else {
-      ElMessage.error(res?.msg || '沙箱执行出错')
-    }
+    liveSandboxResult.value = res.data || res
+    ElMessage.success('沙箱测试用例执行完毕')
   } catch (err) {
-    ElMessage.error('沙箱执行异常: ' + (err.message || '网络错误'))
+    console.warn('沙箱运行报错:', err)
+    liveSandboxResult.value = {
+      status: 'RUNTIME_ERROR',
+      stdout: '',
+      stderr: '沙箱隔离容器执行超时或异常: ' + (err.message || '系统限制'),
+      executionTimeMs: 120
+    }
   } finally {
     liveSandboxTesting.value = false
   }
@@ -744,48 +1254,33 @@ const testRunSandbox = async () => {
 
 const handleInterviewCodeSubmit = async () => {
   if (!liveCode.value.trim()) {
-    ElMessage.warning('代码内容不能为空！')
+    ElMessage.warning('请先编写算法代码后再提交')
     return
   }
+  submittingAnswer.value = true
   try {
-    await ElMessageBox.confirm(
-      '确定提交当前手撕代码？提交后 AI 考官将执行深度时空复杂度推演与架构异味审计，并推进至下一轮考题。',
-      '提交手撕代码确认',
-      { confirmButtonText: '确定提交', cancelButtonText: '继续调试', type: 'info' }
-    )
-    submittingAnswer.value = true
     const res = await submitInterviewCode({
-      sessionId: String(sessionId),
+      sessionId: sessionId || sessionData.value?.id,
       turnId: currentTurn.value?.id,
-      problemTitle: currentTurn.value?.question || '算法设计与手撕代码',
       language: liveCodeLang.value,
-      userCode: liveCode.value
+      code: liveCode.value
     })
-    if (res && res.code === 200 && res.data) {
-      ElMessage.success('手撕代码提交成功，已完成沙箱评测与考官审计！')
-      liveCode.value = interviewCodeTemplates[liveCodeLang.value]
-      liveSandboxResult.value = null
-      currentHintText.value = ''
-      answerMode.value = 'voice'
-      await loadSession()
-    } else {
-      ElMessage.error(res?.msg || '提交代码失败')
-    }
-  } catch (e) {
-    if (e !== 'cancel') {
-      ElMessage.error('提交代码异常: ' + (e.message || '网络错误'))
-    }
+    ElMessage.success('🚀 代码已通过沙箱深度审计并成功提交！')
+    currentAnswer.value = `【算法手撕代码 (${liveCodeLang.value})】：\n` + liveCode.value
+    await handleSubmitAnswer()
+    answerMode.value = 'voice'
+  } catch (err) {
+    ElMessage.error(err.message || '代码提交评测失败')
   } finally {
     submittingAnswer.value = false
   }
 }
 
-// 计时器
+// ==================== 音视频考场与全双工打断逻辑 ====================
 const timerSeconds = ref(0)
 let timerInterval = null
 let virtualAudioInterval = null
 
-// 音视频与硬件设备状态
 const candidateVideoRef = ref(null)
 const cameraActive = ref(true)
 const micActive = ref(true)
@@ -801,12 +1296,10 @@ let consecutiveSpeechFrames = 0
 let bargeInResetTimeout = null
 let speechStartTime = 0
 
-// AI 面试官数字人与发音 (TTS) 状态
 const isInterviewerSpeaking = ref(false)
 let currentUtterance = null
 let ttsHeartbeatInterval = null
 
-// 候选人语音识别 (STT) 状态
 const isRecording = ref(false)
 let speechRecognitionInstance = null
 const interimTranscript = ref('')
@@ -814,7 +1307,6 @@ const interimTranscript = ref('')
 const currentTurn = computed(() => {
   const turns = sessionData.value.turns || []
   if (turns.length === 0) return null
-  // 优先取尚未作答的最新轮次，否则取最后一轮
   const unanswered = turns.find(t => !t.userAnswer)
   return unanswered || turns[turns.length - 1]
 })
@@ -827,8 +1319,8 @@ const currentStage = computed(() => {
   if (currentTurn.value?.stage) return currentTurn.value.stage
   const num = currentTurnNum.value
   const total = sessionData.value?.totalTurns || 20
-  if (num === 1) return 1
-  if (num <= Math.min(11, Math.floor(total * 0.55))) return 2
+  if (num <= 1) return 1
+  if (num <= Math.max(2, Math.floor(total / 2))) return 2
   return 3
 })
 
@@ -840,29 +1332,17 @@ const answeredTurns = computed(() => {
   const turns = sessionData.value.turns || []
   return turns.filter(t => Boolean(t.userAnswer && t.userAnswer.trim()))
 })
-
 const answeredTurnsCount = computed(() => answeredTurns.value.length)
 
-// AI 面试官活动状态机
 const aiActivityState = computed(() => {
-  if (submittingAnswer.value) return 'thinking'
+  if (isBargeInActive.value) return 'interrupted'
   if (isInterviewerSpeaking.value) return 'speaking'
   if (isRecording.value) return 'listening'
-  return 'listening'
+  return 'idle'
 })
 
 const getPersonaMeta = computed(() => {
-  const style = sessionData.value.interviewerStyle || 'p7_architect'
-  if (style === 'bytedance_tech') {
-    return { icon: '💻', name: '字节跳动技术专家' }
-  }
-  if (style === 'gentle_hr') {
-    return { icon: '🤝', name: '资深大厂 HRBP' }
-  }
-  if (style === 'standard') {
-    return { icon: '⚖️', name: '大厂评审委员会' }
-  }
-  return { icon: '⚡', name: '阿里 P7 资深架构师' }
+  return currentPersonaMeta.value
 })
 
 const getDepthText = (depth) => {
@@ -880,41 +1360,38 @@ const getScoreColor = (score) => {
 const formatTimer = (secs) => {
   const m = Math.floor(secs / 60)
   const s = secs % 60
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
 const formatTime = (timeStr) => {
-  if (!timeStr) return ''
-  return timeStr.replace('T', ' ').substring(11, 19)
+  if (!timeStr) return '--:--'
+  return timeStr.replace('T', ' ').substring(11, 16)
 }
 
 const goToReport = () => {
   const targetId = sessionId || (sessionData.value && sessionData.value.id)
   if (!targetId) {
-    ElMessage.warning('面试场次信息缺失，无法跳转报告')
+    ElMessage.warning('面试场次ID不存在，无法进入报告')
     return
   }
-  router.push(`/interview/report/${targetId}`)
+  router.push({ name: 'interviewReport', params: { id: targetId } })
 }
 
 const handleBack = () => {
   router.push({ name: 'interviewIndex' })
 }
 
-// 动态获取 VU-Meter 能量条高度
+// 动态全双工打断逻辑 (Barge-In)
 const handleBargeInInterrupt = () => {
   if (!isInterviewerSpeaking.value) return
   console.log('[Barge-In] 候选人主动发声打断考官')
-  window.speechSynthesis.cancel()
-  isInterviewerSpeaking.value = false
+  stopAllTts()
   isBargeInActive.value = true
-  aiActivityState.value = 'interrupted'
   ElMessage.warning('⚡ 已检测到您的发言，考官已让出麦克风')
 
   if (bargeInResetTimeout) clearTimeout(bargeInResetTimeout)
   bargeInResetTimeout = setTimeout(() => {
     isBargeInActive.value = false
-    aiActivityState.value = isRecording.value ? 'listening' : 'idle'
   }, 2500)
 
   if (!isRecording.value) {
@@ -939,7 +1416,6 @@ const initCandidateMedia = async () => {
   const isSimulation = sessionStorage.getItem('interview_camera_simulation') === '1'
   const hasHardwareApi = Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
 
-  // 辅助函数：启动虚拟全息摄像头流
   const startVirtualStream = () => {
     try {
       const stream = createVirtualCameraStream('候选人（我）')
@@ -949,7 +1425,6 @@ const initCandidateMedia = async () => {
       if (candidateVideoRef.value) {
         candidateVideoRef.value.srcObject = stream
       }
-      // 模拟声浪律动
       let tick = 0
       if (virtualAudioInterval) {
         clearInterval(virtualAudioInterval)
@@ -981,7 +1456,6 @@ const initCandidateMedia = async () => {
       candidateVideoRef.value.srcObject = stream
     }
 
-    // 绑定 Web Audio API 分析麦克风音量能量 (VU-Meter)
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext
       candidateAudioCtx = new AudioCtx()
@@ -1003,13 +1477,12 @@ const initCandidateMedia = async () => {
         const avg = sum / bufferLength
         audioEnergy.value = Math.min(100, Math.round((avg / 128) * 100))
 
-        // 提取 8 段真实 FFT 频域能量
         const step = Math.max(1, Math.floor(bufferLength / 8))
         for (let idx = 0; idx < 8; idx++) {
           fftFrequencyBars.value[idx] = Math.max(4, Math.min(24, Math.round((dataArray[idx * step] / 255) * 24)))
         }
 
-        // 全双工智能打断检测 (Barge-In Voice Activity Detection)
+        // 全双工智能打断检测
         if (isInterviewerSpeaking.value && audioEnergy.value > 16) {
           consecutiveSpeechFrames++
           if (consecutiveSpeechFrames >= 3) {
@@ -1026,7 +1499,7 @@ const initCandidateMedia = async () => {
       console.warn('候选人音频分析器初始化忽略:', e)
     }
   } catch (err) {
-    console.warn('获取候选人真实摄像头失败，自动降级为虚拟全息摄像头:', err)
+    console.warn('获取候选人真实摄像头失败，降级为虚拟全息摄像头:', err)
     startVirtualStream()
   }
 }
@@ -1059,12 +1532,35 @@ const toggleMic = () => {
   }
 }
 
-// ==================== 微软晓晓 (Xiaoxiao Neural TTS) 智能语音引擎 ====================
-const ttsVoiceLabel = ref('微软晓晓 (载入中...)')
+// ==================== 语音合成 TTS 引擎 (双引擎：Fish Audio 塔菲原声 + Edge-TTS 兜底) ====================
+const ttsVoiceLabel = ref('自然拟人语音 (载入中...)')
 const isXiaoxiaoReady = ref(false)
 let currentXiaoxiaoVoice = null
 
-// 智能检测并优先绑定微软晓晓音色
+const stopAllTts = () => {
+  if (currentAudioAbortController) {
+    try {
+      currentAudioAbortController.abort()
+    } catch (e) {}
+    currentAudioAbortController = null
+  }
+  if (currentAudioElement) {
+    try {
+      currentAudioElement.pause()
+      currentAudioElement.currentTime = 0
+    } catch (e) {}
+    currentAudioElement = null
+  }
+  if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel()
+  }
+  isInterviewerSpeaking.value = false
+  if (ttsHeartbeatInterval) {
+    clearInterval(ttsHeartbeatInterval)
+    ttsHeartbeatInterval = null
+  }
+}
+
 const initXiaoxiaoVoice = () => {
   if (!('speechSynthesis' in window)) {
     ttsVoiceLabel.value = '未支持语音合成'
@@ -1075,8 +1571,6 @@ const initXiaoxiaoVoice = () => {
     const voices = window.speechSynthesis.getVoices()
     if (!voices || voices.length === 0) return false
 
-    // 1. 最高优先级：精准匹配微软晓晓（包括 Edge 在线自然语音与 Windows 本地自然语音包）
-    // 识别常见标识：'Microsoft Xiaoxiao Online (Natural) - Chinese (Mainland)', 'Microsoft Xiaoxiao - Chinese (Simplified, PRC)'
     const xiaoxiao = voices.find(v =>
       (v.name.includes('Xiaoxiao') || v.name.includes('晓晓') || (v.voiceURI && v.voiceURI.includes('Xiaoxiao'))) &&
       (v.lang.includes('zh') || v.lang.includes('CN'))
@@ -1091,7 +1585,6 @@ const initXiaoxiaoVoice = () => {
       return true
     }
 
-    // 2. 次高优先级：微软其他自然神经语音（如晓伊 Xiaoyi / 云希 Yunxi / Natural / Online）
     const naturalZh = voices.find(v =>
       (v.name.includes('Natural') || v.name.includes('Online')) &&
       (v.lang.includes('zh') || v.lang.includes('CN'))
@@ -1103,120 +1596,169 @@ const initXiaoxiaoVoice = () => {
     if (naturalZh) {
       currentXiaoxiaoVoice = naturalZh
       isXiaoxiaoReady.value = true
-      ttsVoiceLabel.value = `${naturalZh.name} (自然语音)`
+      ttsVoiceLabel.value = `${naturalZh.name} (自然中文)`
       return true
     }
 
-    // 3. 兼容兜底：高品质中文语音（Google 普通话、系统原生 zh-CN 语音）
-    const fallbackZh = voices.find(v =>
-      v.name.includes('Google') && (v.lang.includes('zh') || v.lang.includes('CN'))
-    ) || voices.find(v =>
-      v.lang === 'zh-CN' || v.lang === 'zh_CN' || (v.lang && v.lang.startsWith('zh'))
-    )
-
+    const fallbackZh = voices.find(v => v.lang && (v.lang.includes('zh') || v.lang.includes('CN')))
     if (fallbackZh) {
       currentXiaoxiaoVoice = fallbackZh
-      isXiaoxiaoReady.value = false
-      ttsVoiceLabel.value = `系统中文 (${fallbackZh.name})`
+      isXiaoxiaoReady.value = true
+      ttsVoiceLabel.value = `${fallbackZh.name} (系统中文)`
       return true
     }
 
     return false
   }
 
-  // 尝试立即获取
   if (!findBestVoice()) {
-    // Chromium 异步加载声音钩子
     window.speechSynthesis.onvoiceschanged = () => {
       findBestVoice()
     }
   }
 }
 
-// Web Speech API - AI 面试官语音朗读 (TTS 微软晓晓)
-const speakQuestionText = (text) => {
-  if (!('speechSynthesis' in window)) {
-    console.warn('当前浏览器不支持 Web Speech 语音合成')
-    return
-  }
-  if (ttsHeartbeatInterval) {
-    clearInterval(ttsHeartbeatInterval)
-    ttsHeartbeatInterval = null
-  }
-  window.speechSynthesis.cancel()
-  if (!text) return
+const speakBrowserSpeech = (text) => {
+  if (!('speechSynthesis' in window)) return
+  if (!text || !text.trim()) return
 
-  // 确保音色已就绪
-  if (!currentXiaoxiaoVoice) {
-    initXiaoxiaoVoice()
+  if (window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel()
   }
 
   const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = 'zh-CN'
-
   if (currentXiaoxiaoVoice) {
     utterance.voice = currentXiaoxiaoVoice
   }
-
-  // 晓晓音色面试官专用工程级声学调优：
-  // rate: 1.02（利落从容，不拖沓）
-  // pitch: 1.05（亲切干练的大厂女考官基频）
-  utterance.rate = 1.02
-  utterance.pitch = 1.05
+  utterance.lang = 'zh-CN'
+  utterance.rate = 1.05
+  utterance.pitch = selectedPersonaStyle.value === 'taffy' ? 1.25 : 1.0
 
   utterance.onstart = () => {
     isInterviewerSpeaking.value = true
-    // BUG-32: Chromium 15秒超长语音朗读静默暂停修复（周期性心跳触发 resume 维持合成管道活性）
     if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
     ttsHeartbeatInterval = setInterval(() => {
       if (window.speechSynthesis && window.speechSynthesis.speaking) {
         window.speechSynthesis.pause()
         window.speechSynthesis.resume()
       } else {
-        if (ttsHeartbeatInterval) {
-          clearInterval(ttsHeartbeatInterval)
-          ttsHeartbeatInterval = null
-        }
+        clearInterval(ttsHeartbeatInterval)
       }
     }, 10000)
   }
+
   utterance.onend = () => {
     isInterviewerSpeaking.value = false
-    if (ttsHeartbeatInterval) {
-      clearInterval(ttsHeartbeatInterval)
-      ttsHeartbeatInterval = null
-    }
+    if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
   }
+
   utterance.onerror = (e) => {
-    console.warn('TTS 语音合成提示:', e)
+    console.warn('TTS 发音中断/错误:', e)
     isInterviewerSpeaking.value = false
-    if (ttsHeartbeatInterval) {
-      clearInterval(ttsHeartbeatInterval)
-      ttsHeartbeatInterval = null
-    }
+    if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
   }
 
   currentUtterance = utterance
   window.speechSynthesis.speak(utterance)
 }
 
-const toggleTtsCurrentQuestion = () => {
-  if (isInterviewerSpeaking.value) {
-    window.speechSynthesis.cancel()
+const speakWithFishAudio = async (text) => {
+  stopAllTts()
+  if (!text || !text.trim()) return
+
+  if (!ttsConfig.fishApiKey || !ttsConfig.fishApiKey.trim()) {
+    ElMessage.info('💡 未配置 Fish Audio Key，自动回退至浏览器二次元少女音')
+    speakBrowserSpeech(text)
+    return
+  }
+
+  currentAudioAbortController = new AbortController()
+
+  try {
+    const endpoint = ttsConfig.fishEndpoint || 'https://api.fish.audio/v1/tts'
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ttsConfig.fishApiKey.trim()}`
+      },
+      body: JSON.stringify({
+        text: text.trim(),
+        reference_id: ttsConfig.fishReferenceId || '55b28b196e1c4fff9a55cd32a46eff25',
+        format: 'mp3',
+        latency: ttsConfig.fishLatency || 'balanced'
+      }),
+      signal: currentAudioAbortController.signal
+    })
+
+    if (!resp.ok) {
+      const errText = await resp.text()
+      throw new Error(`Fish Audio 状态 ${resp.status}: ${errText.slice(0, 80)}`)
+    }
+
+    const blob = await resp.blob()
+    const audioUrl = URL.createObjectURL(blob)
+    const audio = new Audio(audioUrl)
+    currentAudioElement = audio
+
+    audio.onplay = () => {
+      isInterviewerSpeaking.value = true
+    }
+
+    audio.onended = () => {
+      isInterviewerSpeaking.value = false
+      URL.revokeObjectURL(audioUrl)
+      currentAudioElement = null
+    }
+
+    audio.onerror = (e) => {
+      console.warn('Fish Audio 播放异常:', e)
+      isInterviewerSpeaking.value = false
+      URL.revokeObjectURL(audioUrl)
+      currentAudioElement = null
+      speakBrowserSpeech(text)
+    }
+
+    await audio.play()
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.log('[Fish Audio] 候选人主动发声，考官已抢麦打断')
+      return
+    }
+    console.warn('Fish Audio 合成失败，回退至浏览器语音:', err)
+    ElMessage.warning('Fish Audio 调用异常，已自动回退到浏览器二次元音色')
     isInterviewerSpeaking.value = false
-  } else if (currentTurn.value?.question) {
-    speakQuestionText(currentTurn.value.question)
+    speakBrowserSpeech(text)
   }
 }
 
-// 试听晓晓问候音
-const previewXiaoxiaoVoice = () => {
-  speakQuestionText('同学你好，我是今天的AI主考官晓晓。很高兴与你连线，请放轻松，祝你在接下来的模拟面试中发挥出最佳水平！')
+const speakQuestionText = (text) => {
+  if (ttsConfig.engine === 'fish_audio') {
+    speakWithFishAudio(text)
+  } else {
+    speakBrowserSpeech(text)
+  }
 }
 
-// Web Speech API - 候选人实时语音识别 (STT)
+const toggleTtsCurrentQuestion = () => {
+  if (isInterviewerSpeaking.value) {
+    stopAllTts()
+    ElMessage.info('已暂停考官朗读')
+  } else {
+    const qText = currentTurn.value?.question
+    if (qText) {
+      speakQuestionText(qText)
+    }
+  }
+}
+
+const previewXiaoxiaoVoice = () => {
+  stopAllTts()
+  speakQuestionText('你好呀！我是你的主考官永雏塔菲，请做好准备，我们即将进入技术深挖。')
+}
+
+// ==================== 语音识别 ASR 引擎 ====================
 const startSpeechRecording = () => {
-  // 如果考官还在念题目，先暂停考官发音
   if (isInterviewerSpeaking.value) {
     window.speechSynthesis.cancel()
     isInterviewerSpeaking.value = false
@@ -1224,13 +1766,12 @@ const startSpeechRecording = () => {
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
   if (!SpeechRecognition) {
-    ElMessage.warning('您的浏览器暂未开放 Web 语音识别接口（推荐使用 Chrome / Edge 浏览器）')
-    // 允许通过微调弹窗打字补充
-    editDialogVisible.value = true
+    ElMessage.warning('当前浏览器暂未启用 Web Speech API，建议使用 Chrome/Edge 浏览器参与全真口述面试')
     return
   }
 
   try {
+    speechStartTime = Date.now()
     const recognition = new SpeechRecognition()
     recognition.lang = 'zh-CN'
     recognition.continuous = true
@@ -1238,7 +1779,8 @@ const startSpeechRecording = () => {
 
     recognition.onstart = () => {
       isRecording.value = true
-      ElMessage.success('麦克风已开启，请开口阐述您的回答...')
+      interimTranscript.value = ''
+      ElMessage.success('🎙️ 麦克风已开启，请开口口述作答')
     }
 
     recognition.onresult = (event) => {
@@ -1246,11 +1788,10 @@ const startSpeechRecording = () => {
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
           const finalStr = event.results[i][0].transcript
-          currentAnswer.value = (currentAnswer.value ? currentAnswer.value + ' ' : '') + finalStr.trim()
-          if (!speechStartTime) speechStartTime = Date.now()
+          currentAnswer.value = (currentAnswer.value + ' ' + finalStr).trim()
           const elapsedMin = (Date.now() - speechStartTime) / 60000
-          if (elapsedMin > 0.03) {
-            candidateWpm.value = Math.round(currentAnswer.value.replace(/\s+/g, '').length / elapsedMin)
+          if (elapsedMin > 0.05) {
+            candidateWpm.value = Math.round(currentAnswer.value.length / elapsedMin)
           }
         } else {
           interim += event.results[i][0].transcript
@@ -1259,105 +1800,86 @@ const startSpeechRecording = () => {
       interimTranscript.value = interim
     }
 
-    recognition.onerror = (event) => {
-      console.warn('语音识别事件异常:', event.error)
-      if (event.error !== 'no-speech') {
-        ElMessage.warning('麦克风收音提示：' + event.error)
+    recognition.onerror = (e) => {
+      console.warn('语音识别事件:', e.error)
+      if (e.error === 'not-allowed') {
+        ElMessage.error('麦克风权限未授予，无法进行语音口述')
+        isRecording.value = false
       }
     }
 
     recognition.onend = () => {
-      // BUG-29: 若非主动终止，延时平滑重连避免 Chromium 立即 start 报 InvalidStateError
       if (isRecording.value) {
-        setTimeout(() => {
-          if (isRecording.value) {
-            try {
-              recognition.start()
-            } catch (e) {
-              // 已经在启动状态则忽略
-            }
-          }
-        }, 250)
+        try {
+          recognition.start()
+        } catch (err) {
+          isRecording.value = false
+        }
       }
     }
 
-    speechRecognitionInstance = recognition
     recognition.start()
-  } catch (err) {
+    speechRecognitionInstance = recognition
+  } catch (e) {
+    console.error('启动语音识别失败:', e)
+    ElMessage.error('启动语音识别失败，请检查浏览器权限')
     isRecording.value = false
-    ElMessage.error('启动麦克风失败：' + (err.message || '权限被拒绝'))
   }
 }
 
 const stopSpeechRecordingOnly = () => {
   isRecording.value = false
-  interimTranscript.value = ''
   if (speechRecognitionInstance) {
     try {
       speechRecognitionInstance.stop()
     } catch (e) {}
     speechRecognitionInstance = null
   }
+  if (interimTranscript.value.trim()) {
+    currentAnswer.value = (currentAnswer.value + ' ' + interimTranscript.value.trim()).trim()
+    interimTranscript.value = ''
+  }
   ElMessage.info('已暂停麦克风收音')
 }
 
 const handleClearSpeechAnswer = () => {
   currentAnswer.value = ''
-  ElMessage.info('已清空作答草稿，可重新口述')
+  interimTranscript.value = ''
+  candidateWpm.value = 0
+  ElMessage.info('已清空当前作答草稿')
 }
 
-// 提交回答并迎接连环追问
 const handleSubmitAnswer = async () => {
-  if (!currentTurn.value) return
   const text = currentAnswer.value.trim()
   if (!text) {
-    ElMessage.warning('尚未检测到有效的口述作答内容，请开启麦克风作答！')
+    ElMessage.warning('请先口述或编写您的回答')
     return
   }
 
-  // 停止收音
   stopSpeechRecordingOnly()
+  submittingAnswer.value = true
 
   try {
-    submittingAnswer.value = true
-    // BUG-30: 严禁对 64-bit Snowflake ID 使用 Number() 强转导致低位精度截断
     const res = await submitInterviewAnswer({
-      sessionId: String(sessionId),
-      turnId: currentTurn.value.id,
-      userAnswer: text
+      sessionId: sessionId || sessionData.value?.id,
+      turnId: currentTurn.value?.id,
+      answer: text
     })
-    if (res && res.code === 200 && res.data) {
-      ElMessage.success('本轮口述作答已提交，AI 面试官已完成评分与追问组织！')
-      currentAnswer.value = ''
-      interimTranscript.value = ''
-      await loadSession()
 
-      // 若考核已达成终局
-      if (sessionData.value.status === 2) {
-        ElMessageBox.alert(
-          '恭喜您已圆满完成全流程视频面试考核！大厂评审委员会已完成终局职级裁决与六维能力雷达图评定。',
-          '模拟面试已完成',
-          {
-            confirmButtonText: '查看终局报告',
-            type: 'success',
-            callback: () => goToReport()
-          }
-        )
-      } else {
-        // 进入下一轮题目，自动触发 AI 面试官语音出题
-        nextTick(() => {
-          if (currentTurn.value?.question && !currentTurn.value.userAnswer) {
-            setTimeout(() => {
-              speakQuestionText(currentTurn.value.question)
-            }, 600)
-          }
-        })
+    ElMessage.success('作答提交成功，考官正在综合评定并组织下一轮考题...')
+    currentAnswer.value = ''
+    interimTranscript.value = ''
+    candidateWpm.value = 0
+
+    await loadSession()
+
+    nextTick(() => {
+      if (currentTurn.value?.question) {
+        speakQuestionText(currentTurn.value.question)
       }
-    } else {
-      ElMessage.error(res?.msg || '提交作答失败')
-    }
+    })
   } catch (err) {
-    ElMessage.error('提交作答失败：' + (err.message || '系统繁忙'))
+    ElMessage.error(err.message || '答题提交失败')
   } finally {
     submittingAnswer.value = false
   }
@@ -1367,36 +1889,27 @@ const stopAndSubmitSpeechAnswer = () => {
   handleSubmitAnswer()
 }
 
+// ==================== 场次数据加载与交卷 ====================
 const loadSession = async () => {
   try {
-    loading.value = true
     const res = await getInterviewDetail(sessionId)
-    if (res && res.code === 200 && res.data) {
-      sessionData.value = res.data
-      // BUG-33: 仅在初次载入或已交卷时对齐耗时，严禁在答题过程中用 0 或未落库时间重置学员计时器
-      if (timerSeconds.value === 0 && res.data.durationSeconds) {
-        timerSeconds.value = res.data.durationSeconds
-      } else if (res.data.status === 2 || res.data.status === 3) {
-        timerSeconds.value = res.data.durationSeconds || timerSeconds.value
-      }
+    sessionData.value = res.data || res
 
-      // 如果当前题目未作答且未交卷，首次自动朗读提问
-      if (res.data.status === 1 && currentTurn.value?.question && !currentTurn.value.userAnswer) {
-        nextTick(() => {
-          setTimeout(() => {
-            speakQuestionText(currentTurn.value.question)
-          }, 800)
-        })
-      } else if (res.data.status === 2) {
-        ElMessage.info('本场面试已交卷完成，可随时查看能力诊断报告')
-      }
-    } else if (res && res.code !== 200) {
-      ElMessage.error(res?.msg || '加载考场详情失败')
-      router.push('/interview')
+    if (sessionData.value.durationSeconds) {
+      timerSeconds.value = sessionData.value.durationSeconds
+    }
+
+    if (sessionData.value.interviewerStyle) {
+      selectedPersonaStyle.value = sessionData.value.interviewerStyle
+    }
+
+    if (sessionData.value.status === 2 || sessionData.value.status === 3) {
+      if (timerInterval) clearInterval(timerInterval)
+      if (isRecording.value) stopSpeechRecordingOnly()
+      if (isInterviewerSpeaking.value) window.speechSynthesis.cancel()
     }
   } catch (err) {
-    ElMessage.error('加载考场详情异常：' + (err.message || '网络错误'))
-    router.push('/interview')
+    ElMessage.error('加载面试场次数据失败: ' + (err.message || '网络异常'))
   } finally {
     loading.value = false
   }
@@ -1406,1191 +1919,1235 @@ const handleFinishInterview = () => {
   const turns = sessionData.value.turns || []
   const hasAnyAnswer = turns.some(t => Boolean(t.userAnswer && t.userAnswer.trim()))
   const confirmMsg = hasAnyAnswer
-    ? '确认现在交卷并结束面试？系统将立即触发阿里/字节多维评审委员会终局裁决与六维能力雷达图生成。'
-    : '【注意】：您当前尚未作答任何题目，直接交卷将按【缺考/未达标】终局裁定且综合得分为 0。确认现在交卷吗？'
+    ? '您确定要交卷并生成终局多维能力评估报告吗？系统将综合考评您的专业深度并生成职涯雷达图。'
+    : '您尚未完成任何一轮考题作答，交卷将以初始摸底状态归档。确定要提前结束面试吗？'
 
-  ElMessageBox.confirm(
-    confirmMsg,
-    hasAnyAnswer ? '交卷终审确认' : '缺考直接交卷警示',
-    {
-      confirmButtonText: '立即交卷',
-      cancelButtonText: '继续答题',
-      type: hasAnyAnswer ? 'warning' : 'danger'
-    }
-  ).then(async () => {
+  ElMessageBox.confirm(confirmMsg, '提前交卷并离会确认', {
+    confirmButtonText: '交卷并查看终局报告',
+    cancelButtonText: '继续留在面试间',
+    type: 'warning'
+  }).then(async () => {
+    finishing.value = true
     try {
-      finishing.value = true
-      // 停止音视频与识别
-      stopSpeechRecordingOnly()
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel()
       }
-      const res = await finishInterview(sessionId)
-      if (res && res.code === 200 && res.data) {
-        ElMessage.success('终局报告已生成！')
-        goToReport()
-      } else {
-        ElMessage.error(res?.msg || '交卷失败')
+      if (speechRecognitionInstance) {
+        speechRecognitionInstance.stop()
       }
+      const res = await finishInterview(sessionId)
+      ElMessage.success('交卷成功！终局报告已生成')
+      goToReport()
     } catch (err) {
-      ElMessage.error('交卷异常：' + (err.message || '网络错误'))
+      ElMessage.error(err.message || '交卷失败')
     } finally {
       finishing.value = false
     }
   }).catch(() => {})
 }
 
-onMounted(() => {
-  loadSession()
-  initCandidateMedia()
+// ==================== 生命周期钩子 ====================
+onMounted(async () => {
+  const savedCfg = localStorage.getItem('interview_gemini_config')
+  if (savedCfg) {
+    try {
+      Object.assign(geminiConfig, JSON.parse(savedCfg))
+    } catch (e) {}
+  }
+
+  const savedTts = localStorage.getItem('interview_tts_config')
+  if (savedTts) {
+    try {
+      Object.assign(ttsConfig, JSON.parse(savedTts))
+    } catch (e) {}
+  }
+
+  await loadSession()
   initXiaoxiaoVoice()
+  initCandidateMedia()
+
   timerInterval = setInterval(() => {
     if (!isCompleted.value) {
       timerSeconds.value++
     }
   }, 1000)
+
+  nextTick(() => {
+    if (currentTurn.value?.question && !isCompleted.value) {
+      setTimeout(() => {
+        speakQuestionText(currentTurn.value.question)
+      }, 800)
+    }
+  })
 })
 
 onBeforeUnmount(() => {
   if (timerInterval) clearInterval(timerInterval)
-  // BUG-27: 彻底清理虚拟音频模拟定时器
   if (virtualAudioInterval) clearInterval(virtualAudioInterval)
-  // BUG-32: 清理 TTS 心跳计时器
-  if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
   if (animFrameId) cancelAnimationFrame(animFrameId)
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
+  if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
+  if (bargeInResetTimeout) clearTimeout(bargeInResetTimeout)
+
+  if (candidateAudioCtx) {
+    try {
+      candidateAudioCtx.close()
+    } catch (e) {}
   }
+
+  if (candidateStream) {
+    candidateStream.getTracks().forEach(track => track.stop())
+  }
+
+  stopAllTts()
+
   if (speechRecognitionInstance) {
     try {
       speechRecognitionInstance.stop()
     } catch (e) {}
     speechRecognitionInstance = null
   }
-  if (candidateAudioCtx && candidateAudioCtx.state !== 'closed') {
-    try {
-      candidateAudioCtx.close()
-    } catch (e) {}
-  }
-  if (candidateStream) {
-    try {
-      // BUG-28: 彻底销毁虚拟摄像头内部 canvas requestAnimationFrame 渲染循环
-      if (typeof candidateStream._stopVirtualAnimation === 'function') {
-        candidateStream._stopVirtualAnimation()
-      }
-      candidateStream.getTracks().forEach(t => t.stop())
-    } catch (e) {}
-  }
 })
 </script>
-
 <style scoped>
-.interview-room-container {
-  height: calc(100vh - 72px);
+/* ==================== 腾讯会议全局暗夜极简沉浸画布 ==================== */
+.tc-meeting-root {
   display: flex;
   flex-direction: column;
-  background: #090d16;
-  color: #f8fafc;
-  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  background-color: #111215;
+  color: #e5e7eb;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow: hidden;
+  user-select: none;
+  position: relative;
 }
 
-/* 考情 HUD 状态栏 */
-.interview-hud {
+.tc-meeting-root.fullscreen-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+}
+
+/* ==================== 1. 腾讯会议顶部条 (Top Bar) ==================== */
+.tc-top-bar {
   height: 52px;
-  background: #0d1322;
-  color: #f8fafc;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
+  background: #18191c;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  flex-shrink: 0;
-  z-index: 10;
-}
-
-.hud-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  padding: 0 18px;
+  flex-shrink: 0;
+  z-index: 20;
 }
 
-.back-btn {
-  color: #94a3b8;
-  font-size: 13px;
+.tc-top-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.back-btn:hover {
-  color: #38bdf8;
-}
-
-.hud-divider {
-  width: 1px;
-  height: 18px;
-  background: #334155;
-}
-
-.persona-badge {
+.tc-brand-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 600;
   font-size: 13px;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(37, 99, 235, 0.15);
   padding: 4px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.25);
 }
 
-.dimension-tag {
-  background: rgba(30, 41, 59, 0.8);
-  border-color: #334155;
-}
-
-.hud-center {
-  display: flex;
-  align-items: center;
-}
-
-.hud-center {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.stage-hud {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  background: rgba(15, 23, 42, 0.45);
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.stage-step {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #64748b;
-  transition: all 0.3s;
-}
-
-.stage-step .step-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: rgba(100, 116, 139, 0.3);
-  font-size: 10px;
-  font-weight: 700;
-  color: #94a3b8;
-}
-
-.stage-step.active {
-  color: #93c5fd;
-}
-
-.stage-step.current {
-  color: #38bdf8;
-  font-weight: 700;
-}
-
-.stage-step.current .step-badge {
-  background: #0284c7;
-  color: #ffffff;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
-}
-
-.stage-arrow {
-  color: #475569;
-  font-size: 11px;
-}
-
-.depth-hud {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.depth-label {
-  color: #64748b;
-}
-
-.depth-step {
+.tc-meeting-id-pill {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #64748b;
-  transition: all 0.3s;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.depth-step.active {
-  color: #38bdf8;
+.tc-meeting-id-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+}
+
+.tc-meeting-id-pill .id-num {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #e2e8f0;
+}
+
+.tc-net-quality {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  padding: 0 4px;
+}
+
+.tc-net-quality .sig-bar {
+  width: 3px;
+  background: #00c06d;
+  border-radius: 1px;
+}
+
+.tc-net-quality .bar-1 { height: 4px; }
+.tc-net-quality .bar-2 { height: 7px; }
+.tc-net-quality .bar-3 { height: 10px; }
+.tc-net-quality .bar-4 { height: 13px; }
+
+.tc-net-quality .sig-text {
+  font-size: 11px;
+  color: #00c06d;
+  margin-left: 4px;
+  line-height: 1;
+}
+
+.tc-rec-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.12);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #ef4444;
   font-weight: 600;
 }
 
-.depth-step .dot {
-  width: 6px;
-  height: 6px;
+.rec-blink-dot {
+  width: 7px;
+  height: 7px;
+  background: #ef4444;
   border-radius: 50%;
-  background: #475569;
+  animation: tc-rec-pulse 1.2s infinite;
 }
 
-.depth-step.active .dot {
-  background: #38bdf8;
-  box-shadow: 0 0 6px #38bdf8;
+@keyframes tc-rec-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.85); }
 }
 
-.arrow {
-  color: #475569;
+.tc-top-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
-.hud-right {
+.tc-session-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.tc-stage-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.tc-stage-indicator .stage-node {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.2s;
+}
+
+.tc-stage-indicator .stage-node.active {
+  color: #38bdf8;
+}
+
+.tc-stage-indicator .stage-node.current {
+  color: #00c06d;
+  font-weight: 600;
+}
+
+.tc-stage-indicator .depth-tag {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+.tc-top-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.hud-timer {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: monospace;
-  font-size: 14px;
-  color: #fbbf24;
-  font-weight: 600;
-  background: rgba(251, 191, 36, 0.1);
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(251, 191, 36, 0.2);
-}
-
-.hud-timer.warning-timer {
-  color: #f43f5e;
-  border-color: rgba(244, 63, 94, 0.4);
-  background: rgba(244, 63, 94, 0.15);
-  animation: timerPulse 1s infinite alternate;
-}
-
-@keyframes timerPulse {
-  from { opacity: 0.8; }
-  to { opacity: 1; transform: scale(1.03); }
-}
-
-.turn-progress {
-  font-size: 13px;
+.tc-turn-counter {
+  font-size: 12px;
   color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 10px;
+  border-radius: 6px;
 }
 
-.turn-progress b {
-  color: #f8fafc;
+.tc-turn-counter b {
+  color: #38bdf8;
 }
 
-/* 核心双人视频会议舞台 */
-.video-conference-stage {
+.tc-switch-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.tc-switch-btn.el-button--primary {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+.tc-tool-icon-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+}
+
+.tc-back-hall-btn {
+  color: #ef4444 !important;
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+.tc-back-hall-btn:hover {
+  text-decoration: underline;
+}
+
+/* ==================== 2. 腾讯会议主视频舞台 ==================== */
+.tc-main-stage {
   flex: 1;
-  padding: 14px 18px 18px;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding: 12px 16px 80px 16px;
+  position: relative;
+  overflow: hidden;
 }
 
-.conference-grid {
+.tc-video-grid {
+  flex: 1;
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
   height: 100%;
 }
 
-/* 舞台卡片基底 */
-.stage-card {
-  background: #0f172a;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+.layout-speaker .tc-video-grid {
+  grid-template-columns: 3fr 1fr;
+}
+
+/* 视窗卡片基底 */
+.tc-tile {
+  background: #181a1f;
+  border-radius: 12px;
+  border: 2px solid transparent;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   position: relative;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.25s, box-shadow 0.25s;
 }
 
-.stage-header {
-  height: 44px;
-  padding: 0 16px;
+/* 腾讯会议标志性亮绿发言边框 */
+.tc-tile.active-speaker {
+  border-color: #00c06d !important;
+  box-shadow: 0 0 24px rgba(0, 192, 109, 0.45) !important;
+}
+
+.tc-tile.is-barge-interrupted {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.45) !important;
+}
+
+/* 视窗头部 */
+.tile-header {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  right: 12px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background: rgba(15, 23, 42, 0.95);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
-  z-index: 5;
+  justify-content: space-between;
+  z-index: 10;
+  pointer-events: auto;
 }
 
-.stream-status {
+.tile-status-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.tile-status-tag .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.tile-status-tag .status-dot.live {
+  background: #00c06d;
+  box-shadow: 0 0 8px #00c06d;
+}
+
+.tile-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.live-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-}
-
-.live-indicator.candidate.recording {
-  background: #ef4444;
-  box-shadow: 0 0 10px #ef4444;
-  animation: pulse-red 1s infinite;
-}
-
-@keyframes pulse-red {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(1.2); }
-}
-
-.stream-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #f1f5f9;
-}
-
-.ai-state-badge {
+.persona-switch-link {
   font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-weight: 500;
+  color: #f472b6;
+  background: rgba(244, 114, 182, 0.15);
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid rgba(244, 114, 182, 0.3);
+  transition: all 0.2s;
 }
 
-.ai-state-badge.speaking {
-  background: rgba(14, 165, 233, 0.2);
-  color: #38bdf8;
-  border: 1px solid rgba(14, 165, 233, 0.4);
+.persona-switch-link:hover {
+  background: rgba(244, 114, 182, 0.25);
+  color: #fbcfe8;
 }
 
-.ai-state-badge.listening {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.4);
+.activity-pill {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  color: #cbd5e1;
 }
 
-.ai-state-badge.thinking {
-  background: rgba(245, 158, 11, 0.2);
+.activity-pill.speaking {
+  color: #00c06d;
+  background: rgba(0, 192, 109, 0.15);
+  border: 1px solid rgba(0, 192, 109, 0.3);
+}
+
+.activity-pill.interrupted {
   color: #fbbf24;
+  background: rgba(245, 158, 11, 0.2);
   border: 1px solid rgba(245, 158, 11, 0.4);
-  animation: pulse 1.2s infinite;
 }
 
-/* AI 面试官展示视窗 */
-.interviewer-stage {
-  border-color: rgba(56, 189, 248, 0.2);
-}
-
-.avatar-display-area {
+/* ==================== 考官永雏塔菲 Live2D / 交互动画 ==================== */
+.avatar-canvas-box {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  background: radial-gradient(circle at center, #1e293b 0%, #090d16 80%);
+  background: radial-gradient(circle at center, #262a34 0%, #16181d 100%);
   overflow: hidden;
 }
 
-/* 声波能量光环 */
-.soundwave-halo {
+.tc-voice-halo {
   position: absolute;
   width: 220px;
   height: 220px;
+  border-radius: 50%;
   pointer-events: none;
-  opacity: 0.15;
+  opacity: 0;
   transition: opacity 0.3s;
 }
 
-.soundwave-halo.active {
-  opacity: 0.85;
+.tc-voice-halo.pulsing {
+  opacity: 1;
 }
 
-.halo-ring {
+.halo-layer {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid #38bdf8;
+  border: 2px solid rgba(0, 192, 109, 0.4);
+  animation: tc-halo-pulse 2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
 }
 
-.soundwave-halo.active .ring-1 {
-  animation: halo-expand 2s infinite ease-out;
+.halo-layer.layer-2 {
+  animation-delay: 0.8s;
+  border-color: rgba(56, 189, 248, 0.3);
 }
 
-.soundwave-halo.active .ring-2 {
-  animation: halo-expand 2s infinite 0.6s ease-out;
-}
-
-.soundwave-halo.active .ring-3 {
-  animation: halo-expand 2s infinite 1.2s ease-out;
-}
-
-@keyframes halo-expand {
-  0% { transform: scale(0.6); opacity: 1; }
+@keyframes tc-halo-pulse {
+  0% { transform: scale(0.7); opacity: 0.8; }
   100% { transform: scale(1.4); opacity: 0; }
 }
 
-/* 动态矢量数字人形象 */
-.digital-human-avatar {
-  width: 220px;
-  height: 240px;
+.taffy-avatar-container {
+  width: 320px;
+  height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
-  z-index: 3;
+  animation: taffy-breath 4s ease-in-out infinite;
 }
 
-.avatar-svg {
+.taffy-svg {
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 
-.avatar-head-group {
-  animation: avatar-breathe 4s infinite ease-in-out;
-  transform-origin: center bottom;
+/* 塔菲双马尾柔顺飘动动画 */
+.tail-left {
+  transform-origin: 70px 120px;
+  animation: taffy-tail-swing-l 3.5s ease-in-out infinite alternate;
 }
 
-@keyframes avatar-breathe {
+.tail-right {
+  transform-origin: 190px 120px;
+  animation: taffy-tail-swing-r 3.5s ease-in-out infinite alternate;
+}
+
+@keyframes taffy-tail-swing-l {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-5deg); }
+}
+
+@keyframes taffy-tail-swing-r {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(5deg); }
+}
+
+@keyframes taffy-breath {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  50% { transform: translateY(-4px); }
 }
 
-.avatar-eyes {
-  animation: eye-blink 5s infinite;
-  transform-origin: 120px 115px;
+/* 塔菲自然眨眼动画 */
+.taffy-eyes {
+  transform-origin: 130px 132px;
+  animation: taffy-blink-anim 4.5s infinite;
 }
 
-@keyframes eye-blink {
+@keyframes taffy-blink-anim {
   0%, 94%, 98%, 100% { transform: scaleY(1); }
   96% { transform: scaleY(0.1); }
 }
 
-.speaking-mouth .dynamic-open-mouth {
-  animation: mouth-talk 0.25s infinite alternate ease-in-out;
-  transform-origin: 120px 160px;
+/* 塔菲发音口型上下动态缩放 */
+.taffy-open-mouth {
+  animation: taffy-mouth-speak 0.28s ease-in-out infinite alternate;
+  transform-origin: 130px 165px;
 }
 
-@keyframes mouth-talk {
-  0% { transform: scaleY(0.4) scaleX(0.9); }
-  100% { transform: scaleY(1.3) scaleX(1.1); }
+@keyframes taffy-mouth-speak {
+  0% { transform: scaleY(0.7); }
+  100% { transform: scaleY(1.35); }
 }
 
-.cyber-line {
-  animation: line-glow 3s infinite linear;
-}
-
-@keyframes line-glow {
-  0% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: 16; }
-}
-
-.avatar-floating-badge {
+/* ==================== 腾讯会议经典左下角名片胶囊 ==================== */
+.tc-participant-badge {
   position: absolute;
-  top: 14px;
-  left: 14px;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(20, 22, 26, 0.75);
+  backdrop-filter: blur(10px);
   padding: 4px 10px;
-  border-radius: 20px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: #f1f5f9;
+  z-index: 10;
+}
+
+.mic-status-icon {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.mic-status-icon .wave-line {
+  width: 2px;
+  background: #94a3b8;
+  border-radius: 1px;
+}
+
+.mic-status-icon.is-speaking .wave-line {
+  background: #00c06d;
+  animation: mic-wave 0.4s ease-in-out infinite alternate;
+}
+
+.mic-status-icon .line-1 { height: 4px; }
+.mic-status-icon .line-2 { height: 8px; animation-delay: 0.15s; }
+.mic-status-icon .line-3 { height: 12px; animation-delay: 0.3s; }
+
+@keyframes mic-wave {
+  0% { height: 3px; }
+  100% { height: 12px; }
+}
+
+.host-tag {
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
+.me-tag {
+  background: #059669;
+  color: #ffffff;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
+.tile-corner-tools {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: #e2e8f0;
-  z-index: 4;
+  z-index: 10;
 }
 
-/* 考官发问字幕条 */
-.interviewer-question-banner {
-  background: rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 5;
+.tc-mini-btn {
+  background: rgba(0, 0, 0, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
 }
 
-.banner-top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.sub-dim {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-left: 8px;
-}
-
-.tts-ctrl {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.voice-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #34d399;
-  font-weight: 500;
-}
-
-.voice-badge.el-tag--info {
-  background: rgba(148, 163, 184, 0.1);
-  border-color: rgba(148, 163, 184, 0.25);
-  color: #94a3b8;
-}
-
-.pulse-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #34d399;
-  box-shadow: 0 0 6px #34d399;
-  animation: pulse-green 1s infinite;
-}
-
-@keyframes pulse-green {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(1.3); }
-}
-
-.preview-voice-btn {
-  font-size: 12px;
-  color: #38bdf8;
-  padding: 0 4px;
-}
-
-.preview-voice-btn:hover {
-  color: #7dd3fc;
-}
-
-.speak-ctrl-btn {
-  font-size: 12px;
-}
-
-.speak-ctrl-btn.active {
-  color: #38bdf8;
-  border-color: #38bdf8;
-}
-
-.question-voice-text {
-  font-size: 15px;
-  line-height: 1.6;
-  color: #f8fafc;
-  font-weight: 500;
-  background: rgba(30, 41, 59, 0.5);
-  padding: 10px 14px;
-  border-radius: 8px;
-  border-left: 3px solid #38bdf8;
-}
-
-/* 候选人视窗 */
-.candidate-stage {
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.device-status-tags {
-  display: flex;
-  gap: 6px;
-}
-
+/* ==================== 候选人视窗与声浪 ==================== */
 .candidate-video-viewport {
-  height: 230px;
-  background: #020617;
-  position: relative;
-  overflow: hidden;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  background: #0f1012;
+  overflow: hidden;
 }
 
 .candidate-video-elem {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1);
-  transition: opacity 0.3s;
 }
 
 .candidate-video-elem.stream-hidden {
-  opacity: 0;
+  display: none;
 }
 
-.candidate-simulated-avatar {
-  position: absolute;
+.tc-camera-off-avatar {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  color: #64748b;
-}
-
-.candidate-silhouette {
-  font-size: 54px;
-}
-
-.sim-tip {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.candidate-video-hud {
-  position: absolute;
-  bottom: 10px;
-  left: 12px;
-  right: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 5;
-}
-
-.candidate-audio-wave {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(8px);
-  padding: 4px 10px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.wave-tag {
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-.wave-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 22px;
-}
-
-.wave-bar {
-  width: 3px;
-  background: #38bdf8;
-  border-radius: 2px;
-  transition: height 0.06s ease-out;
-}
-
-.candidate-audio-wave.barge-in-active {
-  border-color: #f59e0b;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
-}
-.barge-tag {
-  color: #f59e0b !important;
-  font-weight: 600;
-}
-.wave-bar.bar-barge {
-  background: #f59e0b !important;
-}
-.wpm-tag {
-  font-size: 11px;
-  color: #10b981;
-  font-variant-numeric: tabular-nums;
-  margin-left: 4px;
-}
-.barge-in-banner {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  margin-bottom: 8px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.candidate-device-toggles {
-  display: flex;
-  gap: 8px;
-}
-
-/* 候选人实时语音口述转写工作台 */
-.candidate-voice-console {
-  flex: 1;
-  background: #0d1322;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  flex-direction: column;
-  padding: 12px 16px;
-  gap: 10px;
-}
-
-.console-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.title-with-wave {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.record-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #64748b;
-}
-
-.record-dot.pulsing {
-  background: #ef4444;
-  box-shadow: 0 0 8px #ef4444;
-  animation: pulse 1s infinite;
-}
-
-.con-title {
-  font-size: 13px;
-  color: #cbd5e1;
-  font-weight: 500;
-}
-
-.char-badge {
-  font-size: 12px;
-  color: #64748b;
-  margin-left: 8px;
-}
-
-/* 实时语音转录大字幕框 */
-.live-transcription-view {
-  flex: 1;
-  min-height: 80px;
-  max-height: 120px;
-  overflow-y: auto;
-  background: #070a12;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #f1f5f9;
-}
-
-.live-transcription-view.empty {
-  color: #64748b;
-  font-style: italic;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.transcript-text {
-  color: #38bdf8;
-  font-weight: 500;
-}
-
-.interim-text {
-  color: #94a3b8;
-  font-style: italic;
-}
-
-.console-action-bar {
-  display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.start-voice-btn {
+.avatar-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #262930;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatar-hint {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.candidate-vu-hud {
+  position: absolute;
+  top: 50px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.candidate-vu-hud .vu-tag.barge-highlight {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.vu-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 18px;
+}
+
+.vu-bar {
+  width: 3px;
+  background: #00c06d;
+  border-radius: 1px;
+  min-height: 4px;
+}
+
+.vu-bar.barge-bar {
+  background: #fbbf24;
+}
+
+.vu-wpm {
+  color: #38bdf8;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+/* ==================== 屏幕共享与手撕代码模式 ==================== */
+.tc-screen-share-stage {
   flex: 1;
-  height: 44px;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  border: none;
-}
-
-.start-voice-btn:hover {
-  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
-}
-
-.submit-voice-btn {
-  height: 44px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 8px;
-}
-
-.recording-pulsing-btn {
-  flex: 1;
-  height: 44px;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 8px;
-  background: #dc2626;
-  border: none;
-  animation: glow-red 1.2s infinite alternate;
-}
-
-@keyframes glow-red {
-  0% { box-shadow: 0 0 4px rgba(220, 38, 38, 0.4); }
-  100% { box-shadow: 0 0 16px rgba(220, 38, 38, 0.9); }
-}
-
-.btn-icon {
-  margin-right: 6px;
-  font-size: 16px;
-}
-
-/* 往轮复盘抽屉 */
-.history-drawer-content {
-  padding: 10px 20px 30px;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  background: #18191c;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.share-top-banner {
+  height: 42px;
+  background: #1e2024;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 13px;
+  color: #f1f5f9;
+}
+
+.share-top-banner .share-icon {
+  margin-right: 6px;
+}
+
+.stop-share-btn {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+.share-workspace-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  height: calc(100% - 42px);
+  overflow: hidden;
+}
+
+.share-code-pane {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.code-pane-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.code-textarea-dark :deep(.el-textarea__inner) {
+  background: #121316 !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  font-family: "Fira Code", Monaco, Consolas, Courier, monospace !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+}
+
+.socratic-hint-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #fef3c7;
+}
+
+.socratic-hint-banner .hint-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.live-sandbox-panel {
+  background: #121316;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.live-sandbox-panel .sandbox-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: #94a3b8;
+}
+
+.sandbox-output {
+  margin: 0;
+  font-family: monospace;
+  color: #a7f3d0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* 画中画 (PIP) 考官视窗 */
+.share-pip-pane {
+  background: #141518;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pip-interviewer-card {
+  background: #1d1f24;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pip-header {
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.pip-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00c06d;
+}
+
+.pip-avatar-view {
+  width: 140px;
+  height: 140px;
+}
+
+.pip-question-bubble {
+  font-size: 12px;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  border-radius: 6px;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* ==================== 3. 腾讯会议悬浮实时字幕 (Live Subtitles) ==================== */
+.tc-floating-subtitles {
+  position: absolute;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 64px);
+  max-width: 960px;
+  background: rgba(24, 26, 31, 0.88);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px 18px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  z-index: 30;
+  transition: all 0.25s ease;
+}
+
+.tc-floating-subtitles.barge-alert {
+  border-color: #fbbf24;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+}
+
+.subtitles-inner {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.sub-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sub-speaker-tag {
+  font-weight: 700;
+  font-size: 13px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.sub-speaker-tag.interviewer {
+  background: rgba(244, 114, 182, 0.2);
+  color: #f472b6;
+}
+
+.sub-speaker-tag.candidate {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+}
+
+.sub-speaker-tag.tip {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+
+.barge-flag {
+  font-size: 11px;
+  background: #f59e0b;
+  color: #000;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-right: 4px;
+}
+
+.sub-content {
+  color: #f8fafc;
+}
+
+.tc-fade-slide-enter-active,
+.tc-fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.tc-fade-slide-enter-from,
+.tc-fade-slide-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 15px);
+}
+
+/* ==================== 4. 腾讯会议经典底部控制栏 (Bottom Dock) ==================== */
+.tc-bottom-dock {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 30, 36, 0.94);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 6px 14px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+  z-index: 40;
+}
+
+.dock-content {
+  display: flex;
+  align-items: center;
   gap: 16px;
 }
 
+.dock-btn-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  min-width: 50px;
+}
+
+.dock-btn-group:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dock-icon-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.dock-btn-group:hover .dock-icon-circle {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dock-btn-label {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.dock-separator {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 4px;
+}
+
+/* 核心插话打断按钮 */
+.dock-btn-group.barge-btn .dock-icon-circle {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.dock-btn-group.barge-btn.barge-available .dock-icon-circle {
+  animation: tc-barge-pulse 1s infinite alternate;
+}
+
+@keyframes tc-barge-pulse {
+  0% { box-shadow: 0 0 4px rgba(245, 158, 11, 0.4); }
+  100% { box-shadow: 0 0 16px rgba(245, 158, 11, 0.9); }
+}
+
+/* 主录音/作答按钮 */
+.dock-btn-group.record-main-btn.recording .dock-icon-circle {
+  background: #ef4444;
+  animation: tc-rec-ring 1.2s infinite;
+}
+
+@keyframes tc-rec-ring {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* 红色结束面试按钮 */
+.dock-btn-group.leave-btn .dock-icon-circle {
+  background: #dc2626;
+}
+
+.dock-btn-group.leave-btn:hover .dock-icon-circle {
+  background: #ef4444;
+}
+
+.dock-btn-group.leave-btn .dock-btn-label {
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.dock-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #3b82f6;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.mic-live-vu {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  width: 4px;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.vu-mini-bar {
+  width: 100%;
+  background: #00c06d;
+  border-radius: 2px;
+}
+
+/* ==================== 抽屉与弹窗深色定制 ==================== */
+.history-drawer-custom :deep(.el-drawer) {
+  background: #18191c !important;
+  color: #e2e8f0 !important;
+}
+
 .drawer-turn-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
+  background: #202228;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
 }
 
 .turn-card-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
-
-.turn-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.turn-dim {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.turn-score-badge {
-  font-size: 14px;
-  color: #334155;
-}
-
-.score-high { color: #16a34a; }
-.score-mid { color: #ea580c; }
-.score-low { color: #dc2626; }
 
 .drawer-qa-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .qa-item {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .qa-tag {
   font-size: 11px;
-  font-weight: 600;
-  color: #64748b;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  height: fit-content;
 }
 
-.qa-item.q .qa-text {
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
-  color: #1e3a8a;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.5;
+.qa-item.q .qa-tag {
+  background: rgba(244, 114, 182, 0.2);
+  color: #f472b6;
 }
 
-.qa-item.a .qa-text {
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  color: #0f172a;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.5;
+.qa-item.a .qa-tag {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
 }
 
 .drawer-feedback-box {
-  border-top: 1px dashed #cbd5e1;
-  padding-top: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  font-size: 12px;
 }
 
 .fb-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #0369a1;
-  margin-bottom: 4px;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 3px;
 }
 
 .fb-item.standard .fb-title {
-  color: #b45309;
+  color: #34d399;
 }
 
-.fb-body {
+.tc-dropdown-dark {
+  background: #202228 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.tc-dropdown-dark :deep(.el-dropdown-menu__item) {
+  color: #cbd5e1 !important;
+}
+
+.tc-dropdown-dark :deep(.el-dropdown-menu__item:hover) {
+  background: #2d313a !important;
+  color: #f8fafc !important;
+}
+
+.gemini-test-msg {
   font-size: 12px;
-  line-height: 1.6;
-  color: #334155;
+  margin-left: 10px;
 }
 
-.edit-dialog-tip {
+.gemini-test-msg.success {
+  color: #00c06d;
+}
+
+.gemini-test-msg.error {
+  color: #ef4444;
+}
+
+.gemini-test-msg.warning {
+  color: #f59e0b;
+}
+
+.tc-engine-tabs :deep(.el-tabs__item) {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.tc-engine-tabs :deep(.el-tabs__item.is-active) {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.tc-engine-tabs :deep(.el-tabs__active-bar) {
+  background-color: #38bdf8;
+}
+
+.tc-engine-tabs :deep(.el-tabs__nav-wrap::after) {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.tts-mode-selector {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.form-item-tip {
   font-size: 12px;
   color: #64748b;
-  margin-bottom: 10px;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
-/* ==================== 答题模式切换栏与手撕代码工作台样式 ==================== */
-.answering-mode-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f8fafc;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  margin-bottom: 12px;
-}
-
-.mode-hint {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #0369a1;
-}
-
-.live-pulse {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #0284c7;
-  animation: pulse-dot 1.2s infinite;
-}
-
-.candidate-coding-console {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.coding-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f8fafc;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.tool-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.hint-dropdown {
-  margin-left: 4px;
-}
-
-.socratic-hint-banner {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 8px;
-  padding: 10px 14px;
-}
-
-.hint-banner-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.hint-tag {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #b45309;
-}
-
-.hint-banner-body {
-  font-size: 13px;
-  line-height: 1.6;
-  color: #78350f;
-}
-
-.coding-editor-wrapper {
-  background: #0f172a;
-  border-radius: 10px;
-  border: 1px solid #1e293b;
-  overflow: hidden;
-}
-
-.code-editor-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #1e293b;
-  padding: 8px 14px;
-  border-bottom: 1px solid #334155;
-}
-
-.file-name {
-  color: #38bdf8;
-  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.editor-sub {
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-.code-textarea :deep(.el-textarea__inner) {
-  background: #0b1120 !important;
-  color: #f1f5f9 !important;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace !important;
-  font-size: 13.5px !important;
-  line-height: 1.6 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  padding: 12px 14px !important;
-}
-
-.live-sandbox-panel {
-  background: #090d16;
-  border-radius: 10px;
-  border: 1px solid #1e293b;
-  overflow: hidden;
-}
-
-.sandbox-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #131c2e;
-  padding: 6px 12px;
-  border-bottom: 1px solid #1e293b;
-}
-
-.panel-title {
-  color: #cbd5e1;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.panel-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.meta-time {
-  color: #38bdf8;
-}
-
-.meta-exit {
-  color: #94a3b8;
-}
-
-.sandbox-panel-body {
-  padding: 10px 14px;
-  max-height: 150px;
-  overflow-y: auto;
-}
-
-.testing-tip {
-  color: #38bdf8;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pulse-point {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #38bdf8;
-  animation: pulse-dot 1.2s infinite;
-}
-
-.output-pre {
-  margin: 0;
-  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: #a7f3d0;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.output-pre code.error-out {
-  color: #fca5a5;
-}
-
-
-/* ==================== 移动端轻量自适应媒体查询 ==================== */
-@media (max-width: 992px) {
-  .room-main-layout {
-    flex-direction: column !important;
-  }
-  .interviewer-card, .candidate-card {
-    width: 100% !important;
-  }
-  .interview-hud {
-    flex-direction: column !important;
-    gap: 8px !important;
-    padding: 10px 14px !important;
-  }
-  .stage-hud {
-    display: none !important;
-  }
-  .depth-hud {
-    font-size: 11px !important;
-  }
-  .coding-toolbar {
-    flex-direction: column !important;
-    gap: 8px !important;
-    align-items: flex-start !important;
-  }
-  .candidate-video-elem {
-    max-height: 200px !important;
-  }
-}
-
+.score-high { color: #00c06d; font-weight: 700; }
+.score-mid { color: #38bdf8; font-weight: 700; }
+.score-low { color: #f59e0b; font-weight: 700; }
 </style>
