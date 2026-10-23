@@ -1,4 +1,4 @@
-# 项目智能体工作日志与操作规范手册 (AGENT_WORKLOG.md)
+﻿# 项目智能体工作日志与操作规范手册 (AGENT_WORKLOG.md)
 
 > **【强制执行铁律】**
 > **所有接手本项目的 AI 智能体 / 工程师，在开展任何代码开发、服务排查、部署或调试工作前，必须无条件先阅读本文件以及 `share-parent/docs/AGENT_HANDOFF.md`！**
@@ -208,6 +208,7 @@
 
 | **89** | **面试间语音识别在自动重连时触发 `onstart` 死循环弹窗与大厅考官风格缺失导致纯黑屏塌陷治理** | 1. Web Speech API 在浏览器静默检测或分段触发 `onend` 时自动调用 `recognition.start()`，由于原代码将 `ElMessage.success('麦克风已开启')` 绑定在 `recognition.onstart` 回调内，导致每次静默重启都会重复弹出提示，短时间内几十条绿色弹窗刷屏堆叠；<br>2. 面试大厅 `index.vue` 风格卡片组中遗漏了永雏塔菲选项，默认表单硬编码为 `p7_architect`，发起的场次强制写入阿里P7；<br>3. `room.vue` 早期编译包覆盖了考官风格且备用 SVG/图片容器在 Flex 布局未约束最小宽高，导致容器高度坍塌为 0 呈现纯黑死屏。 | 1. 根治弹窗死循环：将开启提示抽离至显式触发入口（`startSpeechRecording`），注入 `hasNotifiedMicOn` 防重复标志并全局配置 `grouping: true`，彻底阻断内部重连风暴；<br>2. 补齐大厅形象：在 `index.vue` 的 `styleOptions` 首位注入「🎀 永雏塔菲 (二次元AI主考官)」并将默认考官风格设为 `taffy`；<br>3. 根绝黑屏坍塌：为 `.avatar-canvas-box`、`.taffy-live-container` 与 `.taffy-sprite-img` 设定 `min-height: 320px` 与柔和舞台背景光晕，立绘引入 `@error` 自愈兜底，多端测试均 100% 正常显现；<br>4. 本地打包最新前端静态 Bundle 并通过 `workbench upload` 零构建热更新云端静态目录，执行 Nginx 平滑重载。 |
 | **90** | **Vue3 <script setup> 响应式变量在 watch/computed 声明后定义触发 TDZ 时序死区致使考场彻底白屏** | 在重构考场 UI 过程中，watch(isInterviewerSpeaking) 与 currentTaffySprite 放置在 script 靠前位置，而 const isInterviewerSpeaking = ref(false) 等状态定义在第 1220+ 行。setup 执行时访问未初始化变量，抛出 ReferenceError: Cannot access before initialization，导致 Vue 组件挂载崩溃，进入考场呈现全白屏。 | 1. 严格规范 <script setup> 声明时序：将所有音视频/考官状态、ASR/打断标志及 showNotice 全部前置至顶部；<br>2. 将所有 watch 监听器统一下移至 onMounted 之前；<br>3. 本地编译验证后同步 ECS 并重载 Nginx，白屏彻底消除，考场恢复秒级连线。 |
+| **91** | **永雏塔菲虚拟考官口型张合动画静止、单 <img> 切换丢帧卡顿与浏览器自动播放策略拦截治理** | 1. 早期 taffy_speak_full.png 与 taffy_speak_half.png 的嘴部像素差异过微，远距离视觉近似闭嘴静止；<br>2. 采用单 <img> 动态更新 :src 时，在 115ms 口型切换周期下触发频繁的图像解码与重绘丢帧；<br>3. 现代浏览器（Chrome/Edge）严格限制无交互背景下的音频自动播放，导致考场初次挂载时 window.speechSynthesis.speak() 被挂起、utterance.onstart 不触发，虚拟考官陷入伪待机死锁；<br>4. TTS 降级逻辑中反复弹出未配置 Key 提示，造成弹窗堆叠。 | 1. 像素重塑与高清抗锯齿：重绘 taffy_speak_half（可爱圆 o口型）与 taffy_speak_full（二次元开怀D口型，含门牙与粉舌），形成鲜明强烈的动漫张合反差；<br>2. GPU 多层纹理堆叠：采用 5 层 v-show 预加载常驻 DOM，由浏览器合成器线程实现 0 延时、零重绘、零闪烁的硬件级口型即时切换；<br>3. 说话动画多维律动：引入 .taffy-speaking-cadence（0.85s 智能语调点头/侧倾摆动）与底部浮动声纹指示条（含绿色跳动均衡器与一键交互朗读提示，无缝解除浏览器 Autoplay 限制）；<br>4. 视觉即时激活与静默降级：发音触发时同步拉起口型与声波，剔除无意义通知弹窗，全流程流畅自然。 |
 ---
 
 ## 五、每次工作执行清单 (Standard Operating Procedure)
@@ -264,4 +265,5 @@ flowchart TD
 - **网关 Actuator 监控端点公网暴露治理**：在 Nacos `share-gateway-dev.yml` 中收敛 Actuator 暴露范围，移除公网白名单放行，切断外部直接探测系统内核指标隐患。
 - **Agent 推演看板 SSE 流内存泄漏与串流治理**：`api/class.js` 支持 `signal` 取消信号，`AgentReasoningHUD.vue` 引入 `AbortController` 并在切换角色与 `onBeforeUnmount` 销毁时主动中断流，杜绝后台游离请求与双流交织。
 - **支付倒计时组件响应式 Timer 死循环治理**：`Countdown.vue` 将 `timer` 移出 `reactive` 对象并移除 `watchEffect` 自身依赖读写，杜绝 Vue 响应式调度抖动。
+
 

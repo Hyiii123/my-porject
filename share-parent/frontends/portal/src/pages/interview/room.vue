@@ -155,12 +155,65 @@
               ]"
             >
               <div class="taffy-model-wrapper">
+                <!-- 预加载所有状态立绘，v-show实现零闪烁、零延迟GPU硬件切换 -->
                 <img
-                  :src="currentTaffySprite"
-                  alt="永雏塔菲"
+                  v-show="isBargeInActive"
+                  src="/avatar/taffy/taffy_active.png"
+                  alt="永雏塔菲-抢麦打断"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
+                <img
+                  v-show="!isBargeInActive && submittingAnswer"
+                  src="/avatar/taffy/taffy_cheer.png"
+                  alt="永雏塔菲-赞许鼓励"
+                  class="taffy-sprite-img"
+                  @error="handleTaffyImgError"
+                />
+                <img
+                  v-show="!isBargeInActive && !submittingAnswer && isInterviewerSpeaking && taffyMouthState === 2"
+                  src="/avatar/taffy/taffy_speak_full.png"
+                  alt="永雏塔菲-大开口发音"
+                  class="taffy-sprite-img"
+                  @error="handleTaffyImgError"
+                />
+                <img
+                  v-show="!isBargeInActive && !submittingAnswer && isInterviewerSpeaking && taffyMouthState === 1"
+                  src="/avatar/taffy/taffy_speak_half.png"
+                  alt="永雏塔菲-半张嘴发音"
+                  class="taffy-sprite-img"
+                  @error="handleTaffyImgError"
+                />
+                <img
+                  v-show="!isBargeInActive && !submittingAnswer && (!isInterviewerSpeaking || taffyMouthState === 0)"
+                  src="/avatar/taffy/taffy_idle.png"
+                  alt="永雏塔菲-静止"
+                  class="taffy-sprite-img"
+                  @error="handleTaffyImgError"
+                />
+              </div>
+
+              <!-- 悬浮发音提示与均衡器指示条 -->
+              <div
+                v-if="isInterviewerSpeaking"
+                class="taffy-speech-banner is-active"
+                @click="toggleTtsCurrentQuestion"
+                title="点击暂停考官朗读"
+              >
+                <span class="banner-pulse-dot"></span>
+                <span class="banner-text">🗣️ 永雏塔菲正在发音中 (点击可暂停)</span>
+                <div class="speaking-eq-bars">
+                  <span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+              <div
+                v-else-if="!isCompleted && currentTurn?.question"
+                class="taffy-speech-banner is-idle"
+                @click="toggleTtsCurrentQuestion"
+                title="点击朗读本题"
+              >
+                <span class="banner-icon">🔊</span>
+                <span class="banner-text">点击让永雏塔菲朗读本题</span>
               </div>
             </div>
 
@@ -875,7 +928,7 @@ let taffyMouthInterval = null
 
 const startTaffyLipSync = () => {
   stopTaffyLipSync()
-  const sequence = [1, 2, 1, 0, 2, 1, 0, 1]
+  const sequence = [1, 2, 2, 1, 0, 1, 2, 1, 2, 0]
   let idx = 0
   taffyMouthInterval = setInterval(() => {
     if (!isInterviewerSpeaking.value) {
@@ -885,7 +938,7 @@ const startTaffyLipSync = () => {
     }
     taffyMouthState.value = sequence[idx % sequence.length]
     idx++
-  }, 130)
+  }, 115)
 }
 
 const stopTaffyLipSync = () => {
@@ -1481,6 +1534,8 @@ const ttsVoiceLabel = ref('自然拟人语音 (载入中...)')
 const isXiaoxiaoReady = ref(false)
 let currentXiaoxiaoVoice = null
 
+let speechDurationTimer = null
+
 const stopAllTts = () => {
   if (currentAudioAbortController) {
     try {
@@ -1498,7 +1553,12 @@ const stopAllTts = () => {
   if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel()
   }
+  if (speechDurationTimer) {
+    clearTimeout(speechDurationTimer)
+    speechDurationTimer = null
+  }
   isInterviewerSpeaking.value = false
+  stopTaffyLipSync()
   if (ttsHeartbeatInterval) {
     clearInterval(ttsHeartbeatInterval)
     ttsHeartbeatInterval = null
@@ -1570,6 +1630,20 @@ const speakBrowserSpeech = (text) => {
     window.speechSynthesis.cancel()
   }
 
+  // 立即激活说话视觉状态与口型动效，消除浏览器语音硬件初始化延迟
+  isInterviewerSpeaking.value = true
+  startTaffyLipSync()
+
+  // 估算朗读安全兜底超时（防止浏览器TTS后台挂起或被静音拦截后永久停留说话状态）
+  if (speechDurationTimer) clearTimeout(speechDurationTimer)
+  const estimatedDuration = Math.min(35000, Math.max(3500, text.length * 280))
+  speechDurationTimer = setTimeout(() => {
+    if (isInterviewerSpeaking.value) {
+      isInterviewerSpeaking.value = false
+      stopTaffyLipSync()
+    }
+  }, estimatedDuration)
+
   const utterance = new SpeechSynthesisUtterance(text)
   if (currentXiaoxiaoVoice) {
     utterance.voice = currentXiaoxiaoVoice
@@ -1580,6 +1654,7 @@ const speakBrowserSpeech = (text) => {
 
   utterance.onstart = () => {
     isInterviewerSpeaking.value = true
+    startTaffyLipSync()
     if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
     ttsHeartbeatInterval = setInterval(() => {
       if (window.speechSynthesis && window.speechSynthesis.speaking) {
@@ -1593,17 +1668,25 @@ const speakBrowserSpeech = (text) => {
 
   utterance.onend = () => {
     isInterviewerSpeaking.value = false
+    stopTaffyLipSync()
+    if (speechDurationTimer) clearTimeout(speechDurationTimer)
     if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
   }
 
   utterance.onerror = (e) => {
     console.warn('TTS 发音中断/错误:', e)
     isInterviewerSpeaking.value = false
+    stopTaffyLipSync()
+    if (speechDurationTimer) clearTimeout(speechDurationTimer)
     if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
   }
 
   currentUtterance = utterance
-  window.speechSynthesis.speak(utterance)
+  try {
+    window.speechSynthesis.speak(utterance)
+  } catch (err) {
+    console.warn('speechSynthesis 调用异常:', err)
+  }
 }
 
 const speakWithFishAudio = async (text) => {
@@ -1611,7 +1694,7 @@ const speakWithFishAudio = async (text) => {
   if (!text || !text.trim()) return
 
   if (!ttsConfig.fishApiKey || !ttsConfig.fishApiKey.trim()) {
-    ElMessage.info('💡 未配置 Fish Audio Key，自动回退至浏览器二次元少女音')
+    // 静默回退至浏览器二次元少女音，避免弹窗打扰
     speakBrowserSpeech(text)
     return
   }
@@ -2422,9 +2505,93 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-/* 说话时：头部语调微点头动效 */
+/* 说话时：头部语调微点头动效与律动 */
 .taffy-live-container.is-speaking .taffy-model-wrapper {
-  animation: taffy-speaking-cadence 0.35s ease-in-out infinite alternate !important;
+  animation: taffy-speaking-cadence 0.85s ease-in-out infinite !important;
+}
+
+@keyframes taffy-speaking-cadence {
+  0% { transform: translateY(0) rotate(0deg) scale(1); }
+  25% { transform: translateY(-5px) rotate(-1.2deg) scale(1.008); }
+  50% { transform: translateY(-2px) rotate(0.8deg) scale(1.004); }
+  70% { transform: translateY(-6px) rotate(-0.6deg) scale(1.012); }
+  100% { transform: translateY(0) rotate(0deg) scale(1); }
+}
+
+.taffy-speech-banner {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: all 0.25s ease;
+  user-select: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.taffy-speech-banner.is-active {
+  background: rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.6);
+  color: #34d399;
+}
+
+.taffy-speech-banner.is-idle {
+  background: rgba(255, 107, 129, 0.22);
+  border: 1px solid rgba(255, 107, 129, 0.55);
+  color: #ff9fb2;
+}
+
+.taffy-speech-banner:hover {
+  transform: translateX(-50%) translateY(-2px) scale(1.03);
+  filter: brightness(1.15);
+}
+
+.banner-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: banner-dot-pulse 1s ease-in-out infinite;
+}
+
+@keyframes banner-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.speaking-eq-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2.5px;
+  height: 14px;
+  padding-left: 4px;
+}
+
+.speaking-eq-bars span {
+  width: 3px;
+  border-radius: 1.5px;
+  background: #34d399;
+  animation: eq-bar-dance 0.7s ease-in-out infinite alternate;
+}
+
+.speaking-eq-bars span:nth-child(1) { height: 60%; animation-delay: 0.1s; }
+.speaking-eq-bars span:nth-child(2) { height: 100%; animation-delay: 0.25s; }
+.speaking-eq-bars span:nth-child(3) { height: 40%; animation-delay: 0.4s; }
+.speaking-eq-bars span:nth-child(4) { height: 85%; animation-delay: 0.18s; }
+
+@keyframes eq-bar-dance {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1.0); }
 }
 
 /* 倾听时：侧头倾听微动 */
@@ -2442,10 +2609,7 @@ onBeforeUnmount(() => {
   50% { transform: translateY(-5px) scale(1.008); }
 }
 
-@keyframes taffy-speaking-cadence {
-  0% { transform: translateY(0) rotate(0deg); }
-  100% { transform: translateY(-4px) rotate(-1deg); }
-}
+
 
 @keyframes taffy-attentive-nod {
   0%, 100% { transform: rotate(0deg) translateY(0); }
