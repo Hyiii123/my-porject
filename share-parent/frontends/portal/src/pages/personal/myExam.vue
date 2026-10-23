@@ -1,10 +1,15 @@
-<!-- 我的考试 -->
+<!-- 我的考试与错题本 -->
 <template>
   <div class="myExamWrapper">
     <div class="personalCards" v-if="myExamData != null">
-      <CardsTitle class="marg-bt-20" title="我的考试" />
+      <CardsTitle class="marg-bt-20" title="我的考试与错题本" />
       <div v-if="count == 0" class="nodata">
-        <Empty ></Empty>
+        <Empty desc="暂无考试记录与错题档案～"></Empty>
+        <div class="exam-empty-actions" style="display: flex; justify-content: center; gap: 12px; margin-top: 20px;">
+          <el-button type="primary" round @click="$router.push('/personal/main/myClass')">进入我的课程</el-button>
+          <el-button round @click="$router.push('/classList/index')">选课中心</el-button>
+          <el-button round @click="$router.push('/interview')">AI 模拟面试</el-button>
+        </div>
       </div>
       <ExamTable v-if="count > 0" :data="myExamData"></ExamTable>
       <div class="pageination" v-if="count > 0">
