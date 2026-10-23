@@ -1,4 +1,4 @@
-﻿# 项目智能体工作日志与操作规范手册 (AGENT_WORKLOG.md)
+# 项目智能体工作日志与操作规范手册 (AGENT_WORKLOG.md)
 
 > **【强制执行铁律】**
 > **所有接手本项目的 AI 智能体 / 工程师，在开展任何代码开发、服务排查、部署或调试工作前，必须无条件先阅读本文件以及 `share-parent/docs/AGENT_HANDOFF.md`！**
@@ -267,3 +267,26 @@ flowchart TD
 - **支付倒计时组件响应式 Timer 死循环治理**：`Countdown.vue` 将 `timer` 移出 `reactive` 对象并移除 `watchEffect` 自身依赖读写，杜绝 Vue 响应式调度抖动。
 
 
+
+### [2026-10-23] 全站高危安全隐患防御性加固与全链路闭环 (Security Defense-in-Depth Delivery)
+- **SQL 注入与数据权限绕过全链路根治**：
+  - 修复 DataScopeAspect.java 切面入参硬编码缺陷，遍历所有请求参数并深度清空重写 params.dataScope，根绝参数投毒；
+  - Nacos 统一全量剔除全部微服务 JDBC 连接串中的 llowMultiQueries=true，切断堆叠注入执行链路；
+  - PageDomain.java 引入严格正反序白名单（sc/desc），SqlUtil.java 引入高危注入函数与注释符绕过防御正则；
+  - EducationCourseDocumentProvider.java 强制增加 limit 上下限约束（[1, 100]）。
+- **代码沙箱命令注入与动态逃逸防御 (Sandbox RCE)**：
+  - EducationPortalController.java 为 /courses/sandbox/run 补充 @RequiresLogin 强制鉴权拦截；
+  - SandboxSecurityFilter.java 深度扩展 Python 动态反射逃逸（__subclasses__, __builtins__, __globals__ 等）与 Node.js 进程派生（child_process, process. 等）专属安全词法拦截；
+  - JavaSandboxRunner.java 在派生进程时强制执行 pb.environment().clear() 抹除宿主机环境变量，并针对 Python 传入 -I -B -s 隔离参数，彻底消除沙箱提权通道。
+- **JWT 签名弱密钥治理与平滑轮换**：
+  - TokenConstants.java 将若依框架默认 26 位弱密钥替换为 512 位高熵密码学安全密钥；
+  - JwtUtils.java 实现双秘钥自适应验签（优先新高熵密钥，兜底兼容旧密钥），确保线上运行会话零断连平滑过渡。
+- **Quartz 定时任务反射注入封堵**：
+  - Constants.java 将任务白名单 JOB_WHITELIST_STR 严格收敛至专有任务包 com.share.job.task，扩展高危反序列化与探测协议黑名单；
+  - JobInvokeUtil.java 在反射执行前引入强制运行时安全门禁断言。
+- **SVG 上传致存储型 XSS 漏洞阻断**：
+  - MimeTypeUtils.java 默认上传白名单中彻底剔除具备 XML 脚本执行能力的 svg 格式及淘汰的 swf/lv 格式，文件服务实测拒绝 SVG 恶意脚本上传。
+- **网关白名单通配鉴权穿透修复**：
+  - 从 Nacos 生产配置及 share-gateway-dev.yml 的 ignore.whites 中彻底删除 /ss/** 全局白名单放行规则，阻断未授权端点穿透。
+- **外部客户端 SSRF 攻击防御**：
+  - CustomerAiClient.java 与 ThirdPartyAiClient.java 引入全量私有 IP、回环地址及云服务元数据（100.100.200.200、169.254.169.254）深度解析阻断器。

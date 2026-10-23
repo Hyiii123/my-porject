@@ -395,8 +395,42 @@ public class CustomerAiClient {
         return normalized.isBlank() ? null : normalized;
     }
 
+    private static boolean isPrivateOrInternalHost(String host) {
+        if (host == null || host.isBlank()) {
+            return true;
+        }
+        String lower = host.trim().toLowerCase();
+        if ("localhost".equals(lower) || lower.endsWith(".local") || lower.endsWith(".internal")) {
+            return true;
+        }
+        if ("100.100.200.200".equals(lower) || "169.254.169.254".equals(lower)) {
+            return true;
+        }
+        try {
+            java.net.InetAddress addr = java.net.InetAddress.getByName(lower);
+            if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()) {
+                return true;
+            }
+            byte[] bytes = addr.getAddress();
+            if (bytes.length == 4) {
+                int b0 = bytes[0] & 0xFF;
+                int b1 = bytes[1] & 0xFF;
+                if (b0 == 10 || (b0 == 172 && (b1 >= 16 && b1 <= 31)) || (b0 == 192 && b1 == 168) || (b0 == 127) || (b0 == 169 && b1 == 254) || (b0 == 100 && (b1 >= 64 && b1 <= 127))) {
+                    return true;
+                }
+            }
+        } catch (Exception ex) {
+            return true;
+        }
+        return false;
+    }
+
     private boolean isHostAllowed(String host) {
         if (host == null || host.isBlank()) {
+            return false;
+        }
+        if (isPrivateOrInternalHost(host)) {
+            log.warn("[SSRF Defense] 拦截非法内网或元数据请求: {}", host);
             return false;
         }
         String configured = properties.getAllowedHosts();

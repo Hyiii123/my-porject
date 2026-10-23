@@ -196,7 +196,19 @@ public class JavaSandboxRunner {
     private CodeExecutionResult executeScriptSafely(String binary, String code, long tStart) {
         Process proc = null;
         try {
-            ProcessBuilder pb = new ProcessBuilder(binary, "-c", code);
+            List<String> command = new ArrayList<>();
+            if ("python".equals(binary) || "py".equals(binary)) {
+                command.addAll(List.of("python3", "-I", "-B", "-s", "-c", code));
+            } else if ("node".equals(binary) || "javascript".equals(binary)) {
+                command.addAll(List.of("node", "--disallow-code-generation-from-strings", "-e", code));
+            } else {
+                return CodeExecutionResult.compileError("不支持的脚本解释器: " + binary);
+            }
+
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.environment().clear();
+            pb.environment().put("PATH", "/usr/local/bin:/usr/bin:/bin");
+            pb.environment().put("LANG", "C.UTF-8");
             pb.redirectErrorStream(false);
             proc = pb.start();
             boolean finished = proc.waitFor(3000, TimeUnit.MILLISECONDS);

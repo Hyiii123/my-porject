@@ -17,18 +17,18 @@ public class MimeTypeUtils
 
     public static final String IMAGE_GIF = "image/gif";
 
-    public static final String[] IMAGE_EXTENSION = { "bmp", "gif", "jpg", "jpeg", "png", "webp", "svg" };
+    public static final String[] IMAGE_EXTENSION = { "bmp", "gif", "jpg", "jpeg", "png", "webp" };
 
-    public static final String[] FLASH_EXTENSION = { "swf", "flv" };
+    public static final String[] FLASH_EXTENSION = {};
 
-    public static final String[] MEDIA_EXTENSION = { "swf", "flv", "mp3", "wav", "wma", "wmv", "mid", "avi", "mpg",
+    public static final String[] MEDIA_EXTENSION = { "mp3", "wav", "wma", "wmv", "mid", "avi", "mpg",
             "asf", "rm", "rmvb" };
 
     public static final String[] VIDEO_EXTENSION = { "mp4", "avi", "rmvb" };
 
     public static final String[] DEFAULT_ALLOWED_EXTENSION = {
-            // 图片
-            "bmp", "gif", "jpg", "jpeg", "png", "webp", "svg",
+            // 图片 (剔除含脚本注入风险的 svg 格式，防御存储型 XSS)
+            "bmp", "gif", "jpg", "jpeg", "png", "webp",
             // word excel powerpoint
             "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt",
             // 压缩文件

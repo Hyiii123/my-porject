@@ -23,6 +23,15 @@ public class JobInvokeUtil
     public static void invokeMethod(SysJob sysJob) throws Exception
     {
         String invokeTarget = sysJob.getInvokeTarget();
+        if (StringUtils.isEmpty(invokeTarget)) {
+            throw new IllegalArgumentException("定时任务 invokeTarget 不能为空");
+        }
+        if (!ScheduleUtils.whiteList(invokeTarget)) {
+            throw new SecurityException("定时任务 invokeTarget 不在安全白名单内: " + invokeTarget);
+        }
+        if (StringUtils.containsAnyIgnoreCase(invokeTarget, com.share.common.core.constant.Constants.JOB_ERROR_STR)) {
+            throw new SecurityException("定时任务 invokeTarget 包含非法违规字符: " + invokeTarget);
+        }
         String beanName = getBeanName(invokeTarget);
         String methodName = getMethodName(invokeTarget);
         List<Object[]> methodParams = getMethodParams(invokeTarget);

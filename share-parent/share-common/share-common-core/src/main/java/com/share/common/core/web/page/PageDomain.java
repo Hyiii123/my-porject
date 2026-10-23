@@ -72,16 +72,20 @@ public class PageDomain
     {
         if (StringUtils.isNotEmpty(isAsc))
         {
-            // 兼容前端排序类型
-            if ("ascending".equals(isAsc))
+            String lower = isAsc.trim().toLowerCase();
+            // 兼容前端排序类型并实施严格白名单校验
+            if ("desc".equals(lower) || "descending".equals(lower))
             {
-                isAsc = "asc";
+                this.isAsc = "desc";
             }
-            else if ("descending".equals(isAsc))
+            else
             {
-                isAsc = "desc";
+                this.isAsc = "asc";
             }
-            this.isAsc = isAsc;
+        }
+        else
+        {
+            this.isAsc = "asc";
         }
     }
 

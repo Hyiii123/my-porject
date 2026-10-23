@@ -59,7 +59,7 @@ public class EducationCourseDocumentProvider implements ICourseDocumentProvider 
                             .or().like(EduCourse::getTargetRole, query)
                             .or().like(EduCourse::getSkills, query))
                     .orderByDesc(EduCourse::getLearnerCount)
-                    .last("limit " + limit));
+                    .last("limit " + Math.min(Math.max(limit, 1), 100)));
 
             return candidates.stream().map(c -> {
                 Map<String, Object> map = new LinkedHashMap<>();

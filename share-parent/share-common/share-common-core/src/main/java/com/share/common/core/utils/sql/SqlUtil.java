@@ -42,11 +42,22 @@ public class SqlUtil
     }
 
     /**
+     * 危险 SQL 关键字与注释符号正则（防御大小写混合、注释符、换行符及敏感内置函数逃逸）
+     */
+    private static final java.util.regex.Pattern DANGEROUS_SQL_PATTERN = java.util.regex.Pattern.compile(
+            "(?i)\\b(and|or|exec|execute|insert|select|delete|update|drop|truncate|declare|grant|revoke|union|sleep|benchmark)\\b|[;'\"]|/\\*|\\*/|--|#"
+    );
+
+    /**
      * 验证 order by 语法是否符合规范
      */
     public static boolean isValidOrderBySql(String value)
     {
-        return value.matches(SQL_PATTERN);
+        if (StringUtils.isEmpty(value))
+        {
+            return true;
+        }
+        return value.matches(SQL_PATTERN) && !DANGEROUS_SQL_PATTERN.matcher(value).find();
     }
 
     /**
@@ -58,13 +69,9 @@ public class SqlUtil
         {
             return;
         }
-        String[] sqlKeywords = StringUtils.split(SQL_REGEX, "\\|");
-        for (String sqlKeyword : sqlKeywords)
+        if (DANGEROUS_SQL_PATTERN.matcher(value).find())
         {
-            if (StringUtils.indexOfIgnoreCase(value, sqlKeyword) > -1)
-            {
-                throw new UtilException("参数存在SQL注入风险");
-            }
+            throw new UtilException("参数存在SQL注入风险");
         }
     }
 }

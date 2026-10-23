@@ -16,6 +16,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 public class JwtUtils
 {
     public static String secret = TokenConstants.SECRET;
+    public static String legacySecret = TokenConstants.LEGACY_SECRET;
 
     /**
      * 从数据声明生成令牌
@@ -41,12 +42,16 @@ public class JwtUtils
         {
             return null;
         }
-        try
-        {
+        try {
             return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
+            if (legacySecret != null && !legacySecret.isEmpty()) {
+                try {
+                    return Jwts.parser().setSigningKey(legacySecret).parseClaimsJws(token).getBody();
+                } catch (Exception ignored) {
+                    return null;
+                }
+            }
             return null;
         }
     }

@@ -20,6 +20,7 @@ public class TokenConstants
     /**
      * 令牌秘钥
      */
-    public final static String SECRET = "abcdefghijklmnopqrstuvwxyz";
+    public final static String SECRET = "zhiwen_study_companion_jwt_secret_token_key_2026_secure_hs512_random_entropy_x9k2p8m4q";
+    public final static String LEGACY_SECRET = "abcdefghijklmnopqrstuvwxyz";
 
 }

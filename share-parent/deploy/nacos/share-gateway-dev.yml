@@ -159,7 +159,6 @@ security:
       - /ls/questions/*
       - /ls/notes/*
       - /ls/replies/page
-      - /ss/**
       - /customer/faq/public
       - /code
       - /error

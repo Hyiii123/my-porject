@@ -215,6 +215,7 @@ public class EducationPortalController extends BaseController {
     /**
      * 智能体安全代码沙箱执行端点 (Dynamic Code Sandbox Runner)
      */
+    @RequiresLogin
     @PostMapping({"/courses/sandbox/run", "/interview/sandbox/run"})
     public AjaxResult runCodeSandbox(@RequestBody com.share.education.ai.tools.sandbox.CodeExecutionRequest request) {
         if (codeSandboxTool != null) {
