@@ -175,35 +175,35 @@
               <div class="taffy-model-wrapper">
                 <!-- 预加载所有状态立绘，v-show实现零闪烁、零延迟GPU硬件切换 -->
                 <img
-                  v-show="isBargeInActive || taffyMood === 'active'"
+                  v-show="isBargeInActive || taffyMood === 'active' || taffyBlinkState"
                   src="/avatar/taffy/taffy_active.png"
                   alt="永雏塔菲-眨眼/打断"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
                 <img
-                  v-show="!isBargeInActive && taffyMood !== 'active' && (submittingAnswer || taffyMood === 'cheer')"
+                  v-show="!isBargeInActive && !taffyBlinkState && taffyMood !== 'active' && (submittingAnswer || taffyMood === 'cheer')"
                   src="/avatar/taffy/taffy_cheer.png"
                   alt="永雏塔菲-赞许鼓励"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
                 <img
-                  v-show="!isBargeInActive && !submittingAnswer && taffyMood === 'idle' && isInterviewerSpeaking && taffyMouthState === 2"
+                  v-show="!isBargeInActive && !taffyBlinkState && !submittingAnswer && taffyMood === 'idle' && isInterviewerSpeaking && taffyMouthState === 2"
                   src="/avatar/taffy/taffy_speak_full.png"
                   alt="永雏塔菲-大开口发音"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
                 <img
-                  v-show="!isBargeInActive && !submittingAnswer && taffyMood === 'idle' && isInterviewerSpeaking && taffyMouthState === 1"
+                  v-show="!isBargeInActive && !taffyBlinkState && !submittingAnswer && taffyMood === 'idle' && isInterviewerSpeaking && taffyMouthState === 1"
                   src="/avatar/taffy/taffy_speak_half.png"
                   alt="永雏塔菲-半张嘴发音"
                   class="taffy-sprite-img"
                   @error="handleTaffyImgError"
                 />
                 <img
-                  v-show="!isBargeInActive && !submittingAnswer && taffyMood === 'idle' && (!isInterviewerSpeaking || taffyMouthState === 0)"
+                  v-show="!isBargeInActive && !taffyBlinkState && !submittingAnswer && taffyMood === 'idle' && (!isInterviewerSpeaking || taffyMouthState === 0)"
                   src="/avatar/taffy/taffy_idle.png"
                   alt="永雏塔菲-静止"
                   class="taffy-sprite-img"
@@ -956,6 +956,15 @@
             <span class="chip-item" @click="sendQuickPrompt('请针对当前技术栈，向我发起一个更具挑战性的架构追问！')">
               🔥 刁钻追问
             </span>
+            <span class="chip-item" @click="sendQuickPrompt('塔菲考官，你能学个猫叫或者唱两句吗？我有点紧张！')">
+              🐱 学猫叫喵~
+            </span>
+            <span class="chip-item" @click="sendQuickPrompt('塔菲考官，手下留情，今天面试能不能稍微放点水喵~')">
+              🍉 能放水吗
+            </span>
+            <span class="chip-item" @click="sendQuickPrompt('塔菲考官，连续高强度作答有点累了，能休息30秒喝口水吗？')">
+              ☕ 歇口茶喵
+            </span>
           </div>
         </div>
 
@@ -1108,6 +1117,22 @@ const taffyChatVisible = ref(false)
 const taffyInputText = ref('')
 const isTaffyReplying = ref(false)
 const taffyMood = ref('idle') // 'idle' | 'cheer' | 'active'
+const taffyBlinkState = ref(false)
+let idleBlinkTimer = null
+
+const startIdleBlinkLoop = () => {
+  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
+  idleBlinkTimer = setInterval(() => {
+    if (!isInterviewerSpeaking.value && !isBargeInActive.value && taffyMood.value === 'idle') {
+      if (Math.random() < 0.45) {
+        taffyBlinkState.value = true
+        setTimeout(() => {
+          taffyBlinkState.value = false
+        }, 180)
+      }
+    }
+  }, 3600)
+}
 const currentSpeechText = ref('')
 const audioAutoplayBlocked = ref(false)
 const chatScrollRef = ref(null)
@@ -1142,12 +1167,14 @@ const activeSubtitleText = computed(() => {
 
 const startTaffyLipSync = () => {
   stopTaffyLipSync()
+  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
   const sequence = [1, 2, 1, 2, 0, 1, 2, 2, 1, 0, 2, 1, 0]
   let idx = 0
   taffyMouthInterval = setInterval(() => {
     if (!isInterviewerSpeaking.value) {
       taffyMouthState.value = 0
       stopTaffyLipSync()
+  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
       return
     }
     taffyMouthState.value = sequence[idx % sequence.length]
@@ -1905,6 +1932,7 @@ const stopAllTts = () => {
   }
   isInterviewerSpeaking.value = false
   stopTaffyLipSync()
+  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
   if (ttsHeartbeatInterval) {
     clearInterval(ttsHeartbeatInterval)
     ttsHeartbeatInterval = null
@@ -1987,6 +2015,7 @@ const speakBrowserSpeech = (text) => {
     if (isInterviewerSpeaking.value) {
       isInterviewerSpeaking.value = false
       stopTaffyLipSync()
+  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
     }
   }, estimatedDuration)
 
@@ -2000,6 +2029,17 @@ const speakBrowserSpeech = (text) => {
     utterance.lang = 'zh-CN'
     utterance.rate = 1.05
     utterance.pitch = selectedPersonaStyle.value === 'taffy' ? 1.28 : 1.0
+
+    utterance.onboundary = (event) => {
+      if (event.name === 'word' || event.name === 'sentence') {
+        taffyMouthState.value = 2
+        setTimeout(() => {
+          if (isInterviewerSpeaking.value && taffyMouthState.value === 2) {
+            taffyMouthState.value = 1
+          }
+        }, 90)
+      }
+    }
 
     utterance.onstart = () => {
       isInterviewerSpeaking.value = true
@@ -2019,6 +2059,7 @@ const speakBrowserSpeech = (text) => {
     utterance.onend = () => {
       isInterviewerSpeaking.value = false
       stopTaffyLipSync()
+  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
       if (speechDurationTimer) clearTimeout(speechDurationTimer)
       if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
     }
@@ -2031,6 +2072,7 @@ const speakBrowserSpeech = (text) => {
       } else {
         isInterviewerSpeaking.value = false
         stopTaffyLipSync()
+  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
         if (speechDurationTimer) clearTimeout(speechDurationTimer)
         if (ttsHeartbeatInterval) clearInterval(ttsHeartbeatInterval)
       }
@@ -2338,6 +2380,7 @@ watch(isInterviewerSpeaking, (speaking) => {
     startTaffyLipSync()
   } else {
     stopTaffyLipSync()
+  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
   }
 })
 
@@ -2366,6 +2409,7 @@ onMounted(async () => {
   await loadSession()
   initXiaoxiaoVoice()
   initCandidateMedia()
+  startIdleBlinkLoop()
 
   timerInterval = setInterval(() => {
     if (!isCompleted.value) {
@@ -2384,6 +2428,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   stopTaffyLipSync()
+  if (idleBlinkTimer) clearInterval(idleBlinkTimer)
   if (timerInterval) clearInterval(timerInterval)
   if (virtualAudioInterval) clearInterval(virtualAudioInterval)
   if (animFrameId) cancelAnimationFrame(animFrameId)
@@ -2861,6 +2906,16 @@ onBeforeUnmount(() => {
 }
 
 /* 说话时：头部语调微点头动效与律动 */
+.taffy-live-container.listening .taffy-model-wrapper {
+  animation: taffy-listening-nod 1.6s ease-in-out infinite !important;
+}
+
+@keyframes taffy-listening-nod {
+  0%, 100% { transform: translateY(0) rotate(1.2deg); }
+  35% { transform: translateY(3px) rotate(2deg); }
+  65% { transform: translateY(1px) rotate(0.8deg); }
+}
+
 .taffy-live-container.is-speaking .taffy-model-wrapper {
   animation: taffy-speaking-cadence 0.85s ease-in-out infinite !important;
 }
