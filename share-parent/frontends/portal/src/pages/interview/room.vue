@@ -826,6 +826,48 @@ const sessionData = ref({
 
 const currentAnswer = ref('')
 
+// ==================== 音视频考场与全双工打断逻辑 ====================
+const timerSeconds = ref(0)
+let timerInterval = null
+let virtualAudioInterval = null
+
+const candidateVideoRef = ref(null)
+const cameraActive = ref(true)
+const micActive = ref(true)
+let candidateStream = null
+let candidateAudioCtx = null
+let candidateAnalyser = null
+let animFrameId = null
+const audioEnergy = ref(0)
+const fftFrequencyBars = ref([4, 4, 4, 4, 4, 4, 4, 4])
+const isBargeInActive = ref(false)
+const candidateWpm = ref(0)
+let consecutiveSpeechFrames = 0
+let bargeInResetTimeout = null
+let speechStartTime = 0
+
+const isInterviewerSpeaking = ref(false)
+let currentUtterance = null
+let ttsHeartbeatInterval = null
+
+const isRecording = ref(false)
+let speechRecognitionInstance = null
+const interimTranscript = ref('')
+
+
+const hasNotifiedMicOn = ref(false)
+
+const showNotice = (msg, type = 'info') => {
+  ElMessage({
+    message: msg,
+    type,
+    grouping: true,
+    duration: 2200
+  })
+}
+
+
+
 // ==================== 腾讯会议 & 永雏塔菲 & Gemini 3.8 Flash 配置 ====================
 const selectedPersonaStyle = ref('taffy')
 const taffyMouthState = ref(0) // 0: idle, 1: half, 2: full
@@ -854,13 +896,6 @@ const stopTaffyLipSync = () => {
   taffyMouthState.value = 0
 }
 
-watch(isInterviewerSpeaking, (speaking) => {
-  if (speaking) {
-    startTaffyLipSync()
-  } else {
-    stopTaffyLipSync()
-  }
-})
 
 const handleTaffyImgError = (e) => {
   console.warn('塔菲立绘加载兜底:', e)
@@ -1108,11 +1143,6 @@ const currentPersonaMeta = computed(() => {
 // ==================== 手撕代码与沙箱评测逻辑 ====================
 const answerMode = ref('voice') // 'voice' | 'code'
 
-watch(answerMode, (newMode) => {
-  if (newMode === 'code' && isRecording.value) {
-    stopSpeechRecordingOnly()
-  }
-})
 const liveCodeLang = ref('java')
 const liveSandboxTesting = ref(false)
 const liveSandboxResult = ref(null)
@@ -1217,34 +1247,6 @@ const handleInterviewCodeSubmit = async () => {
     submittingAnswer.value = false
   }
 }
-
-// ==================== 音视频考场与全双工打断逻辑 ====================
-const timerSeconds = ref(0)
-let timerInterval = null
-let virtualAudioInterval = null
-
-const candidateVideoRef = ref(null)
-const cameraActive = ref(true)
-const micActive = ref(true)
-let candidateStream = null
-let candidateAudioCtx = null
-let candidateAnalyser = null
-let animFrameId = null
-const audioEnergy = ref(0)
-const fftFrequencyBars = ref([4, 4, 4, 4, 4, 4, 4, 4])
-const isBargeInActive = ref(false)
-const candidateWpm = ref(0)
-let consecutiveSpeechFrames = 0
-let bargeInResetTimeout = null
-let speechStartTime = 0
-
-const isInterviewerSpeaking = ref(false)
-let currentUtterance = null
-let ttsHeartbeatInterval = null
-
-const isRecording = ref(false)
-let speechRecognitionInstance = null
-const interimTranscript = ref('')
 
 const currentTurn = computed(() => {
   const turns = sessionData.value.turns || []
@@ -1700,17 +1702,6 @@ const previewXiaoxiaoVoice = () => {
 }
 
 // ==================== 语音识别 ASR 引擎 ====================
-const hasNotifiedMicOn = ref(false)
-
-const showNotice = (msg, type = 'info') => {
-  ElMessage({
-    message: msg,
-    type,
-    grouping: true,
-    duration: 2200
-  })
-}
-
 const startSpeechRecording = () => {
   if (isInterviewerSpeaking.value) {
     window.speechSynthesis.cancel()
@@ -1904,6 +1895,21 @@ const handleFinishInterview = () => {
 }
 
 // ==================== 生命周期钩子 ====================
+watch(isInterviewerSpeaking, (speaking) => {
+  if (speaking) {
+    startTaffyLipSync()
+  } else {
+    stopTaffyLipSync()
+  }
+})
+
+watch(answerMode, (newMode) => {
+  if (newMode === 'code' && isRecording.value) {
+    stopSpeechRecordingOnly()
+  }
+})
+
+
 onMounted(async () => {
   const savedCfg = localStorage.getItem('interview_gemini_config')
   if (savedCfg) {
