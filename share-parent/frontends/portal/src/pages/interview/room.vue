@@ -1003,11 +1003,11 @@
             <div class="btn-group">
               <el-button
                 size="small"
-                :type="isRecording ? 'danger' : 'default'"
-                @click="toggleSpeechRecording"
-                title="开启语音输入"
+                :type="isTaffyVoiceListening ? 'danger' : 'default'"
+                @click="toggleTaffyChatVoice"
+                title="语音与塔菲自然对谈"
               >
-                {{ isRecording ? '⏹️ 停止收音' : '🎙️ 语音输入' }}
+                {{ isTaffyVoiceListening ? '⏹️ 识别中...' : '🎙️ 语音提问' }}
               </el-button>
               <el-button
                 type="primary"
@@ -1235,6 +1235,66 @@ const sendQuickPrompt = (prompt) => {
   talkToTaffy(prompt)
 }
 
+const isTaffyVoiceListening = ref(false)
+let taffySpeechRec = null
+
+const toggleTaffyChatVoice = () => {
+  if (isTaffyVoiceListening.value) {
+    if (taffySpeechRec) {
+      try { taffySpeechRec.stop() } catch (e) {}
+    }
+    isTaffyVoiceListening.value = false
+    return
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  if (!SpeechRecognition) {
+    ElMessage.warning('当前浏览器暂未支持语音识别，请直接键入文本交流')
+    return
+  }
+
+  try {
+    const rec = new SpeechRecognition()
+    rec.lang = 'zh-CN'
+    rec.continuous = false
+    rec.interimResults = true
+
+    rec.onstart = () => {
+      isTaffyVoiceListening.value = true
+      ElMessage.info('🎙️ 塔菲正在听你说话，请讲...')
+    }
+
+    rec.onresult = (e) => {
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          taffyInputText.value = (taffyInputText.value + e.results[i][0].transcript).trim()
+        } else {
+          interim += e.results[i][0].transcript
+        }
+      }
+    }
+
+    rec.onend = () => {
+      isTaffyVoiceListening.value = false
+      if (taffyInputText.value && taffyInputText.value.trim()) {
+        handleSendTaffyMessage()
+      }
+    }
+
+    rec.onerror = (e) => {
+      console.warn('塔菲对谈语音识别异常:', e)
+      isTaffyVoiceListening.value = false
+    }
+
+    taffySpeechRec = rec
+    rec.start()
+  } catch (err) {
+    console.warn('启动语音识别失败:', err)
+    isTaffyVoiceListening.value = false
+  }
+}
+
 const handleSendTaffyMessage = () => {
   if (!taffyInputText.value || !taffyInputText.value.trim() || isTaffyReplying.value) return
   const text = taffyInputText.value
@@ -1321,8 +1381,37 @@ const talkToTaffy = async (userPrompt) => {
     currentSpeechText.value = reply
     speakQuestionText(reply)
   } catch (err) {
-    console.warn('Gemini 对话失败:', err)
-    const fallbackReply = '本考官听清楚啦！这道题关键在于时空复杂度的权衡，不妨先从哈希表缓存或者双指针想一想喵~'
+    console.warn('Gemini 实时流异常，启用塔菲智能人格引擎:', err)
+    let fallbackReply = '本考官听清楚啦！这道题关键在于时空复杂度的权衡，不妨先从哈希表缓存或者双指针想一想喵~'
+    const qLower = cleanPrompt.toLowerCase()
+    if (qLower.includes('夸') || qLower.includes('棒') || qLower.includes('怎么样')) {
+      taffyMood.value = 'cheer'
+      setTimeout(() => { if (taffyMood.value === 'cheer') taffyMood.value = 'idle' }, 4000)
+      fallbackReply = '哇！刚才这一段答得逻辑清晰、架构层次分明，本考官听得超级带劲喵~！继续保持，大厂Offer手到擒来喵！'
+    } else if (qLower.includes('介绍') || qLower.includes('谁')) {
+      taffyMood.value = 'cheer'
+      setTimeout(() => { if (taffyMood.value === 'cheer') taffyMood.value = 'idle' }, 4000)
+      fallbackReply = '哼哼~ 听好啦！我是B站超人气二次元主播永雏塔菲喵！今天担任智问学伴特约AI考官，虽然我很萌，但技术深挖可是货真价实的哦~'
+    } else if (qLower.includes('猫') || qLower.includes('叫') || qLower.includes('唱')) {
+      taffyMood.value = 'active'
+      setTimeout(() => { if (taffyMood.value === 'active') taffyMood.value = 'idle' }, 3000)
+      fallbackReply = '喵呜~！笨蛋！这可是在严肃的技术面试呀，居然让主考官学猫叫！不过看在你这么可爱的份上就原谅你啦，快快集中精神答题喵！'
+    } else if (qLower.includes('放水') || qLower.includes('手下留情')) {
+      taffyMood.value = 'active'
+      setTimeout(() => { if (taffyMood.value === 'active') taffyMood.value = 'idle' }, 3000)
+      fallbackReply = '想让塔菲放水？门都没有喵！本考官可是出了名的原则坚定~ 拿出你的真正技术实力来征服我吧！'
+    } else if (qLower.includes('茶') || qLower.includes('水') || qLower.includes('歇') || qLower.includes('累') || qLower.includes('休息')) {
+      taffyMood.value = 'cheer'
+      setTimeout(() => { if (taffyMood.value === 'cheer') taffyMood.value = 'idle' }, 4000)
+      fallbackReply = '没问题喵~ 连续技术深挖确实消耗脑力，深呼吸喝口水，休息30秒咱们再继续火力全开！'
+    } else if (qLower.includes('边界') || qLower.includes('坑') || qLower.includes('并发')) {
+      fallbackReply = '注意高并发穿透、空指针、整数溢出与分布式死锁！如果上游网络瞬时重试，你的接口能保证绝对幂等吗喵？'
+    } else if (qLower.includes('追问') || qLower.includes('挑战') || qLower.includes('刁钻')) {
+      fallbackReply = '哼哼，既然你主动求虐，那接招吧：如果当前单表数据量突增至3亿，且要求P99延迟低于15ms，你会如何设计二级缓存和分库分表策略喵？'
+    } else if (qLower.includes('思路') || qLower.includes('提示') || qLower.includes('启发')) {
+      fallbackReply = '嘿嘿，提示来咯！先从数据结构的边界特征切入，看看有没有重复计算可以被哈希表或滑动窗口消除，理清主脉络喵~'
+    }
+
     taffyChatMessages.value.push({
       role: 'taffy',
       content: fallbackReply
